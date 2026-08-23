@@ -1,4 +1,13 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
+
+@theme {
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+body {
+  font-family: var(--font-sans, 'Plus Jakarta Sans', sans-serif);
+}
 
 /* Bật dark mode theo class `.dark` trên <html> (Tailwind v4 mặc định chỉ theo
    prefers-color-scheme của hệ điều hành) — dùng cho lựa chọn Sáng/Tối trong

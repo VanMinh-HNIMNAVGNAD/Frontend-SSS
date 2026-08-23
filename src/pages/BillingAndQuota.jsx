@@ -115,12 +115,9 @@ export default function BillingAndQuota() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
           <div className="flex items-center gap-4 min-w-0">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-md shrink-0">
-              <CreditCard className="w-6 h-6" />
-            </div>
+            
             <div className="min-w-0 flex flex-col justify-center">
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 truncate tracking-tight">Quản lý Dịch vụ</h1>
-              <p className="text-sm sm:text-base text-gray-500 mt-1 truncate">Kiểm soát dung lượng & gói cước của bạn</p>
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 truncate tracking-tight">Quản lý dung lượng lưu trữ</h1>
             </div>
           </div>
 

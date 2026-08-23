@@ -13,8 +13,6 @@ import {
   Trash2,
   CreditCard,
   Cloud,
-  Sparkles,
-  ShieldCheck,
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -32,7 +30,15 @@ export default function Sidebar() {
     return 'bg-gradient-to-r from-blue-500 via-teal-400 to-emerald-500';
   };
 
-  const NavItem = ({ id, label, icon: Icon, badge, badgeColor = 'bg-gray-200 text-gray-700' }) => {
+  const NavItem = ({
+    id,
+    label,
+    icon: Icon,
+    badge,
+    badgeColor = 'bg-gray-200 text-gray-700',
+    hoverColor = 'group-hover:text-blue-600',
+    activeColor = 'text-blue-600',
+  }) => {
     const isActive = activeTab === id;
 
     return (
@@ -44,8 +50,8 @@ export default function Sidebar() {
         } ${isActive ? 'bg-[#c2e7ff] text-[#001d35] font-semibold' : 'text-[#444746] hover:bg-[#e1e5ea]'}`}
       >
         <Icon
-          className={`w-5 h-5 shrink-0 transition-transform group-hover:scale-105 ${
-            isActive ? 'text-[#0b57d0]' : 'text-gray-600'
+          className={`w-5 h-5 shrink-0 transition-colors duration-150 ${
+            isActive ? activeColor : `text-gray-500 ${hoverColor}`
           }`}
         />
 
@@ -84,21 +90,21 @@ export default function Sidebar() {
 
         {/* DANH SÁCH MENU SIDEBAR */}
         <nav className="flex-1 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
-          <NavItem id="home" label="Trang chủ" icon={Home} />
-          <NavItem id="my-drive" label="Driver riêng của tôi" icon={HardDrive} />
-          <NavItem id="shared-drives" label="Bộ nhớ dùng chung" icon={FolderGit2} />
-          <NavItem id="shared-with-me" label="Driver được chia sẻ với tôi" icon={Users} />
-          <NavItem id="recent" label="Đã mở gần đây" icon={Clock} />
-          <NavItem id="starred" label="Mục được đánh dấu" icon={Star} />
+          <NavItem id="home" label="Trang chủ" icon={Home} hoverColor="group-hover:text-blue-600" activeColor="text-blue-600" />
+          <NavItem id="my-drive" label="Driver riêng của tôi" icon={HardDrive} hoverColor="group-hover:text-emerald-600" activeColor="text-emerald-600" />
+          <NavItem id="shared-drives" label="Bộ nhớ dùng chung" icon={FolderGit2} hoverColor="group-hover:text-indigo-600" activeColor="text-indigo-600" />
+          <NavItem id="shared-with-me" label="Driver được chia sẻ với tôi" icon={Users} hoverColor="group-hover:text-teal-600" activeColor="text-teal-600" />
+          <NavItem id="recent" label="Đã mở gần đây" icon={Clock} hoverColor="group-hover:text-amber-500" activeColor="text-amber-500" />
+          <NavItem id="starred" label="Mục được đánh dấu" icon={Star} hoverColor="group-hover:text-yellow-500" activeColor="text-yellow-500" />
 
           <div className="my-2 border-t border-gray-200/60" />
 
-          <NavItem id="spam" label="Nội dung rác" icon={ShieldAlert} badge={spamCount} badgeColor="bg-amber-100 text-amber-800" />
-          <NavItem id="trash" label="Thùng rác" icon={Trash2} badge={trashCount} />
+          <NavItem id="spam" label="Nội dung rác" icon={ShieldAlert} badge={spamCount} badgeColor="bg-amber-100 text-amber-800" hoverColor="group-hover:text-orange-600" activeColor="text-orange-600" />
+          <NavItem id="trash" label="Thùng rác" icon={Trash2} badge={trashCount} hoverColor="group-hover:text-rose-600" activeColor="text-rose-600" />
 
           <div className="my-2 border-t border-gray-200/60" />
 
-          <NavItem id="billing" label="Billing & Mua bộ nhớ" icon={CreditCard} />
+          <NavItem id="billing" label="Billing & Mua bộ nhớ" icon={CreditCard} hoverColor="group-hover:text-purple-600" activeColor="text-purple-600" />
         </nav>
 
         {/* KHỐI THANH LƯU TRỮ DYNAMIC COLOR */}
@@ -149,11 +155,10 @@ export default function Sidebar() {
                 </button>
                 <button
                   onClick={() => setIsCleanupOpen(true)}
-                  className="py-1.5 px-2.5 border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-full text-xs font-bold transition-colors flex items-center gap-1 shrink-0"
+                  className="py-1.5 px-3 border border-gray-300 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-full text-xs font-semibold transition-colors shrink-0"
                   title="Dọn dẹp bộ nhớ ngay"
                 >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>Dọn dẹp</span>
+                  Dọn dẹp
                 </button>
               </div>
             </div>

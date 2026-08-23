@@ -4,16 +4,11 @@ import {
   Settings,
   Shield,
   Keyboard,
-  Info,
   Sun,
   Moon,
   Laptop,
   Lock,
-  Smartphone,
-  ExternalLink,
   MessageSquare,
-  BookOpen,
-  Check,
   Key,
 } from 'lucide-react';
 
@@ -66,22 +61,6 @@ export default function SettingsModal({ isOpen, onClose }) {
   const [discoverableByEmail, setDiscoverableByEmail] = useState(true);
   const [defaultShareRole, setDefaultShareRole] = useState('VIEWER'); // 'VIEWER' | 'EDITOR'
   const [twoFactorAuth, setTwoFactorAuth] = useState(false);
-  const [sessions, setSessions] = useState([
-    {
-      id: 's1',
-      device: 'Windows 11 PC • Chrome Browser',
-      location: 'Hà Nội, Việt Nam',
-      isCurrent: true,
-      time: 'Đang hoạt động',
-    },
-    {
-      id: 's2',
-      device: 'iPhone 15 Pro • driveR Mobile App',
-      location: 'Hồ Chí Minh, Việt Nam',
-      isCurrent: false,
-      time: '2 ngày trước',
-    },
-  ]);
 
   // Keyboard Shortcuts State — mặc định bật nếu chưa từng lưu
   const [shortcutsEnabled, setShortcutsEnabled] = useState(
@@ -140,11 +119,6 @@ export default function SettingsModal({ isOpen, onClose }) {
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
-
-  const handleLogoutOtherSessions = () => {
-    setSessions((prev) => prev.filter((s) => s.isCurrent));
-    alert('✅ Đã đăng xuất thành công khỏi tất cả các thiết bị khác!');
-  };
 
   const handleSendFeedback = () => {
     if (!feedbackText.trim()) return;
@@ -236,39 +210,42 @@ export default function SettingsModal({ isOpen, onClose }) {
                   </h3>
                   <div className="grid grid-cols-3 gap-3">
                     <button
+                      type="button"
                       onClick={() => handleChangeTheme('light')}
-                      className={`flex flex-col items-center gap-2 p-3 rounded-2xl border text-xs font-semibold transition-all ${
+                      title="Chế độ sáng (Light)"
+                      className={`flex items-center justify-center py-3 rounded-2xl border transition-all cursor-pointer ${
                         theme === 'light'
-                          ? 'border-blue-600 bg-blue-50/50 text-blue-600'
-                          : 'border-gray-200 hover:bg-gray-50 text-gray-700'
+                          ? 'border-blue-600 bg-blue-50/50 text-blue-600 shadow-xs'
+                          : 'border-gray-200 hover:bg-gray-50 text-gray-600'
                       }`}
                     >
                       <Sun className="w-5 h-5 text-amber-500" />
-                      <span>Sáng (Light)</span>
                     </button>
 
                     <button
+                      type="button"
                       onClick={() => handleChangeTheme('dark')}
-                      className={`flex flex-col items-center gap-2 p-3 rounded-2xl border text-xs font-semibold transition-all ${
+                      title="Chế độ tối (Dark)"
+                      className={`flex items-center justify-center py-3 rounded-2xl border transition-all cursor-pointer ${
                         theme === 'dark'
-                          ? 'border-blue-600 bg-blue-50/50 text-blue-600'
-                          : 'border-gray-200 hover:bg-gray-50 text-gray-700'
+                          ? 'border-blue-600 bg-blue-50/50 text-blue-600 shadow-xs'
+                          : 'border-gray-200 hover:bg-gray-50 text-gray-600'
                       }`}
                     >
                       <Moon className="w-5 h-5 text-indigo-500" />
-                      <span>Tối (Dark)</span>
                     </button>
 
                     <button
+                      type="button"
                       onClick={() => handleChangeTheme('system')}
-                      className={`flex flex-col items-center gap-2 p-3 rounded-2xl border text-xs font-semibold transition-all ${
+                      title="Theo hệ thống (System)"
+                      className={`flex items-center justify-center py-3 rounded-2xl border transition-all cursor-pointer ${
                         theme === 'system'
-                          ? 'border-blue-600 bg-blue-50/50 text-blue-600'
-                          : 'border-gray-200 hover:bg-gray-50 text-gray-700'
+                          ? 'border-blue-600 bg-blue-50/50 text-blue-600 shadow-xs'
+                          : 'border-gray-200 hover:bg-gray-50 text-gray-600'
                       }`}
                     >
                       <Laptop className="w-5 h-5 text-slate-500" />
-                      <span>Theo hệ thống</span>
                     </button>
                   </div>
                 </div>
@@ -364,42 +341,6 @@ export default function SettingsModal({ isOpen, onClose }) {
                       <option value="VIEWER">👀 Chỉ xem (Viewer)</option>
                       <option value="EDITOR">✏️ Được chỉnh sửa (Editor)</option>
                     </select>
-                  </div>
-                </div>
-
-                {/* Quản lý phiên đăng nhập */}
-                <div className="pt-2 border-t border-gray-100">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider">
-                      Các thiết bị đang đăng nhập
-                    </h3>
-                    {sessions.length > 1 && (
-                      <button
-                        onClick={handleLogoutOtherSessions}
-                        className="text-xs font-bold text-red-600 hover:underline"
-                      >
-                        Đăng xuất khỏi thiết bị khác
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    {sessions.map((sess) => (
-                      <div
-                        key={sess.id}
-                        className="flex items-center justify-between p-3 border border-gray-200 rounded-xl text-xs"
-                      >
-                        <div className="flex items-center gap-3">
-                          <Smartphone className="w-4 h-4 text-blue-600 shrink-0" />
-                          <div>
-                            <div className="font-bold text-gray-900">
-                              {sess.device} {sess.isCurrent && <span className="text-emerald-600 font-semibold">(Thiết bị này)</span>}
-                            </div>
-                            <div className="text-[11px] text-gray-500">{sess.location} • {sess.time}</div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
                   </div>
                 </div>
 

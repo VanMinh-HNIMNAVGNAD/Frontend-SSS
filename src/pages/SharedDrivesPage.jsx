@@ -1,8 +1,26 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useFiles } from '../context/FileContext';
+import { useAuth } from '../context/AuthContext';
 import FileListView from '../components/file-manager/FileListView';
 import FileGridView from '../components/file-manager/FileGridView';
-import { FolderGit2, List, LayoutGrid, Plus, Users, ArrowLeft, X } from 'lucide-react';
+import ContextMenu from '../components/file-manager/ContextMenu';
+import ShareDriveModal from '../components/file-manager/ShareDriveModal';
+import Modal from '../components/common/Modal';
+import toast from 'react-hot-toast';
+import {
+    FolderGit2,
+    List,
+    LayoutGrid,
+    Plus,
+    Users,
+    ArrowLeft,
+    X,
+    MoreVertical,
+    Share2,
+    Star,
+    AlertTriangle,
+    Loader2,
+} from 'lucide-react';
 import { sharedDrivesApi } from '../services/api';
 
 export default function SharedDrivesPage() {
@@ -14,6 +32,7 @@ export default function SharedDrivesPage() {
         currentSharedDriveId,
         setCurrentSharedDriveId,
     } = useFiles();
+    const { user } = useAuth();
     
     const [drives, setDrives] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -25,23 +44,51 @@ export default function SharedDrivesPage() {
     const [newDriveDesc, setNewDriveDesc] = useState('');
     const [isCreating, setIsCreating] = useState(false);
 
-    useEffect(() => {
-        if (!currentSharedDriveId && !currentFolderId) {
-            loadDrives();
-        }
-    }, [currentSharedDriveId, currentFolderId]);
+    // Menu 3 chấm / right-click trên thẻ drive
+    const [contextMenu, setContextMenu] = useState({ isOpen: false, x: 0, y: 0, drive: null });
 
-    const loadDrives = async () => {
-        try {
-            setLoading(true);
-            const res = await sharedDrivesApi.getAll();
-            setDrives(res || []);
-        } catch (err) {
-            setError(err.message || 'Lỗi khi tải danh sách bộ nhớ dùng chung');
-        } finally {
-            setLoading(false);
-        }
-    };
+    // Các modal thao tác trên một drive
+    const [shareTarget, setShareTarget] = useState(null);
+    const [renameTarget, setRenameTarget] = useState(null);
+    const [renameName, setRenameName] = useState('');
+    const [renameDesc, setRenameDesc] = useState('');
+    const [isSavingRename, setIsSavingRename] = useState(false);
+    const [deleteTarget, setDeleteTarget] = useState(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    // Nạp lại danh sách sau mỗi thao tác. KHÔNG gọi thẳng một hàm setState từ thân
+    // effect (cascading render — `react-hooks/set-state-in-effect`): thao tác chỉ tăng
+    // `reloadToken`, còn việc gọi API nằm gọn trong effect bên dưới.
+    const [reloadToken, setReloadToken] = useState(0);
+    const reloadDrives = useCallback(() => setReloadToken((n) => n + 1), []);
+
+    useEffect(() => {
+        // Đang ở trong một drive/thư mục thì màn hình này không hiển thị danh sách
+        if (currentSharedDriveId || currentFolderId) return;
+
+        // Chặn setState của một request đã cũ (đổi trang / nạp lại liên tiếp) ghi đè
+        // lên kết quả mới hơn
+        let cancelled = false;
+
+        (async () => {
+            try {
+                const res = await sharedDrivesApi.getAll();
+                if (cancelled) return;
+                setDrives(res || []);
+                setError(null);
+            } catch (err) {
+                if (cancelled) return;
+                setError(err.message || 'Lỗi khi tải danh sách bộ nhớ dùng chung');
+            } finally {
+                // `loading` khởi tạo `true` nên chỉ lần tải đầu có spinner toàn trang;
+                // các lần nạp lại sau thay dữ liệu tại chỗ, mỗi thao tác đã có cờ bận
+                // riêng (`isCreating`, `isSavingRename`, `isDeleting`).
+                if (!cancelled) setLoading(false);
+            }
+        })();
+
+        return () => { cancelled = true; };
+    }, [currentSharedDriveId, currentFolderId, reloadToken]);
 
     const handleCreateDrive = async (e) => {
         e.preventDefault();
@@ -52,7 +99,7 @@ export default function SharedDrivesPage() {
             setIsCreateModalOpen(false);
             setNewDriveName('');
             setNewDriveDesc('');
-            loadDrives();
+            reloadDrives();
         } catch (err) {
             alert('Lỗi tạo bộ nhớ chung: ' + err.message);
         } finally {
@@ -60,11 +107,107 @@ export default function SharedDrivesPage() {
         }
     };
 
+    // Chặn menu mặc định của trình duyệt trên nền trang và trên thẻ drive, NHƯNG
+    // vẫn để nguyên menu hệ thống bên trong ô nhập liệu: mọi modal (tạo / đổi tên /
+    // xóa / chia sẻ) đều render lồng bên trong div này, chặn hết thì không chuột phải
+    // để dán email hay sửa tên drive được nữa.
+    const suppressNativeMenu = useCallback((e) => {
+        if (e.target?.closest?.('input, textarea, [contenteditable="true"]')) return;
+        e.preventDefault();
+    }, []);
+
+    // ── Thao tác trên thẻ drive ──────────────────────────────────────────
+
+    // Cả nút 3 chấm và right-click đều đi qua đây → cùng một menu
+    const openDriveMenu = useCallback((e, drive) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setContextMenu({
+            isOpen: true,
+            x: e.clientX,
+            y: e.clientY,
+            // `canDelete`: backend chỉ cho người TẠO drive xóa (chặt hơn "mọi ADMIN")
+            drive: { ...drive, canDelete: drive.createdBy === user?.id },
+        });
+    }, [user?.id]);
+
+    const closeDriveMenu = useCallback(() => {
+        setContextMenu({ isOpen: false, x: 0, y: 0, drive: null });
+    }, []);
+
+    const handleToggleStar = useCallback(async (drive) => {
+        try {
+            const res = await sharedDrivesApi.toggleStar(drive.id);
+            setDrives((prev) => prev.map((d) => (
+                d.id === drive.id ? { ...d, isStarred: res.isStarred } : d
+            )));
+            toast.success(res.isStarred ? 'Đã thêm vào mục gắn sao' : 'Đã bỏ khỏi mục gắn sao');
+        } catch (err) {
+            toast.error(err.message || 'Không cập nhật được dấu sao');
+        }
+    }, []);
+
+    // Không copy được LINK vì router không có deep-link tới từng drive
+    // (`/app/shared-drives` mở danh sách, drive đang chọn nằm trong context state).
+    // Nên sao chép TÊN drive — thứ duy nhất copy ra mà vẫn còn nghĩa.
+    const handleCopyName = useCallback(async (drive) => {
+        try {
+            await navigator.clipboard.writeText(drive.name);
+            toast.success('Đã sao chép tên bộ nhớ dùng chung');
+        } catch {
+            toast.error('Trình duyệt không cho phép truy cập clipboard');
+        }
+    }, []);
+
+    const openRenameModal = useCallback((drive) => {
+        setRenameTarget(drive);
+        setRenameName(drive.name || '');
+        setRenameDesc(drive.description || '');
+    }, []);
+
+    const handleRenameSubmit = async (e) => {
+        e.preventDefault();
+        if (!renameTarget || !renameName.trim()) return;
+        try {
+            setIsSavingRename(true);
+            await sharedDrivesApi.update(renameTarget.id, {
+                name: renameName.trim(),
+                description: renameDesc,
+            });
+            setRenameTarget(null);
+            toast.success('Đã cập nhật bộ nhớ dùng chung');
+            reloadDrives();
+        } catch (err) {
+            toast.error(err.message || 'Không cập nhật được bộ nhớ dùng chung');
+        } finally {
+            setIsSavingRename(false);
+        }
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!deleteTarget) return;
+        try {
+            setIsDeleting(true);
+            const res = await sharedDrivesApi.remove(deleteTarget.id);
+            setDeleteTarget(null);
+            toast.success(
+                res?.deletedItems
+                    ? `Đã xóa bộ nhớ dùng chung và ${res.deletedItems} mục bên trong`
+                    : 'Đã xóa bộ nhớ dùng chung',
+            );
+            reloadDrives();
+        } catch (err) {
+            toast.error(err.message || 'Không xóa được bộ nhớ dùng chung');
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
     // If we are inside a specific Shared Drive or folder, show the files view
     if (currentSharedDriveId || currentFolderId) {
         const currentDrive = drives.find((d) => d.id === currentSharedDriveId);
         return (
-            <div className="flex flex-col h-full" onContextMenu={(e) => e.preventDefault()}>
+            <div className="flex flex-col h-full" onContextMenu={suppressNativeMenu}>
                 <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-100">
                     <div className="flex items-center gap-3">
                         <button 
@@ -132,7 +275,7 @@ export default function SharedDrivesPage() {
 
     // Default view: list of shared drives
     return (
-        <div className="flex flex-col h-full overflow-y-auto pr-2 pb-12" onContextMenu={(e) => e.preventDefault()}>
+        <div className="flex flex-col h-full overflow-y-auto pr-2 pb-12" onContextMenu={suppressNativeMenu}>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-gray-100">
                 <div className="flex items-start sm:items-center gap-3.5">
                     <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 shadow-2xs">
@@ -192,15 +335,46 @@ export default function SharedDrivesPage() {
                                 setCurrentSharedDriveId(drive.id);
                                 setCurrentFolderId(null);
                             }}
+                            onContextMenu={(e) => openDriveMenu(e, drive)}
                             className="p-5 border border-gray-200 rounded-3xl hover:border-indigo-300 hover:shadow-md transition-all cursor-pointer bg-white group flex flex-col"
                         >
                             <div className="flex items-start justify-between mb-4">
                                 <div className="w-12 h-12 rounded-2xl bg-indigo-50/80 text-indigo-600 flex items-center justify-center group-hover:scale-105 transition-transform">
                                     <FolderGit2 className="w-6 h-6" />
                                 </div>
-                                <span className="px-2.5 py-1 bg-gray-100 text-gray-600 text-[10px] font-extrabold rounded-full uppercase tracking-wider">
-                                    {drive.userRole}
-                                </span>
+
+                                <div className="flex items-center gap-1 shrink-0">
+                                    <span className="px-2.5 py-1 bg-gray-100 text-gray-600 text-[10px] font-extrabold rounded-full uppercase tracking-wider">
+                                        {drive.userRole}
+                                    </span>
+
+                                    {/* Gắn sao — hiện luôn để thấy được trạng thái, không cần mở menu */}
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); handleToggleStar(drive); }}
+                                        title={drive.isStarred ? 'Bỏ khỏi mục gắn sao' : 'Thêm vào mục gắn sao'}
+                                        className="p-1.5 text-gray-400 hover:text-amber-500 rounded-full hover:bg-amber-50 transition-colors"
+                                    >
+                                        <Star className={`w-4 h-4 ${drive.isStarred ? 'fill-amber-400 text-amber-500' : ''}`} />
+                                    </button>
+
+                                    {/* Share nhanh — mở thẳng modal quản lý thành viên */}
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); setShareTarget(drive); }}
+                                        title="Chia sẻ & quản lý thành viên"
+                                        className="p-1.5 text-gray-400 hover:text-indigo-600 rounded-full hover:bg-indigo-50 transition-colors"
+                                    >
+                                        <Share2 className="w-4 h-4" />
+                                    </button>
+
+                                    {/* 3 chấm — cùng menu với right-click */}
+                                    <button
+                                        onClick={(e) => openDriveMenu(e, drive)}
+                                        title="Tùy chọn khác"
+                                        className="p-1.5 text-gray-400 hover:text-gray-700 rounded-full hover:bg-gray-100 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                    >
+                                        <MoreVertical className="w-4 h-4" />
+                                    </button>
+                                </div>
                             </div>
                             <h3 className="font-bold text-gray-900 text-[15px] mb-1.5 truncate group-hover:text-indigo-700 transition-colors">{drive.name}</h3>
                             <p className="text-xs text-gray-500 line-clamp-2 flex-1 mb-4 leading-relaxed">
@@ -214,6 +388,21 @@ export default function SharedDrivesPage() {
                     ))}
                 </div>
             )}
+
+            {/* Menu thao tác của thẻ drive (3 chấm & right-click dùng chung) */}
+            <ContextMenu
+                isOpen={contextMenu.isOpen}
+                variant="drive"
+                x={contextMenu.x}
+                y={contextMenu.y}
+                item={contextMenu.drive}
+                onClose={closeDriveMenu}
+                onRename={openRenameModal}
+                onToggleStar={handleToggleStar}
+                onCopy={handleCopyName}
+                onShare={(drive) => setShareTarget(drive)}
+                onDeletePermanently={(drive) => setDeleteTarget(drive)}
+            />
 
             {/* Create Modal */}
             {isCreateModalOpen && (
@@ -279,6 +468,119 @@ export default function SharedDrivesPage() {
                         </form>
                     </div>
                 </div>
+            )}
+
+            {/* Đổi tên & mô tả — modal riêng vì `RenameModal` dùng chung hard-code chữ
+                "tệp/thư mục" và chỉ sửa được tên, không sửa được mô tả */}
+            {renameTarget && (
+            <Modal
+                isOpen
+                onClose={() => setRenameTarget(null)}
+                title="Đổi tên Bộ nhớ dùng chung"
+                maxWidth="max-w-md"
+            >
+                <form onSubmit={handleRenameSubmit} className="space-y-4">
+                    <div>
+                        <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider">
+                            Tên bộ nhớ nhóm <span className="text-rose-500">*</span>
+                        </label>
+                        <input
+                            type="text"
+                            required
+                            autoFocus
+                            value={renameName}
+                            onChange={(e) => setRenameName(e.target.value)}
+                            className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider">
+                            Mô tả
+                        </label>
+                        <textarea
+                            value={renameDesc}
+                            onChange={(e) => setRenameDesc(e.target.value)}
+                            rows={3}
+                            placeholder="Mô tả mục đích sử dụng hoặc phòng ban quản lý bộ nhớ này..."
+                            className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all resize-none font-medium placeholder:font-normal"
+                        />
+                    </div>
+                    <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-100">
+                        <button
+                            type="button"
+                            onClick={() => setRenameTarget(null)}
+                            className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+                        >
+                            Hủy
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={!renameName.trim() || isSavingRename}
+                            className="px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-all shadow-sm flex items-center gap-2 cursor-pointer"
+                        >
+                            {isSavingRename && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                            Lưu thay đổi
+                        </button>
+                    </div>
+                </form>
+            </Modal>
+            )}
+
+            {/* Xác nhận xóa drive — hành động KHÔNG hoàn tác được và kéo theo mọi nội dung bên trong */}
+            {deleteTarget && (
+            <Modal
+                isOpen
+                onClose={() => setDeleteTarget(null)}
+                title="Xóa Bộ nhớ dùng chung?"
+                maxWidth="max-w-md"
+            >
+                <div className="space-y-4">
+                    <div className="flex gap-3 p-3.5 rounded-2xl bg-rose-50 border border-rose-200">
+                        <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+                        <div className="text-[13px] text-rose-900 leading-relaxed">
+                            <p className="font-bold mb-1">Hành động này không thể hoàn tác.</p>
+                            <p>
+                                Toàn bộ <strong>{deleteTarget?.itemCount ?? 0} tệp/thư mục</strong> bên trong
+                                {' '}<strong>&quot;{deleteTarget?.name}&quot;</strong> sẽ bị xóa vĩnh viễn, kể cả
+                                tệp do các thành viên khác tải lên. Chúng KHÔNG vào thùng rác.
+                            </p>
+                        </div>
+                    </div>
+
+                    <p className="text-xs text-slate-500 leading-relaxed">
+                        Mọi thành viên cũng sẽ mất quyền truy cập ngay lập tức.
+                    </p>
+
+                    <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-100">
+                        <button
+                            type="button"
+                            onClick={() => setDeleteTarget(null)}
+                            className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+                        >
+                            Hủy
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleConfirmDelete}
+                            disabled={isDeleting}
+                            className="px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-all shadow-sm flex items-center gap-2 cursor-pointer"
+                        >
+                            {isDeleting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                            Xóa vĩnh viễn
+                        </button>
+                    </div>
+                </div>
+            </Modal>
+            )}
+
+            {/* Chia sẻ drive = quản lý `shared_drive_members` (KHÔNG phải `file_shares`) */}
+            {shareTarget && (
+            <ShareDriveModal
+                isOpen
+                drive={shareTarget}
+                onClose={() => setShareTarget(null)}
+                onChanged={reloadDrives}
+            />
             )}
         </div>
     );

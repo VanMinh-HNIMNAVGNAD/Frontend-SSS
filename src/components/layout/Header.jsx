@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { useFiles } from '../../context/FileContext';
 import { filesApi } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -12,11 +12,6 @@ import {
     Search, 
     SlidersHorizontal, 
     Settings, 
-    Grid, 
-    HardDrive, 
-    Mail, 
-    Image as ImageIcon, 
-    Globe,
     Trash2,
     RotateCcw,
     X,
@@ -59,21 +54,7 @@ export default function Header({ toggleRightSidebar }) {
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isAccountOpen, setIsAccountOpen] = useState(false);
-    const [isAppsMenuOpen, setIsAppsMenuOpen] = useState(false);
     const [isActivityLogOpen, setIsActivityLogOpen] = useState(false);
-
-    const appsMenuRef = useRef(null);
-
-    // Close apps dropdown on outside click
-    useEffect(() => {
-        const handleClickOutside = (e) => {
-            if (appsMenuRef.current && !appsMenuRef.current.contains(e.target)) {
-                setIsAppsMenuOpen(false);
-            }
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
 
     const handleLogoClick = () => {
         navigate('/app/home');
@@ -340,70 +321,7 @@ export default function Header({ toggleRightSidebar }) {
             {/* CÀI ĐẶT + ỨNG DỤNG HỆ SINH THÁI + THÔNG TIN TÀI KHOẢN */}
             <div className="flex items-center gap-1.5 shrink-0 relative">
                 
-                {/* Google Apps Switcher Waffle Menu (9 Dots Icon) */}
-                <div className="relative" ref={appsMenuRef}>
-                    <button
-                        onClick={() => setIsAppsMenuOpen(!isAppsMenuOpen)}
-                        title="Các ứng dụng driveR & Landing Page"
-                        className={`p-2.5 rounded-full transition-colors cursor-pointer ${
-                            isAppsMenuOpen ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-100'
-                        }`}
-                    >
-                        <Grid className="w-5 h-5" />
-                    </button>
 
-                    {/* Apps & Ecosystem Dropdown */}
-                    {isAppsMenuOpen && (
-                        <div className="absolute right-0 top-12 z-50 w-72 bg-white rounded-3xl shadow-2xl border border-gray-100 p-4 text-xs font-sans animate-in fade-in zoom-in-95">
-                            <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-3 px-2">
-                                Hệ sinh thái driveR Apps
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-2 mb-3">
-                                {/* Option 1: Landing Page */}
-                                <button
-                                    onClick={() => {
-                                        setIsAppsMenuOpen(false);
-                                        navigate('/');
-                                    }}
-                                    className="p-3 rounded-2xl bg-gradient-to-br from-slate-900 to-indigo-950 text-white flex flex-col items-center justify-center text-center gap-1.5 hover:scale-[1.03] transition-all cursor-pointer shadow-md group"
-                                >
-                                    <Globe className="w-5 h-5 text-blue-400 group-hover:rotate-12 transition-transform" />
-                                    <span className="font-bold text-[11px]">Trang giới thiệu (Landing Page)</span>
-                                </button>
-
-                                {/* Option 2: driveR Storage */}
-                                <button
-                                    onClick={() => {
-                                        setIsAppsMenuOpen(false);
-                                        navigate('/app');
-                                    }}
-                                    className="p-3 rounded-2xl bg-blue-50 text-blue-700 border border-blue-200 flex flex-col items-center justify-center text-center gap-1.5 font-bold text-[11px] cursor-pointer"
-                                >
-                                    <HardDrive className="w-5 h-5 text-blue-600" />
-                                    <span>driveR Storage (Đang mở)</span>
-                                </button>
-                            </div>
-
-                            <div className="space-y-1.5 pt-2 border-t border-gray-100 text-gray-500">
-                                <div className="p-2 rounded-xl bg-gray-50 flex items-center justify-between opacity-70">
-                                    <div className="flex items-center gap-2">
-                                        <Mail className="w-4 h-4 text-gray-400" />
-                                        <span>driveR Mail</span>
-                                    </div>
-                                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-gray-200 text-gray-600 font-bold uppercase">Soon</span>
-                                </div>
-                                <div className="p-2 rounded-xl bg-gray-50 flex items-center justify-between opacity-70">
-                                    <div className="flex items-center gap-2">
-                                        <ImageIcon className="w-4 h-4 text-gray-400" />
-                                        <span>driveR Photos</span>
-                                    </div>
-                                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-gray-200 text-gray-600 font-bold uppercase">Soon</span>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </div>
 
                 {/* Nút Lịch sử hoạt động */}
                 <button

@@ -1,20 +1,5 @@
 import React, { useEffect, useRef } from "react";
 
-/**
- * AuthBackground — nền dot-grid có sóng chuyển động liên tục
- * và phồng lên cục bộ quanh con trỏ khi hover (canvas-based).
- *
- * Cách dùng:
- * <AuthBackground>
- *   <AuthCard ... />
- * </AuthBackground>
- *
- * Props tuỳ chỉnh (đều optional):
- * - spacing: khoảng cách giữa các chấm (px), mặc định 26
- * - baseRadius: bán kính chấm khi nghỉ (px), mặc định 2.4
- * - influenceRadius: bán kính vùng ảnh hưởng quanh chuột (px), mặc định 90
- * - mode: "bump" (phồng lên, mặc định) hoặc "dent" (lõm xuống)
- */
 export default function AuthBackground({
   children,
   spacing = 26,
@@ -163,7 +148,7 @@ const styles = {
     position: "relative",
     zIndex: 10,
     width: "100%",
-    maxWidth: "384px",
+    maxWidth: "460px",
   },
 };
 

@@ -31,7 +31,7 @@ api.interceptors.response.use(
     }
     return response.data;
   },
-  (error) => {
+  async (error) => {
     if (error.response && error.response.status === 401) {
       localStorage.removeItem('accessToken');
       const path = window.location.pathname;
@@ -41,9 +41,41 @@ api.interceptors.response.use(
         window.location.href = '/login';
       }
     }
-    const message = error.response?.data?.message || error.message || 'Đã có lỗi xảy ra';
-    console.error('[API Error]', error);
-    return Promise.reject(new Error(Array.isArray(message) ? message.join(', ') : message));
+
+    // Với `responseType: 'blob'` (vd. filesApi.downloadZip) axios trả body lỗi
+    // dưới dạng Blob, nên `data.message` luôn undefined và toast rơi về đúng câu
+    // "Request failed with status code 500". Đọc blob ra JSON để lấy lại message.
+    let data = error.response?.data;
+    if (data instanceof Blob) {
+      try {
+        data = JSON.parse(await data.text());
+      } catch {
+        data = undefined;
+      }
+    }
+
+    // Backend (AllExceptionsFilter) luôn trả `message` là câu tiếng Việt;
+    // `details` có thể là mảng lỗi validate nên dùng làm phương án dự phòng.
+    const raw =
+      data?.message ||
+      (Array.isArray(data?.details) ? data.details : null) ||
+      error.message ||
+      'Đã có lỗi xảy ra';
+    const message = Array.isArray(raw)
+      ? raw
+          .map((item) => (typeof item === 'string' ? item : (item?.errors || []).join(' ')))
+          .filter(Boolean)
+          .join(' ')
+      : String(raw);
+
+    console.error('[API Error]', error.response?.status, error.config?.url, message);
+
+    // Giữ lại metadata của backend cho caller cần phân biệt loại lỗi
+    const normalizedError = new Error(message);
+    normalizedError.status = error.response?.status;
+    normalizedError.errorCode = data?.errorCode;
+    normalizedError.details = data?.details;
+    return Promise.reject(normalizedError);
   },
 );
 
@@ -224,6 +256,14 @@ export const sharedDrivesApi = {
   create: (data) => api.post('/shared-drives', data),
   getAll: () => api.get('/shared-drives'),
   getOne: (id) => api.get(`/shared-drives/${id}`),
+  // Đổi tên / sửa mô tả — chỉ ADMIN của drive. data: { name?, description? }
+  update: (id, data) => api.patch(`/shared-drives/${id}`, data),
+  // ⚠️ Xóa cả drive, kéo theo MỌI tệp/thư mục bên trong (FK ON DELETE CASCADE).
+  // Chỉ người tạo drive gọi được. Trả về { deletedItems }.
+  remove: (id) => api.delete(`/shared-drives/${id}`),
+  // Dấu sao dùng chung cho cả drive (không phải của riêng từng người) — mọi thành viên đều bật/tắt được
+  toggleStar: (id) => api.patch(`/shared-drives/${id}/star`),
+  // data: { email, role } — hoặc { userId, role } cho caller cũ
   addMember: (id, data) => api.post(`/shared-drives/${id}/members`, data),
   removeMember: (id, userId) => api.delete(`/shared-drives/${id}/members/${userId}`),
 };

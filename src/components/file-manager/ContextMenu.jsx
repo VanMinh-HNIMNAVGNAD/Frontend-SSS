@@ -7,7 +7,6 @@ import {
     Info,
     Trash2,
     ThumbsDown,
-    ChevronRight,
     Copy,
     Star,
     FolderInput,
@@ -26,9 +25,14 @@ export default function ContextMenu({
     x,
     y,
     item,
+    // 'item'  → menu cho tệp/thư mục (mặc định, hành vi cũ của mọi trang)
+    // 'drive' → menu cho thẻ Bộ nhớ dùng chung: chỉ Đổi tên / Gắn sao / Sao chép /
+    //           Chia sẻ / Xóa. Bỏ hẳn Xem trước, Tải xuống, Cắt, Dán, Hỏi Gemini,
+    //           Thùng rác — không mục nào trong số đó áp dụng được cho một drive.
+    variant = 'item',
     isTrashTab = false,
     activeTab = 'my-drive',
-    onClose, 
+    onClose,
     onPreview,
     onRename, 
     onCut,
@@ -37,7 +41,6 @@ export default function ContextMenu({
     canPaste = false,
     isPasting = false,
     onShare, 
-    onQuickCopyLink,
     onGemini, 
     onDownload, 
     onMoveToTrash, 
@@ -136,12 +139,113 @@ export default function ContextMenu({
         );
     }
 
+    // ── Menu cho thẻ Bộ nhớ dùng chung (SharedDrivesPage) ─────────────
+    // Nhánh riêng, `return` sớm: một drive KHÔNG phải `file`/`folder` nên mọi logic
+    // bên dưới (item.type, sharedRole, clipboard...) đều không áp dụng được.
+    // `item` ở đây là object drive từ `GET /shared-drives`, được trang gắn thêm
+    // `canDelete` (true khi người đang đăng nhập chính là `createdBy`).
+    if (variant === 'drive') {
+        const isDriveAdmin = item.userRole === 'ADMIN';
+
+        return (
+            <div
+                ref={menuRef}
+                className="fixed z-50 w-64 bg-[#282a2c]/90 backdrop-blur-md text-gray-200 rounded-2xl shadow-2xl py-2 border border-gray-700/80 text-[13px] font-sans select-none animate-fade-in"
+                style={{ top: pos.top, left: pos.left }}
+                onClick={(e) => e.stopPropagation()}
+                onContextMenu={(e) => e.preventDefault()}
+            >
+                {/* Header */}
+                <div className="px-4 py-1.5 mb-1 border-b border-gray-700/60 text-xs font-semibold text-gray-400 truncate flex items-center gap-2">
+                    <span className="truncate">{item.name}</span>
+                    {item.userRole && (
+                        <span className={`ml-auto shrink-0 px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
+                            isDriveAdmin
+                                ? 'bg-emerald-500/20 text-emerald-400'
+                                : 'bg-sky-500/20 text-sky-400'
+                        }`}>
+                            {item.userRole}
+                        </span>
+                    )}
+                </div>
+
+                {/* Đổi tên — chỉ ADMIN của drive (backend PATCH /:id cũng chặn tương tự) */}
+                {isDriveAdmin ? (
+                    <button
+                        onClick={() => { onRename?.(item); onClose(); }}
+                        className="w-full px-4 py-2 hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-200 transition-colors"
+                    >
+                        <Pencil className="w-4 h-4 text-gray-300 shrink-0" />
+                        <span>Đổi tên &amp; mô tả</span>
+                    </button>
+                ) : (
+                    <div className="w-full px-4 py-2 flex items-center justify-between text-gray-600 cursor-not-allowed">
+                        <div className="flex items-center gap-3">
+                            <ShieldOff className="w-4 h-4 shrink-0" />
+                            <span className="line-through text-xs">Đổi tên &amp; mô tả</span>
+                        </div>
+                        <span className="text-[10px] text-gray-600">Cần ADMIN</span>
+                    </div>
+                )}
+
+                {/* Gắn sao — mọi thành viên đều làm được (dấu sao dùng chung cho cả drive) */}
+                <button
+                    onClick={() => { onToggleStar?.(item); onClose(); }}
+                    className="w-full px-4 py-2 hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-200 transition-colors"
+                >
+                    <Star className={`w-4 h-4 ${item.isStarred ? 'text-amber-400 fill-amber-400' : 'text-gray-300'} shrink-0`} />
+                    <span>{item.isStarred ? 'Bỏ khỏi mục gắn sao' : 'Thêm vào mục gắn sao'}</span>
+                </button>
+
+                {/* Sao chép tên drive — KHÔNG có deep-link tới một drive nên không copy link được */}
+                <button
+                    onClick={() => { onCopy?.(item); onClose(); }}
+                    className="w-full px-4 py-2 hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-200 transition-colors"
+                >
+                    <Copy className="w-4 h-4 text-gray-300 shrink-0" />
+                    <span>Sao chép tên</span>
+                </button>
+
+                <div className="h-px bg-gray-700/60 my-1"></div>
+
+                {/* Chia sẻ = quản lý thành viên (bảng shared_drive_members, KHÔNG phải file_shares) */}
+                <button
+                    onClick={() => { onShare?.(item); onClose(); }}
+                    className="w-full px-4 py-2 hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-200 transition-colors"
+                >
+                    <UserPlus className="w-4 h-4 text-gray-300 shrink-0" />
+                    <span>Chia sẻ &amp; thành viên</span>
+                </button>
+
+                <div className="h-px bg-gray-700/60 my-1"></div>
+
+                {/* Xóa drive — chỉ người tạo. Trang sẽ mở hộp thoại xác nhận trước khi gọi API */}
+                {item.canDelete ? (
+                    <button
+                        onClick={() => { onDeletePermanently?.(item); onClose(); }}
+                        className="w-full px-4 py-2 hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-rose-400 hover:text-rose-300 transition-colors"
+                    >
+                        <Trash2 className="w-4 h-4 shrink-0" />
+                        <span>Xóa bộ nhớ dùng chung</span>
+                    </button>
+                ) : (
+                    <div className="w-full px-4 py-2 flex items-center justify-between text-gray-600 cursor-not-allowed">
+                        <div className="flex items-center gap-3">
+                            <ShieldOff className="w-4 h-4 shrink-0" />
+                            <span className="line-through text-xs">Xóa bộ nhớ dùng chung</span>
+                        </div>
+                        <span className="text-[10px] text-gray-600">Chỉ người tạo</span>
+                    </div>
+                )}
+            </div>
+        );
+    }
+
     const isFolder = item.type === 'folder';
 
     // ── RBAC: Phân quyền cho tab "Được chia sẻ với tôi" ──────────────
     const isSharedWithMeTab = activeTab === 'shared-with-me';
     const sharedRole = item.sharedRole; // 'VIEWER' | 'EDITOR' | undefined
-    const isViewerOnly = isSharedWithMeTab && sharedRole === 'VIEWER';
     const isEditorInShared = isSharedWithMeTab && sharedRole === 'EDITOR';
 
     // Trong shared-with-me:

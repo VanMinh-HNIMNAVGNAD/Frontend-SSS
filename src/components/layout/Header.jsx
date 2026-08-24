@@ -265,22 +265,12 @@ export default function Header({ toggleRightSidebar }) {
                     <Menu className="w-5 h-5 text-gray-700" />
                 </button>
 
-                {/* Logo page + tên web "driveR" (Clicking resets to My Drive) */}
+                {/* Tên web "driveR" (Clicking resets to My Drive) */}
                 <div 
                     onClick={handleLogoClick}
-                    className="flex items-center gap-2 cursor-pointer select-none pr-2 group"
+                    className="flex items-center cursor-pointer select-none pr-2 group"
                     title="Về trang Driver riêng của tôi"
                 >
-                    {/* Multi-colored Drive Logo SVG */}
-                    <div className="w-8 h-8 flex items-center justify-center group-hover:scale-105 transition-transform">
-                        <svg viewBox="0 0 87.3 78" className="w-8 h-8 drop-shadow-xs">
-                            <path d="M6.6 66.85l25.3-43.8 13.9 24.1-12.7 22-26.5-2.3z" fill="#0066DA" />
-                            <path d="M45.8 47.15l13.9-24.1 21 36.4H33.1l12.7-12.3z" fill="#00AC47" />
-                            <path d="M31.9 23.05L45.8 0l34.9 60.5H53.4L31.9 23.05z" fill="#EA4335" />
-                            <path d="M0 60.5l13.9-24.1L48.8 97H21L0 60.5z" fill="#FFBA00" />
-                        </svg>
-                    </div>
-
                     <span className="text-xl font-bold tracking-tight text-gray-800 font-sans">
                         drive<span className="text-blue-600 font-extrabold text-2xl">R</span>
                     </span>
@@ -292,6 +282,7 @@ export default function Header({ toggleRightSidebar }) {
                 <div className="flex items-center bg-[#f0f4f9] hover:bg-[#e9eef6] focus-within:bg-white focus-within:shadow-md focus-within:ring-1 focus-within:ring-blue-500 rounded-full px-4 py-2 transition-all duration-200">
                     <Search className="w-5 h-5 text-gray-500 mr-3 shrink-0" />
                     <input
+                        id="global-search-input"
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}

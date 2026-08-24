@@ -261,7 +261,9 @@ export const sharedDrivesApi = {
   // ⚠️ Xóa cả drive, kéo theo MỌI tệp/thư mục bên trong (FK ON DELETE CASCADE).
   // Chỉ người tạo drive gọi được. Trả về { deletedItems }.
   remove: (id) => api.delete(`/shared-drives/${id}`),
-  // Dấu sao dùng chung cho cả drive (không phải của riêng từng người) — mọi thành viên đều bật/tắt được
+  // Dấu sao RIÊNG của từng người (lưu ở hàng shared_drive_members của người gọi, migration
+  // 011): bật/tắt chỉ ảnh hưởng chính mình. Mọi role đều gọi được. Trả về { id, isStarred }
+  // với `id` là id của DRIVE.
   toggleStar: (id) => api.patch(`/shared-drives/${id}/star`),
   // data: { email, role } — hoặc { userId, role } cho caller cũ
   addMember: (id, data) => api.post(`/shared-drives/${id}/members`, data),

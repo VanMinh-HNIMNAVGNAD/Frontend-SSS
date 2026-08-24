@@ -2,20 +2,19 @@ import { useState, useEffect } from 'react';
 import {
   X,
   Settings,
-  Shield,
   Keyboard,
   Sun,
   Moon,
   Laptop,
-  Lock,
   MessageSquare,
-  Key,
 } from 'lucide-react';
+import { SHORTCUT_HINTS, PLATFORM_LABEL } from '../../hooks/useGlobalShortcuts';
+import { useLanguage } from '../../context/LanguageContext';
 
 // ── Khoá localStorage cho tab "Cài đặt chung" (lưu phía client, KHÔNG lưu DB) ──
 const LS_THEME = 'driveR_settings_theme';
-const LS_LANGUAGE = 'driveR_settings_language';
 const LS_SHORTCUTS = 'driveR_settings_shortcuts_enabled';
+// Ngôn ngữ không còn khoá riêng ở đây — LanguageContext.jsx giữ state + localStorage
 
 // Khoá dark mode cũ mà RightSideBar.jsx đang dùng — giữ nguyên tên để 2 nơi
 // không sinh ra 2 cơ chế theme xung đột nhau
@@ -48,19 +47,17 @@ function applyTheme(mode) {
 export default function SettingsModal({ isOpen, onClose }) {
   const [activeTab, setActiveTab] = useState('general');
 
+  // Ngôn ngữ dùng chung toàn app — state nằm ở LanguageContext để mọi component
+  // khác cũng đổi text theo, không chỉ riêng modal này
+  const { language, changeLanguage, t } = useLanguage();
+
   // General Settings State — đọc từ localStorage ngay lần render đầu (lazy init)
   const [theme, setTheme] = useState(readSavedTheme); // 'light' | 'dark' | 'system'
-  const [language, setLanguage] = useState(() => {
-    const saved = localStorage.getItem(LS_LANGUAGE); // 'vi' | 'en'
-    return saved === 'vi' || saved === 'en' ? saved : 'vi';
-  });
   const [defaultStartupPage, setDefaultStartupPage] = useState('my-drive'); // 'home' | 'my-drive' | 'recent'
-  const [previewBehavior, setPreviewBehavior] = useState('double-click'); // 'auto-play' | 'double-click'
 
   // Security & Privacy State
   const [discoverableByEmail, setDiscoverableByEmail] = useState(true);
   const [defaultShareRole, setDefaultShareRole] = useState('VIEWER'); // 'VIEWER' | 'EDITOR'
-  const [twoFactorAuth, setTwoFactorAuth] = useState(false);
 
   // Keyboard Shortcuts State — mặc định bật nếu chưa từng lưu
   const [shortcutsEnabled, setShortcutsEnabled] = useState(
@@ -72,11 +69,6 @@ export default function SettingsModal({ isOpen, onClose }) {
     setTheme(mode);
     localStorage.setItem(LS_THEME, mode);
     applyTheme(mode);
-  };
-
-  const handleChangeLanguage = (value) => {
-    setLanguage(value);
-    localStorage.setItem(LS_LANGUAGE, value);
   };
 
   const handleToggleShortcuts = (enabled) => {
@@ -94,15 +86,9 @@ export default function SettingsModal({ isOpen, onClose }) {
     applyTheme(readSavedTheme());
   }, []);
 
-  const shortcutsList = [
-    { key: 'N', label: 'Tạo thư mục mới' },
-    { key: 'U / C', label: 'Tải tệp lên Cloud' },
-    { key: '/ hoặc Ctrl + K', label: 'Nhảy nhanh tới thanh Tìm kiếm' },
-    { key: 'Delete / Backspace', label: 'Chuyển tệp/thư mục được chọn vào Thùng rác' },
-    { key: 'R', label: 'Đổi tên tệp (Rename)' },
-    { key: 'S', label: 'Bật / Tắt đánh dấu sao (Star)' },
-    { key: 'Enter', label: 'Mở thư mục hoặc xem trước tệp' },
-  ];
+  // Bảng phím tắt lấy thẳng từ hook — đã format sẵn theo hệ điều hành đang chạy,
+  // nên phần hiển thị không bao giờ lệch với phím thật sự đang được lắng nghe.
+  const shortcutsList = SHORTCUT_HINTS;
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -143,8 +129,7 @@ export default function SettingsModal({ isOpen, onClose }) {
               <Settings className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-gray-900">Cài đặt driveR</h2>
-              <p className="text-xs text-gray-500">Tùy chỉnh giao diện, quyền riêng tư và phím tắt cá nhân</p>
+              <h2 className="text-lg font-bold text-gray-900">{t('settings.title')}</h2>
             </div>
           </div>
           <button
@@ -168,19 +153,7 @@ export default function SettingsModal({ isOpen, onClose }) {
               }`}
             >
               <Settings className="w-4 h-4" />
-              <span>A. Cài đặt chung</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('security')}
-              className={`flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-semibold text-left transition-all ${
-                activeTab === 'security'
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-gray-700 hover:bg-gray-200/70'
-              }`}
-            >
-              <Shield className="w-4 h-4" />
-              <span>B. Quyền riêng tư & Bảo mật</span>
+              <span>{t('settings.tab.general')}</span>
             </button>
 
             <button
@@ -192,27 +165,25 @@ export default function SettingsModal({ isOpen, onClose }) {
               }`}
             >
               <Keyboard className="w-4 h-4" />
-              <span>C. Phím tắt</span>
+              <span>{t('settings.tab.shortcuts')}</span>
             </button>
-
-
           </div>
 
           {/* Right Main Content */}
           <div className="flex-1 p-6 overflow-y-auto">
-            {/* A. CÀI ĐẶT CHUNG */}
+            {/* CÀI ĐẶT CHUNG */}
             {activeTab === 'general' && (
               <div className="space-y-6">
                 {/* 1. Theme */}
                 <div>
                   <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider mb-3">
-                    Chủ đề giao diện (Theme)
+                    {t('settings.theme.heading')}
                   </h3>
                   <div className="grid grid-cols-3 gap-3">
                     <button
                       type="button"
                       onClick={() => handleChangeTheme('light')}
-                      title="Chế độ sáng (Light)"
+                      title={t('settings.theme.light')}
                       className={`flex items-center justify-center py-3 rounded-2xl border transition-all cursor-pointer ${
                         theme === 'light'
                           ? 'border-blue-600 bg-blue-50/50 text-blue-600 shadow-xs'
@@ -225,7 +196,7 @@ export default function SettingsModal({ isOpen, onClose }) {
                     <button
                       type="button"
                       onClick={() => handleChangeTheme('dark')}
-                      title="Chế độ tối (Dark)"
+                      title={t('settings.theme.dark')}
                       className={`flex items-center justify-center py-3 rounded-2xl border transition-all cursor-pointer ${
                         theme === 'dark'
                           ? 'border-blue-600 bg-blue-50/50 text-blue-600 shadow-xs'
@@ -238,7 +209,7 @@ export default function SettingsModal({ isOpen, onClose }) {
                     <button
                       type="button"
                       onClick={() => handleChangeTheme('system')}
-                      title="Theo hệ thống (System)"
+                      title={t('settings.theme.system')}
                       className={`flex items-center justify-center py-3 rounded-2xl border transition-all cursor-pointer ${
                         theme === 'system'
                           ? 'border-blue-600 bg-blue-50/50 text-blue-600 shadow-xs'
@@ -252,73 +223,42 @@ export default function SettingsModal({ isOpen, onClose }) {
 
                 {/* 2. Ngôn ngữ */}
                 <div className="pt-2 border-t border-gray-100">
-                  <label className="block text-xs font-bold text-gray-900 mb-2">Ngôn ngữ giao diện</label>
+                  <label className="block text-xs font-bold text-gray-900 mb-2">{t('settings.language.label')}</label>
                   <select
                     value={language}
-                    onChange={(e) => handleChangeLanguage(e.target.value)}
+                    onChange={(e) => changeLanguage(e.target.value)}
                     className="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs bg-white focus:border-blue-600 outline-none"
                   >
-                    <option value="vi">🇻🇳 Tiếng Việt</option>
-                    <option value="en">🇺🇸 English (US)</option>
+                    <option value="vi">{t('settings.language.vi')}</option>
+                    <option value="en">{t('settings.language.en')}</option>
                   </select>
                 </div>
 
                 {/* 3. Trang khởi động */}
                 <div className="pt-2 border-t border-gray-100">
-                  <label className="block text-xs font-bold text-gray-900 mb-2">Trang khởi động mặc định</label>
+                  <label className="block text-xs font-bold text-gray-900 mb-2">{t('settings.startup.label')}</label>
                   <select
                     value={defaultStartupPage}
                     onChange={(e) => setDefaultStartupPage(e.target.value)}
                     className="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs bg-white focus:border-blue-600 outline-none"
                   >
-                    <option value="my-drive">📁 Driver riêng của tôi (My Drive)</option>
-                    <option value="home">🏠 Trang chủ (Dashboard tổng quan)</option>
-                    <option value="recent">🕒 Đã mở gần đây (Recent files)</option>
+                    <option value="my-drive">{t('settings.startup.myDrive')}</option>
+                    <option value="home">{t('settings.startup.home')}</option>
+                    <option value="recent">{t('settings.startup.recent')}</option>
                   </select>
                 </div>
 
-                {/* 4. Xem trước file */}
-                <div className="pt-2 border-t border-gray-100">
-                  <label className="block text-xs font-bold text-gray-900 mb-2">Xem trước tệp (File Preview)</label>
-                  <div className="space-y-2">
-                    <label className="flex items-center gap-3 p-2.5 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50 text-xs text-gray-800 font-medium">
-                      <input
-                        type="radio"
-                        name="preview"
-                        value="double-click"
-                        checked={previewBehavior === 'double-click'}
-                        onChange={() => setPreviewBehavior('double-click')}
-                        className="text-blue-600"
-                      />
-                      <span>Chỉ mở xem trước khi nhấp đúp chuột (Double-click)</span>
-                    </label>
+                {/* 4. Quyền riêng tư & Bảo mật */}
+                <div className="pt-2 border-t border-gray-100 space-y-4">
+                  <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider">
+                    {t('settings.privacy.heading')}
+                  </h3>
 
-                    <label className="flex items-center gap-3 p-2.5 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50 text-xs text-gray-800 font-medium">
-                      <input
-                        type="radio"
-                        name="preview"
-                        value="auto-play"
-                        checked={previewBehavior === 'auto-play'}
-                        onChange={() => setPreviewBehavior('auto-play')}
-                        className="text-blue-600"
-                      />
-                      <span>Tự động mở xem trước / phát Video & Audio khi bấm chọn</span>
-                    </label>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* B. QUYỀN RIÊNG TƯ & BẢO MẬT */}
-            {activeTab === 'security' && (
-              <div className="space-y-6">
-                {/* Hiển thị thông tin cá nhân & Quyền chia sẻ */}
-                <div className="space-y-4">
                   <div className="flex items-center justify-between p-3.5 border border-gray-200 rounded-2xl bg-gray-50/50">
                     <div>
-                      <div className="text-xs font-bold text-gray-900">Hiển thị thông tin cá nhân</div>
+                      <div className="text-xs font-bold text-gray-900">{t('settings.privacy.discoverable.title')}</div>
                       <div className="text-[11px] text-gray-500">
-                        Cho phép người dùng khác tìm thấy bạn qua Email khi chia sẻ tệp
+                        {t('settings.privacy.discoverable.desc')}
                       </div>
                     </div>
                     <input
@@ -331,64 +271,22 @@ export default function SettingsModal({ isOpen, onClose }) {
 
                   <div>
                     <label className="block text-xs font-bold text-gray-900 mb-2">
-                      Quyền chia sẻ mặc định khi tạo Link
+                      {t('settings.privacy.shareRole.label')}
                     </label>
                     <select
                       value={defaultShareRole}
                       onChange={(e) => setDefaultShareRole(e.target.value)}
                       className="w-full border border-gray-300 rounded-xl px-3 py-2 text-xs bg-white focus:border-blue-600 outline-none"
                     >
-                      <option value="VIEWER">👀 Chỉ xem (Viewer)</option>
-                      <option value="EDITOR">✏️ Được chỉnh sửa (Editor)</option>
+                      <option value="VIEWER">{t('settings.privacy.shareRole.viewer')}</option>
+                      <option value="EDITOR">{t('settings.privacy.shareRole.editor')}</option>
                     </select>
-                  </div>
-                </div>
-
-                {/* Bảo mật tài khoản */}
-                <div className="pt-2 border-t border-gray-100 space-y-3">
-                  <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider">Bảo mật tài khoản</h3>
-
-                  <div className="flex items-center justify-between p-3.5 border border-gray-200 rounded-2xl">
-                    <div className="flex items-center gap-3">
-                      <Key className="w-5 h-5 text-amber-500 shrink-0" />
-                      <div>
-                        <div className="text-xs font-bold text-gray-900">Đổi mật khẩu</div>
-                        <div className="text-[11px] text-gray-500">Nên thay đổi mật khẩu định kỳ 6 tháng một lần</div>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => alert('🔒 Tính năng Đổi mật khẩu: Đã gửi mã xác nhận về Email của bạn.')}
-                      className="px-3.5 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold rounded-xl transition-colors"
-                    >
-                      Đổi mật khẩu
-                    </button>
-                  </div>
-
-                  <div className="flex items-center justify-between p-3.5 border border-gray-200 rounded-2xl">
-                    <div className="flex items-center gap-3">
-                      <Lock className="w-5 h-5 text-purple-600 shrink-0" />
-                      <div>
-                        <div className="text-xs font-bold text-gray-900">Xác thực 2 bước (2FA)</div>
-                        <div className="text-[11px] text-gray-500">Bảo vệ tài khoản bằng mã OTP Google Authenticator</div>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => {
-                        setTwoFactorAuth(!twoFactorAuth);
-                        alert(twoFactorAuth ? '❌ Đã tắt 2FA' : '✅ Đã kích hoạt 2FA!');
-                      }}
-                      className={`px-3.5 py-1.5 text-xs font-bold rounded-xl transition-colors ${
-                        twoFactorAuth ? 'bg-emerald-600 text-white' : 'bg-blue-600 text-white hover:bg-blue-700'
-                      }`}
-                    >
-                      {twoFactorAuth ? 'Đã bật 2FA' : 'Kích hoạt 2FA'}
-                    </button>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* C. PHÍM TẮT */}
+            {/* PHÍM TẮT */}
             {activeTab === 'shortcuts' && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between p-3.5 border border-gray-200 rounded-2xl bg-gray-50">
@@ -406,14 +304,30 @@ export default function SettingsModal({ isOpen, onClose }) {
 
                 <div className="border border-gray-200 rounded-2xl overflow-hidden divide-y divide-gray-100">
                   {shortcutsList.map((item, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-3 text-xs bg-white">
-                      <span className="text-gray-700 font-medium">{item.label}</span>
-                      <kbd className="px-2.5 py-1 bg-gray-100 border border-gray-300 rounded-lg font-mono font-bold text-gray-900 shadow-2xs">
-                        {item.key}
-                      </kbd>
+                    <div key={idx} className="flex items-start justify-between gap-3 p-3 text-xs bg-white">
+                      <span className="text-gray-700 font-medium pt-1">{item.label}</span>
+                      {/* Mỗi tổ hợp là một chip riêng — dòng dài tự xuống hàng thay vì tràn */}
+                      <div className="flex flex-wrap justify-end gap-1.5 shrink-0 max-w-[60%]">
+                        {item.keys.map((combo, i) => (
+                          <kbd
+                            key={i}
+                            className="px-2.5 py-1 bg-gray-100 border border-gray-300 rounded-lg font-mono font-bold text-gray-900 shadow-2xs whitespace-nowrap"
+                          >
+                            {combo}
+                          </kbd>
+                        ))}
+                      </div>
                     </div>
                   ))}
                 </div>
+
+                {/* Vì sao bảng phím trên máy bạn có thể khác máy đồng nghiệp */}
+                <p className="text-[11px] text-gray-500 leading-relaxed px-1">
+                  Phím tắt hiển thị theo hệ điều hành đang dùng:{' '}
+                  <span className="font-semibold text-gray-700">{PLATFORM_LABEL}</span>. Khi nhiều tổ
+                  hợp cùng nằm trên một dòng, bạn dùng tổ hợp nào cũng được — các tổ hợp dự phòng có
+                  mặt để tránh trường hợp hệ điều hành hoặc trình duyệt đã chiếm phím chính.
+                </p>
               </div>
             )}
 
@@ -426,7 +340,7 @@ export default function SettingsModal({ isOpen, onClose }) {
             onClick={onClose}
             className="px-6 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-full transition-colors shadow-sm"
           >
-            Lưu & Đóng
+            {t('settings.saveAndClose')}
           </button>
         </div>
       </div>

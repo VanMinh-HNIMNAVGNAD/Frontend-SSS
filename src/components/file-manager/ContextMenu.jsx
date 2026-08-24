@@ -188,7 +188,8 @@ export default function ContextMenu({
                     </div>
                 )}
 
-                {/* Gắn sao — mọi thành viên đều làm được (dấu sao dùng chung cho cả drive) */}
+                {/* Gắn sao — mọi thành viên đều làm được, và là dấu sao RIÊNG của người đang
+                    đăng nhập (backend lưu ở hàng shared_drive_members của họ) */}
                 <button
                     onClick={() => { onToggleStar?.(item); onClose(); }}
                     className="w-full px-4 py-2 hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-200 transition-colors"

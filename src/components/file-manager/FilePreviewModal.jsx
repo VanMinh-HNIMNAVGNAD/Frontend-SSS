@@ -7,7 +7,6 @@ import {
   RotateCw, 
   Download, 
   Maximize2, 
-  HardDrive, 
   FileImage, 
   FileVideo, 
   FileAudio, 
@@ -730,11 +729,7 @@ export default function FilePreviewModal({ item, onClose }) {
       </div>
 
       {/* Bottom Info Bar */}
-      <div className="px-6 py-3 bg-slate-900/60 border-t border-white/10 flex items-center justify-between text-xs text-slate-400">
-        <div className="flex items-center gap-2">
-          <HardDrive className="w-3.5 h-3.5 text-blue-400" />
-          <span>Lưu trữ trên {item.storageProvider || 'google_cloud'}</span>
-        </div>
+      <div className="px-6 py-3 bg-slate-900/60 border-t border-white/10 flex items-center justify-end text-xs text-slate-400">
         <div className="flex items-center gap-4">
           <span>Phím tắt: ESC (Đóng), +/- (Thu phóng), R (Xoay)</span>
         </div>

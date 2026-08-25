@@ -594,15 +594,31 @@ export function FileProvider({ children }) {
     }
   }, [fetchAnalytics]);
 
+  /**
+   * Đổi tên một tệp hoặc thư mục.
+   *
+   * Trả `{ ok, name?, error? }` chứ KHÔNG throw — giống `toggleStar` — để
+   * RenameModal biết mà giữ modal mở khi lỗi. Trước đây hàm này nuốt lỗi và
+   * modal thì tự đóng ngay sau khi gọi, nên một request 403/404 trôi qua đúng
+   * như thể đã đổi tên xong rồi bị "revert" về tên cũ.
+   */
   const renameItem = useCallback(async (id, newName) => {
-    if (!newName || !newName.trim()) return;
+    const name = (newName || '').trim();
+    if (!name) return { ok: false, error: new Error('Tên mới không được để trống') };
     try {
-      const updated = await filesApi.renameItem(id, { name: newName.trim() });
-      setItems((prev) =>
-        prev.map((item) => (item.id === id ? { ...item, name: updated.name || newName.trim() } : item)),
-      );
+      const updated = await filesApi.renameItem(id, { name });
+      // Ưu tiên tên backend trả về (nó mới là tên đã lưu thật) — xem toggleStar.
+      const savedName = updated?.name || name;
+      setItems((prev) => prev.map((item) => (item.id === id ? { ...item, name: savedName } : item)));
+      // Bảng thông tin giữ ẢNH CHỤP của item tại thời điểm mở (openInfoDrawer), không
+      // đọc lại từ `items` — không đồng bộ ở đây thì nó vẫn hiện tên CŨ ngay cạnh
+      // danh sách đã đổi tên, và nút "Đổi tên" trong đó lại mở modal với tên cũ.
+      setInfoDrawerItem((prev) => (prev && prev.id === id ? { ...prev, name: savedName } : prev));
+      toast.success('Đã đổi tên');
+      return { ok: true, name: savedName };
     } catch (err) {
       toast.error('Không thể đổi tên: ' + err.message);
+      return { ok: false, error: err };
     }
   }, []);
 

@@ -105,13 +105,26 @@ export default function MainLayout() {
         setRenameTargetItem(selected[0]);
     }, [getSelection]);
 
-    const handleToggleStar = useCallback(() => {
+    const handleToggleStar = useCallback(async () => {
         const selected = getSelection();
         if (selected.length === 0) {
             toast('Hãy chọn mục cần đánh dấu sao.', { icon: '⭐' });
             return;
         }
-        selected.forEach((item) => toggleStar(item.id));
+        // `silent` để toggleStar không bắn một toast cho từng mục; gộp lại một câu
+        const results = await Promise.all(
+            selected.map((item) => toggleStar(item.id, { silent: true })),
+        );
+        const done = results.filter((r) => r?.ok);
+        const failed = results.length - done.length;
+        if (done.length === 1) {
+            toast.success(done[0].isStarred === false ? 'Đã bỏ khỏi mục gắn sao' : 'Đã thêm vào mục gắn sao');
+        } else if (done.length > 1) {
+            toast.success(`Đã cập nhật dấu sao cho ${done.length} mục`);
+        }
+        if (failed > 0) {
+            toast.error(`Không cập nhật được dấu sao cho ${failed} mục`);
+        }
     }, [getSelection, toggleStar]);
 
     const handleMoveToTrash = useCallback(() => {

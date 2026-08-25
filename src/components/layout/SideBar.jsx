@@ -98,14 +98,14 @@ export default function Sidebar() {
           <NavItem id="home" label={t('nav.home')} icon={Home} hoverColor="group-hover:text-blue-600" activeColor="text-blue-600 dark:text-blue-400" />
           <NavItem id="my-drive" label={t('nav.myDrive')} icon={HardDrive} hoverColor="group-hover:text-emerald-600" activeColor="text-emerald-600 dark:text-emerald-400" />
           <NavItem id="shared-drives" label={t('nav.sharedDrives')} icon={FolderGit2} hoverColor="group-hover:text-indigo-600" activeColor="text-indigo-600 dark:text-indigo-400" />
-          <NavItem id="shared-with-me" label={t('nav.sharedWithMe')} icon={Users} hoverColor="group-hover:text-teal-600" activeColor="text-teal-600" />
-          <NavItem id="recent" label={t('nav.recent')} icon={Clock} hoverColor="group-hover:text-amber-500" activeColor="text-amber-500" />
-          <NavItem id="starred" label={t('nav.starred')} icon={Star} hoverColor="group-hover:text-yellow-500" activeColor="text-yellow-500" />
+          <NavItem id="shared-with-me" label={t('nav.sharedWithMe')} icon={Users} hoverColor="group-hover:text-teal-600" activeColor="text-teal-600 dark:text-teal-400" />
+          <NavItem id="recent" label={t('nav.recent')} icon={Clock} hoverColor="group-hover:text-amber-500" activeColor="text-amber-500 dark:text-amber-400" />
+          <NavItem id="starred" label={t('nav.starred')} icon={Star} hoverColor="group-hover:text-yellow-500" activeColor="text-yellow-500 dark:text-yellow-400" />
 
           <div className="my-2 border-t border-gray-200/60 dark:border-gray-700/60" />
 
-          <NavItem id="spam" label={t('nav.spam')} icon={ShieldAlert} badge={spamCount} badgeColor="bg-amber-100 text-amber-800" hoverColor="group-hover:text-orange-600" activeColor="text-orange-600 dark:text-orange-400" />
-          <NavItem id="trash" label={t('nav.trash')} icon={Trash2} badge={trashCount} hoverColor="group-hover:text-rose-600" activeColor="text-rose-600" />
+          <NavItem id="spam" label={t('nav.spam')} icon={ShieldAlert} badge={spamCount} badgeColor="bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300" hoverColor="group-hover:text-orange-600" activeColor="text-orange-600 dark:text-orange-400" />
+          <NavItem id="trash" label={t('nav.trash')} icon={Trash2} badge={trashCount} hoverColor="group-hover:text-rose-600" activeColor="text-rose-600 dark:text-rose-400" />
 
           <div className="my-2 border-t border-gray-200/60 dark:border-gray-700/60" />
 

@@ -228,7 +228,7 @@ export default function SharedDrivesPage() {
                                 <h1 className="text-xl font-bold text-gray-800 dark:text-gray-200">
                                     {currentDrive?.name || 'Nội dung bộ nhớ dùng chung'}
                                 </h1>
-                                <span className="px-2 py-0.5 text-[10px] font-bold bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 rounded-md border border-indigo-100">
+                                <span className="px-2 py-0.5 text-[10px] font-bold bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 rounded-md border border-indigo-100 dark:border-indigo-800/60">
                                     Không gian nhóm
                                 </span>
                             </div>
@@ -284,7 +284,7 @@ export default function SharedDrivesPage() {
                     <div>
                         <div className="flex items-center gap-2 flex-wrap">
                             <h1 className="text-2xl font-black text-gray-800 dark:text-gray-200 tracking-tight">Bộ nhớ dùng chung</h1>
-                            <span className="px-2 py-0.5 text-[11px] font-bold bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 rounded-md border border-indigo-100/80">
+                            <span className="px-2 py-0.5 text-[11px] font-bold bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 rounded-md border border-indigo-100/80 dark:border-indigo-800/60">
                                 Không gian nhóm
                             </span>
                         </div>
@@ -308,7 +308,7 @@ export default function SharedDrivesPage() {
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
                 </div>
             ) : error ? (
-                <div className="p-4 bg-red-50 dark:bg-red-500/15 text-red-600 dark:text-red-400 rounded-xl text-sm font-semibold border border-red-100 flex items-center justify-center">{error}</div>
+                <div className="p-4 bg-red-50 dark:bg-red-500/15 text-red-600 dark:text-red-300 rounded-xl text-sm font-semibold border border-red-100 dark:border-red-900/50 flex items-center justify-center">{error}</div>
             ) : drives.length === 0 ? (
                 <div className="flex flex-col items-center justify-center p-12 text-center bg-gray-50/50 dark:bg-white/5 rounded-3xl border border-dashed border-gray-200 dark:border-gray-700 mt-4">
                     <div className="w-16 h-16 bg-white dark:bg-[#282a2c] rounded-full flex items-center justify-center mb-4 shadow-sm border border-gray-100 dark:border-gray-700 text-indigo-600 dark:text-indigo-400">
@@ -376,11 +376,11 @@ export default function SharedDrivesPage() {
                                     </button>
                                 </div>
                             </div>
-                            <h3 className="font-bold text-gray-900 dark:text-gray-100 text-[15px] mb-1.5 truncate group-hover:text-indigo-700 transition-colors">{drive.name}</h3>
+                            <h3 className="font-bold text-gray-900 dark:text-gray-100 text-[15px] mb-1.5 truncate group-hover:text-indigo-700 dark:group-hover:text-indigo-400 transition-colors">{drive.name}</h3>
                             <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 flex-1 mb-4 leading-relaxed">
                                 {drive.description || 'Không có mô tả'}
                             </p>
-                            <div className="flex items-center gap-2 text-[11px] font-bold text-indigo-600/80 mt-auto pt-3 border-t border-gray-50">
+                            <div className="flex items-center gap-2 text-[11px] font-bold text-indigo-600/80 dark:text-indigo-400 mt-auto pt-3 border-t border-gray-50 dark:border-gray-700/60">
                                 <Users className="w-3.5 h-3.5" />
                                 <span className="uppercase tracking-wider">Không gian nhóm / Dự án</span>
                             </div>
@@ -535,9 +535,9 @@ export default function SharedDrivesPage() {
                 maxWidth="max-w-md"
             >
                 <div className="space-y-4">
-                    <div className="flex gap-3 p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-500/15 border border-rose-200">
-                        <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
-                        <div className="text-[13px] text-rose-900 leading-relaxed">
+                    <div className="flex gap-3 p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-500/15 border border-rose-200 dark:border-rose-900/50">
+                        <AlertTriangle className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+                        <div className="text-[13px] text-rose-900 dark:text-rose-200 leading-relaxed">
                             <p className="font-bold mb-1">Hành động này không thể hoàn tác.</p>
                             <p>
                                 Toàn bộ <strong>{deleteTarget?.itemCount ?? 0} tệp/thư mục</strong> bên trong

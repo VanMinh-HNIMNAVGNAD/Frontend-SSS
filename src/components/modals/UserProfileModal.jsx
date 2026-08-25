@@ -409,7 +409,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
           {activeTab === 'profile' && (
             <div className="space-y-6">
               {/* Profile Card & Avatar */}
-              <div className="flex items-center gap-5 p-4 rounded-2xl bg-gradient-to-r from-blue-50/60 to-indigo-50/40 border border-blue-100/80">
+              <div className="flex items-center gap-5 p-4 rounded-2xl bg-gradient-to-r from-blue-50/60 to-indigo-50/40 dark:from-blue-950/30 dark:to-indigo-950/20 border border-blue-100/80 dark:border-blue-900/40">
                 <input
                   type="file"
                   ref={fileInputRef}
@@ -549,7 +549,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
           {/* TAB 2: ĐỔI MẬT KHẨU (Chỉ hiển thị cho local user) */}
           {activeTab === 'password' && user.provider === 'local' && (
             <form onSubmit={handleUpdatePassword} className="space-y-4">
-              <div className="p-3 bg-amber-50 dark:bg-amber-500/15 rounded-xl border border-amber-200/80 text-amber-800 text-xs flex items-start gap-2">
+              <div className="p-3 bg-amber-50 dark:bg-amber-500/15 rounded-xl border border-amber-200/80 dark:border-amber-800/60 text-amber-800 dark:text-amber-200 text-xs flex items-start gap-2">
                 <ShieldCheck className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
                 <span>
                   Để bảo vệ tài khoản, hãy sử dụng mật khẩu mạnh có tối thiểu 6 ký tự và tránh sử dụng lại mật khẩu ở nơi khác.
@@ -652,7 +652,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                     <button
                       onClick={handleRevokeAllOtherSessions}
                       disabled={isRevokingAll}
-                      className="px-3 py-1.5 bg-rose-50 dark:bg-rose-500/15 hover:bg-rose-100 text-rose-600 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 disabled:opacity-50"
+                      className="px-3 py-1.5 bg-rose-50 dark:bg-rose-500/15 hover:bg-rose-100 dark:hover:bg-rose-500/25 text-rose-600 dark:text-rose-300 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 disabled:opacity-50"
                     >
                       {isRevokingAll ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -683,7 +683,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                         key={sess.id}
                         className={`p-3.5 rounded-2xl border transition-all flex items-center justify-between gap-3 ${
                           sess.isCurrent
-                            ? 'bg-blue-50/40 dark:bg-blue-500/15 border-blue-200 shadow-xs'
+                            ? 'bg-blue-50/40 dark:bg-blue-500/15 border-blue-200 dark:border-blue-800/60 shadow-xs'
                             : sess.isRevoked
                             ? 'bg-gray-50/50 dark:bg-white/5 border-gray-200 dark:border-gray-700 opacity-60'
                             : 'bg-white dark:bg-[#282a2c] border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
@@ -731,7 +731,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                           <button
                             onClick={() => handleRevokeSession(sess.id)}
                             disabled={revokingSessionId === sess.id}
-                            className="px-3 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-xl transition-colors shrink-0 disabled:opacity-50 flex items-center gap-1"
+                            className="px-3 py-1.5 text-xs font-semibold text-rose-600 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-500/15 rounded-xl transition-colors shrink-0 disabled:opacity-50 flex items-center gap-1"
                           >
                             {revokingSessionId === sess.id ? (
                               <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -750,16 +750,16 @@ export default function UserProfileModal({ isOpen, onClose }) {
 
           {/* DANGER ZONE (VÙNG NGUY HIỂM) */}
           <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
-            <div className="p-4 rounded-2xl border border-rose-200 bg-rose-50/50 space-y-3">
+            <div className="p-4 rounded-2xl border border-rose-200 dark:border-rose-900/50 bg-rose-50/50 dark:bg-rose-950/20 space-y-3">
               <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0 mt-0.5">
+                <div className="w-8 h-8 rounded-xl bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-300 flex items-center justify-center shrink-0 mt-0.5">
                   <ShieldAlert className="w-4 h-4" />
                 </div>
                 <div className="flex-1">
-                  <h5 className="text-xs font-bold text-rose-900 uppercase tracking-wider">
+                  <h5 className="text-xs font-bold text-rose-900 dark:text-rose-200 uppercase tracking-wider">
                     Vùng nguy hiểm (Danger Zone)
                   </h5>
-                  <p className="text-[11px] text-rose-700 mt-0.5 leading-relaxed">
+                  <p className="text-[11px] text-rose-700 dark:text-rose-300 mt-0.5 leading-relaxed">
                     Xoá vĩnh viễn tài khoản và toàn bộ tệp tin, dữ liệu lưu trữ trên Cloud Storage. Hành động này không thể hoàn tác.
                   </p>
                 </div>
@@ -784,24 +784,24 @@ export default function UserProfileModal({ isOpen, onClose }) {
             onClick={() => !isDeletingAccount && setShowDeleteModal(false)}
           />
           <div
-            className="relative bg-white dark:bg-[#282a2c] rounded-3xl shadow-2xl w-full max-w-md overflow-hidden p-6 space-y-5 animate-in zoom-in-95 duration-150 border border-rose-100"
+            className="relative bg-white dark:bg-[#282a2c] rounded-3xl shadow-2xl w-full max-w-md overflow-hidden p-6 space-y-5 animate-in zoom-in-95 duration-150 border border-rose-100 dark:border-rose-900/50"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header Warning */}
-            <div className="flex items-center gap-3 text-rose-600">
-              <div className="w-10 h-10 rounded-2xl bg-rose-100 flex items-center justify-center shrink-0">
-                <AlertTriangle className="w-6 h-6 text-rose-600" />
+            <div className="flex items-center gap-3 text-rose-600 dark:text-rose-400">
+              <div className="w-10 h-10 rounded-2xl bg-rose-100 dark:bg-rose-900/40 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-6 h-6 text-rose-600 dark:text-rose-400" />
               </div>
               <div>
                 <h4 className="text-base font-bold text-gray-900 dark:text-gray-100">Xác nhận xoá tài khoản</h4>
-                <p className="text-xs text-rose-600 font-medium">Hành động này mang tính vĩnh viễn</p>
+                <p className="text-xs text-rose-600 dark:text-rose-400 font-medium">Hành động này mang tính vĩnh viễn</p>
               </div>
             </div>
 
             {/* Warning Description */}
-            <div className="p-3.5 bg-rose-50 dark:bg-rose-500/15 rounded-2xl border border-rose-200/80 text-rose-900 text-xs space-y-1.5 leading-relaxed">
+            <div className="p-3.5 bg-rose-50 dark:bg-rose-500/15 rounded-2xl border border-rose-200/80 dark:border-rose-900/50 text-rose-900 dark:text-rose-200 text-xs space-y-1.5 leading-relaxed">
               <p className="font-bold">⚠️ Cảnh báo quan trọng:</p>
-              <ul className="list-disc list-inside space-y-1 text-rose-800 text-[11px]">
+              <ul className="list-disc list-inside space-y-1 text-rose-800 dark:text-rose-300 text-[11px]">
                 <li>Toàn bộ tệp tin & thư mục cá nhân sẽ bị xoá vĩnh viễn khỏi Cloud.</li>
                 <li>Tất cả liên kết chia sẻ công khai sẽ ngay lập tức bị vô hiệu.</li>
                 <li>Bạn sẽ không thể khôi phục lại tài khoản sau khi hoàn tất.</li>
@@ -839,7 +839,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
 
               <div>
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
-                  {user.provider === 'local' ? '2. ' : ''}Gõ chữ <span className="text-rose-600 font-mono font-black">DELETE</span> để xác nhận
+                  {user.provider === 'local' ? '2. ' : ''}Gõ chữ <span className="text-rose-600 dark:text-rose-400 font-mono font-black">DELETE</span> để xác nhận
                 </label>
                 <input
                   type="text"

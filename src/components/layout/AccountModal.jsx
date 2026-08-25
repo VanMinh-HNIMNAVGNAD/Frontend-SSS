@@ -87,9 +87,9 @@ export default function AccountModal({ isOpen, onClose }) {
                 </button>
                 <button
                     onClick={handleLogout}
-                    className="w-full flex items-center gap-3 px-3 py-2 text-sm text-rose-600 hover:bg-rose-50 rounded-xl transition-colors text-left font-medium cursor-pointer"
+                    className="w-full flex items-center gap-3 px-3 py-2 text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/15 rounded-xl transition-colors text-left font-medium cursor-pointer"
                 >
-                    <LogOut className="w-4 h-4 text-rose-600" />
+                    <LogOut className="w-4 h-4 text-rose-600 dark:text-rose-400" />
                     Đăng xuất
                 </button>
             </div>

@@ -42,7 +42,7 @@ export default function SelectDropdown({
                 onClick={() => setIsOpen(!isOpen)}
                 className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-all duration-150 shadow-2xs select-none ${
                     active || (value && value !== 'all')
-                        ? 'bg-blue-50 dark:bg-blue-500/15 border-blue-300 text-blue-700 dark:text-blue-300 ring-1 ring-blue-400/30'
+                        ? 'bg-blue-50 dark:bg-blue-500/15 border-blue-300 dark:border-blue-700/60 text-blue-700 dark:text-blue-300 ring-1 ring-blue-400/30'
                         : 'bg-white dark:bg-[#282a2c] border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 hover:border-gray-300 dark:hover:border-gray-600'
                 }`}
             >

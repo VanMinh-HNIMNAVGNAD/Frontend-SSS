@@ -1,9 +1,7 @@
-import { useState, useEffect, memo } from 'react';
-import { storageApi } from '../../services/api';
+import { memo } from 'react';
 import { formatBytes } from '../../utils/formatFileSize';
-import * as XLSX from 'xlsx';
-import mammoth from 'mammoth';
-import * as pdfjsLib from 'pdfjs-dist';
+import { useFileThumbnail, getFileTypeCategory } from '../../hooks/useFileThumbnail';
+import StarButton from '../common/StarButton';
 import { 
     FileText, 
     FileSpreadsheet, 
@@ -15,98 +13,92 @@ import {
     Music, 
     Database, 
     Layers, 
-    Star, 
     MoreVertical, 
     CheckSquare,
     Square,
     ShieldAlert,
 } from 'lucide-react';
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-    'pdfjs-dist/build/pdf.worker.min.mjs',
-    import.meta.url
-).toString();
-
 const fileTypeStyles = {
     pdf: {
-        bg: 'bg-rose-50 dark:bg-rose-500/15 hover:bg-rose-100 border-rose-200',
-        badgeBg: 'bg-rose-100 text-rose-700',
-        icon: <FileText className="w-5 h-5 text-rose-500 shrink-0" />,
-        previewBg: 'bg-rose-500/10 text-rose-600',
+        bg: 'bg-rose-50 dark:bg-rose-500/15 hover:bg-rose-100 dark:hover:bg-rose-500/25 border-rose-200 dark:border-rose-900/50',
+        badgeBg: 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300',
+        icon: <FileText className="w-5 h-5 text-rose-500 dark:text-rose-400 shrink-0" />,
+        previewBg: 'bg-rose-500/10 text-rose-600 dark:text-rose-300',
         label: 'PDF Document'
     },
     sheet: {
-        bg: 'bg-emerald-50 dark:bg-emerald-500/15 hover:bg-emerald-100 border-emerald-200',
-        badgeBg: 'bg-emerald-100 text-emerald-700 dark:text-emerald-300',
+        bg: 'bg-emerald-50 dark:bg-emerald-500/15 hover:bg-emerald-100 dark:hover:bg-emerald-500/25 border-emerald-200 dark:border-emerald-900/50',
+        badgeBg: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300',
         icon: <FileSpreadsheet className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />,
         previewBg: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
         label: 'Spreadsheet'
     },
     image: {
-        bg: 'bg-purple-50 dark:bg-purple-500/15 hover:bg-purple-100 border-purple-200',
-        badgeBg: 'bg-purple-100 text-purple-700',
+        bg: 'bg-purple-50 dark:bg-purple-500/15 hover:bg-purple-100 dark:hover:bg-purple-500/25 border-purple-200 dark:border-purple-900/50',
+        badgeBg: 'bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300',
         icon: <ImageIcon className="w-5 h-5 text-purple-600 dark:text-purple-400 shrink-0" />,
-        previewBg: 'bg-purple-500/10 text-purple-700',
+        previewBg: 'bg-purple-500/10 text-purple-700 dark:text-purple-300',
         label: 'Image'
     },
     video: {
-        bg: 'bg-violet-50 dark:bg-violet-500/15 hover:bg-violet-100 border-violet-200',
-        badgeBg: 'bg-violet-100 text-violet-700',
-        icon: <Video className="w-5 h-5 text-violet-600 shrink-0" />,
-        previewBg: 'bg-violet-500/10 text-violet-700',
+        bg: 'bg-violet-50 dark:bg-violet-500/15 hover:bg-violet-100 dark:hover:bg-violet-500/25 border-violet-200 dark:border-violet-900/50',
+        badgeBg: 'bg-violet-100 text-violet-700 dark:bg-violet-500/20 dark:text-violet-300',
+        icon: <Video className="w-5 h-5 text-violet-600 dark:text-violet-400 shrink-0" />,
+        previewBg: 'bg-violet-500/10 text-violet-700 dark:text-violet-300',
         label: 'Video Clip'
     },
     audio: {
-        bg: 'bg-pink-50 dark:bg-pink-500/15 hover:bg-pink-100 border-pink-200',
-        badgeBg: 'bg-pink-100 text-pink-700',
-        icon: <Music className="w-5 h-5 text-pink-600 shrink-0" />,
-        previewBg: 'bg-pink-500/10 text-pink-700',
+        bg: 'bg-pink-50 dark:bg-pink-500/15 hover:bg-pink-100 dark:hover:bg-pink-500/25 border-pink-200 dark:border-pink-900/50',
+        badgeBg: 'bg-pink-100 text-pink-700 dark:bg-pink-500/20 dark:text-pink-300',
+        icon: <Music className="w-5 h-5 text-pink-600 dark:text-pink-400 shrink-0" />,
+        previewBg: 'bg-pink-500/10 text-pink-700 dark:text-pink-300',
         label: 'Audio File'
     },
     database: {
-        bg: 'bg-cyan-50 dark:bg-cyan-500/15 hover:bg-cyan-100 border-cyan-200',
-        badgeBg: 'bg-cyan-100 text-cyan-700',
-        icon: <Database className="w-5 h-5 text-cyan-600 shrink-0" />,
-        previewBg: 'bg-cyan-500/10 text-cyan-700',
+        bg: 'bg-cyan-50 dark:bg-cyan-500/15 hover:bg-cyan-100 dark:hover:bg-cyan-500/25 border-cyan-200 dark:border-cyan-900/50',
+        badgeBg: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-500/20 dark:text-cyan-300',
+        icon: <Database className="w-5 h-5 text-cyan-600 dark:text-cyan-400 shrink-0" />,
+        previewBg: 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-300',
         label: 'Database SQL'
     },
     figma: {
-        bg: 'bg-purple-50 dark:bg-purple-500/15 hover:bg-purple-100 border-purple-200',
-        badgeBg: 'bg-purple-100 text-purple-700',
+        bg: 'bg-purple-50 dark:bg-purple-500/15 hover:bg-purple-100 dark:hover:bg-purple-500/25 border-purple-200 dark:border-purple-900/50',
+        badgeBg: 'bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300',
         icon: <Layers className="w-5 h-5 text-purple-600 dark:text-purple-400 shrink-0" />,
-        previewBg: 'bg-purple-500/10 text-purple-700',
+        previewBg: 'bg-purple-500/10 text-purple-700 dark:text-purple-300',
         label: 'Figma Design'
     },
     doc: {
-        bg: 'bg-blue-50 dark:bg-blue-500/15 hover:bg-blue-100 border-blue-200',
-        badgeBg: 'bg-blue-100 text-blue-700 dark:text-blue-300',
+        bg: 'bg-blue-50 dark:bg-blue-500/15 hover:bg-blue-100 dark:hover:bg-blue-500/25 border-blue-200 dark:border-blue-900/50',
+        badgeBg: 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300',
         icon: <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0" />,
         previewBg: 'bg-blue-500/10 text-blue-700 dark:text-blue-300',
         label: 'Document'
     },
     markdown: {
-        bg: 'bg-indigo-50 dark:bg-indigo-500/15 hover:bg-indigo-100 border-indigo-200',
-        badgeBg: 'bg-indigo-100 text-indigo-700',
+        bg: 'bg-indigo-50 dark:bg-indigo-500/15 hover:bg-indigo-100 dark:hover:bg-indigo-500/25 border-indigo-200 dark:border-indigo-900/50',
+        badgeBg: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300',
         icon: <FileCode className="w-5 h-5 text-indigo-600 dark:text-indigo-400 shrink-0" />,
-        previewBg: 'bg-indigo-500/10 text-indigo-700',
+        previewBg: 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-300',
         label: 'Markdown'
     },
     archive: {
-        bg: 'bg-amber-50 dark:bg-amber-500/15 hover:bg-amber-100 border-amber-200',
-        badgeBg: 'bg-amber-100 text-amber-700',
+        bg: 'bg-amber-50 dark:bg-amber-500/15 hover:bg-amber-100 dark:hover:bg-amber-500/25 border-amber-200 dark:border-amber-900/50',
+        badgeBg: 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300',
         icon: <FileArchive className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />,
-        previewBg: 'bg-amber-500/10 text-amber-700',
+        previewBg: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
         label: 'Archive'
     },
     code: {
-        bg: 'bg-amber-50 dark:bg-amber-500/15 hover:bg-amber-100 border-amber-200',
-        badgeBg: 'bg-amber-100 text-amber-700',
+        bg: 'bg-amber-50 dark:bg-amber-500/15 hover:bg-amber-100 dark:hover:bg-amber-500/25 border-amber-200 dark:border-amber-900/50',
+        badgeBg: 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300',
         icon: <FileCode className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />,
-        previewBg: 'bg-amber-500/10 text-amber-700',
+        previewBg: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
         label: 'Source Code'
     },
     default: {
-        bg: 'bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/5 border-slate-200 dark:border-gray-700',
+        bg: 'bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 border-slate-200 dark:border-gray-700',
         badgeBg: 'bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-gray-300',
         icon: <File className="w-5 h-5 text-slate-500 dark:text-gray-400 shrink-0" />,
         previewBg: 'bg-slate-500/10 text-slate-700 dark:text-gray-300',
@@ -114,160 +106,12 @@ const fileTypeStyles = {
     }
 };
 
-function getFileTypeCategory(name = '') {
-    const n = name.toLowerCase();
-    if (n.endsWith('.pdf')) return 'pdf';
-    if (n.endsWith('.xlsx') || n.endsWith('.csv') || n.endsWith('.xls')) return 'sheet';
-    if (/\.(png|jpg|jpeg|svg|webp|gif|bmp|ico)$/i.test(n)) return 'image';
-    if (/\.(mp4|mkv|mov|webm)$/i.test(n)) return 'video';
-    if (/\.(mp3|wav|flac|ogg|m4a)$/i.test(n)) return 'audio';
-    if (/\.(sql|db|sqlite)$/i.test(n)) return 'database';
-    if (n.endsWith('.fig')) return 'figma';
-    if (/\.(md|markdown)$/i.test(n)) return 'markdown';
-    if (/\.(docx|doc|txt|pptx|log|env|conf|ini)$/i.test(n)) return 'doc';
-    if (/\.(zip|rar|7z|tar|gz)$/i.test(n)) return 'archive';
-    // Danh sách mở rộng toàn bộ các file code
-    if (/\.(js|jsx|ts|tsx|py|java|c|cpp|h|hpp|cs|go|rb|php|sh|bash|zsh|json|xml|yaml|yml|toml|css|scss|sass|html|htm|vue|svelte|kt|swift|rs|dart|lua|prisma|graphql)$/i.test(n)) {
-        return 'code';
-    }
-    return 'default';
-}
-
-// Giới hạn dung lượng để tải thumbnail: 10MB
-const MAX_THUMBNAIL_SIZE = 10 * 1024 * 1024;
-
 function FileCard({ file, onDoubleClick, onContextMenu, onStarToggle, onOpenInfo, isSelected, isCut = false, onToggleSelect, onSelectRange }) {
     const cat = getFileTypeCategory(file?.name);
     const style = fileTypeStyles[cat] || fileTypeStyles.default;
 
-    // thumbType: 'image' | 'video' | 'sheet' | 'text' | null
-    const [thumbType, setThumbType] = useState(null);
-    const [thumbUrl, setThumbUrl] = useState(null);     // image, video
-    const [textContent, setTextContent] = useState(null); // text, code, docx
-    const [sheetData, setSheetData] = useState(null);   // xlsx rows [row][col]
-
-    useEffect(() => {
-        if (!file?.id) return;
-
-        // Nếu file quá lớn (> 10MB) → fallback icon ngay, không gọi API, không hiện loading
-        const sizeOk = !file.size || file.size <= MAX_THUMBNAIL_SIZE;
-        if (!sizeOk) return;
-
-        let isMounted = true;
-
-        const n = file.name.toLowerCase();
-
-        // ── Image / Video: dùng presigned URL trực tiếp ──────────────
-        if (cat === 'image' || cat === 'video') {
-            storageApi.getPreviewUrl(file.id)
-                .then(res => {
-                    if (isMounted && res?.previewUrl) {
-                        setThumbUrl(res.previewUrl);
-                        setThumbType(cat); // 'image' | 'video'
-                    }
-                })
-                .catch(() => {});
-
-        // ── PDF: render Canvas qua pdfjsLib buffer (không dùng iframe) ──
-        } else if (cat === 'pdf') {
-            (async () => {
-                try {
-                    const res = await storageApi.getPreviewUrl(file.id);
-                    if (!res?.previewUrl || !isMounted) return;
-
-                    const pdfData = await fetch(res.previewUrl).then(r => r.arrayBuffer());
-                    if (!isMounted) return;
-
-                    const loadingTask = pdfjsLib.getDocument({ data: pdfData });
-                    const pdf = await loadingTask.promise;
-                    if (!isMounted) return;
-
-                    const page = await pdf.getPage(1);
-                    const viewport = page.getViewport({ scale: 0.5 });
-                    const canvas = document.createElement('canvas');
-                    const context = canvas.getContext('2d');
-                    canvas.height = viewport.height;
-                    canvas.width = viewport.width;
-
-                    await page.render({ canvasContext: context, viewport }).promise;
-
-                    if (isMounted) {
-                        setThumbUrl(canvas.toDataURL('image/jpeg', 0.8));
-                        setThumbType('image');
-                    }
-                } catch { /* fallback icon */ }
-            })();
-
-        // ── XLSX / CSV: fetch binary → SheetJS parse → mini table ──
-        } else if (cat === 'sheet') {
-            (async () => {
-                try {
-                    const res = await storageApi.getPreviewUrl(file.id);
-                    if (!res?.previewUrl || !isMounted) return;
-                    const response = await fetch(res.previewUrl);
-                    if (!response.ok || !isMounted) return;
-                    const buffer = await response.arrayBuffer();
-                    if (!isMounted) return;
-                    const wb = XLSX.read(buffer, { type: 'array' });
-                    const ws = wb.Sheets[wb.SheetNames[0]];
-                    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
-                    if (isMounted && rows.length > 0) {
-                        setSheetData(rows.slice(0, 4)); // tối đa 4 hàng đầu
-                        setThumbType('sheet');
-                    }
-                } catch { /* fallback icon */ }
-            })();
-
-        // ── DOCX / DOC: fetch binary → mammoth → text ──
-        } else if (cat === 'doc' && (n.endsWith('.docx') || n.endsWith('.doc'))) {
-            (async () => {
-                try {
-                    const res = await storageApi.getPreviewUrl(file.id);
-                    if (!res?.previewUrl || !isMounted) return;
-                    const response = await fetch(res.previewUrl);
-                    if (!response.ok || !isMounted) return;
-                    const buffer = await response.arrayBuffer();
-                    if (!isMounted) return;
-                    const result = await mammoth.extractRawText({ arrayBuffer: buffer });
-                    if (isMounted && result?.value?.trim()) {
-                        setTextContent(result.value.slice(0, 150));
-                        setThumbType('text');
-                    }
-                } catch { /* fallback icon */ }
-            })();
-
-        // ── Markdown: text preview riêng ──
-        } else if (cat === 'markdown') {
-            setThumbType('markdown');
-
-        // ── TXT / LOG / ENV / CONF / INI: text preview ──
-        } else if (cat === 'doc' && (n.endsWith('.txt') || n.endsWith('.log') || n.endsWith('.env') || n.endsWith('.conf') || n.endsWith('.ini'))) {
-            storageApi.getFileTextContent(file.id)
-                .then(res => {
-                    if (isMounted && res?.content) {
-                        setTextContent(res.content.slice(0, 150));
-                        setThumbType('text');
-                    }
-                })
-                .catch(() => {});
-
-        // ── Code / JSON / YAML / XML / Shell / ... → text preview ──
-        } else if (cat === 'code') {
-            storageApi.getFileTextContent(file.id)
-                .then(res => {
-                    if (isMounted && res?.content) {
-                        setTextContent(res.content.slice(0, 150));
-                        setThumbType('text');
-                    }
-                })
-                .catch(() => {});
-        }
-        // archive, audio, database, figma, pptx, default → fallback icon, không gọi API
-
-        return () => {
-            isMounted = false;
-        };
-    }, [cat, file?.id, file?.size]);
+    // Thumbnail: logic tải/parse nằm trong hook dùng chung với Trang chủ
+    const { thumbType, thumbUrl, textContent, sheetData } = useFileThumbnail(file);
 
     return (
         <div
@@ -288,6 +132,7 @@ function FileCard({ file, onDoubleClick, onContextMenu, onStarToggle, onOpenInfo
                         onToggleSelect && onToggleSelect(file.id);
                     }
                 }}
+                onDoubleClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
                 className={`absolute top-2 left-2 z-20 p-0.5 rounded transition-all ${
                     isSelected
                         ? 'opacity-100 text-blue-600 dark:text-blue-400'
@@ -320,19 +165,15 @@ function FileCard({ file, onDoubleClick, onContextMenu, onStarToggle, onOpenInfo
                 <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100">
                     {/* Tep nguoi khac chia se: cot is_starred thuoc chu so huu nen an nut */}
                     {!file.isSharedWithMe && (
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onStarToggle && onStarToggle(file.id);
-                            }}
-                            className="p-1 text-gray-400 dark:text-gray-500 hover:text-amber-500 rounded-full hover:bg-white/60 transition-colors"
-                            title={file.isStarred ? 'Bo danh dau sao' : 'Danh dau sao'}
-                        >
-                            <Star className={`w-4 h-4 ${file.isStarred ? 'fill-amber-400 text-amber-500' : ''}`} />
-                        </button>
+                        <StarButton
+                            size="sm"
+                            isStarred={file.isStarred}
+                            onToggle={() => onStarToggle && onStarToggle(file.id)}
+                        />
                     )}
                     <button
                         onClick={(e) => onContextMenu && onContextMenu(e, file)}
+                        onDoubleClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
                         className="p-1 text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 rounded-full hover:bg-white/60 transition-colors"
                         title="Tuy chon tep"
                     >
@@ -363,15 +204,15 @@ function FileCard({ file, onDoubleClick, onContextMenu, onStarToggle, onOpenInfo
 
                 ) : thumbType === 'sheet' && sheetData ? (
                     /* ── XLSX/CSV mini table ── */
-                    <div className="w-full h-full rounded-lg overflow-hidden bg-emerald-50/60 p-1">
+                    <div className="w-full h-full rounded-lg overflow-hidden bg-emerald-50/60 dark:bg-emerald-950/40 p-1">
                         <table className="w-full text-left border-collapse" style={{ fontSize: '6px', lineHeight: '1.2' }}>
                             <tbody>
                                 {sheetData.map((row, ri) => (
-                                    <tr key={ri} className={ri === 0 ? 'bg-emerald-100/80 font-bold' : ''}>
+                                    <tr key={ri} className={ri === 0 ? 'bg-emerald-100/80 dark:bg-emerald-900/60 font-bold' : ''}>
                                         {Array.from({ length: Math.min(row.length, 5) }).map((_, ci) => (
                                             <td
                                                 key={ci}
-                                                className="border border-emerald-200/50 px-0.5 py-px truncate text-emerald-900 opacity-80"
+                                                className="border border-emerald-200/50 dark:border-emerald-800/50 px-0.5 py-px truncate text-emerald-900 dark:text-emerald-200 opacity-80"
                                                 style={{ maxWidth: '30px' }}
                                             >
                                                 {String(row[ci] ?? '').slice(0, 8)}

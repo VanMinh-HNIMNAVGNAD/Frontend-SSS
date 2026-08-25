@@ -1,5 +1,6 @@
 import { createContext, useState, useContext, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useLocation, useNavigate, matchPath } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { filesApi, storageApi, sharingApi, chunkedApi } from '../services/api';
 import { useAuth } from './AuthContext';
 import { useDebounce } from '../hooks/useDebounce';
@@ -517,14 +518,39 @@ export function FileProvider({ children }) {
 
 
   // Actions connecting to Backend
-  const toggleStar = useCallback(async (id) => {
+  /**
+   * Bật/tắt dấu sao cho một tệp hoặc thư mục.
+   *
+   * Dùng luôn `isStarred` backend trả về (`PATCH /files/:id/star` → { id, isStarred })
+   * thay vì tự đảo cờ ở client: đảo cờ mù thì khi request thất bại một phần, hoặc
+   * khi cùng một tệp đang hiện ở hai chỗ, UI sẽ lệch hẳn với DB.
+   *
+   * `silent` dành cho thao tác hàng loạt (phím tắt chọn nhiều mục) — để phía gọi
+   * gộp lại thành MỘT thông báo thay vì bắn N cái toast.
+   *
+   * @returns {{ ok: boolean, isStarred?: boolean, error?: Error }}
+   *          Không throw để nút bấm gọi trực tiếp không tạo unhandled rejection.
+   */
+  const toggleStar = useCallback(async (id, { silent = false } = {}) => {
     try {
-      await filesApi.toggleStar(id);
+      const res = await filesApi.toggleStar(id);
+      const isStarred = typeof res?.isStarred === 'boolean' ? res.isStarred : undefined;
       setItems((prev) =>
-        prev.map((item) => (item.id === id ? { ...item, isStarred: !item.isStarred } : item)),
+        prev.map((item) =>
+          item.id === id ? { ...item, isStarred: isStarred ?? !item.isStarred } : item,
+        ),
       );
+      if (!silent) {
+        if (isStarred === undefined) {
+          toast.success('Đã cập nhật dấu sao');
+        } else {
+          toast.success(isStarred ? 'Đã thêm vào mục gắn sao' : 'Đã bỏ khỏi mục gắn sao');
+        }
+      }
+      return { ok: true, isStarred };
     } catch (err) {
-      alert('Không thể cập nhật dấu sao: ' + err.message);
+      if (!silent) toast.error(err.message || 'Không cập nhật được dấu sao');
+      return { ok: false, error: err };
     }
   }, []);
 
@@ -534,7 +560,7 @@ export function FileProvider({ children }) {
       setItems((prev) => prev.filter((item) => item.id !== id));
       fetchAnalytics();
     } catch (err) {
-      alert('Không thể chuyển vào thùng rác: ' + err.message);
+      toast.error('Không thể chuyển vào thùng rác: ' + err.message);
     }
   }, [fetchAnalytics]);
 
@@ -544,7 +570,7 @@ export function FileProvider({ children }) {
       setItems((prev) => prev.filter((item) => item.id !== id));
       fetchAnalytics();
     } catch (err) {
-      alert('Không thể khôi phục: ' + err.message);
+      toast.error('Không thể khôi phục: ' + err.message);
     }
   }, [fetchAnalytics]);
 
@@ -554,7 +580,7 @@ export function FileProvider({ children }) {
       setItems((prev) => prev.filter((item) => item.id !== id));
       fetchAnalytics();
     } catch (err) {
-      alert('Không thể xóa vĩnh viễn: ' + err.message);
+      toast.error('Không thể xóa vĩnh viễn: ' + err.message);
     }
   }, [fetchAnalytics]);
 
@@ -564,7 +590,7 @@ export function FileProvider({ children }) {
       setItems([]);
       fetchAnalytics();
     } catch (err) {
-      alert('Không thể dọn thùng rác: ' + err.message);
+      toast.error('Không thể dọn thùng rác: ' + err.message);
     }
   }, [fetchAnalytics]);
 
@@ -576,7 +602,7 @@ export function FileProvider({ children }) {
         prev.map((item) => (item.id === id ? { ...item, name: updated.name || newName.trim() } : item)),
       );
     } catch (err) {
-      alert('Không thể đổi tên: ' + err.message);
+      toast.error('Không thể đổi tên: ' + err.message);
     }
   }, []);
 
@@ -593,7 +619,7 @@ export function FileProvider({ children }) {
       };
       res = await filesApi.createFolder(payload);
     } catch (err) {
-      alert('Không thể tạo thư mục: ' + err.message);
+      toast.error('Không thể tạo thư mục: ' + err.message);
       throw err;
     } finally {
       setIsLoading(false);
@@ -636,7 +662,7 @@ export function FileProvider({ children }) {
     try {
       await filesApi.moveItem(id, { targetParentId });
     } catch (err) {
-      alert('Không thể di chuyển: ' + err.message);
+      toast.error('Không thể di chuyển: ' + err.message);
       return;
     }
 
@@ -653,7 +679,7 @@ export function FileProvider({ children }) {
     try {
       await filesApi.copyItem(id, { targetParentId });
     } catch (err) {
-      alert('Không thể sao chép: ' + err.message);
+      toast.error('Không thể sao chép: ' + err.message);
       return;
     }
 
@@ -752,7 +778,7 @@ export function FileProvider({ children }) {
         );
       } catch (err) {
         console.error('Lỗi trong quá trình dán:', err);
-        alert('Đã xảy ra lỗi khi dán: ' + (err.message || err));
+        toast.error('Đã xảy ra lỗi khi dán: ' + (err.message || err));
         return;
       } finally {
         setIsPasting(false);
@@ -773,8 +799,18 @@ export function FileProvider({ children }) {
       });
 
       if (rejected.length > 0) {
-        const errorDetails = rejected.map((r) => `• ${r.name}: ${r.reason}`).join('\n');
-        alert(`Có ${rejected.length}/${toProcess.length} mục xử lý thất bại:\n${errorDetails}`);
+        // Toast góc phải không phải chỗ để liệt kê từng mục: nêu số lượng + tên mục
+        // đầu tiên, chi tiết đầy đủ đẩy ra console cho lúc cần truy vết.
+        console.error(
+          'Dán thất bại:',
+          rejected.map((r) => `${r.name}: ${r.reason}`).join('\n'),
+        );
+        const firstError = `${rejected[0].name}: ${rejected[0].reason}`;
+        toast.error(
+          rejected.length === 1
+            ? `Không xử lý được "${firstError}"`
+            : `Có ${rejected.length}/${toProcess.length} mục xử lý thất bại (${firstError}, ...)`,
+        );
       }
 
       // Nếu là cut thì xoá clipboard sau khi paste (kể cả có lỗi một phần)
@@ -1134,7 +1170,7 @@ export function FileProvider({ children }) {
       const res = await storageApi.getDownloadUrl(id);
       return res.downloadUrl;
     } catch (err) {
-      alert('Lỗi lấy link tải: ' + err.message);
+      toast.error('Lỗi lấy link tải: ' + err.message);
       return null;
     }
   }, []);
@@ -1144,7 +1180,7 @@ export function FileProvider({ children }) {
       const res = await storageApi.getPreviewUrl(id);
       return res.previewUrl;
     } catch (err) {
-      alert('Lỗi lấy link xem trước: ' + err.message);
+      toast.error('Lỗi lấy link xem trước: ' + err.message);
       return null;
     }
   }, []);
@@ -1163,7 +1199,7 @@ export function FileProvider({ children }) {
     try {
       return await sharingApi.createShareLink(id, options);
     } catch (err) {
-      alert('Lỗi tạo link chia sẻ: ' + err.message);
+      toast.error('Lỗi tạo link chia sẻ: ' + err.message);
       return null;
     }
   }, []);

@@ -66,7 +66,7 @@ export default function TrashPage() {
                     {trashItems.length > 0 && (
                         <button
                             onClick={handleEmptyTrash}
-                            className="px-4 py-2 bg-rose-50 dark:bg-rose-500/15 text-rose-600 hover:bg-rose-100 rounded-full text-xs font-semibold transition-colors flex items-center gap-1.5"
+                            className="px-4 py-2 bg-rose-50 dark:bg-rose-500/15 text-rose-600 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-500/25 rounded-full text-xs font-semibold transition-colors flex items-center gap-1.5"
                         >
                             <Trash2 className="w-4 h-4" />
                             Dọn sạch thùng rác
@@ -76,11 +76,11 @@ export default function TrashPage() {
             </div>
 
             {/* Banner Thông báo */}
-            <div className="bg-blue-50 dark:bg-blue-500/15 border border-blue-200 rounded-2xl p-3.5 mb-2 flex items-start gap-3 text-blue-900 text-sm shadow-2xs">
+            <div className="bg-blue-50 dark:bg-blue-500/15 border border-blue-200 dark:border-blue-900/50 rounded-2xl p-3.5 mb-2 flex items-start gap-3 text-blue-900 dark:text-blue-200 text-sm shadow-2xs">
                 <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
                 <div>
                     <p className="font-semibold mb-0.5">Trạng thái lưu trữ Thùng rác:</p>
-                    <p className="text-xs text-blue-800">
+                    <p className="text-xs text-blue-800 dark:text-blue-300">
                         Các tệp trong thùng rác sẽ tự động bị xóa vĩnh viễn sau 30 ngày.
                     </p>
                 </div>

@@ -217,13 +217,13 @@ export default function BillingAndQuota() {
                   key={plan.id}
                   className={`flex flex-col bg-white dark:bg-[#282a2c] rounded-2xl p-6 sm:p-8 border transition-all duration-300 h-full ${
                     plan.popular
-                      ? 'border-gray-900 shadow-xl ring-1 ring-gray-900 hover:-translate-y-1'
+                      ? 'border-gray-900 dark:border-blue-500 shadow-xl ring-1 ring-gray-900 dark:ring-blue-500 hover:-translate-y-1'
                       : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-lg shadow-sm hover:-translate-y-1'
                   }`}
                 >
                   <div className="mb-8">
                     {plan.popular ? (
-                       <div className="inline-block px-3 py-1 bg-gray-900 text-white text-xs font-bold rounded-lg mb-4 tracking-wide uppercase">Lựa Chọn Phổ Biến</div>
+                       <div className="inline-block px-3 py-1 bg-gray-900 dark:bg-blue-600 text-white text-xs font-bold rounded-lg mb-4 tracking-wide uppercase">Lựa Chọn Phổ Biến</div>
                     ) : (
                        <div className="inline-block px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs font-bold rounded-lg mb-4 tracking-wide uppercase">{plan.tag}</div>
                     )}
@@ -255,7 +255,7 @@ export default function BillingAndQuota() {
                       plan.isCurrent
                         ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed border border-transparent'
                         : plan.popular
-                        ? 'bg-gray-900 text-white hover:bg-gray-800 shadow-md'
+                        ? 'bg-gray-900 dark:bg-blue-600 text-white hover:bg-gray-800 dark:hover:bg-blue-500 shadow-md'
                         : 'bg-white dark:bg-[#282a2c] text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-white/5 hover:border-gray-300 dark:hover:border-gray-600 shadow-sm'
                     }`}
                   >
@@ -338,16 +338,16 @@ export default function BillingAndQuota() {
                   <button
                     onClick={() => setSelectedPayment('vnpay')}
                     className={`flex flex-col items-center justify-center gap-3 p-5 rounded-2xl border-2 transition-all ${
-                      selectedPayment === 'vnpay' ? 'border-gray-900 bg-gray-50 dark:bg-white/5 shadow-sm' : 'border-gray-100 dark:border-gray-700 hover:border-gray-200 text-gray-600 dark:text-gray-300'
+                      selectedPayment === 'vnpay' ? 'border-gray-900 dark:border-blue-500 bg-gray-50 dark:bg-blue-500/10 shadow-sm' : 'border-gray-100 dark:border-gray-700 hover:border-gray-200 text-gray-600 dark:text-gray-300'
                     }`}
                   >
-                    <QrCode className={`w-8 h-8 ${selectedPayment === 'vnpay' ? 'text-gray-900 dark:text-gray-100' : 'text-gray-400 dark:text-gray-500'}`} />
+                    <QrCode className={`w-8 h-8 ${selectedPayment === 'vnpay' ? 'text-gray-900 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}`} />
                     <span className="text-[13px] font-bold text-gray-900 dark:text-gray-100">VNPay QR</span>
                   </button>
                   <button
                     onClick={() => setSelectedPayment('momo')}
                     className={`flex flex-col items-center justify-center gap-3 p-5 rounded-2xl border-2 transition-all ${
-                      selectedPayment === 'momo' ? 'border-gray-900 bg-gray-50 dark:bg-white/5 shadow-sm' : 'border-gray-100 dark:border-gray-700 hover:border-gray-200 text-gray-600 dark:text-gray-300'
+                      selectedPayment === 'momo' ? 'border-gray-900 dark:border-pink-500 bg-gray-50 dark:bg-pink-500/10 shadow-sm' : 'border-gray-100 dark:border-gray-700 hover:border-gray-200 text-gray-600 dark:text-gray-300'
                     }`}
                   >
                     <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-sm ${selectedPayment === 'momo' ? 'bg-[#A50064] text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'}`}>

@@ -56,11 +56,11 @@ export default function SpamPage() {
                 </div>
 
                 {/* Banner Cảnh báo Spam / Virus */}
-                <div className="bg-amber-50 dark:bg-amber-500/15 border border-amber-200 rounded-2xl p-4 flex items-start gap-3 text-amber-900 text-sm shadow-2xs">
+                <div className="bg-amber-50 dark:bg-amber-500/15 border border-amber-200 dark:border-amber-900/50 rounded-2xl p-4 flex items-start gap-3 text-amber-900 dark:text-amber-200 text-sm shadow-2xs">
                     <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                     <div>
                         <p className="font-semibold mb-0.5">Cảnh báo an toàn tệp nghi ngờ:</p>
-                        <p className="text-xs text-amber-800">
+                        <p className="text-xs text-amber-800 dark:text-amber-300">
                             Các tệp bị gắn cờ chứa nội dung spam, tin nhắn lừa đảo hoặc dấu hiệu nhiễm virus sẽ tự động bị xóa vĩnh viễn sau 30 ngày. Không mở tệp nếu không rõ nguồn gốc.
                         </p>
                     </div>

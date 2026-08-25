@@ -111,7 +111,7 @@ export default function ShareDriveModal({ isOpen, drive, onClose, onChanged }) {
                 render inline nên nằm trong đó — chặn event tại đây để còn Dán được vào ô email */}
             <div className="space-y-5" onContextMenu={(e) => e.stopPropagation()}>
                 {/* Giải thích bản chất share của Bộ nhớ dùng chung */}
-                <div className="flex gap-2.5 p-3 rounded-2xl bg-indigo-50/70 border border-indigo-100 text-[12px] text-indigo-900 leading-relaxed">
+                <div className="flex gap-2.5 p-3 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/50 text-[12px] text-indigo-900 dark:text-indigo-200 leading-relaxed">
                     <Users className="w-4 h-4 shrink-0 mt-0.5 text-indigo-600 dark:text-indigo-400" />
                     <p>
                         Thêm người vào đây là họ thấy được <strong>toàn bộ</strong> tệp và thư mục trong
@@ -120,10 +120,10 @@ export default function ShareDriveModal({ isOpen, drive, onClose, onChanged }) {
                 </div>
 
                 {errorMsg && (
-                    <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-rose-50 dark:bg-rose-500/15 border border-rose-200 text-rose-700 text-xs">
+                    <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-rose-50 dark:bg-rose-500/15 border border-rose-200 dark:border-rose-900/50 text-rose-700 dark:text-rose-300 text-xs">
                         <AlertCircle className="w-4 h-4 shrink-0" />
                         <span className="flex-1">{errorMsg}</span>
-                        <button onClick={() => setErrorMsg('')} className="text-rose-400 hover:text-rose-600 cursor-pointer">
+                        <button onClick={() => setErrorMsg('')} className="text-rose-400 hover:text-rose-600 dark:hover:text-rose-300 cursor-pointer">
                             <X className="w-3.5 h-3.5" />
                         </button>
                     </div>
@@ -221,7 +221,7 @@ export default function ShareDriveModal({ isOpen, drive, onClose, onChanged }) {
                                                 onClick={() => handleRemoveMember(memberUserId)}
                                                 disabled={removingUserId === memberUserId}
                                                 title="Gỡ khỏi bộ nhớ dùng chung"
-                                                className="p-1.5 rounded-lg text-slate-300 hover:text-rose-600 hover:bg-rose-50 transition-colors disabled:opacity-50 opacity-0 group-hover:opacity-100 focus:opacity-100 cursor-pointer"
+                                                className="p-1.5 rounded-lg text-slate-300 dark:text-gray-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/15 transition-colors disabled:opacity-50 opacity-0 group-hover:opacity-100 focus:opacity-100 cursor-pointer"
                                             >
                                                 {removingUserId === memberUserId
                                                     ? <Loader2 className="w-3.5 h-3.5 animate-spin" />

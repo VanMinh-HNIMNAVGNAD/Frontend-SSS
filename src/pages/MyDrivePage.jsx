@@ -91,7 +91,7 @@ export default function MyDrivePage() {
             <button
               disabled={isPasting}
               onClick={() => pasteItems()}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 dark:bg-blue-500/15 hover:bg-blue-100 border border-blue-200 text-blue-700 dark:text-blue-300 disabled:opacity-50 disabled:cursor-not-allowed rounded-full text-xs font-bold shadow-xs transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 dark:bg-blue-500/15 hover:bg-blue-100 dark:hover:bg-blue-500/25 border border-blue-200 dark:border-blue-800/60 text-blue-700 dark:text-blue-300 disabled:opacity-50 disabled:cursor-not-allowed rounded-full text-xs font-bold shadow-xs transition-colors cursor-pointer"
               title={`Dán ${clipboard.items.length} mục vào thư mục này (Ctrl+V) — Esc để bỏ`}
             >
               {isPasting ? (

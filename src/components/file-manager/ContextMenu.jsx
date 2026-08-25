@@ -161,8 +161,8 @@ export default function ContextMenu({
                     {item.userRole && (
                         <span className={`ml-auto shrink-0 px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
                             isDriveAdmin
-                                ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
-                                : 'bg-sky-100 dark:bg-sky-500/20 text-sky-600 dark:text-sky-400'
+                                ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-300'
+                                : 'bg-sky-100 dark:bg-sky-500/20 text-sky-600 dark:text-sky-300'
                         }`}>
                             {item.userRole}
                         </span>
@@ -224,7 +224,7 @@ export default function ContextMenu({
                 {item.canDelete ? (
                     <button
                         onClick={() => { onDeletePermanently?.(item); onClose(); }}
-                        className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 transition-colors"
+                        className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-rose-600 dark:text-rose-300 hover:text-rose-700 dark:hover:text-rose-200 transition-colors"
                     >
                         <Trash2 className="w-4 h-4 shrink-0" />
                         <span>Xóa bộ nhớ dùng chung</span>
@@ -278,8 +278,8 @@ export default function ContextMenu({
                 {isSharedWithMeTab && sharedRole && (
                     <span className={`ml-auto shrink-0 px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
                         sharedRole === 'EDITOR'
-                            ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
-                            : 'bg-sky-100 dark:bg-sky-500/20 text-sky-600 dark:text-sky-400'
+                            ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-300'
+                            : 'bg-sky-100 dark:bg-sky-500/20 text-sky-600 dark:text-sky-300'
                     }`}>
                         {sharedRole === 'EDITOR' ? 'Chỉnh sửa' : 'Xem'}
                     </span>
@@ -299,7 +299,7 @@ export default function ContextMenu({
 
                     <button
                         onClick={() => { onDeletePermanently?.(item); onClose(); }}
-                        className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 transition-colors"
+                        className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-rose-600 dark:text-rose-300 hover:text-rose-700 dark:hover:text-rose-200 transition-colors"
                     >
                         <Trash2 className="w-4 h-4 shrink-0" />
                         <span>Xóa vĩnh viễn</span>

@@ -8,6 +8,7 @@ import ContextMenu from './ContextMenu';
 import RenameModal from './RenameModal';
 import ShareModal from './ShareModal';
 import GeminiModal from './GeminiModal';
+import StarButton from '../common/StarButton';
 import {
     Folder,
     FileText,
@@ -20,7 +21,6 @@ import {
     Music,
     Database,
     Layers,
-    Star,
     MoreVertical,
     FolderOpen,
     ChevronLeft,
@@ -105,6 +105,7 @@ const FolderTableRow = memo(function FolderTableRow({
                         onToggleSelect(folder.id);
                     }
                 }}
+                onDoubleClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
             >
                 <button className="flex items-center justify-center text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                     {isSelected ? <CheckSquare className="w-4 h-4 text-blue-600 dark:text-blue-400" /> : <Square className="w-4 h-4" />}
@@ -115,21 +116,12 @@ const FolderTableRow = memo(function FolderTableRow({
             {/* Tệp người khác chia sẻ: cột is_starred thuộc chủ sở hữu nên chỉ hiển
                 thị trạng thái, không cho bấm (backend chặn non-owner) */}
             <td className="py-2.5 px-3 text-center">
-                {folder.isSharedWithMe ? (
-                    <span className="inline-block p-1 text-gray-200" title="Chỉ chủ sở hữu mới gắn sao được">
-                        <Star className={`w-4 h-4 ${folder.isStarred ? 'fill-amber-400 text-amber-500' : ''}`} />
-                    </span>
-                ) : (
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onToggleStar(folder.id);
-                        }}
-                        className="text-gray-300 hover:text-amber-400 p-1"
-                    >
-                        <Star className={`w-4 h-4 ${folder.isStarred ? 'fill-amber-400 text-amber-500' : ''}`} />
-                    </button>
-                )}
+                <StarButton
+                    size="sm"
+                    isStarred={folder.isStarred}
+                    readOnly={folder.isSharedWithMe}
+                    onToggle={() => onToggleStar(folder.id)}
+                />
             </td>
 
             {/* Name Column */}
@@ -149,7 +141,7 @@ const FolderTableRow = memo(function FolderTableRow({
 
             {/* Type Column */}
             <td className="py-2.5 px-3 hidden lg:table-cell">
-                <span className="px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-500/15 text-amber-700 font-medium text-[11px] border border-amber-200/60">
+                <span className="px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 font-medium text-[11px] border border-amber-200/60 dark:border-amber-800/60">
                     Thư mục
                 </span>
             </td>
@@ -233,6 +225,7 @@ const FileTableRow = memo(function FileTableRow({
                         onToggleSelect(file.id);
                     }
                 }}
+                onDoubleClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
             >
                 <button className="flex items-center justify-center text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                     {isSelected ? <CheckSquare className="w-4 h-4 text-blue-600 dark:text-blue-400" /> : <Square className="w-4 h-4" />}
@@ -241,21 +234,12 @@ const FileTableRow = memo(function FileTableRow({
 
             {/* Star Column — xem ghi chú ở hàng thư mục */}
             <td className="py-2.5 px-3 text-center">
-                {file.isSharedWithMe ? (
-                    <span className="inline-block p-1 text-gray-200" title="Chỉ chủ sở hữu mới gắn sao được">
-                        <Star className={`w-4 h-4 ${file.isStarred ? 'fill-amber-400 text-amber-500' : ''}`} />
-                    </span>
-                ) : (
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onToggleStar(file.id);
-                        }}
-                        className="text-gray-300 hover:text-amber-400 p-1"
-                    >
-                        <Star className={`w-4 h-4 ${file.isStarred ? 'fill-amber-400 text-amber-500' : ''}`} />
-                    </button>
-                )}
+                <StarButton
+                    size="sm"
+                    isStarred={file.isStarred}
+                    readOnly={file.isSharedWithMe}
+                    onToggle={() => onToggleStar(file.id)}
+                />
             </td>
 
             {/* Name Column */}

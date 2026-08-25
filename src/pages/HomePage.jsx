@@ -1,5 +1,7 @@
 import { useFiles } from '../context/FileContext';
 import FileSkeleton from '../components/common/FileSkeleton';
+import FileThumbnail from '../components/file-manager/FileThumbnail';
+import StarButton from '../components/common/StarButton';
 import { getFileIcon } from '../utils/getFileIcon';
 import {
     HardDrive,
@@ -13,8 +15,18 @@ import {
     File
 } from 'lucide-react';
 
+// getFileIcon() có thể ném lỗi với item thiếu `name`/`mimeType` (dữ liệu cũ) —
+// Trang chủ trộn item từ nhiều nguồn nên bọc lại một lần ở đây.
+const safeFileIcon = (item) => {
+    try {
+        return getFileIcon(item);
+    } catch {
+        return <File className="w-4 h-4 text-gray-400 dark:text-gray-500 shrink-0" />;
+    }
+};
+
 // Compact Section Table Component (List Mode)
-const SectionTable = ({ itemList, emptyMessage = "Không có mục nào", onItemClick }) => {
+const SectionTable = ({ itemList, emptyMessage = "Không có mục nào", onItemClick, onToggleStar }) => {
     if (itemList.length === 0) {
         return <p className="text-xs text-gray-400 dark:text-gray-500 py-3 italic">{emptyMessage}</p>;
     }
@@ -27,15 +39,13 @@ const SectionTable = ({ itemList, emptyMessage = "Không có mục nào", onItem
                     onClick={() => onItemClick && onItemClick(item)}
                     className="flex items-center justify-between py-2.5 px-3 hover:bg-gray-50/80 dark:hover:bg-white/5 transition-colors cursor-pointer rounded-md"
                 >
-                    {/* Name & Icon */}
+                    {/* Name & mini thumbnail (ảnh / video / trang đầu PDF, còn lại là icon) */}
                     <div className="flex items-center gap-3 flex-1 min-w-0 pr-4">
-                        {(() => {
-                            try {
-                                return getFileIcon(item);
-                            } catch (e) {
-                                return <File className="w-4 h-4 text-gray-400 dark:text-gray-500 shrink-0" />;
-                            }
-                        })()}
+                        <FileThumbnail
+                            file={item}
+                            className="w-9 h-9 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gray-700/60"
+                            fallback={safeFileIcon(item)}
+                        />
                         <span className="font-medium text-gray-800 dark:text-gray-200 truncate hover:text-blue-600 dark:hover:text-blue-400">
                             {item.name}
                         </span>
@@ -52,12 +62,20 @@ const SectionTable = ({ itemList, emptyMessage = "Không có mục nào", onItem
                     </div>
 
                     {/* Action */}
-                    <button
-                        onClick={(e) => { e.stopPropagation(); }}
-                        className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 p-1 rounded hover:bg-gray-200/50 dark:hover:bg-white/10"
-                    >
-                        <MoreVertical className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center gap-0.5">
+                        <StarButton
+                            size="sm"
+                            isStarred={item.isStarred}
+                            readOnly={item.isSharedWithMe}
+                            onToggle={() => onToggleStar && onToggleStar(item.id)}
+                        />
+                        <button
+                            onClick={(e) => { e.stopPropagation(); }}
+                            className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 p-1 rounded hover:bg-gray-200/50 dark:hover:bg-white/10"
+                        >
+                            <MoreVertical className="w-4 h-4" />
+                        </button>
+                    </div>
                 </div>
             ))}
         </div>
@@ -65,7 +83,7 @@ const SectionTable = ({ itemList, emptyMessage = "Không có mục nào", onItem
 };
 
 // Compact Section Grid Component (Grid Mode)
-const SectionGrid = ({ itemList, emptyMessage = "Không có mục nào", onItemClick }) => {
+const SectionGrid = ({ itemList, emptyMessage = "Không có mục nào", onItemClick, onToggleStar }) => {
     if (itemList.length === 0) {
         return <p className="text-xs text-gray-400 dark:text-gray-500 py-3 italic">{emptyMessage}</p>;
     }
@@ -76,26 +94,35 @@ const SectionGrid = ({ itemList, emptyMessage = "Không có mục nào", onItemC
                 <div
                     key={item.id}
                     onClick={() => onItemClick && onItemClick(item)}
-                    className="bg-white dark:bg-[#282a2c] border border-gray-200/80 dark:border-gray-700/60 rounded-xl p-3 hover:shadow-md hover:border-blue-300 transition-all cursor-pointer flex flex-col justify-between group h-32"
+                    className="bg-white dark:bg-[#282a2c] border border-gray-200/80 dark:border-gray-700/60 rounded-xl p-2.5 hover:shadow-md hover:border-blue-300 transition-all cursor-pointer flex flex-col group h-44"
                 >
-                    <div className="flex items-center justify-between">
-                        {(() => {
-                            try {
-                                return getFileIcon(item);
-                            } catch (e) {
-                                return <File className="w-4 h-4 text-gray-400 dark:text-gray-500 shrink-0" />;
-                            }
-                        })()}
-                        <button
-                            onClick={(e) => { e.stopPropagation(); }}
-                            className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 p-1 rounded hover:bg-gray-100 dark:hover:bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                            <MoreVertical className="w-3.5 h-3.5" />
-                        </button>
+                    <div className="flex items-center justify-between gap-1 mb-1.5">
+                        {safeFileIcon(item)}
+                        <div className="flex items-center gap-0.5">
+                            <StarButton
+                                size="sm"
+                                isStarred={item.isStarred}
+                                readOnly={item.isSharedWithMe}
+                                onToggle={() => onToggleStar && onToggleStar(item.id)}
+                            />
+                            <button
+                                onClick={(e) => { e.stopPropagation(); }}
+                                className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 p-1 rounded hover:bg-gray-100 dark:hover:bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                                <MoreVertical className="w-3.5 h-3.5" />
+                            </button>
+                        </div>
                     </div>
 
+                    {/* Mini thumbnail: ảnh / video / trang đầu PDF; loại khác về icon mờ */}
+                    <FileThumbnail
+                        file={item}
+                        className="flex-1 w-full rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gray-700/60 mb-2 group-hover:border-blue-200 transition-colors"
+                        fallback={<div className="opacity-25 scale-[1.75]">{safeFileIcon(item)}</div>}
+                    />
+
                     <div>
-                        <p className="text-xs font-semibold text-gray-800 dark:text-gray-200 truncate group-hover:text-blue-600">
+                        <p className="text-xs font-semibold text-gray-800 dark:text-gray-200 truncate group-hover:text-blue-600" title={item.name}>
                             {item.name}
                         </p>
                         <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5 truncate">
@@ -109,7 +136,7 @@ const SectionGrid = ({ itemList, emptyMessage = "Không có mục nào", onItemC
 };
 
 export default function HomePage() {
-    const { items, setActiveTab, isLoading, viewMode, setViewMode, openPreview, openFolder } = useFiles();
+    const { items, setActiveTab, isLoading, viewMode, setViewMode, openPreview, openFolder, toggleStar } = useFiles();
 
     const handleItemClick = (item) => {
         if (item.type === 'folder') {
@@ -201,9 +228,9 @@ export default function HomePage() {
                     </button>
                 </div>
                 {viewMode === 'grid' ? (
-                    <SectionGrid itemList={myDriveItems} emptyMessage="Chưa có tệp nào trong Driver riêng của tôi." onItemClick={handleItemClick} />
+                    <SectionGrid itemList={myDriveItems} emptyMessage="Chưa có tệp nào trong Driver riêng của tôi." onItemClick={handleItemClick} onToggleStar={toggleStar} />
                 ) : (
-                    <SectionTable itemList={myDriveItems} emptyMessage="Chưa có tệp nào trong Driver riêng của tôi." onItemClick={handleItemClick} />
+                    <SectionTable itemList={myDriveItems} emptyMessage="Chưa có tệp nào trong Driver riêng của tôi." onItemClick={handleItemClick} onToggleStar={toggleStar} />
                 )}
             </section>
 
@@ -223,9 +250,9 @@ export default function HomePage() {
                     </button>
                 </div>
                 {viewMode === 'grid' ? (
-                    <SectionGrid itemList={recentItems} emptyMessage="Chưa có tệp nào mở gần đây." onItemClick={handleItemClick} />
+                    <SectionGrid itemList={recentItems} emptyMessage="Chưa có tệp nào mở gần đây." onItemClick={handleItemClick} onToggleStar={toggleStar} />
                 ) : (
-                    <SectionTable itemList={recentItems} emptyMessage="Chưa có tệp nào mở gần đây." onItemClick={handleItemClick} />
+                    <SectionTable itemList={recentItems} emptyMessage="Chưa có tệp nào mở gần đây." onItemClick={handleItemClick} onToggleStar={toggleStar} />
                 )}
             </section>
 
@@ -245,9 +272,9 @@ export default function HomePage() {
                     </button>
                 </div>
                 {viewMode === 'grid' ? (
-                    <SectionGrid itemList={sharedItems} emptyMessage="Chưa có tệp nào được chia sẻ với bạn." onItemClick={handleItemClick} />
+                    <SectionGrid itemList={sharedItems} emptyMessage="Chưa có tệp nào được chia sẻ với bạn." onItemClick={handleItemClick} onToggleStar={toggleStar} />
                 ) : (
-                    <SectionTable itemList={sharedItems} emptyMessage="Chưa có tệp nào được chia sẻ với bạn." onItemClick={handleItemClick} />
+                    <SectionTable itemList={sharedItems} emptyMessage="Chưa có tệp nào được chia sẻ với bạn." onItemClick={handleItemClick} onToggleStar={toggleStar} />
                 )}
             </section>
         </div>

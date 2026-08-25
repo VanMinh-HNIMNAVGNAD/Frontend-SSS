@@ -74,7 +74,7 @@ export default function QuickCleanupModal({ isOpen, onClose }) {
         </div>
 
         {/* Suggestion 1: Empty Trash */}
-        <div className="p-4 rounded-2xl border border-amber-200 bg-amber-50/50 space-y-3">
+        <div className="p-4 rounded-2xl border border-amber-200 dark:border-amber-900/50 bg-amber-50/50 dark:bg-amber-950/30 space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <Trash2 className="w-5 h-5 text-amber-600 dark:text-amber-400" />
@@ -122,7 +122,7 @@ export default function QuickCleanupModal({ isOpen, onClose }) {
                       <span className="truncate font-semibold text-gray-900 dark:text-gray-100">{file.name}</span>
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
-                      <span className="font-bold text-amber-600 dark:text-amber-400 font-mono">{mb} MB</span>
+                      <span className="font-bold text-amber-600 dark:text-amber-300 font-mono">{mb} MB</span>
                       <button
                         onClick={() => handleDeleteLargeFile(file.id)}
                         className="text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 p-1 rounded-md transition-colors"

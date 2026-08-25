@@ -10,8 +10,8 @@ body {
 }
 
 /* Bật dark mode theo class `.dark` trên <html> (Tailwind v4 mặc định chỉ theo
-   prefers-color-scheme của hệ điều hành) — dùng cho lựa chọn Sáng/Tối trong
-   Cài đặt (SettingsModal.jsx) và nút toggle ở RightSideBar.jsx */
+   prefers-color-scheme của hệ điều hành) — class này do src/hooks/useTheme.js
+   ghi, là nơi duy nhất quản lý lựa chọn Sáng/Tối/Hệ thống */
 @custom-variant dark (&:where(.dark, .dark *));
 
 @layer utilities {

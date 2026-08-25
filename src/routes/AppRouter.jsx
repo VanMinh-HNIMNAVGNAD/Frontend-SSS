@@ -16,9 +16,26 @@ import SpamPage from '../pages/SpamPage';
 import TrashPage from '../pages/TrashPage';
 import BillingAndQuota from '../pages/BillingAndQuota';
 
+import { readStartupPage } from '../constants/routes';
+
+/**
+ * Vào thẳng /app (đăng nhập xong, bấm logo, hoặc từ trang 404) thì đưa người
+ * dùng tới đúng "Trang khởi động mặc định" họ đã chọn trong Cài đặt chung:
+ *   'home'     -> /app/home
+ *   'recent'   -> /app/recent
+ *   mặc định   -> /app/my-drive   (chưa chọn, hoặc giá trị không hợp lệ)
+ *
+ * Đọc localStorage tại thời điểm redirect (không phải lúc module được import)
+ * để lựa chọn vừa đổi trong SettingsModal.jsx có hiệu lực ngay ở lần điều hướng
+ * kế tiếp, khỏi cần F5.
+ *
+ * `location.search` được giữ lại: callback OAuth quay về /app?token=... và
+ * AuthContext.jsx đọc token từ query — mất query là mất luôn phiên đăng nhập.
+ */
 function IndexRedirect() {
     const location = useLocation();
-    return <Navigate to={`my-drive${location.search}`} replace />;
+    // Path tương đối (không có dấu / đầu) — react-router ghép vào route cha /app
+    return <Navigate to={`${readStartupPage()}${location.search}`} replace />;
 }
 
 export default function AppRouter() {

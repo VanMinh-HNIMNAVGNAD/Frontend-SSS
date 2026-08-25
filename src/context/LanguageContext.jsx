@@ -36,14 +36,14 @@ const translations = {
 
     // 2. Ngôn ngữ
     'settings.language.label': 'Ngôn ngữ giao diện',
-    'settings.language.vi': '🇻🇳 Tiếng Việt',
-    'settings.language.en': '🇺🇸 English (US)',
+    'settings.language.vi': 'Tiếng Việt',
+    'settings.language.en': 'English (US)',
 
     // 3. Trang khởi động
     'settings.startup.label': 'Trang khởi động mặc định',
-    'settings.startup.myDrive': '📁 Driver riêng của tôi (My Drive)',
-    'settings.startup.home': '🏠 Trang chủ (Dashboard tổng quan)',
-    'settings.startup.recent': '🕒 Đã mở gần đây (Recent files)',
+    'settings.startup.myDrive': 'Driver riêng của tôi (My Drive)',
+    'settings.startup.home': 'Trang chủ (Dashboard tổng quan)',
+    'settings.startup.recent': 'Đã mở gần đây (Recent files)',
 
     // 4. Quyền riêng tư & Bảo mật
     'settings.privacy.heading': 'Quyền riêng tư & Bảo mật',
@@ -51,8 +51,8 @@ const translations = {
     'settings.privacy.discoverable.desc':
       'Cho phép người dùng khác tìm thấy bạn qua Email khi chia sẻ tệp',
     'settings.privacy.shareRole.label': 'Quyền chia sẻ mặc định khi tạo Link',
-    'settings.privacy.shareRole.viewer': '👀 Chỉ xem (Viewer)',
-    'settings.privacy.shareRole.editor': '✏️ Được chỉnh sửa (Editor)',
+    'settings.privacy.shareRole.viewer': 'Chỉ xem (Viewer)',
+    'settings.privacy.shareRole.editor': 'Được chỉnh sửa (Editor)',
   },
 
   en: {
@@ -70,14 +70,14 @@ const translations = {
 
     // 2. Language
     'settings.language.label': 'Interface language',
-    'settings.language.vi': '🇻🇳 Tiếng Việt',
-    'settings.language.en': '🇺🇸 English (US)',
+    'settings.language.vi': 'Tiếng Việt',
+    'settings.language.en': 'English (US)',
 
     // 3. Startup page
     'settings.startup.label': 'Default startup page',
-    'settings.startup.myDrive': '📁 My Drive',
-    'settings.startup.home': '🏠 Home (overview dashboard)',
-    'settings.startup.recent': '🕒 Recent files',
+    'settings.startup.myDrive': 'My Drive',
+    'settings.startup.home': 'Home (overview dashboard)',
+    'settings.startup.recent': 'Recent files',
 
     // 4. Privacy & Security
     'settings.privacy.heading': 'Privacy & Security',
@@ -85,8 +85,8 @@ const translations = {
     'settings.privacy.discoverable.desc':
       'Let other people find you by email when they share files',
     'settings.privacy.shareRole.label': 'Default link sharing permission',
-    'settings.privacy.shareRole.viewer': '👀 Viewer only',
-    'settings.privacy.shareRole.editor': '✏️ Editor',
+    'settings.privacy.shareRole.viewer': 'Viewer only',
+    'settings.privacy.shareRole.editor': 'Editor',
   },
 };
 

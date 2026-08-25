@@ -160,7 +160,7 @@ export default function Header({ toggleRightSidebar }) {
                 document.body.removeChild(link);
                 URL.revokeObjectURL(blobUrl);
             } catch (error) {
-                console.error('Lỗi khi tải ZIP:', error);
+                console.error('[Header] ZIP download failed:', error);
                 alert(t('header.error.zip'));
             }
             return;
@@ -179,7 +179,7 @@ export default function Header({ toggleRightSidebar }) {
                     await new Promise((r) => setTimeout(r, 300));
                 }
             } catch {
-                console.error(`Lỗi tải xuống: ${item.name}`);
+                console.error(`[Header] Download failed: ${item.name}`);
             }
         }
     };

@@ -16,16 +16,16 @@ import {
 // Compact Section Table Component (List Mode)
 const SectionTable = ({ itemList, emptyMessage = "Không có mục nào", onItemClick }) => {
     if (itemList.length === 0) {
-        return <p className="text-xs text-gray-400 py-3 italic">{emptyMessage}</p>;
+        return <p className="text-xs text-gray-400 dark:text-gray-500 py-3 italic">{emptyMessage}</p>;
     }
 
     return (
-        <div className="w-full divide-y divide-gray-100 text-sm">
+        <div className="w-full divide-y divide-gray-100 dark:divide-gray-700 text-sm">
             {itemList.map((item) => (
                 <div
                     key={item.id}
                     onClick={() => onItemClick && onItemClick(item)}
-                    className="flex items-center justify-between py-2.5 px-3 hover:bg-gray-50/80 transition-colors cursor-pointer rounded-md"
+                    className="flex items-center justify-between py-2.5 px-3 hover:bg-gray-50/80 dark:hover:bg-white/5 transition-colors cursor-pointer rounded-md"
                 >
                     {/* Name & Icon */}
                     <div className="flex items-center gap-3 flex-1 min-w-0 pr-4">
@@ -33,28 +33,28 @@ const SectionTable = ({ itemList, emptyMessage = "Không có mục nào", onItem
                             try {
                                 return getFileIcon(item);
                             } catch (e) {
-                                return <File className="w-4 h-4 text-gray-400 shrink-0" />;
+                                return <File className="w-4 h-4 text-gray-400 dark:text-gray-500 shrink-0" />;
                             }
                         })()}
-                        <span className="font-medium text-gray-800 truncate hover:text-blue-600">
+                        <span className="font-medium text-gray-800 dark:text-gray-200 truncate hover:text-blue-600 dark:hover:text-blue-400">
                             {item.name}
                         </span>
                     </div>
 
                     {/* Owner */}
-                    <div className="text-xs text-gray-500 w-32 hidden sm:block truncate">
+                    <div className="text-xs text-gray-500 dark:text-gray-400 w-32 hidden sm:block truncate">
                         {item.owner || 'Tôi'}
                     </div>
 
                     {/* Updated Date */}
-                    <div className="text-xs text-gray-500 w-36 hidden md:block text-right pr-4">
+                    <div className="text-xs text-gray-500 dark:text-gray-400 w-36 hidden md:block text-right pr-4">
                         {item.updatedAt}
                     </div>
 
                     {/* Action */}
                     <button
                         onClick={(e) => { e.stopPropagation(); }}
-                        className="text-gray-400 hover:text-gray-600 p-1 rounded hover:bg-gray-200/50"
+                        className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 p-1 rounded hover:bg-gray-200/50 dark:hover:bg-white/10"
                     >
                         <MoreVertical className="w-4 h-4" />
                     </button>
@@ -67,7 +67,7 @@ const SectionTable = ({ itemList, emptyMessage = "Không có mục nào", onItem
 // Compact Section Grid Component (Grid Mode)
 const SectionGrid = ({ itemList, emptyMessage = "Không có mục nào", onItemClick }) => {
     if (itemList.length === 0) {
-        return <p className="text-xs text-gray-400 py-3 italic">{emptyMessage}</p>;
+        return <p className="text-xs text-gray-400 dark:text-gray-500 py-3 italic">{emptyMessage}</p>;
     }
 
     return (
@@ -76,29 +76,29 @@ const SectionGrid = ({ itemList, emptyMessage = "Không có mục nào", onItemC
                 <div
                     key={item.id}
                     onClick={() => onItemClick && onItemClick(item)}
-                    className="bg-white border border-gray-200/80 rounded-xl p-3 hover:shadow-md hover:border-blue-300 transition-all cursor-pointer flex flex-col justify-between group h-32"
+                    className="bg-white dark:bg-[#282a2c] border border-gray-200/80 dark:border-gray-700/60 rounded-xl p-3 hover:shadow-md hover:border-blue-300 transition-all cursor-pointer flex flex-col justify-between group h-32"
                 >
                     <div className="flex items-center justify-between">
                         {(() => {
                             try {
                                 return getFileIcon(item);
                             } catch (e) {
-                                return <File className="w-4 h-4 text-gray-400 shrink-0" />;
+                                return <File className="w-4 h-4 text-gray-400 dark:text-gray-500 shrink-0" />;
                             }
                         })()}
                         <button
                             onClick={(e) => { e.stopPropagation(); }}
-                            className="text-gray-400 hover:text-gray-600 p-1 rounded hover:bg-gray-100 opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 p-1 rounded hover:bg-gray-100 dark:hover:bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity"
                         >
                             <MoreVertical className="w-3.5 h-3.5" />
                         </button>
                     </div>
 
                     <div>
-                        <p className="text-xs font-semibold text-gray-800 truncate group-hover:text-blue-600">
+                        <p className="text-xs font-semibold text-gray-800 dark:text-gray-200 truncate group-hover:text-blue-600">
                             {item.name}
                         </p>
-                        <p className="text-[10px] text-gray-400 mt-0.5 truncate">
+                        <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5 truncate">
                             {item.owner || 'Tôi'} • {item.updatedAt ? item.updatedAt.split(',')[0] : ''}
                         </p>
                     </div>
@@ -141,11 +141,11 @@ export default function HomePage() {
         return (
             <div className="space-y-6">
                 <div>
-                    <div className="h-6 bg-gray-200 rounded w-48 mb-3 animate-pulse" />
+                    <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-48 mb-3 animate-pulse" />
                     <FileSkeleton type="home-section" />
                 </div>
                 <div>
-                    <div className="h-6 bg-gray-200 rounded w-48 mb-3 animate-pulse" />
+                    <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-48 mb-3 animate-pulse" />
                     <FileSkeleton type="home-section" />
                 </div>
             </div>
@@ -155,19 +155,19 @@ export default function HomePage() {
     return (
         <div className="flex flex-col h-full space-y-7 overflow-y-auto pr-1">
             {/* Header Toolbar */}
-            <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+            <div className="flex items-center justify-between pb-2 border-b border-gray-100 dark:border-gray-700">
                 <div className="flex items-center gap-2">
-                    <Home className="w-6 h-6 text-blue-600" />
-                    <h1 className="text-xl font-bold text-gray-800">Trang chủ</h1>
+                    <Home className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                    <h1 className="text-xl font-bold text-gray-800 dark:text-gray-200">Trang chủ</h1>
                 </div>
 
-                <div className="flex items-center bg-gray-100 rounded-full p-1 border border-gray-200">
+                <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-full p-1 border border-gray-200 dark:border-gray-700">
                     <button
                         onClick={() => setViewMode('list')}
                         title="Xem dạng danh sách"
                         className={`p-1.5 rounded-full transition-colors ${viewMode === 'list'
-                                ? 'bg-white shadow-xs text-blue-600 font-medium'
-                                : 'text-gray-500 hover:text-gray-800'
+                                ? 'bg-white dark:bg-[#282a2c] shadow-xs text-blue-600 dark:text-blue-400 font-medium'
+                                : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100'
                             }`}
                     >
                         <List className="w-4 h-4" />
@@ -176,8 +176,8 @@ export default function HomePage() {
                         onClick={() => setViewMode('grid')}
                         title="Xem dạng lưới"
                         className={`p-1.5 rounded-full transition-colors ${viewMode === 'grid'
-                                ? 'bg-white shadow-xs text-blue-600 font-medium'
-                                : 'text-gray-500 hover:text-gray-800'
+                                ? 'bg-white dark:bg-[#282a2c] shadow-xs text-blue-600 dark:text-blue-400 font-medium'
+                                : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100'
                             }`}
                     >
                         <LayoutGrid className="w-4 h-4" />
@@ -187,15 +187,15 @@ export default function HomePage() {
 
             {/* SECTION 1: MY DRIVE */}
             <section className="space-y-2">
-                <div className="flex items-center justify-between pb-1 border-b border-gray-200">
+                <div className="flex items-center justify-between pb-1 border-b border-gray-200 dark:border-gray-700">
                     <div className="flex items-center gap-2">
-                        <HardDrive className="w-5 h-5 text-blue-600" />
-                        <h2 className="text-base font-semibold text-gray-900">Driver riêng của tôi</h2>
-                        <span className="text-xs text-gray-400 font-normal">({myDriveItems.length} mục hay mở nhất)</span>
+                        <HardDrive className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                        <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Driver riêng của tôi</h2>
+                        <span className="text-xs text-gray-400 dark:text-gray-500 font-normal">({myDriveItems.length} mục hay mở nhất)</span>
                     </div>
                     <button
                         onClick={() => setActiveTab('my-drive')}
-                        className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1 hover:underline transition-all"
+                        className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 flex items-center gap-1 hover:underline transition-all"
                     >
                         Xem tất cả <ArrowRight className="w-3.5 h-3.5" />
                     </button>
@@ -209,15 +209,15 @@ export default function HomePage() {
 
             {/* SECTION 2: RECENT */}
             <section className="space-y-2">
-                <div className="flex items-center justify-between pb-1 border-b border-gray-200">
+                <div className="flex items-center justify-between pb-1 border-b border-gray-200 dark:border-gray-700">
                     <div className="flex items-center gap-2">
-                        <Clock className="w-5 h-5 text-purple-600" />
-                        <h2 className="text-base font-semibold text-gray-900">Đã mở gần đây</h2>
-                        <span className="text-xs text-gray-400 font-normal">(Chỉnh sửa gần đây)</span>
+                        <Clock className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                        <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Đã mở gần đây</h2>
+                        <span className="text-xs text-gray-400 dark:text-gray-500 font-normal">(Chỉnh sửa gần đây)</span>
                     </div>
                     <button
                         onClick={() => setActiveTab('recent')}
-                        className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1 hover:underline transition-all"
+                        className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 flex items-center gap-1 hover:underline transition-all"
                     >
                         Xem tất cả <ArrowRight className="w-3.5 h-3.5" />
                     </button>
@@ -231,15 +231,15 @@ export default function HomePage() {
 
             {/* SECTION 3: SHARED WITH ME */}
             <section className="space-y-2">
-                <div className="flex items-center justify-between pb-1 border-b border-gray-200">
+                <div className="flex items-center justify-between pb-1 border-b border-gray-200 dark:border-gray-700">
                     <div className="flex items-center gap-2">
-                        <Users className="w-5 h-5 text-emerald-600" />
-                        <h2 className="text-base font-semibold text-gray-900">Được chia sẻ với tôi</h2>
-                        <span className="text-xs text-gray-400 font-normal">({sharedItems.length} mục)</span>
+                        <Users className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                        <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Được chia sẻ với tôi</h2>
+                        <span className="text-xs text-gray-400 dark:text-gray-500 font-normal">({sharedItems.length} mục)</span>
                     </div>
                     <button
                         onClick={() => setActiveTab('shared-with-me')}
-                        className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1 hover:underline transition-all"
+                        className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 flex items-center gap-1 hover:underline transition-all"
                     >
                         Xem tất cả <ArrowRight className="w-3.5 h-3.5" />
                     </button>

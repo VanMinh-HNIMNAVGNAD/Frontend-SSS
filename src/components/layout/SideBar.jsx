@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useFiles } from '../../context/FileContext';
+import { useLanguage } from '../../context/LanguageContext';
 import NewButton from './NewButton';
 import QuickCleanupModal from '../modals/QuickCleanupModal';
 import {
@@ -19,6 +20,10 @@ export default function Sidebar() {
   const { activeTab, setActiveTab, isSidebarCollapsed, toggleSidebar, storageInfo, items } = useFiles();
   const [isCleanupOpen, setIsCleanupOpen] = useState(false);
 
+  // Nhãn menu và khối bộ nhớ lấy qua t() — NavItem ở dưới nằm trong cùng
+  // component nên dùng được t() qua closure, không cần truyền prop
+  const { t } = useLanguage();
+
   // Counts for badges
   const spamCount = items.filter((i) => i.isSpam && !i.isTrash).length;
   const trashCount = items.filter((i) => i.isTrash).length;
@@ -35,9 +40,9 @@ export default function Sidebar() {
     label,
     icon: Icon,
     badge,
-    badgeColor = 'bg-gray-200 text-gray-700',
+    badgeColor = 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300',
     hoverColor = 'group-hover:text-blue-600',
-    activeColor = 'text-blue-600',
+    activeColor = 'text-blue-600 dark:text-blue-400',
   }) => {
     const isActive = activeTab === id;
 
@@ -47,11 +52,11 @@ export default function Sidebar() {
         title={isSidebarCollapsed ? label : undefined}
         className={`w-full flex items-center gap-4 px-4 py-2.5 rounded-full transition-all duration-150 text-[14px] font-medium text-left group relative ${
           isSidebarCollapsed ? 'justify-center px-0 py-3' : 'justify-start'
-        } ${isActive ? 'bg-[#c2e7ff] text-[#001d35] font-semibold' : 'text-[#444746] hover:bg-[#e1e5ea]'}`}
+        } ${isActive ? 'bg-[#c2e7ff] dark:bg-blue-500/25 text-[#001d35] dark:text-blue-100 font-semibold' : 'text-[#444746] dark:text-gray-300 hover:bg-[#e1e5ea] dark:hover:bg-white/5'}`}
       >
         <Icon
           className={`w-5 h-5 shrink-0 transition-colors duration-150 ${
-            isActive ? activeColor : `text-gray-500 ${hoverColor}`
+            isActive ? activeColor : `text-gray-500 dark:text-gray-400 ${hoverColor}`
           }`}
         />
 
@@ -78,7 +83,7 @@ export default function Sidebar() {
         />
       )}
       <aside
-        className={`bg-[#f8fafd] border-r border-gray-100 flex flex-col pt-3 select-none transition-all duration-300 ease-in-out shrink-0 h-full 
+        className={`bg-[#f8fafd] dark:bg-[#1e1e1e] border-r border-gray-100 dark:border-gray-700 flex flex-col pt-3 select-none transition-all duration-300 ease-in-out shrink-0 h-full 
           fixed lg:relative z-50 lg:z-0 top-0 left-0
           ${isSidebarCollapsed ? '-translate-x-full lg:translate-x-0 lg:w-20 px-2' : 'translate-x-0 w-72 lg:w-64 px-3'}
         `}
@@ -90,75 +95,83 @@ export default function Sidebar() {
 
         {/* DANH SÁCH MENU SIDEBAR */}
         <nav className="flex-1 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
-          <NavItem id="home" label="Trang chủ" icon={Home} hoverColor="group-hover:text-blue-600" activeColor="text-blue-600" />
-          <NavItem id="my-drive" label="Driver riêng của tôi" icon={HardDrive} hoverColor="group-hover:text-emerald-600" activeColor="text-emerald-600" />
-          <NavItem id="shared-drives" label="Bộ nhớ dùng chung" icon={FolderGit2} hoverColor="group-hover:text-indigo-600" activeColor="text-indigo-600" />
-          <NavItem id="shared-with-me" label="Driver được chia sẻ với tôi" icon={Users} hoverColor="group-hover:text-teal-600" activeColor="text-teal-600" />
-          <NavItem id="recent" label="Đã mở gần đây" icon={Clock} hoverColor="group-hover:text-amber-500" activeColor="text-amber-500" />
-          <NavItem id="starred" label="Mục được đánh dấu" icon={Star} hoverColor="group-hover:text-yellow-500" activeColor="text-yellow-500" />
+          <NavItem id="home" label={t('nav.home')} icon={Home} hoverColor="group-hover:text-blue-600" activeColor="text-blue-600 dark:text-blue-400" />
+          <NavItem id="my-drive" label={t('nav.myDrive')} icon={HardDrive} hoverColor="group-hover:text-emerald-600" activeColor="text-emerald-600 dark:text-emerald-400" />
+          <NavItem id="shared-drives" label={t('nav.sharedDrives')} icon={FolderGit2} hoverColor="group-hover:text-indigo-600" activeColor="text-indigo-600 dark:text-indigo-400" />
+          <NavItem id="shared-with-me" label={t('nav.sharedWithMe')} icon={Users} hoverColor="group-hover:text-teal-600" activeColor="text-teal-600" />
+          <NavItem id="recent" label={t('nav.recent')} icon={Clock} hoverColor="group-hover:text-amber-500" activeColor="text-amber-500" />
+          <NavItem id="starred" label={t('nav.starred')} icon={Star} hoverColor="group-hover:text-yellow-500" activeColor="text-yellow-500" />
 
-          <div className="my-2 border-t border-gray-200/60" />
+          <div className="my-2 border-t border-gray-200/60 dark:border-gray-700/60" />
 
-          <NavItem id="spam" label="Nội dung rác" icon={ShieldAlert} badge={spamCount} badgeColor="bg-amber-100 text-amber-800" hoverColor="group-hover:text-orange-600" activeColor="text-orange-600" />
-          <NavItem id="trash" label="Thùng rác" icon={Trash2} badge={trashCount} hoverColor="group-hover:text-rose-600" activeColor="text-rose-600" />
+          <NavItem id="spam" label={t('nav.spam')} icon={ShieldAlert} badge={spamCount} badgeColor="bg-amber-100 text-amber-800" hoverColor="group-hover:text-orange-600" activeColor="text-orange-600 dark:text-orange-400" />
+          <NavItem id="trash" label={t('nav.trash')} icon={Trash2} badge={trashCount} hoverColor="group-hover:text-rose-600" activeColor="text-rose-600" />
 
-          <div className="my-2 border-t border-gray-200/60" />
+          <div className="my-2 border-t border-gray-200/60 dark:border-gray-700/60" />
 
-          <NavItem id="billing" label="Billing & Mua bộ nhớ" icon={CreditCard} hoverColor="group-hover:text-purple-600" activeColor="text-purple-600" />
+          <NavItem id="billing" label={t('nav.billing')} icon={CreditCard} hoverColor="group-hover:text-purple-600" activeColor="text-purple-600 dark:text-purple-400" />
         </nav>
 
         {/* KHỐI THANH LƯU TRỮ DYNAMIC COLOR */}
-        <div className="mt-auto pt-3 pb-4 border-t border-gray-200/60">
+        <div className="mt-auto pt-3 pb-4 border-t border-gray-200/60 dark:border-gray-700/60">
           {isSidebarCollapsed ? (
             <div
               onClick={() => setActiveTab('billing')}
-              className="flex flex-col items-center justify-center cursor-pointer p-2 hover:bg-gray-200/60 rounded-2xl transition-colors"
-              title={`Bộ nhớ: ${storageInfo.usedGB} GB / ${storageInfo.totalGB} GB (${storageInfo.percentage}%)`}
+              className="flex flex-col items-center justify-center cursor-pointer p-2 hover:bg-gray-200/60 dark:hover:bg-white/10 rounded-2xl transition-colors"
+              title={t('sidebar.storage.tooltip', {
+                used: storageInfo.usedGB,
+                total: storageInfo.totalGB,
+                percent: storageInfo.percentage,
+              })}
             >
-              <Cloud className="w-5 h-5 text-blue-600 mb-1" />
-              <span className="text-[10px] font-bold text-gray-700">{storageInfo.percentage}%</span>
+              <Cloud className="w-5 h-5 text-blue-600 dark:text-blue-400 mb-1" />
+              <span className="text-[10px] font-bold text-gray-700 dark:text-gray-300">{storageInfo.percentage}%</span>
             </div>
           ) : (
-            <div className="px-3 py-2 bg-white/70 rounded-2xl border border-gray-100 shadow-2xs">
-              <div className="flex items-center justify-between mb-2 text-xs font-semibold text-gray-700">
+            <div className="px-3 py-2 bg-white/70 dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-2xs">
+              <div className="flex items-center justify-between mb-2 text-xs font-semibold text-gray-700 dark:text-gray-300">
                 <div className="flex items-center gap-2">
-                  <Cloud className="w-4 h-4 text-blue-600" />
-                  <span>Bộ nhớ lưu trữ</span>
+                  <Cloud className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  <span>{t('sidebar.storage.title')}</span>
                 </div>
                 {/* Dynamic warning badge */}
                 {storageInfo.percentage >= 70 && (
-                  <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-md">
-                    {storageInfo.percentage >= 90 ? 'Gần đầy!' : 'Cảnh báo'}
+                  <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/15 px-1.5 py-0.5 rounded-md">
+                    {storageInfo.percentage >= 90
+                      ? t('sidebar.storage.almostFull')
+                      : t('sidebar.storage.warning')}
                   </span>
                 )}
               </div>
 
               {/* Dynamic Color Progress Bar */}
-              <div className="w-full bg-gray-200 rounded-full h-1.5 mb-2 overflow-hidden">
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 mb-2 overflow-hidden">
                 <div
                   className={`${getProgressBarColor(storageInfo.percentage)} h-full rounded-full transition-all duration-500`}
                   style={{ width: `${Math.min(100, storageInfo.percentage)}%` }}
                 />
               </div>
 
-              <div className="text-xs text-gray-600 mb-3">
-                Đã dùng <span className="font-semibold text-gray-900">{storageInfo.usedFormatted || `${storageInfo.usedGB} GB`}</span> / {storageInfo.totalGB} GB
+              <div className="text-xs text-gray-600 dark:text-gray-300 mb-3">
+                {t('sidebar.storage.usedLabel')}{' '}
+                <span className="font-semibold text-gray-900 dark:text-gray-100">{storageInfo.usedFormatted || `${storageInfo.usedGB} GB`}</span>{' '}
+                {t('sidebar.storage.ofTotal', { total: storageInfo.totalGB })}
               </div>
 
               {/* Action Buttons: Mua thêm & Quick Cleanup */}
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setActiveTab('billing')}
-                  className="flex-1 py-1.5 px-2 border border-gray-300 rounded-full text-xs font-semibold text-blue-600 hover:bg-blue-50 hover:border-blue-300 transition-colors truncate"
+                  className="flex-1 py-1.5 px-2 border border-gray-300 dark:border-gray-600 rounded-full text-xs font-semibold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/15 hover:border-blue-300 transition-colors truncate"
                 >
-                  Mua bộ nhớ
+                  {t('sidebar.storage.buy')}
                 </button>
                 <button
                   onClick={() => setIsCleanupOpen(true)}
-                  className="py-1.5 px-3 border border-gray-300 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-full text-xs font-semibold transition-colors shrink-0"
-                  title="Dọn dẹp bộ nhớ ngay"
+                  className="py-1.5 px-3 border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-700 dark:text-gray-300 rounded-full text-xs font-semibold transition-colors shrink-0"
+                  title={t('sidebar.storage.cleanupTitle')}
                 >
-                  Dọn dẹp
+                  {t('sidebar.storage.cleanup')}
                 </button>
               </div>
             </div>

@@ -172,28 +172,28 @@ export default function NewButton({ isCollapsed }) {
       {/* Nút + Mới */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center justify-center gap-3 bg-white text-gray-800 border border-gray-200 rounded-2xl shadow-xs hover:shadow-md hover:bg-gray-50 active:bg-gray-100 font-medium text-sm transition-all duration-200 ${
+        className={`flex items-center justify-center gap-3 bg-white dark:bg-[#282a2c] text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-xs hover:shadow-md hover:bg-gray-50 dark:hover:bg-white/5 active:bg-gray-100 font-medium text-sm transition-all duration-200 ${
           isCollapsed ? 'w-12 h-12 p-0 rounded-full' : 'px-5 py-3'
         }`}
         title="Tạo mới tệp hoặc thư mục"
       >
-        <Plus className="w-6 h-6 text-blue-600 shrink-0 stroke-[2.5]" />
+        <Plus className="w-6 h-6 text-blue-600 dark:text-blue-400 shrink-0 stroke-[2.5]" />
         {!isCollapsed && <span className="font-semibold tracking-wide text-[15px]">Mới</span>}
       </button>
 
       {/* Dropdown Menu */}
       {isOpen && (
-        <div className="absolute top-full mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 w-64 z-50 animate-in fade-in zoom-in-95 duration-150 left-0">
+        <div className="absolute top-full mt-2 bg-white dark:bg-[#282a2c] rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 py-2 w-64 z-50 animate-in fade-in zoom-in-95 duration-150 left-0">
           {/* Tạo thư mục mới */}
           <button
             onClick={handleCreateFolderPrompt}
-            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100 transition-colors text-left"
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors text-left"
           >
-            <FolderPlus className="w-5 h-5 text-gray-600" />
+            <FolderPlus className="w-5 h-5 text-gray-600 dark:text-gray-300" />
             <span>Thư mục mới</span>
           </button>
 
-          <div className="my-1 border-t border-gray-100" />
+          <div className="my-1 border-t border-gray-100 dark:border-gray-700" />
 
           {/* Tải nhiều file lên */}
           <button
@@ -201,12 +201,12 @@ export default function NewButton({ isCollapsed }) {
               setIsOpen(false);
               fileInputRef.current?.click();
             }}
-            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100 transition-colors text-left"
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors text-left"
           >
             <FileUp className="w-5 h-5 text-blue-500" />
             <div className="flex flex-col items-start">
               <span className="font-medium">Tải tệp lên</span>
-              <span className="text-[11px] text-gray-400">Chọn nhiều tệp cùng lúc</span>
+              <span className="text-[11px] text-gray-400 dark:text-gray-500">Chọn nhiều tệp cùng lúc</span>
             </div>
           </button>
 
@@ -217,7 +217,7 @@ export default function NewButton({ isCollapsed }) {
               folderInputRef.current?.click();
             }}
             disabled={isBuildingTree}
-            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100 transition-colors text-left disabled:opacity-60 disabled:cursor-wait"
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors text-left disabled:opacity-60 disabled:cursor-wait"
           >
             {isBuildingTree
               ? <Loader2 className="w-5 h-5 text-amber-500 animate-spin" />
@@ -227,7 +227,7 @@ export default function NewButton({ isCollapsed }) {
               <span className="font-medium">
                 {isBuildingTree ? 'Đang xây cây thư mục...' : 'Tải thư mục lên'}
               </span>
-              <span className="text-[11px] text-gray-400">Giữ nguyên cấu trúc thư mục</span>
+              <span className="text-[11px] text-gray-400 dark:text-gray-500">Giữ nguyên cấu trúc thư mục</span>
             </div>
           </button>
         </div>

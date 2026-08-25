@@ -74,13 +74,13 @@ export default function MyDrivePage() {
           <div className="w-16 h-16 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-xl mb-4">
             <UploadCloud className="w-8 h-8" />
           </div>
-          <h3 className="text-xl font-bold text-blue-600">Thả tệp vào đây để tải lên ngay!</h3>
+          <h3 className="text-xl font-bold text-blue-600 dark:text-blue-400">Thả tệp vào đây để tải lên ngay!</h3>
           <p className="text-xs text-blue-500 mt-1">Tệp sẽ được tải lên Cloud storage an toàn</p>
         </div>
       )}
 
       {/* Header Toolbar */}
-      <div className="flex items-center justify-between mb-2 pb-2 border-b border-gray-100">
+      <div className="flex items-center justify-between mb-2 pb-2 border-b border-gray-100 dark:border-gray-700">
         <div className="flex-1 min-w-0">
           <Breadcrumb path={breadcrumb} onNavigate={(id) => openFolder({ id })} />
         </div>
@@ -91,25 +91,25 @@ export default function MyDrivePage() {
             <button
               disabled={isPasting}
               onClick={() => pasteItems()}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-full text-xs font-bold shadow-xs transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 dark:bg-blue-500/15 hover:bg-blue-100 border border-blue-200 text-blue-700 dark:text-blue-300 disabled:opacity-50 disabled:cursor-not-allowed rounded-full text-xs font-bold shadow-xs transition-colors cursor-pointer"
               title={`Dán ${clipboard.items.length} mục vào thư mục này (Ctrl+V) — Esc để bỏ`}
             >
               {isPasting ? (
-                <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
+                <Loader2 className="w-4 h-4 text-blue-600 dark:text-blue-400 animate-spin" />
               ) : (
-                <FolderInput className="w-4 h-4 text-blue-600" />
+                <FolderInput className="w-4 h-4 text-blue-600 dark:text-blue-400" />
               )}
               <span>Dán ({clipboard.items.length})</span>
             </button>
           )}
 
-          <div className="flex items-center bg-gray-100 rounded-full p-1 border border-gray-200">
+          <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-full p-1 border border-gray-200 dark:border-gray-700">
             <button
               onClick={() => setViewMode('list')}
               title="Xem dạng danh sách"
               className={`p-1.5 rounded-full transition-colors ${viewMode === 'list'
-                  ? 'bg-white shadow-xs text-blue-600 font-medium'
-                  : 'text-gray-500 hover:text-gray-800'
+                  ? 'bg-white dark:bg-[#282a2c] shadow-xs text-blue-600 dark:text-blue-400 font-medium'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100'
                 }`}
             >
               <List className="w-4 h-4" />
@@ -118,8 +118,8 @@ export default function MyDrivePage() {
               onClick={() => setViewMode('grid')}
               title="Xem dạng lưới"
               className={`p-1.5 rounded-full transition-colors ${viewMode === 'grid'
-                  ? 'bg-white shadow-xs text-blue-600 font-medium'
-                  : 'text-gray-500 hover:text-gray-800'
+                  ? 'bg-white dark:bg-[#282a2c] shadow-xs text-blue-600 dark:text-blue-400 font-medium'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100'
                 }`}
             >
               <LayoutGrid className="w-4 h-4" />

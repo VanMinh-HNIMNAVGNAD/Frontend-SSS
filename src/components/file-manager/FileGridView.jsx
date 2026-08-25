@@ -232,13 +232,13 @@ export default function FileGridView() {
         return (
             <div
                 onContextMenu={openBlankContextMenu}
-                className="flex flex-col items-center justify-center h-full py-20 text-gray-400"
+                className="flex flex-col items-center justify-center h-full py-20 text-gray-400 dark:text-gray-500"
             >
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-3 text-gray-300">
+                <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-3 text-gray-300">
                     <Folder className="w-8 h-8" />
                 </div>
-                <p className="text-base font-medium text-gray-600">Thư mục này chưa có tệp hoặc thư mục nào</p>
-                <p className="text-xs text-gray-400 mt-1">Kéo thả tệp vào đây hoặc nhấn nút "+ Mới" để bắt đầu</p>
+                <p className="text-base font-medium text-gray-600 dark:text-gray-300">Thư mục này chưa có tệp hoặc thư mục nào</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Kéo thả tệp vào đây hoặc nhấn nút "+ Mới" để bắt đầu</p>
 
                 <input type="file" ref={fileInputRef} onChange={handleFileInputChange} multiple className="hidden" aria-label="Chọn nhiều tệp để tải lên" />
                 <input type="file" ref={setFolderInputRef} onChange={handleFolderInputChange} multiple className="hidden" aria-label="Chọn thư mục để tải lên" />
@@ -271,7 +271,7 @@ export default function FileGridView() {
                 {/* Section 1: Thư mục (Folders) */}
                 {folders && folders.length > 0 && (
                     <div>
-                        <div className="flex items-center gap-2 mb-3 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                        <div className="flex items-center gap-2 mb-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                             <Folder className="w-4 h-4 text-amber-500" />
                             <span>Thư mục ({folders.length})</span>
                         </div>
@@ -296,7 +296,7 @@ export default function FileGridView() {
                 {/* Section 2: Tệp (Files) */}
                 {files && files.length > 0 && (
                     <div>
-                        <div className="flex items-center gap-2 mb-3 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                        <div className="flex items-center gap-2 mb-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                             <FileText className="w-4 h-4 text-blue-500" />
                             <span>Tệp ({files.length})</span>
                         </div>
@@ -322,15 +322,15 @@ export default function FileGridView() {
 
             {/* Pagination Controls */}
             {totalPages > 1 && (
-                <div className="flex items-center justify-between pt-4 border-t border-gray-100 text-xs text-gray-500">
+                <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
                     <div>
-                        Hiển thị <span className="font-semibold text-gray-700">{((currentPage - 1) * pageSize) + 1}</span> - <span className="font-semibold text-gray-700">{Math.min(currentPage * pageSize, totalItems)}</span> trong <span className="font-semibold text-gray-700">{totalItems}</span> mục
+                        Hiển thị <span className="font-semibold text-gray-700 dark:text-gray-300">{((currentPage - 1) * pageSize) + 1}</span> - <span className="font-semibold text-gray-700 dark:text-gray-300">{Math.min(currentPage * pageSize, totalItems)}</span> trong <span className="font-semibold text-gray-700 dark:text-gray-300">{totalItems}</span> mục
                     </div>
                     <div className="flex items-center gap-1">
                         <button
                             disabled={currentPage === 1}
                             onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                            className="p-1.5 rounded-lg border border-gray-200 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-transparent transition-colors"
+                            className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-white/5 disabled:opacity-40 disabled:hover:bg-transparent transition-colors"
                         >
                             <ChevronLeft className="w-4 h-4" />
                         </button>
@@ -340,7 +340,7 @@ export default function FileGridView() {
                         <button
                             disabled={currentPage === totalPages}
                             onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                            className="p-1.5 rounded-lg border border-gray-200 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-transparent transition-colors"
+                            className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-white/5 disabled:opacity-40 disabled:hover:bg-transparent transition-colors"
                         >
                             <ChevronRight className="w-4 h-4" />
                         </button>

@@ -42,17 +42,17 @@ export default function SelectDropdown({
                 onClick={() => setIsOpen(!isOpen)}
                 className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-all duration-150 shadow-2xs select-none ${
                     active || (value && value !== 'all')
-                        ? 'bg-blue-50 border-blue-300 text-blue-700 ring-1 ring-blue-400/30'
-                        : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300'
+                        ? 'bg-blue-50 dark:bg-blue-500/15 border-blue-300 text-blue-700 dark:text-blue-300 ring-1 ring-blue-400/30'
+                        : 'bg-white dark:bg-[#282a2c] border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 hover:border-gray-300 dark:hover:border-gray-600'
                 }`}
             >
-                {Icon && <Icon className={`w-3.5 h-3.5 shrink-0 ${active || (value && value !== 'all') ? 'text-blue-600' : 'text-gray-500'}`} />}
+                {Icon && <Icon className={`w-3.5 h-3.5 shrink-0 ${active || (value && value !== 'all') ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'}`} />}
                 <span className="truncate max-w-[140px]">{displayLabel}</span>
-                <ChevronDown className={`w-3.5 h-3.5 text-gray-400 shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180 text-blue-600' : ''}`} />
+                <ChevronDown className={`w-3.5 h-3.5 text-gray-400 dark:text-gray-500 shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180 text-blue-600 dark:text-blue-400' : ''}`} />
             </button>
 
             {isOpen && (
-                <div className="absolute left-0 mt-1.5 w-52 bg-white rounded-2xl shadow-xl border border-gray-100 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
+                <div className="absolute left-0 mt-1.5 w-52 bg-white dark:bg-[#282a2c] rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
                     <div className="max-h-60 overflow-y-auto custom-scrollbar">
                         {options.map((option) => {
                             const isSelected = option.value === value;
@@ -67,15 +67,15 @@ export default function SelectDropdown({
                                     }}
                                     className={`w-full text-left px-3.5 py-2 text-xs flex items-center justify-between transition-colors ${
                                         isSelected 
-                                            ? 'bg-blue-50/80 text-blue-700 font-semibold' 
-                                            : 'text-gray-700 hover:bg-gray-50'
+                                            ? 'bg-blue-50/80 dark:bg-blue-500/15 text-blue-700 dark:text-blue-300 font-semibold' 
+                                            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5'
                                     }`}
                                 >
                                     <div className="flex items-center gap-2.5 truncate pr-2">
-                                        {OptionIcon && <OptionIcon className={`w-4 h-4 shrink-0 ${isSelected ? 'text-blue-600' : 'text-gray-400'}`} />}
+                                        {OptionIcon && <OptionIcon className={`w-4 h-4 shrink-0 ${isSelected ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}`} />}
                                         <span className="truncate">{option.label}</span>
                                     </div>
-                                    {isSelected && <Check className="w-3.5 h-3.5 text-blue-600 shrink-0" />}
+                                    {isSelected && <Check className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />}
                                 </button>
                             );
                         })}

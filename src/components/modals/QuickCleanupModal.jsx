@@ -53,23 +53,23 @@ export default function QuickCleanupModal({ isOpen, onClose }) {
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-6 space-y-6 relative border border-gray-100 animate-in zoom-in-95 duration-200"
+        className="bg-white dark:bg-[#282a2c] rounded-3xl shadow-2xl w-full max-w-lg p-6 space-y-6 relative border border-gray-100 dark:border-gray-700 animate-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 text-gray-400 hover:text-gray-600 p-1.5 rounded-full hover:bg-gray-100 transition-colors"
+          className="absolute right-4 top-4 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
         >
           <X className="w-5 h-5" />
         </button>
 
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
             <Sparkles className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-gray-900">Dọn dẹp bộ nhớ thông minh</h3>
-            <p className="text-xs text-gray-500">Gợi ý thu hồi bộ nhớ tức thì để giải phóng dung lượng</p>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">Dọn dẹp bộ nhớ thông minh</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Gợi ý thu hồi bộ nhớ tức thì để giải phóng dung lượng</p>
           </div>
         </div>
 
@@ -77,10 +77,10 @@ export default function QuickCleanupModal({ isOpen, onClose }) {
         <div className="p-4 rounded-2xl border border-amber-200 bg-amber-50/50 space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <Trash2 className="w-5 h-5 text-amber-600" />
+              <Trash2 className="w-5 h-5 text-amber-600 dark:text-amber-400" />
               <div>
-                <div className="text-xs font-bold text-gray-900">Dọn sạch Thùng rác ({trashItems.length} tệp)</div>
-                <div className="text-[11px] text-gray-500">Có thể thu hồi ngay {trashMB} MB</div>
+                <div className="text-xs font-bold text-gray-900 dark:text-gray-100">Dọn sạch Thùng rác ({trashItems.length} tệp)</div>
+                <div className="text-[11px] text-gray-500 dark:text-gray-400">Có thể thu hồi ngay {trashMB} MB</div>
               </div>
             </div>
             <button
@@ -95,17 +95,17 @@ export default function QuickCleanupModal({ isOpen, onClose }) {
 
         {/* Suggestion 2: Large Files */}
         <div className="space-y-3">
-          <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wider flex items-center justify-between">
+          <h4 className="text-xs font-bold text-gray-900 dark:text-gray-100 uppercase tracking-wider flex items-center justify-between">
             <span>{(largeFiles || []).length} tệp lớn nhất nên xem xét xóa</span>
-            <span className="text-[11px] font-semibold text-gray-500">{'>'} 10 MB</span>
+            <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">{'>'} 10 MB</span>
           </h4>
 
           {largeFiles === null ? (
-            <div className="p-4 text-center border border-dashed border-gray-200 rounded-2xl text-xs text-gray-500">
+            <div className="p-4 text-center border border-dashed border-gray-200 dark:border-gray-700 rounded-2xl text-xs text-gray-500 dark:text-gray-400">
               Đang quét toàn bộ drive...
             </div>
           ) : largeFiles.length === 0 ? (
-            <div className="p-4 text-center border border-dashed border-gray-200 rounded-2xl text-xs text-gray-500">
+            <div className="p-4 text-center border border-dashed border-gray-200 dark:border-gray-700 rounded-2xl text-xs text-gray-500 dark:text-gray-400">
               🎉 Bạn chưa có tệp lớn nào vượt quá 10MB!
             </div>
           ) : (
@@ -115,17 +115,17 @@ export default function QuickCleanupModal({ isOpen, onClose }) {
                 return (
                   <div
                     key={file.id}
-                    className="flex items-center justify-between p-3 border border-gray-200 rounded-xl text-xs hover:bg-gray-50 transition-colors"
+                    className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-xl text-xs hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
                   >
                     <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-2">
-                      <FileText className="w-4 h-4 text-blue-600 shrink-0" />
-                      <span className="truncate font-semibold text-gray-900">{file.name}</span>
+                      <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                      <span className="truncate font-semibold text-gray-900 dark:text-gray-100">{file.name}</span>
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
-                      <span className="font-bold text-amber-600 font-mono">{mb} MB</span>
+                      <span className="font-bold text-amber-600 dark:text-amber-400 font-mono">{mb} MB</span>
                       <button
                         onClick={() => handleDeleteLargeFile(file.id)}
-                        className="text-gray-400 hover:text-red-600 p-1 rounded-md transition-colors"
+                        className="text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 p-1 rounded-md transition-colors"
                         title="Chuyển vào Thùng rác"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -138,10 +138,10 @@ export default function QuickCleanupModal({ isOpen, onClose }) {
           )}
         </div>
 
-        <div className="pt-2 border-t border-gray-100 flex justify-end">
+        <div className="pt-2 border-t border-gray-100 dark:border-gray-700 flex justify-end">
           <button
             onClick={onClose}
-            className="px-5 py-2 text-xs font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
+            className="px-5 py-2 text-xs font-bold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors"
           >
             Đóng
           </button>

@@ -29,87 +29,87 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
 
 const fileTypeStyles = {
     pdf: {
-        bg: 'bg-rose-50 hover:bg-rose-100 border-rose-200',
+        bg: 'bg-rose-50 dark:bg-rose-500/15 hover:bg-rose-100 border-rose-200',
         badgeBg: 'bg-rose-100 text-rose-700',
         icon: <FileText className="w-5 h-5 text-rose-500 shrink-0" />,
         previewBg: 'bg-rose-500/10 text-rose-600',
         label: 'PDF Document'
     },
     sheet: {
-        bg: 'bg-emerald-50 hover:bg-emerald-100 border-emerald-200',
-        badgeBg: 'bg-emerald-100 text-emerald-700',
-        icon: <FileSpreadsheet className="w-5 h-5 text-emerald-600 shrink-0" />,
-        previewBg: 'bg-emerald-500/10 text-emerald-700',
+        bg: 'bg-emerald-50 dark:bg-emerald-500/15 hover:bg-emerald-100 border-emerald-200',
+        badgeBg: 'bg-emerald-100 text-emerald-700 dark:text-emerald-300',
+        icon: <FileSpreadsheet className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />,
+        previewBg: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
         label: 'Spreadsheet'
     },
     image: {
-        bg: 'bg-purple-50 hover:bg-purple-100 border-purple-200',
+        bg: 'bg-purple-50 dark:bg-purple-500/15 hover:bg-purple-100 border-purple-200',
         badgeBg: 'bg-purple-100 text-purple-700',
-        icon: <ImageIcon className="w-5 h-5 text-purple-600 shrink-0" />,
+        icon: <ImageIcon className="w-5 h-5 text-purple-600 dark:text-purple-400 shrink-0" />,
         previewBg: 'bg-purple-500/10 text-purple-700',
         label: 'Image'
     },
     video: {
-        bg: 'bg-violet-50 hover:bg-violet-100 border-violet-200',
+        bg: 'bg-violet-50 dark:bg-violet-500/15 hover:bg-violet-100 border-violet-200',
         badgeBg: 'bg-violet-100 text-violet-700',
         icon: <Video className="w-5 h-5 text-violet-600 shrink-0" />,
         previewBg: 'bg-violet-500/10 text-violet-700',
         label: 'Video Clip'
     },
     audio: {
-        bg: 'bg-pink-50 hover:bg-pink-100 border-pink-200',
+        bg: 'bg-pink-50 dark:bg-pink-500/15 hover:bg-pink-100 border-pink-200',
         badgeBg: 'bg-pink-100 text-pink-700',
         icon: <Music className="w-5 h-5 text-pink-600 shrink-0" />,
         previewBg: 'bg-pink-500/10 text-pink-700',
         label: 'Audio File'
     },
     database: {
-        bg: 'bg-cyan-50 hover:bg-cyan-100 border-cyan-200',
+        bg: 'bg-cyan-50 dark:bg-cyan-500/15 hover:bg-cyan-100 border-cyan-200',
         badgeBg: 'bg-cyan-100 text-cyan-700',
         icon: <Database className="w-5 h-5 text-cyan-600 shrink-0" />,
         previewBg: 'bg-cyan-500/10 text-cyan-700',
         label: 'Database SQL'
     },
     figma: {
-        bg: 'bg-purple-50 hover:bg-purple-100 border-purple-200',
+        bg: 'bg-purple-50 dark:bg-purple-500/15 hover:bg-purple-100 border-purple-200',
         badgeBg: 'bg-purple-100 text-purple-700',
-        icon: <Layers className="w-5 h-5 text-purple-600 shrink-0" />,
+        icon: <Layers className="w-5 h-5 text-purple-600 dark:text-purple-400 shrink-0" />,
         previewBg: 'bg-purple-500/10 text-purple-700',
         label: 'Figma Design'
     },
     doc: {
-        bg: 'bg-blue-50 hover:bg-blue-100 border-blue-200',
-        badgeBg: 'bg-blue-100 text-blue-700',
-        icon: <FileText className="w-5 h-5 text-blue-600 shrink-0" />,
-        previewBg: 'bg-blue-500/10 text-blue-700',
+        bg: 'bg-blue-50 dark:bg-blue-500/15 hover:bg-blue-100 border-blue-200',
+        badgeBg: 'bg-blue-100 text-blue-700 dark:text-blue-300',
+        icon: <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0" />,
+        previewBg: 'bg-blue-500/10 text-blue-700 dark:text-blue-300',
         label: 'Document'
     },
     markdown: {
-        bg: 'bg-indigo-50 hover:bg-indigo-100 border-indigo-200',
+        bg: 'bg-indigo-50 dark:bg-indigo-500/15 hover:bg-indigo-100 border-indigo-200',
         badgeBg: 'bg-indigo-100 text-indigo-700',
-        icon: <FileCode className="w-5 h-5 text-indigo-600 shrink-0" />,
+        icon: <FileCode className="w-5 h-5 text-indigo-600 dark:text-indigo-400 shrink-0" />,
         previewBg: 'bg-indigo-500/10 text-indigo-700',
         label: 'Markdown'
     },
     archive: {
-        bg: 'bg-amber-50 hover:bg-amber-100 border-amber-200',
+        bg: 'bg-amber-50 dark:bg-amber-500/15 hover:bg-amber-100 border-amber-200',
         badgeBg: 'bg-amber-100 text-amber-700',
-        icon: <FileArchive className="w-5 h-5 text-amber-600 shrink-0" />,
+        icon: <FileArchive className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />,
         previewBg: 'bg-amber-500/10 text-amber-700',
         label: 'Archive'
     },
     code: {
-        bg: 'bg-amber-50 hover:bg-amber-100 border-amber-200',
+        bg: 'bg-amber-50 dark:bg-amber-500/15 hover:bg-amber-100 border-amber-200',
         badgeBg: 'bg-amber-100 text-amber-700',
-        icon: <FileCode className="w-5 h-5 text-amber-600 shrink-0" />,
+        icon: <FileCode className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />,
         previewBg: 'bg-amber-500/10 text-amber-700',
         label: 'Source Code'
     },
     default: {
-        bg: 'bg-slate-50 hover:bg-slate-100 border-slate-200',
-        badgeBg: 'bg-slate-100 text-slate-700',
-        icon: <File className="w-5 h-5 text-slate-500 shrink-0" />,
-        previewBg: 'bg-slate-500/10 text-slate-700',
+        bg: 'bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/5 border-slate-200 dark:border-gray-700',
+        badgeBg: 'bg-slate-100 dark:bg-gray-700 text-slate-700 dark:text-gray-300',
+        icon: <File className="w-5 h-5 text-slate-500 dark:text-gray-400 shrink-0" />,
+        previewBg: 'bg-slate-500/10 text-slate-700 dark:text-gray-300',
         label: 'File'
     }
 };
@@ -275,7 +275,7 @@ function FileCard({ file, onDoubleClick, onContextMenu, onStarToggle, onOpenInfo
             onContextMenu={(e) => onContextMenu && onContextMenu(e, file)}
             className={`group relative flex flex-col justify-between p-3.5 rounded-2xl cursor-pointer transition-all duration-200 border shadow-sm hover:shadow-md hover:-translate-y-0.5 h-52 ${
                 isCut ? 'opacity-50 border-dashed' : ''
-            } ${isSelected ? 'ring-2 ring-blue-500 border-blue-300 bg-blue-50' : style.bg}`}
+            } ${isSelected ? 'ring-2 ring-blue-500 border-blue-300 bg-blue-50 dark:bg-blue-500/15' : style.bg}`}
         >
             {/* Checkbox top-left – only this triggers selection */}
             <button
@@ -290,8 +290,8 @@ function FileCard({ file, onDoubleClick, onContextMenu, onStarToggle, onOpenInfo
                 }}
                 className={`absolute top-2 left-2 z-20 p-0.5 rounded transition-all ${
                     isSelected
-                        ? 'opacity-100 text-blue-600'
-                        : 'opacity-0 group-hover:opacity-100 text-gray-400 hover:text-blue-600'
+                        ? 'opacity-100 text-blue-600 dark:text-blue-400'
+                        : 'opacity-0 group-hover:opacity-100 text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400'
                 }`}
                 title={isSelected ? 'Bo chon' : 'Chon'}
             >
@@ -304,13 +304,13 @@ function FileCard({ file, onDoubleClick, onContextMenu, onStarToggle, onOpenInfo
             <div className="flex items-start justify-between gap-2 z-10">
                 <div className="flex items-center gap-2 min-w-0 pl-4">
                     {style.icon}
-                    <span className="text-sm font-semibold text-gray-900 truncate" title={file.name}>
+                    <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate" title={file.name}>
                         {file.name}
                     </span>
                     {/* Ly do bi gan co doi voi tep trong muc Noi dung rac */}
                     {file.isSpam && (
                         <span
-                            className="shrink-0 text-amber-600"
+                            className="shrink-0 text-amber-600 dark:text-amber-400"
                             title={file.suspiciousReason || 'Tep bi gan co dang ngo'}
                         >
                             <ShieldAlert className="w-4 h-4" />
@@ -325,7 +325,7 @@ function FileCard({ file, onDoubleClick, onContextMenu, onStarToggle, onOpenInfo
                                 e.stopPropagation();
                                 onStarToggle && onStarToggle(file.id);
                             }}
-                            className="p-1 text-gray-400 hover:text-amber-500 rounded-full hover:bg-white/60 transition-colors"
+                            className="p-1 text-gray-400 dark:text-gray-500 hover:text-amber-500 rounded-full hover:bg-white/60 transition-colors"
                             title={file.isStarred ? 'Bo danh dau sao' : 'Danh dau sao'}
                         >
                             <Star className={`w-4 h-4 ${file.isStarred ? 'fill-amber-400 text-amber-500' : ''}`} />
@@ -333,7 +333,7 @@ function FileCard({ file, onDoubleClick, onContextMenu, onStarToggle, onOpenInfo
                     )}
                     <button
                         onClick={(e) => onContextMenu && onContextMenu(e, file)}
-                        className="p-1 text-gray-400 hover:text-gray-700 rounded-full hover:bg-white/60 transition-colors"
+                        className="p-1 text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 rounded-full hover:bg-white/60 transition-colors"
                         title="Tuy chon tep"
                     >
                         <MoreVertical className="w-4 h-4" />
@@ -342,7 +342,7 @@ function FileCard({ file, onDoubleClick, onContextMenu, onStarToggle, onOpenInfo
             </div>
 
             {/* Thumbnail Preview */}
-            <div className="flex-1 my-2.5 rounded-xl bg-white/90 border border-gray-100/80 flex flex-col items-center justify-center p-1.5 text-center overflow-hidden relative group-hover:border-blue-200 transition-colors">
+            <div className="flex-1 my-2.5 rounded-xl bg-white/90 dark:bg-white/5 border border-gray-100/80 dark:border-gray-700/60 flex flex-col items-center justify-center p-1.5 text-center overflow-hidden relative group-hover:border-blue-200 transition-colors">
                 {thumbType === 'image' && thumbUrl ? (
                     /* ── Ảnh ── */
                     <img
@@ -416,11 +416,11 @@ function FileCard({ file, onDoubleClick, onContextMenu, onStarToggle, onOpenInfo
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-between text-xs text-gray-500 pt-1 border-t border-gray-200/50">
+            <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 pt-1 border-t border-gray-200/50 dark:border-gray-700/60">
                 <span className={`px-2 py-0.5 rounded-full font-medium text-[11px] ${style.badgeBg}`}>
                     {file.name.split('.').pop()?.toUpperCase() || 'FILE'}
                 </span>
-                <span className="font-mono text-[11px] text-gray-600 font-medium">
+                <span className="font-mono text-[11px] text-gray-600 dark:text-gray-300 font-medium">
                     {formatBytes(file.size)}
                 </span>
             </div>

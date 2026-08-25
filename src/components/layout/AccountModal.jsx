@@ -54,21 +54,21 @@ export default function AccountModal({ isOpen, onClose }) {
     return (
         <div 
             ref={modalRef}
-            className="absolute top-full right-0 mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-gray-200 p-5 z-50 animate-in fade-in zoom-in-95 duration-150 text-gray-800 text-left cursor-default"
+            className="absolute top-full right-0 mt-2 w-80 bg-white dark:bg-[#282a2c] rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-5 z-50 animate-in fade-in zoom-in-95 duration-150 text-gray-800 dark:text-gray-200 text-left cursor-default"
         >
             {/* User Details */}
-            <div className="flex items-center gap-3 pb-4 border-b border-gray-100">
+            <div className="flex items-center gap-3 pb-4 border-b border-gray-100 dark:border-gray-700">
                 {user?.avatarUrl ? (
-                    <img src={user.avatarUrl} alt="Avatar" className="w-12 h-12 rounded-full object-cover shadow-sm border border-gray-200" />
+                    <img src={user.avatarUrl} alt="Avatar" className="w-12 h-12 rounded-full object-cover shadow-sm border border-gray-200 dark:border-gray-700" />
                 ) : (
                     <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center font-bold text-lg shadow-sm">
                         {initialLetter}
                     </div>
                 )}
                 <div className="flex-1 min-w-0">
-                    <h4 className="font-semibold text-gray-900 truncate">{user?.fullName || 'Người dùng driveR'}</h4>
-                    <p className="text-xs text-gray-500 truncate">{user?.email || 'user@driver.com'}</p>
-                    <span className="inline-flex items-center gap-1 mt-1 text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+                    <h4 className="font-semibold text-gray-900 dark:text-gray-100 truncate">{user?.fullName || 'Người dùng driveR'}</h4>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.email || 'user@driver.com'}</p>
+                    <span className="inline-flex items-center gap-1 mt-1 text-[11px] font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-500/15 px-2 py-0.5 rounded-full">
                         <ShieldCheck className="w-3 h-3" /> Tài khoản {getProviderBadge(user?.provider)}
                     </span>
                 </div>
@@ -80,9 +80,9 @@ export default function AccountModal({ isOpen, onClose }) {
                     onClick={() => {
                         setIsProfileOpen(true);
                     }}
-                    className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-xl transition-colors text-left cursor-pointer"
+                    className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-colors text-left cursor-pointer"
                 >
-                    <UserIcon className="w-4 h-4 text-gray-500" />
+                    <UserIcon className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                     Tài khoản của tôi
                 </button>
                 <button

@@ -11,8 +11,8 @@ export default function Spinner({ size = 'md', className = '', label = 'ƒêang t·
 
     return (
         <div className={`flex items-center justify-center gap-2 ${className}`}>
-            <Loader2 className={`${sizes[size] || sizes.md} animate-spin text-blue-600`} />
-            {label && <span className="text-xs text-gray-500 font-medium">{label}</span>}
+            <Loader2 className={`${sizes[size] || sizes.md} animate-spin text-blue-600 dark:text-blue-400`} />
+            {label && <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">{label}</span>}
         </div>
     );
 }

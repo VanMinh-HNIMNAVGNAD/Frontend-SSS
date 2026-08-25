@@ -100,39 +100,39 @@ export default function ContextMenu({
         return (
             <div
                 ref={menuRef}
-                className="fixed z-50 w-60 bg-[#282a2c]/90 backdrop-blur-md text-gray-200 rounded-2xl shadow-2xl py-2 border border-gray-700/80 text-[13px] font-sans select-none animate-fade-in"
+                className="fixed z-50 w-60 bg-white/95 dark:bg-[#282a2c]/90 backdrop-blur-md text-gray-800 dark:text-gray-200 rounded-2xl shadow-2xl py-2 border border-gray-200 dark:border-gray-700/80 text-[13px] font-sans select-none animate-fade-in"
                 style={{ top: pos.top, left: pos.left }}
                 onClick={(e) => e.stopPropagation()}
                 onContextMenu={(e) => e.preventDefault()}
             >
                 <button
                     onClick={() => { onUploadFile?.(); onClose(); }}
-                    className="w-full px-4 py-2 hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-200 transition-colors"
+                    className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-800 dark:text-gray-200 transition-colors"
                 >
-                    <FileUp className="w-4 h-4 text-blue-400 shrink-0" />
+                    <FileUp className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
                     <span>Tải tệp lên</span>
                 </button>
 
                 <button
                     onClick={() => { onUploadFolder?.(); onClose(); }}
                     disabled={isBuildingTree}
-                    className="w-full px-4 py-2 hover:bg-[#37393b] disabled:opacity-50 disabled:cursor-wait cursor-pointer flex items-center gap-3 text-gray-200 transition-colors"
+                    className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] disabled:opacity-50 disabled:cursor-wait cursor-pointer flex items-center gap-3 text-gray-800 dark:text-gray-200 transition-colors"
                 >
                     {isBuildingTree ? (
-                        <Loader2 className="w-4 h-4 text-amber-400 animate-spin shrink-0" />
+                        <Loader2 className="w-4 h-4 text-amber-600 dark:text-amber-400 animate-spin shrink-0" />
                     ) : (
-                        <FolderUp className="w-4 h-4 text-amber-400 shrink-0" />
+                        <FolderUp className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
                     )}
                     <span>{isBuildingTree ? 'Đang xây cây thư mục...' : 'Tải thư mục lên'}</span>
                 </button>
 
-                <div className="h-px bg-gray-700/60 my-1"></div>
+                <div className="h-px bg-gray-200 dark:bg-gray-700/60 my-1"></div>
 
                 <button
                     onClick={() => { onCreateFolder?.(); onClose(); }}
-                    className="w-full px-4 py-2 hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-200 transition-colors"
+                    className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-800 dark:text-gray-200 transition-colors"
                 >
-                    <FolderPlus className="w-4 h-4 text-gray-300 shrink-0" />
+                    <FolderPlus className="w-4 h-4 text-gray-700 dark:text-gray-300 shrink-0" />
                     <span>Tạo thư mục mới</span>
                 </button>
             </div>
@@ -150,19 +150,19 @@ export default function ContextMenu({
         return (
             <div
                 ref={menuRef}
-                className="fixed z-50 w-64 bg-[#282a2c]/90 backdrop-blur-md text-gray-200 rounded-2xl shadow-2xl py-2 border border-gray-700/80 text-[13px] font-sans select-none animate-fade-in"
+                className="fixed z-50 w-64 bg-white/95 dark:bg-[#282a2c]/90 backdrop-blur-md text-gray-800 dark:text-gray-200 rounded-2xl shadow-2xl py-2 border border-gray-200 dark:border-gray-700/80 text-[13px] font-sans select-none animate-fade-in"
                 style={{ top: pos.top, left: pos.left }}
                 onClick={(e) => e.stopPropagation()}
                 onContextMenu={(e) => e.preventDefault()}
             >
                 {/* Header */}
-                <div className="px-4 py-1.5 mb-1 border-b border-gray-700/60 text-xs font-semibold text-gray-400 truncate flex items-center gap-2">
+                <div className="px-4 py-1.5 mb-1 border-b border-gray-200 dark:border-gray-700/60 text-xs font-semibold text-gray-500 dark:text-gray-400 truncate flex items-center gap-2">
                     <span className="truncate">{item.name}</span>
                     {item.userRole && (
                         <span className={`ml-auto shrink-0 px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
                             isDriveAdmin
-                                ? 'bg-emerald-500/20 text-emerald-400'
-                                : 'bg-sky-500/20 text-sky-400'
+                                ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                                : 'bg-sky-100 dark:bg-sky-500/20 text-sky-600 dark:text-sky-400'
                         }`}>
                             {item.userRole}
                         </span>
@@ -173,18 +173,18 @@ export default function ContextMenu({
                 {isDriveAdmin ? (
                     <button
                         onClick={() => { onRename?.(item); onClose(); }}
-                        className="w-full px-4 py-2 hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-200 transition-colors"
+                        className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-800 dark:text-gray-200 transition-colors"
                     >
-                        <Pencil className="w-4 h-4 text-gray-300 shrink-0" />
+                        <Pencil className="w-4 h-4 text-gray-700 dark:text-gray-300 shrink-0" />
                         <span>Đổi tên &amp; mô tả</span>
                     </button>
                 ) : (
-                    <div className="w-full px-4 py-2 flex items-center justify-between text-gray-600 cursor-not-allowed">
+                    <div className="w-full px-4 py-2 flex items-center justify-between text-gray-400 dark:text-gray-500 cursor-not-allowed">
                         <div className="flex items-center gap-3">
                             <ShieldOff className="w-4 h-4 shrink-0" />
                             <span className="line-through text-xs">Đổi tên &amp; mô tả</span>
                         </div>
-                        <span className="text-[10px] text-gray-600">Cần ADMIN</span>
+                        <span className="text-[10px] text-gray-400 dark:text-gray-500">Cần ADMIN</span>
                     </div>
                 )}
 
@@ -192,50 +192,50 @@ export default function ContextMenu({
                     đăng nhập (backend lưu ở hàng shared_drive_members của họ) */}
                 <button
                     onClick={() => { onToggleStar?.(item); onClose(); }}
-                    className="w-full px-4 py-2 hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-200 transition-colors"
+                    className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-800 dark:text-gray-200 transition-colors"
                 >
-                    <Star className={`w-4 h-4 ${item.isStarred ? 'text-amber-400 fill-amber-400' : 'text-gray-300'} shrink-0`} />
+                    <Star className={`w-4 h-4 ${item.isStarred ? 'text-amber-600 dark:text-amber-400 fill-amber-400' : 'text-gray-700 dark:text-gray-300'} shrink-0`} />
                     <span>{item.isStarred ? 'Bỏ khỏi mục gắn sao' : 'Thêm vào mục gắn sao'}</span>
                 </button>
 
                 {/* Sao chép tên drive — KHÔNG có deep-link tới một drive nên không copy link được */}
                 <button
                     onClick={() => { onCopy?.(item); onClose(); }}
-                    className="w-full px-4 py-2 hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-200 transition-colors"
+                    className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-800 dark:text-gray-200 transition-colors"
                 >
-                    <Copy className="w-4 h-4 text-gray-300 shrink-0" />
+                    <Copy className="w-4 h-4 text-gray-700 dark:text-gray-300 shrink-0" />
                     <span>Sao chép tên</span>
                 </button>
 
-                <div className="h-px bg-gray-700/60 my-1"></div>
+                <div className="h-px bg-gray-200 dark:bg-gray-700/60 my-1"></div>
 
                 {/* Chia sẻ = quản lý thành viên (bảng shared_drive_members, KHÔNG phải file_shares) */}
                 <button
                     onClick={() => { onShare?.(item); onClose(); }}
-                    className="w-full px-4 py-2 hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-200 transition-colors"
+                    className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-800 dark:text-gray-200 transition-colors"
                 >
-                    <UserPlus className="w-4 h-4 text-gray-300 shrink-0" />
+                    <UserPlus className="w-4 h-4 text-gray-700 dark:text-gray-300 shrink-0" />
                     <span>Chia sẻ &amp; thành viên</span>
                 </button>
 
-                <div className="h-px bg-gray-700/60 my-1"></div>
+                <div className="h-px bg-gray-200 dark:bg-gray-700/60 my-1"></div>
 
                 {/* Xóa drive — chỉ người tạo. Trang sẽ mở hộp thoại xác nhận trước khi gọi API */}
                 {item.canDelete ? (
                     <button
                         onClick={() => { onDeletePermanently?.(item); onClose(); }}
-                        className="w-full px-4 py-2 hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-rose-400 hover:text-rose-300 transition-colors"
+                        className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 transition-colors"
                     >
                         <Trash2 className="w-4 h-4 shrink-0" />
                         <span>Xóa bộ nhớ dùng chung</span>
                     </button>
                 ) : (
-                    <div className="w-full px-4 py-2 flex items-center justify-between text-gray-600 cursor-not-allowed">
+                    <div className="w-full px-4 py-2 flex items-center justify-between text-gray-400 dark:text-gray-500 cursor-not-allowed">
                         <div className="flex items-center gap-3">
                             <ShieldOff className="w-4 h-4 shrink-0" />
                             <span className="line-through text-xs">Xóa bộ nhớ dùng chung</span>
                         </div>
-                        <span className="text-[10px] text-gray-600">Chỉ người tạo</span>
+                        <span className="text-[10px] text-gray-400 dark:text-gray-500">Chỉ người tạo</span>
                     </div>
                 )}
             </div>
@@ -267,19 +267,19 @@ export default function ContextMenu({
     return (
         <div
             ref={menuRef}
-            className="fixed z-50 w-64 bg-[#282a2c]/90 backdrop-blur-md text-gray-200 rounded-2xl shadow-2xl py-2 border border-gray-700/80 text-[13px] font-sans select-none animate-fade-in"
+            className="fixed z-50 w-64 bg-white/95 dark:bg-[#282a2c]/90 backdrop-blur-md text-gray-800 dark:text-gray-200 rounded-2xl shadow-2xl py-2 border border-gray-200 dark:border-gray-700/80 text-[13px] font-sans select-none animate-fade-in"
             style={{ top: pos.top, left: pos.left }}
             onClick={(e) => e.stopPropagation()}
             onContextMenu={(e) => e.preventDefault()}
         >
             {/* Header */}
-            <div className="px-4 py-1.5 mb-1 border-b border-gray-700/60 text-xs font-semibold text-gray-400 truncate flex items-center gap-2">
+            <div className="px-4 py-1.5 mb-1 border-b border-gray-200 dark:border-gray-700/60 text-xs font-semibold text-gray-500 dark:text-gray-400 truncate flex items-center gap-2">
                 <span className="truncate">{item.name}</span>
                 {isSharedWithMeTab && sharedRole && (
                     <span className={`ml-auto shrink-0 px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
                         sharedRole === 'EDITOR'
-                            ? 'bg-emerald-500/20 text-emerald-400'
-                            : 'bg-sky-500/20 text-sky-400'
+                            ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                            : 'bg-sky-100 dark:bg-sky-500/20 text-sky-600 dark:text-sky-400'
                     }`}>
                         {sharedRole === 'EDITOR' ? 'Chỉnh sửa' : 'Xem'}
                     </span>
@@ -291,15 +291,15 @@ export default function ContextMenu({
                     {/* Trash view options */}
                     <button
                         onClick={() => { onRestore?.(item); onClose(); }}
-                        className="w-full px-4 py-2 hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-200 transition-colors"
+                        className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-800 dark:text-gray-200 transition-colors"
                     >
-                        <RotateCcw className="w-4 h-4 text-blue-400 shrink-0" />
+                        <RotateCcw className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
                         <span>Khôi phục</span>
                     </button>
 
                     <button
                         onClick={() => { onDeletePermanently?.(item); onClose(); }}
-                        className="w-full px-4 py-2 hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-rose-400 hover:text-rose-300 transition-colors"
+                        className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 transition-colors"
                     >
                         <Trash2 className="w-4 h-4 shrink-0" />
                         <span>Xóa vĩnh viễn</span>
@@ -311,9 +311,9 @@ export default function ContextMenu({
                     {item.type !== 'folder' && (
                         <button
                             onClick={() => { onPreview?.(item); onClose(); }}
-                            className="w-full px-4 py-2 hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-200 transition-colors font-medium"
+                            className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-800 dark:text-gray-200 transition-colors font-medium"
                         >
-                            <Eye className="w-4 h-4 text-blue-400 shrink-0" />
+                            <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
                             <span>Xem trước</span>
                         </button>
                     )}
@@ -321,9 +321,9 @@ export default function ContextMenu({
                     {/* 1. Tải xuống */}
                     <button
                         onClick={() => { onDownload?.(item); onClose(); }}
-                        className="w-full px-4 py-2 hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-200 transition-colors"
+                        className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-800 dark:text-gray-200 transition-colors"
                     >
-                        <Download className="w-4 h-4 text-gray-300 shrink-0" />
+                        <Download className="w-4 h-4 text-gray-700 dark:text-gray-300 shrink-0" />
                         <span>Tải xuống</span>
                     </button>
 
@@ -331,22 +331,22 @@ export default function ContextMenu({
                     {canRename ? (
                         <button
                             onClick={() => { onRename?.(item); onClose(); }}
-                            className="w-full px-4 py-2 hover:bg-[#37393b] cursor-pointer flex items-center justify-between text-gray-200 transition-colors"
+                            className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center justify-between text-gray-800 dark:text-gray-200 transition-colors"
                         >
                             <div className="flex items-center gap-3">
-                                <Pencil className="w-4 h-4 text-gray-300 shrink-0" />
+                                <Pencil className="w-4 h-4 text-gray-700 dark:text-gray-300 shrink-0" />
                                 <span>Đổi tên</span>
                             </div>
-                            <span className="text-[11px] text-gray-400 font-mono">Ctrl+Alt+E</span>
+                            <span className="text-[11px] text-gray-500 dark:text-gray-400 font-mono">Ctrl+Alt+E</span>
                         </button>
                     ) : (
                         // Hiển thị disabled hint khi VIEWER
-                        <div className="w-full px-4 py-2 flex items-center justify-between text-gray-600 cursor-not-allowed">
+                        <div className="w-full px-4 py-2 flex items-center justify-between text-gray-400 dark:text-gray-500 cursor-not-allowed">
                             <div className="flex items-center gap-3">
                                 <ShieldOff className="w-4 h-4 shrink-0" />
                                 <span className="line-through text-xs">Đổi tên</span>
                             </div>
-                            <span className="text-[10px] text-gray-600">Chỉ xem</span>
+                            <span className="text-[10px] text-gray-400 dark:text-gray-500">Chỉ xem</span>
                         </div>
                     )}
 
@@ -354,42 +354,42 @@ export default function ContextMenu({
                     {canToggleStar && (
                         <button
                             onClick={() => { onToggleStar?.(item); onClose(); }}
-                            className="w-full px-4 py-2 hover:bg-[#37393b] cursor-pointer flex items-center justify-between text-gray-200 transition-colors"
+                            className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center justify-between text-gray-800 dark:text-gray-200 transition-colors"
                         >
                             <div className="flex items-center gap-3">
-                                <Star className={`w-4 h-4 ${item.isStarred ? 'text-amber-400 fill-amber-400' : 'text-gray-300'} shrink-0`} />
+                                <Star className={`w-4 h-4 ${item.isStarred ? 'text-amber-600 dark:text-amber-400 fill-amber-400' : 'text-gray-700 dark:text-gray-300'} shrink-0`} />
                                 <span>{item.isStarred ? 'Bỏ khỏi mục gắn sao' : 'Thêm vào mục gắn sao'}</span>
                             </div>
                         </button>
                     )}
 
                     {/* Separator: Clipboard Actions */}
-                    <div className="h-px bg-gray-700/60 my-1"></div>
+                    <div className="h-px bg-gray-200 dark:bg-gray-700/60 my-1"></div>
 
                     {/* Cắt — ẩn trong shared-with-me */}
                     {canCut && (
                         <button
                             onClick={() => { onCut?.(item); onClose(); }}
-                            className="w-full px-4 py-2 hover:bg-[#37393b] cursor-pointer flex items-center justify-between text-gray-200 transition-colors"
+                            className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center justify-between text-gray-800 dark:text-gray-200 transition-colors"
                         >
                             <div className="flex items-center gap-3">
-                                <Scissors className="w-4 h-4 text-gray-300 shrink-0" />
+                                <Scissors className="w-4 h-4 text-gray-700 dark:text-gray-300 shrink-0" />
                                 <span>Cắt</span>
                             </div>
-                            <span className="text-[11px] text-gray-400 font-mono">Ctrl+X</span>
+                            <span className="text-[11px] text-gray-500 dark:text-gray-400 font-mono">Ctrl+X</span>
                         </button>
                     )}
 
                     {/* Sao chép */}
                     <button
                         onClick={() => { onCopy?.(item); onClose(); }}
-                        className="w-full px-4 py-2 hover:bg-[#37393b] cursor-pointer flex items-center justify-between text-gray-200 transition-colors"
+                        className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center justify-between text-gray-800 dark:text-gray-200 transition-colors"
                     >
                         <div className="flex items-center gap-3">
-                            <Copy className="w-4 h-4 text-gray-300 shrink-0" />
+                            <Copy className="w-4 h-4 text-gray-700 dark:text-gray-300 shrink-0" />
                             <span>Sao chép</span>
                         </div>
-                        <span className="text-[11px] text-gray-400 font-mono">Ctrl+C</span>
+                        <span className="text-[11px] text-gray-500 dark:text-gray-400 font-mono">Ctrl+C</span>
                     </button>
 
                     {/* Dán (Chỉ hiển thị khi có item trong clipboard) */}
@@ -400,43 +400,43 @@ export default function ContextMenu({
                                 onPaste?.(isFolder ? item.id : undefined); 
                                 onClose(); 
                             }}
-                            className="w-full px-4 py-2 hover:bg-[#37393b] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-between text-blue-300 hover:text-blue-200 transition-colors font-medium"
+                            className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-between text-blue-700 dark:text-blue-300 hover:text-blue-800 dark:hover:text-blue-200 transition-colors font-medium"
                         >
                             <div className="flex items-center gap-3">
                                 {isPasting ? (
-                                    <Loader2 className="w-4 h-4 text-blue-400 animate-spin shrink-0" />
+                                    <Loader2 className="w-4 h-4 text-blue-600 dark:text-blue-400 animate-spin shrink-0" />
                                 ) : (
-                                    <FolderInput className="w-4 h-4 text-blue-400 shrink-0" />
+                                    <FolderInput className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
                                 )}
                                 <span>{isFolder ? 'Dán vào thư mục này' : 'Dán'}</span>
                             </div>
-                            <span className="text-[11px] text-gray-400 font-mono">Ctrl+V</span>
+                            <span className="text-[11px] text-gray-500 dark:text-gray-400 font-mono">Ctrl+V</span>
                         </button>
                     )}
 
                     {/* Separator 1 */}
-                    <div className="h-px bg-gray-700/60 my-1"></div>
+                    <div className="h-px bg-gray-200 dark:bg-gray-700/60 my-1"></div>
 
                     {/* 3. Hỏi Gemini */}
                     <button
                         onClick={() => { onGemini?.(item); onClose(); }}
-                        className="w-full px-4 py-2 hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-100 font-medium transition-colors"
+                        className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-900 dark:text-gray-100 font-medium transition-colors"
                     >
-                        <Sparkles className="w-4 h-4 text-purple-400 shrink-0 animate-pulse" />
+                        <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0 animate-pulse" />
                         <span>Hỏi Gemini</span>
                     </button>
 
                     {/* Separator 2 */}
-                    <div className="h-px bg-gray-700/60 my-1"></div>
+                    <div className="h-px bg-gray-200 dark:bg-gray-700/60 my-1"></div>
 
                     {/* 4. Chia sẻ — chỉ hiển thị khi là owner */}
                     {canShare && (
                         <button
                             onClick={() => { onShare?.(item); onClose(); }}
-                            className="w-full px-4 py-2 hover:bg-[#37393b] cursor-pointer flex items-center justify-between text-gray-200 transition-colors"
+                            className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center justify-between text-gray-800 dark:text-gray-200 transition-colors"
                         >
                             <div className="flex items-center gap-3">
-                                <UserPlus className="w-4 h-4 text-gray-300 shrink-0" />
+                                <UserPlus className="w-4 h-4 text-gray-700 dark:text-gray-300 shrink-0" />
                                 <span>Chia sẻ</span>
                             </div>
                         </button>
@@ -445,35 +445,35 @@ export default function ContextMenu({
                     {/* 6. Thông tin chi tiết & hoạt động */}
                     <button
                         onClick={() => { onShowInfo?.(item, 'details'); onClose(); }}
-                        className="w-full px-4 py-2 hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-200 transition-colors"
+                        className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-800 dark:text-gray-200 transition-colors"
                     >
-                        <Info className="w-4 h-4 text-gray-300 shrink-0" />
+                        <Info className="w-4 h-4 text-gray-700 dark:text-gray-300 shrink-0" />
                         <span>Xem chi tiết & hoạt động</span>
                     </button>
 
                     {/* Separator 3 */}
-                    <div className="h-px bg-gray-700/60 my-1"></div>
+                    <div className="h-px bg-gray-200 dark:bg-gray-700/60 my-1"></div>
 
                     {/* 7. Chuyển vào thùng rác — ẩn trong shared-with-me */}
                     {canTrash ? (
                         <button
                             onClick={() => { onMoveToTrash?.(item); onClose(); }}
-                            className="w-full px-4 py-2 hover:bg-[#37393b] cursor-pointer flex items-center justify-between text-gray-200 hover:text-rose-300 transition-colors"
+                            className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center justify-between text-gray-800 dark:text-gray-200 hover:text-rose-700 dark:hover:text-rose-300 transition-colors"
                         >
                             <div className="flex items-center gap-3">
-                                <Trash2 className="w-4 h-4 text-gray-300 shrink-0" />
+                                <Trash2 className="w-4 h-4 text-gray-700 dark:text-gray-300 shrink-0" />
                                 <span>Chuyển vào thùng rác</span>
                             </div>
-                            <span className="text-[11px] text-gray-400 font-mono">Delete</span>
+                            <span className="text-[11px] text-gray-500 dark:text-gray-400 font-mono">Delete</span>
                         </button>
                     ) : (
                         // Hiển thị disabled hint khi trong shared-with-me
-                        <div className="w-full px-4 py-2 flex items-center justify-between text-gray-600 cursor-not-allowed">
+                        <div className="w-full px-4 py-2 flex items-center justify-between text-gray-400 dark:text-gray-500 cursor-not-allowed">
                             <div className="flex items-center gap-3">
                                 <ShieldOff className="w-4 h-4 shrink-0" />
                                 <span className="line-through text-xs">Chuyển vào thùng rác</span>
                             </div>
-                            <span className="text-[10px] text-gray-600">Chỉ xem</span>
+                            <span className="text-[10px] text-gray-400 dark:text-gray-500">Chỉ xem</span>
                         </div>
                     )}
 
@@ -481,9 +481,9 @@ export default function ContextMenu({
                     {activeTab === 'home' && (
                         <button
                             onClick={() => { onDismissSuggestion?.(item); onClose(); }}
-                            className="w-full px-4 py-2 hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-300 hover:text-gray-100 transition-colors"
+                            className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:text-gray-100 transition-colors"
                         >
-                            <ThumbsDown className="w-4 h-4 text-gray-400 shrink-0" />
+                            <ThumbsDown className="w-4 h-4 text-gray-500 dark:text-gray-400 shrink-0" />
                             <span>Không phải mục đề xuất hữu ích</span>
                         </button>
                     )}

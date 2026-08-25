@@ -57,7 +57,7 @@ const getFileTypeLabel = (item) => {
 const getFileIcon = (file) => {
     const name = file.name.toLowerCase();
     if (name.endsWith('.pdf')) return <FileText className="w-4 h-4 text-rose-500 shrink-0" />;
-    if (name.endsWith('.xlsx') || name.endsWith('.csv')) return <FileSpreadsheet className="w-4 h-4 text-emerald-600 shrink-0" />;
+    if (name.endsWith('.xlsx') || name.endsWith('.csv')) return <FileSpreadsheet className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />;
     if (name.endsWith('.png') || name.endsWith('.jpg') || name.endsWith('.jpeg')) return <ImageIcon className="w-4 h-4 text-purple-500 shrink-0" />;
     if (name.endsWith('.svg')) return <ImageIcon className="w-4 h-4 text-pink-500 shrink-0" />;
     if (name.endsWith('.docx') || name.endsWith('.txt') || name.endsWith('.md')) return <FileText className="w-4 h-4 text-blue-500 shrink-0" />;
@@ -65,10 +65,10 @@ const getFileIcon = (file) => {
     if (name.endsWith('.mp3') || name.endsWith('.wav')) return <Music className="w-4 h-4 text-pink-500 shrink-0" />;
     if (name.endsWith('.py') || name.endsWith('.js') || name.endsWith('.jsx') || name.endsWith('.ts')) return <FileCode className="w-4 h-4 text-amber-500 shrink-0" />;
     if (name.endsWith('.sql') || name.endsWith('.db')) return <Database className="w-4 h-4 text-cyan-600 shrink-0" />;
-    if (name.endsWith('.fig')) return <Layers className="w-4 h-4 text-purple-600 shrink-0" />;
-    if (name.endsWith('.zip') || name.endsWith('.rar')) return <FileArchive className="w-4 h-4 text-amber-600 shrink-0" />;
+    if (name.endsWith('.fig')) return <Layers className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />;
+    if (name.endsWith('.zip') || name.endsWith('.rar')) return <FileArchive className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />;
     if (name.endsWith('.exe')) return <FileCode className="w-4 h-4 text-rose-600 shrink-0" />;
-    return <File className="w-4 h-4 text-gray-500 shrink-0" />;
+    return <File className="w-4 h-4 text-gray-500 dark:text-gray-400 shrink-0" />;
 };
 
 const FolderTableRow = memo(function FolderTableRow({
@@ -90,7 +90,7 @@ const FolderTableRow = memo(function FolderTableRow({
             onDoubleClick={() => onDoubleClick(folder)}
             onContextMenu={(e) => onContextMenu(e, folder)}
             className={`transition-colors group cursor-pointer ${isCut ? 'opacity-50 border-dashed' : ''} ${
-                isSelected ? 'bg-blue-50 ring-1 ring-inset ring-blue-200' : 'hover:bg-gray-50'
+                isSelected ? 'bg-blue-50 dark:bg-blue-500/15 ring-1 ring-inset ring-blue-200' : 'hover:bg-gray-50 dark:hover:bg-white/5'
             }`}
         >
             {/* Checkbox Column – only this triggers selection */}
@@ -106,8 +106,8 @@ const FolderTableRow = memo(function FolderTableRow({
                     }
                 }}
             >
-                <button className="flex items-center justify-center text-gray-300 hover:text-blue-600 transition-colors">
-                    {isSelected ? <CheckSquare className="w-4 h-4 text-blue-600" /> : <Square className="w-4 h-4" />}
+                <button className="flex items-center justify-center text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                    {isSelected ? <CheckSquare className="w-4 h-4 text-blue-600 dark:text-blue-400" /> : <Square className="w-4 h-4" />}
                 </button>
             </td>
 
@@ -135,27 +135,27 @@ const FolderTableRow = memo(function FolderTableRow({
             {/* Name Column */}
             <td className="py-2.5 px-3">
                 <div className="flex items-center gap-2.5">
-                    <div className="p-1.5 rounded-lg bg-amber-50 text-amber-600 shrink-0">
+                    <div className="p-1.5 rounded-lg bg-amber-50 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400 shrink-0">
                         <Folder className="w-4 h-4 fill-amber-400" />
                     </div>
-                    <span className="font-semibold text-gray-900 group-hover:text-blue-600 truncate max-w-[200px]" title={folder.name}>
+                    <span className="font-semibold text-gray-900 dark:text-gray-100 group-hover:text-blue-600 truncate max-w-[200px]" title={folder.name}>
                         {folder.name}
                     </span>
                 </div>
             </td>
 
             {/* Size Column */}
-            <td className="py-2.5 px-3 text-gray-500 font-mono text-[11px]">--</td>
+            <td className="py-2.5 px-3 text-gray-500 dark:text-gray-400 font-mono text-[11px]">--</td>
 
             {/* Type Column */}
             <td className="py-2.5 px-3 hidden lg:table-cell">
-                <span className="px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 font-medium text-[11px] border border-amber-200/60">
+                <span className="px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-500/15 text-amber-700 font-medium text-[11px] border border-amber-200/60">
                     Thư mục
                 </span>
             </td>
 
             {/* Owner Column */}
-            <td className="py-2.5 px-3 text-gray-700 font-medium truncate max-w-[140px] hidden lg:table-cell">
+            <td className="py-2.5 px-3 text-gray-700 dark:text-gray-300 font-medium truncate max-w-[140px] hidden lg:table-cell">
                 {activeTab === 'shared-with-me' && folder.sharedOwner ? (
                     <div className="flex items-center gap-2">
                         {folder.sharedOwner.avatarUrl ? (
@@ -180,7 +180,7 @@ const FolderTableRow = memo(function FolderTableRow({
             </td>
 
             {/* Modified Column */}
-            <td className="py-2.5 px-3 text-gray-500 font-mono text-[11px] whitespace-nowrap hidden sm:table-cell">
+            <td className="py-2.5 px-3 text-gray-500 dark:text-gray-400 font-mono text-[11px] whitespace-nowrap hidden sm:table-cell">
                 {activeTab === 'shared-with-me' && folder.sharedAt 
                     ? folder.sharedAt 
                     : folder.updatedAt}
@@ -190,7 +190,7 @@ const FolderTableRow = memo(function FolderTableRow({
             <td className="py-2.5 px-3 text-center">
                 <button
                     onClick={(e) => onContextMenu(e, folder)}
-                    className="p-1 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                    className="p-1 rounded-full text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
                 >
                     <MoreVertical className="w-4 h-4" />
                 </button>
@@ -218,7 +218,7 @@ const FileTableRow = memo(function FileTableRow({
             onDoubleClick={() => onDoubleClick(file)}
             onContextMenu={(e) => onContextMenu(e, file)}
             className={`transition-colors group cursor-pointer ${isCut ? 'opacity-50 border-dashed' : ''} ${
-                isSelected ? 'bg-blue-50 ring-1 ring-inset ring-blue-200' : 'hover:bg-gray-50'
+                isSelected ? 'bg-blue-50 dark:bg-blue-500/15 ring-1 ring-inset ring-blue-200' : 'hover:bg-gray-50 dark:hover:bg-white/5'
             }`}
         >
             {/* Checkbox Column – only this triggers selection */}
@@ -234,8 +234,8 @@ const FileTableRow = memo(function FileTableRow({
                     }
                 }}
             >
-                <button className="flex items-center justify-center text-gray-300 hover:text-blue-600 transition-colors">
-                    {isSelected ? <CheckSquare className="w-4 h-4 text-blue-600" /> : <Square className="w-4 h-4" />}
+                <button className="flex items-center justify-center text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                    {isSelected ? <CheckSquare className="w-4 h-4 text-blue-600 dark:text-blue-400" /> : <Square className="w-4 h-4" />}
                 </button>
             </td>
 
@@ -262,13 +262,13 @@ const FileTableRow = memo(function FileTableRow({
             <td className="py-2.5 px-3">
                 <div className="flex items-center gap-2">
                     {getFileIcon(file)}
-                    <span className="font-semibold text-gray-900 group-hover:text-blue-600 truncate max-w-[180px]" title={file.name}>
+                    <span className="font-semibold text-gray-900 dark:text-gray-100 group-hover:text-blue-600 truncate max-w-[180px]" title={file.name}>
                         {file.name}
                     </span>
                     {/* Lý do bị gắn cờ do Spam Guard — chỉ tệp trong mục Nội dung rác mới có */}
                     {file.isSpam && (
                         <span
-                            className="shrink-0 text-amber-600"
+                            className="shrink-0 text-amber-600 dark:text-amber-400"
                             title={file.suspiciousReason || 'Tệp bị gắn cờ đáng ngờ'}
                         >
                             <ShieldAlert className="w-4 h-4" />
@@ -278,19 +278,19 @@ const FileTableRow = memo(function FileTableRow({
             </td>
 
             {/* Size Column */}
-            <td className="py-2.5 px-3 text-gray-700 font-mono font-medium text-[11px]">
+            <td className="py-2.5 px-3 text-gray-700 dark:text-gray-300 font-mono font-medium text-[11px]">
                 {formatBytes(file.size)}
             </td>
 
             {/* Type Column */}
             <td className="py-2.5 px-3 hidden lg:table-cell">
-                <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 font-medium text-[11px] border border-blue-200/60 whitespace-nowrap">
+                <span className="px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-500/15 text-blue-700 dark:text-blue-300 font-medium text-[11px] border border-blue-200/60 whitespace-nowrap">
                     {getFileTypeLabel(file)}
                 </span>
             </td>
 
             {/* Owner Column */}
-            <td className="py-2.5 px-3 text-gray-700 font-medium truncate max-w-[140px] hidden lg:table-cell">
+            <td className="py-2.5 px-3 text-gray-700 dark:text-gray-300 font-medium truncate max-w-[140px] hidden lg:table-cell">
                 {activeTab === 'shared-with-me' && file.sharedOwner ? (
                     <div className="flex items-center gap-2">
                         {file.sharedOwner.avatarUrl ? (
@@ -315,7 +315,7 @@ const FileTableRow = memo(function FileTableRow({
             </td>
 
             {/* Modified Column */}
-            <td className="py-2.5 px-3 text-gray-500 font-mono text-[11px] whitespace-nowrap hidden sm:table-cell">
+            <td className="py-2.5 px-3 text-gray-500 dark:text-gray-400 font-mono text-[11px] whitespace-nowrap hidden sm:table-cell">
                 {activeTab === 'shared-with-me' && file.sharedAt 
                     ? file.sharedAt 
                     : file.updatedAt}
@@ -325,7 +325,7 @@ const FileTableRow = memo(function FileTableRow({
             <td className="py-2.5 px-3 text-center">
                 <button
                     onClick={(e) => onContextMenu(e, file)}
-                    className="p-1 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                    className="p-1 rounded-full text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
                 >
                     <MoreVertical className="w-4 h-4" />
                 </button>
@@ -571,10 +571,10 @@ export default function FileListView() {
         return (
             <div
                 onContextMenu={openBlankContextMenu}
-                className="flex flex-col items-center justify-center h-full py-20 text-gray-400 select-none"
+                className="flex flex-col items-center justify-center h-full py-20 text-gray-400 dark:text-gray-500 select-none"
             >
                 <FolderOpen className="w-16 h-16 stroke-1 text-gray-300 mb-3" />
-                <p className="text-sm font-medium text-gray-500">Chưa có tệp hoặc thư mục nào ở đây</p>
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Chưa có tệp hoặc thư mục nào ở đây</p>
 
                 <input type="file" ref={fileInputRef} onChange={handleFileInputChange} multiple className="hidden" aria-label="Chọn nhiều tệp để tải lên" />
                 <input type="file" ref={setFolderInputRef} onChange={handleFolderInputChange} multiple className="hidden" aria-label="Chọn thư mục để tải lên" />
@@ -605,19 +605,19 @@ export default function FileListView() {
             <input type="file" ref={setFolderInputRef} onChange={handleFolderInputChange} multiple className="hidden" aria-label="Chọn thư mục để tải lên" />
 
             {/* Extended Metadata Table View */}
-            <div className="w-full overflow-x-auto rounded-xl border border-gray-100 shadow-2xs bg-white">
+            <div className="w-full overflow-x-auto rounded-xl border border-gray-100 dark:border-gray-700 shadow-2xs bg-white dark:bg-[#282a2c]">
                 <table className="w-full text-left border-collapse min-w-[560px] lg:min-w-[850px]">
                     <thead>
-                        <tr className="border-b border-gray-200 text-[11px] font-bold text-gray-500 uppercase tracking-wider bg-gray-50/80 select-none">
+                        <tr className="border-b border-gray-200 dark:border-gray-700 text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider bg-gray-50/80 dark:bg-white/5 select-none">
                             {/* Checkbox Header */}
                             <th className="py-3 px-3 w-8 text-center">
                                 <button
                                     onClick={() => allSelected ? deselectAll() : selectAll(folders, files)}
-                                    className="flex items-center justify-center text-gray-400 hover:text-blue-600 transition-colors"
+                                    className="flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                                     title={allSelected ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
                                 >
                                     {allSelected ? (
-                                        <CheckSquare className="w-4 h-4 text-blue-600" />
+                                        <CheckSquare className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                                     ) : someSelected ? (
                                         <Minus className="w-4 h-4 text-blue-500" />
                                     ) : (
@@ -632,12 +632,12 @@ export default function FileListView() {
                             {/* Name Header */}
                             <th
                                 onClick={() => handleSort('name')}
-                                className="py-3 px-3 font-semibold hover:text-gray-900 cursor-pointer transition-colors"
+                                className="py-3 px-3 font-semibold hover:text-gray-900 dark:hover:text-gray-100 cursor-pointer transition-colors"
                             >
                                 <div className="flex items-center gap-1">
                                     <span>Name</span>
                                     {sortField === 'name' && (
-                                        sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 text-blue-600" /> : <ArrowDown className="w-3 h-3 text-blue-600" />
+                                        sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 text-blue-600 dark:text-blue-400" /> : <ArrowDown className="w-3 h-3 text-blue-600 dark:text-blue-400" />
                                     )}
                                 </div>
                             </th>
@@ -645,12 +645,12 @@ export default function FileListView() {
                             {/* Size Header */}
                             <th
                                 onClick={() => handleSort('size')}
-                                className="py-3 px-3 font-semibold hover:text-gray-900 cursor-pointer transition-colors"
+                                className="py-3 px-3 font-semibold hover:text-gray-900 dark:hover:text-gray-100 cursor-pointer transition-colors"
                             >
                                 <div className="flex items-center gap-1">
                                     <span>Size</span>
                                     {sortField === 'size' && (
-                                        sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 text-blue-600" /> : <ArrowDown className="w-3 h-3 text-blue-600" />
+                                        sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 text-blue-600 dark:text-blue-400" /> : <ArrowDown className="w-3 h-3 text-blue-600 dark:text-blue-400" />
                                     )}
                                 </div>
                             </th>
@@ -658,12 +658,12 @@ export default function FileListView() {
                             {/* Type Header (Hidden on Mobile & Tablet) */}
                             <th
                                 onClick={() => handleSort('type')}
-                                className="py-3 px-3 font-semibold hover:text-gray-900 cursor-pointer transition-colors hidden lg:table-cell"
+                                className="py-3 px-3 font-semibold hover:text-gray-900 dark:hover:text-gray-100 cursor-pointer transition-colors hidden lg:table-cell"
                             >
                                 <div className="flex items-center gap-1">
                                     <span>Type</span>
                                     {sortField === 'type' && (
-                                        sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 text-blue-600" /> : <ArrowDown className="w-3 h-3 text-blue-600" />
+                                        sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 text-blue-600 dark:text-blue-400" /> : <ArrowDown className="w-3 h-3 text-blue-600 dark:text-blue-400" />
                                     )}
                                 </div>
                             </th>
@@ -671,12 +671,12 @@ export default function FileListView() {
                             {/* Owner Header (Hidden on Mobile & Tablet) */}
                             <th
                                 onClick={() => handleSort('owner')}
-                                className="py-3 px-3 font-semibold hover:text-gray-900 cursor-pointer transition-colors hidden lg:table-cell"
+                                className="py-3 px-3 font-semibold hover:text-gray-900 dark:hover:text-gray-100 cursor-pointer transition-colors hidden lg:table-cell"
                             >
                                 <div className="flex items-center gap-1">
                                     <span>Owner</span>
                                     {sortField === 'owner' && (
-                                        sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 text-blue-600" /> : <ArrowDown className="w-3 h-3 text-blue-600" />
+                                        sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 text-blue-600 dark:text-blue-400" /> : <ArrowDown className="w-3 h-3 text-blue-600 dark:text-blue-400" />
                                     )}
                                 </div>
                             </th>
@@ -684,12 +684,12 @@ export default function FileListView() {
                             {/* Modified Header (Hidden on Mobile) */}
                             <th
                                 onClick={() => handleSort('updatedAt')}
-                                className="py-3 px-3 font-semibold hover:text-gray-900 cursor-pointer transition-colors hidden sm:table-cell"
+                                className="py-3 px-3 font-semibold hover:text-gray-900 dark:hover:text-gray-100 cursor-pointer transition-colors hidden sm:table-cell"
                             >
                                 <div className="flex items-center gap-1">
                                     <span>Modified</span>
                                     {sortField === 'updatedAt' && (
-                                        sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 text-blue-600" /> : <ArrowDown className="w-3 h-3 text-blue-600" />
+                                        sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 text-blue-600 dark:text-blue-400" /> : <ArrowDown className="w-3 h-3 text-blue-600 dark:text-blue-400" />
                                     )}
                                 </div>
                             </th>
@@ -699,7 +699,7 @@ export default function FileListView() {
                         </tr>
                     </thead>
 
-                    <tbody className="divide-y divide-gray-200 text-xs">
+                    <tbody className="divide-y divide-gray-200 dark:divide-gray-700 text-xs">
                         {/* Render Folders */}
                         {sortedFolders.map((folder) => (
                             <FolderTableRow
@@ -746,15 +746,15 @@ export default function FileListView() {
 
             {/* Pagination Controls */}
             {totalPages > 1 && (
-                <div className="flex items-center justify-between pt-4 text-xs text-gray-500">
+                <div className="flex items-center justify-between pt-4 text-xs text-gray-500 dark:text-gray-400">
                     <div>
-                        Hiển thị <span className="font-semibold text-gray-700">{((currentPage - 1) * pageSize) + 1}</span> - <span className="font-semibold text-gray-700">{Math.min(currentPage * pageSize, totalItems)}</span> trong <span className="font-semibold text-gray-700">{totalItems}</span> mục
+                        Hiển thị <span className="font-semibold text-gray-700 dark:text-gray-300">{((currentPage - 1) * pageSize) + 1}</span> - <span className="font-semibold text-gray-700 dark:text-gray-300">{Math.min(currentPage * pageSize, totalItems)}</span> trong <span className="font-semibold text-gray-700 dark:text-gray-300">{totalItems}</span> mục
                     </div>
                     <div className="flex items-center gap-1">
                         <button
                             disabled={currentPage === 1}
                             onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                            className="p-1.5 rounded-lg border border-gray-200 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-transparent transition-colors"
+                            className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-white/5 disabled:opacity-40 disabled:hover:bg-transparent transition-colors"
                         >
                             <ChevronLeft className="w-4 h-4" />
                         </button>
@@ -764,7 +764,7 @@ export default function FileListView() {
                         <button
                             disabled={currentPage === totalPages}
                             onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                            className="p-1.5 rounded-lg border border-gray-200 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-transparent transition-colors"
+                            className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-white/5 disabled:opacity-40 disabled:hover:bg-transparent transition-colors"
                         >
                             <ChevronRight className="w-4 h-4" />
                         </button>

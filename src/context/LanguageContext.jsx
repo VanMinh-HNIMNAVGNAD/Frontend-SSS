@@ -26,6 +26,7 @@ const translations = {
     'settings.title': 'Cài đặt',
     'settings.tab.general': 'Cài đặt chung',
     'settings.tab.shortcuts': 'Phím tắt',
+    'settings.tab.privacy': 'Quyền riêng tư & Bảo mật',
     'settings.saveAndClose': 'Lưu & Đóng',
 
     // 1. Chủ đề giao diện
@@ -53,6 +54,103 @@ const translations = {
     'settings.privacy.shareRole.label': 'Quyền chia sẻ mặc định khi tạo Link',
     'settings.privacy.shareRole.viewer': 'Chỉ xem (Viewer)',
     'settings.privacy.shareRole.editor': 'Được chỉnh sửa (Editor)',
+    'settings.privacy.shareRole.hint':
+      'Áp dụng cho lần chia sẻ tiếp theo; các link đã tạo trước đó giữ nguyên quyền cũ.',
+    'settings.privacy.localOnly':
+      'Hai cài đặt này hiện chỉ lưu trên trình duyệt của bạn, chưa đồng bộ giữa các thiết bị.',
+
+    // Cảnh báo CHƯA CÓ TÁC DỤNG cho công tắc "Hiển thị thông tin cá nhân".
+    // Khác với 'settings.privacy.localOnly' (nói về việc chưa đồng bộ thiết bị),
+    // dòng này nói thẳng rằng tắt công tắc KHÔNG ngăn được gì: bảng `users` chưa
+    // có cột lưu lựa chọn, và luồng tra email nằm ở backend
+    // (files.service.ts → addShareAccess) nên nó không thể biết ý muốn của người
+    // BỊ tìm. Gỡ dòng này đi khi backend đã thực thi thật.
+    'settings.privacy.discoverable.notEnforced':
+      'Chưa có tác dụng thực tế: máy chủ chưa lưu lựa chọn này, nên tắt đi vẫn KHÔNG ngăn được người khác tìm thấy bạn qua email. Đang chờ hoàn thiện phía máy chủ.',
+
+    // 5. Nhãn NGẮN trên 3 nút chọn theme — các khoá 'settings.theme.light|dark|
+    //    system' ở trên là câu dài, chỉ vừa cho tooltip
+    'settings.theme.lightShort': 'Sáng',
+    'settings.theme.darkShort': 'Tối',
+    'settings.theme.systemShort': 'Hệ thống',
+
+    // 6. Tab Phím tắt
+    'settings.shortcut.title': 'Danh sách phím tắt',
+    'settings.shortcuts.enable.title': 'Sử dụng phím tắt nhanh',
+    'settings.shortcuts.enable.desc': 'Cho phép dùng bàn phím để thao tác nhanh trên driveR',
+    'settings.shortcuts.platform.label': 'Phím tắt theo hệ điều hành:',
+    'settings.shortcuts.platform.hint': 'Khi nhiều tổ hợp cùng dòng, bạn dùng tổ hợp nào cũng được.',
+
+    // 7. Hộp phản hồi — CHƯA có giao diện nào dùng (khối JSX đã gỡ khỏi
+    //    SettingsModal.jsx). Giữ sẵn cho lúc làm thật tính năng này.
+    'settings.feedback.title': 'Gửi phản hồi',
+    'settings.feedback.desc': 'Chúng tôi luôn lắng nghe ý kiến của bạn.',
+
+    // ── 8. Menu điều hướng bên trái (SideBar.jsx) ───────────────────────────
+    // Cố ý KHÔNG dùng lại 'settings.startup.*': những khoá đó có phần chú thích
+    // trong ngoặc ("Driver riêng của tôi (My Drive)") cho ô chọn trong Cài đặt,
+    // dài quá cho một mục menu.
+    'nav.home': 'Trang chủ',
+    'nav.myDrive': 'Driver riêng của tôi',
+    'nav.sharedDrives': 'Bộ nhớ dùng chung',
+    'nav.sharedWithMe': 'Driver được chia sẻ với tôi',
+    'nav.recent': 'Đã mở gần đây',
+    'nav.starred': 'Mục được đánh dấu',
+    'nav.spam': 'Nội dung rác',
+    'nav.trash': 'Thùng rác',
+    'nav.billing': 'Billing & Mua bộ nhớ',
+
+    // ── 9. Khối bộ nhớ ở đáy SideBar ────────────────────────────────────────
+    'sidebar.storage.title': 'Bộ nhớ lưu trữ',
+    'sidebar.storage.tooltip': 'Bộ nhớ: {used} GB / {total} GB ({percent}%)',
+    'sidebar.storage.almostFull': 'Gần đầy!',
+    'sidebar.storage.warning': 'Cảnh báo',
+    // Tách 2 khoá vì con số ở giữa được in đậm bằng <span> riêng
+    'sidebar.storage.usedLabel': 'Đã dùng',
+    'sidebar.storage.ofTotal': '/ {total} GB',
+    'sidebar.storage.buy': 'Mua bộ nhớ',
+    'sidebar.storage.cleanup': 'Dọn dẹp',
+    'sidebar.storage.cleanupTitle': 'Dọn dẹp bộ nhớ ngay',
+
+    // ── 10. Động từ dùng chung — nhiều màn hình khác cũng sẽ dùng lại ───────
+    'common.close': 'Đóng',
+    'common.delete': 'Xóa',
+    'common.deleteForever': 'Xóa vĩnh viễn',
+    'common.restore': 'Khôi phục',
+    'common.cut': 'Cắt',
+    'common.copy': 'Sao chép',
+    'common.download': 'Tải xuống',
+    'common.selectAll': 'Chọn tất cả',
+    'common.deselectAll': 'Bỏ chọn tất cả',
+    'common.login': 'Đăng nhập',
+
+    // ── 11. Thanh Header ────────────────────────────────────────────────────
+    'header.selected': '{count} đã chọn',
+    'header.sidebar.expand': 'Mở rộng sidebar',
+    'header.sidebar.collapse': 'Thu gọn sidebar',
+    'header.logo.title': 'Về trang Driver riêng của tôi',
+    'header.search.placeholder': 'Tìm kiếm tệp, thư mục, driver trong driveR...',
+    'header.search.filter': 'Bộ lọc tìm kiếm nâng cao',
+    'header.activityLog': 'Lịch sử hoạt động',
+    'header.settings': 'Cài đặt driveR',
+    'header.account': 'Thông tin tài khoản',
+    // Nhãn nút có kèm phím tắt — để nguyên trong bản dịch, không ghép ngoài JSX
+    'header.action.cut': 'Cắt (Ctrl+X)',
+    'header.action.copy': 'Sao chép (Ctrl+C)',
+    // Hộp thoại xác nhận / nhập liệu
+    'header.confirm.trash': 'Chuyển {count} mục vào thùng rác?',
+    'header.confirm.restore': 'Khôi phục {count} mục?',
+    'header.confirm.deleteForever':
+      'Xóa vĩnh viễn {count} mục? Hành động này không thể hoàn tác!',
+    'header.prompt.moveTarget': 'Nhập ID thư mục đích (để trống = gốc):',
+    'header.prompt.copyTarget': 'Nhập ID thư mục đích cho sao chép (để trống = gốc):',
+    // Thông báo lỗi
+    'header.error.delete': 'Lỗi khi xóa: {names}',
+    'header.error.restore': 'Lỗi khi khôi phục: {names}',
+    'header.error.deleteForever': 'Lỗi khi xóa vĩnh viễn: {names}',
+    'header.error.move': 'Lỗi khi di chuyển: {names}',
+    'header.error.copy': 'Lỗi khi sao chép: {names}',
+    'header.error.zip': 'Tải xuống ZIP thất bại, vui lòng thử lại.',
   },
 
   en: {
@@ -60,6 +158,7 @@ const translations = {
     'settings.title': 'Settings',
     'settings.tab.general': 'General',
     'settings.tab.shortcuts': 'Keyboard shortcuts',
+    'settings.tab.privacy': 'Privacy & Security',
     'settings.saveAndClose': 'Save & Close',
 
     // 1. Theme
@@ -87,6 +186,104 @@ const translations = {
     'settings.privacy.shareRole.label': 'Default link sharing permission',
     'settings.privacy.shareRole.viewer': 'Viewer only',
     'settings.privacy.shareRole.editor': 'Editor',
+    'settings.privacy.shareRole.hint':
+      'Applies to your next share; links you already created keep their current permission.',
+    'settings.privacy.localOnly':
+      'These two settings are stored in this browser only — they do not sync across devices yet.',
+
+    // "Not enforced" warning for the "Show my personal information" switch.
+    // Unlike 'settings.privacy.localOnly' (which is about cross-device sync),
+    // this line says plainly that turning the switch off blocks nothing: the
+    // `users` table has no column for it, and the email lookup lives in the
+    // backend (files.service.ts → addShareAccess), which therefore cannot know
+    // what the person BEING looked up wants. Remove this once the server enforces it.
+    'settings.privacy.discoverable.notEnforced':
+      'Not enforced yet: the server does not store this choice, so turning it off does NOT stop other people from finding you by email. Pending server-side support.',
+
+    // 5. Short labels for the 3 theme buttons — the 'settings.theme.light|dark|
+    //    system' keys above are full sentences, tooltip-sized only
+    'settings.theme.lightShort': 'Light',
+    'settings.theme.darkShort': 'Dark',
+    'settings.theme.systemShort': 'System',
+
+    // 6. Shortcuts tab
+    'settings.shortcut.title': 'Keyboard Shortcuts',
+    'settings.shortcuts.enable.title': 'Enable keyboard shortcuts',
+    'settings.shortcuts.enable.desc': 'Let you drive driveR from the keyboard instead of the mouse',
+    'settings.shortcuts.platform.label': 'Shortcuts shown for your OS:',
+    'settings.shortcuts.platform.hint': 'When a row lists several combos, any one of them works.',
+
+    // 7. Feedback box — no UI uses these yet (the JSX block was removed from
+    //    SettingsModal.jsx). Kept ready for when the feature is built.
+    'settings.feedback.title': 'Send Feedback',
+    'settings.feedback.desc': 'We always listen to your feedback.',
+
+    // ── 8. Left navigation menu (SideBar.jsx) ───────────────────────────────
+    // Deliberately NOT reusing 'settings.startup.*': those carry a parenthetical
+    // gloss for the Settings dropdown and are too long for a menu row.
+    'nav.home': 'Home',
+    'nav.myDrive': 'My Drive',
+    'nav.sharedDrives': 'Shared drives',
+    'nav.sharedWithMe': 'Shared with me',
+    'nav.recent': 'Recent',
+    'nav.starred': 'Starred',
+    'nav.spam': 'Spam',
+    'nav.trash': 'Trash',
+    'nav.billing': 'Billing & storage',
+
+    // ── 9. Storage block at the bottom of the SideBar ───────────────────────
+    'sidebar.storage.title': 'Storage',
+    'sidebar.storage.tooltip': 'Storage: {used} GB / {total} GB ({percent}%)',
+    'sidebar.storage.almostFull': 'Almost full!',
+    'sidebar.storage.warning': 'Warning',
+    // Two keys because the number in between is bolded by its own <span>
+    'sidebar.storage.usedLabel': 'Used',
+    'sidebar.storage.ofTotal': 'of {total} GB',
+    'sidebar.storage.buy': 'Get storage',
+    'sidebar.storage.cleanup': 'Clean up',
+    'sidebar.storage.cleanupTitle': 'Free up space now',
+
+    // ── 10. Shared verbs — other screens will reuse these ───────────────────
+    'common.close': 'Close',
+    'common.delete': 'Delete',
+    'common.deleteForever': 'Delete permanently',
+    'common.restore': 'Restore',
+    'common.cut': 'Cut',
+    'common.copy': 'Copy',
+    'common.download': 'Download',
+    'common.selectAll': 'Select all',
+    'common.deselectAll': 'Deselect all',
+    'common.login': 'Sign in',
+
+    // ── 11. Header bar ──────────────────────────────────────────────────────
+    'header.selected': '{count} selected',
+    'header.sidebar.expand': 'Expand sidebar',
+    'header.sidebar.collapse': 'Collapse sidebar',
+    'header.logo.title': 'Back to My Drive',
+    'header.search.placeholder': 'Search files, folders and drives in driveR...',
+    'header.search.filter': 'Advanced search filters',
+    'header.activityLog': 'Activity history',
+    'header.settings': 'driveR settings',
+    'header.account': 'Account details',
+    // Button labels that carry a shortcut — kept inside the translation, not
+    // concatenated in JSX
+    'header.action.cut': 'Cut (Ctrl+X)',
+    'header.action.copy': 'Copy (Ctrl+C)',
+    // Confirm / prompt dialogs
+    'header.confirm.trash': 'Move {count} item(s) to trash?',
+    'header.confirm.restore': 'Restore {count} item(s)?',
+    'header.confirm.deleteForever':
+      'Permanently delete {count} item(s)? This cannot be undone!',
+    'header.prompt.moveTarget': 'Enter the destination folder ID (leave empty for root):',
+    'header.prompt.copyTarget':
+      'Enter the destination folder ID for the copy (leave empty for root):',
+    // Error messages
+    'header.error.delete': 'Could not delete: {names}',
+    'header.error.restore': 'Could not restore: {names}',
+    'header.error.deleteForever': 'Could not permanently delete: {names}',
+    'header.error.move': 'Could not move: {names}',
+    'header.error.copy': 'Could not copy: {names}',
+    'header.error.zip': 'ZIP download failed, please try again.',
   },
 };
 
@@ -116,9 +313,30 @@ export function LanguageProvider({ children }) {
    * Tra bản dịch theo khoá.
    * Thiếu khoá ở ngôn ngữ đang chọn → fallback sang tiếng Việt → cuối cùng trả
    * về chính khoá, để UI không bao giờ hiện ô trống và lỗi dễ nhìn thấy.
+   *
+   * Tham số thứ hai (tuỳ chọn) điền vào các chỗ trống dạng {tên} trong câu:
+   *
+   *   t('header.confirm.trash', { count: 3 })
+   *   vi → 'Chuyển 3 mục vào thùng rác?'
+   *   en → 'Move 3 item(s) to trash?'
+   *
+   * Phải chèn ở ĐÂY chứ không ghép chuỗi ngoài component: trật tự từ giữa hai
+   * ngôn ngữ khác nhau, ghép tay kiểu `t('a') + n + t('b')` là khoá cứng trật
+   * tự tiếng Việt vào mọi ngôn ngữ sau này.
+   *
+   * Gọi t(key) không kèm tham số vẫn chạy y như trước.
    */
   const t = useCallback(
-    (key) => translations[language]?.[key] ?? translations[DEFAULT_LANGUAGE]?.[key] ?? key,
+    (key, params) => {
+      const template =
+        translations[language]?.[key] ?? translations[DEFAULT_LANGUAGE]?.[key] ?? key;
+      if (!params) return template;
+      // Thiếu tham số thì GIỮ NGUYÊN {tên} để lỗi nhìn thấy được, thay vì in ra
+      // 'undefined' — cùng tinh thần với việc trả về chính khoá khi thiếu bản dịch
+      return template.replace(/\{(\w+)\}/g, (match, name) =>
+        Object.prototype.hasOwnProperty.call(params, name) ? String(params[name]) : match
+      );
+    },
     [language]
   );
 

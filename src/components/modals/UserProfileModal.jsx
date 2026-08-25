@@ -340,36 +340,36 @@ export default function UserProfileModal({ isOpen, onClose }) {
 
       {/* Main Modal */}
       <div
-        className="relative bg-white rounded-3xl shadow-2xl w-full max-w-xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200 border border-gray-100 text-left"
+        className="relative bg-white dark:bg-[#282a2c] rounded-3xl shadow-2xl w-full max-w-xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200 border border-gray-100 dark:border-gray-700 text-left"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/80">
+        <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-gray-50/80 dark:bg-white/5">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-blue-600/10 text-blue-600 flex items-center justify-center font-bold">
+            <div className="w-9 h-9 rounded-xl bg-blue-600/10 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold">
               <UserIcon className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-gray-900 text-base">Tài khoản cá nhân</h3>
-              <p className="text-xs text-gray-500">Quản lý thông tin, bảo mật và các phiên đăng nhập</p>
+              <h3 className="font-bold text-gray-900 dark:text-gray-100 text-base">Tài khoản cá nhân</h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Quản lý thông tin, bảo mật và các phiên đăng nhập</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-200/60 rounded-full text-gray-400 hover:text-gray-600 transition-colors"
+            className="p-2 hover:bg-gray-200/60 dark:hover:bg-white/10 rounded-full text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex border-b border-gray-100 bg-white px-6 gap-2">
+        <div className="flex border-b border-gray-100 dark:border-gray-700 bg-white dark:bg-[#282a2c] px-6 gap-2">
           <button
             onClick={() => setActiveTab('profile')}
             className={`py-3.5 px-3 text-xs font-bold transition-all border-b-2 flex items-center gap-2 ${
               activeTab === 'profile'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-800'
+                ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100'
             }`}
           >
             <UserIcon className="w-4 h-4" />
@@ -381,8 +381,8 @@ export default function UserProfileModal({ isOpen, onClose }) {
               onClick={() => setActiveTab('password')}
               className={`py-3.5 px-3 text-xs font-bold transition-all border-b-2 flex items-center gap-2 ${
                 activeTab === 'password'
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-800'
+                  ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100'
               }`}
             >
               <KeyRound className="w-4 h-4" />
@@ -394,8 +394,8 @@ export default function UserProfileModal({ isOpen, onClose }) {
             onClick={() => setActiveTab('sessions')}
             className={`py-3.5 px-3 text-xs font-bold transition-all border-b-2 flex items-center gap-2 ${
               activeTab === 'sessions'
-                ? 'border-blue-600 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-800'
+                ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100'
             }`}
           >
             <Laptop className="w-4 h-4" />
@@ -450,16 +450,16 @@ export default function UserProfileModal({ isOpen, onClose }) {
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <h4 className="text-base font-bold text-gray-900 truncate">
+                    <h4 className="text-base font-bold text-gray-900 dark:text-gray-100 truncate">
                       {user.fullName || 'Người dùng driveR'}
                     </h4>
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-[10px] font-bold">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 dark:text-blue-300 rounded-full text-[10px] font-bold">
                       <ShieldCheck className="w-3 h-3" />
                       {user.provider === 'local' ? 'driveR' : user.provider}
                     </span>
                   </div>
-                  <p className="text-xs text-gray-500 truncate mt-0.5">{user.email}</p>
-                  <p className="text-[11px] text-gray-400 mt-1">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">{user.email}</p>
+                  <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-1">
                     Nhấp vào biểu tượng máy ảnh để thay đổi hình đại diện của bạn.
                   </p>
                 </div>
@@ -468,33 +468,33 @@ export default function UserProfileModal({ isOpen, onClose }) {
               {/* Form Sửa Tên & Email */}
               <form onSubmit={handleUpdateProfile} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
                     Tên hiển thị
                   </label>
                   <div className="relative">
-                    <UserIcon className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <UserIcon className="w-4 h-4 text-gray-400 dark:text-gray-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input
                       type="text"
                       required
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-gray-800"
+                      className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-[#282a2c] border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-gray-800 dark:text-gray-200"
                       placeholder="Nhập tên hiển thị của bạn"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
                     Địa chỉ Email (Không thể thay đổi)
                   </label>
                   <div className="relative">
-                    <Mail className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <Mail className="w-4 h-4 text-gray-400 dark:text-gray-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input
                       type="email"
                       disabled
                       value={user.email}
-                      className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-500 cursor-not-allowed font-medium"
+                      className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-500 dark:text-gray-400 cursor-not-allowed font-medium"
                     />
                   </div>
                 </div>
@@ -516,17 +516,17 @@ export default function UserProfileModal({ isOpen, onClose }) {
               </form>
 
               {/* Thanh Dung lượng Lưu trữ */}
-              <div className="p-4 rounded-2xl bg-gray-50/80 border border-gray-200 space-y-2.5">
+              <div className="p-4 rounded-2xl bg-gray-50/80 dark:bg-white/5 border border-gray-200 dark:border-gray-700 space-y-2.5">
                 <div className="flex items-center justify-between text-xs font-bold">
-                  <span className="flex items-center gap-1.5 text-gray-800">
-                    <HardDrive className="w-4 h-4 text-blue-600" />
+                  <span className="flex items-center gap-1.5 text-gray-800 dark:text-gray-200">
+                    <HardDrive className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                     Dung lượng lưu trữ Cloud
                   </span>
-                  <span className="text-gray-600">
+                  <span className="text-gray-600 dark:text-gray-300">
                     {storageUsedGB} GB / {storageLimitGB} GB ({storagePercentage}%)
                   </span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 overflow-hidden">
                   <div
                     className={`h-full rounded-full transition-all duration-500 ${
                       storagePercentage > 90
@@ -538,7 +538,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                     style={{ width: `${Math.min(100, Math.max(2, storagePercentage))}%` }}
                   />
                 </div>
-                <div className="flex justify-between items-center text-[11px] text-gray-500">
+                <div className="flex justify-between items-center text-[11px] text-gray-500 dark:text-gray-400">
                   <span>Gói cước: Miễn phí (Mặc định)</span>
                   <span>{100 - storagePercentage}% còn trống</span>
                 </div>
@@ -549,61 +549,61 @@ export default function UserProfileModal({ isOpen, onClose }) {
           {/* TAB 2: ĐỔI MẬT KHẨU (Chỉ hiển thị cho local user) */}
           {activeTab === 'password' && user.provider === 'local' && (
             <form onSubmit={handleUpdatePassword} className="space-y-4">
-              <div className="p-3 bg-amber-50 rounded-xl border border-amber-200/80 text-amber-800 text-xs flex items-start gap-2">
-                <ShieldCheck className="w-4 h-4 shrink-0 text-amber-600 mt-0.5" />
+              <div className="p-3 bg-amber-50 dark:bg-amber-500/15 rounded-xl border border-amber-200/80 text-amber-800 text-xs flex items-start gap-2">
+                <ShieldCheck className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
                 <span>
                   Để bảo vệ tài khoản, hãy sử dụng mật khẩu mạnh có tối thiểu 6 ký tự và tránh sử dụng lại mật khẩu ở nơi khác.
                 </span>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
                   Mật khẩu hiện tại
                 </label>
                 <div className="relative">
-                  <Lock className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <Lock className="w-4 h-4 text-gray-400 dark:text-gray-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="password"
                     required
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-gray-800"
+                    className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-[#282a2c] border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-gray-800 dark:text-gray-200"
                     placeholder="••••••••"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
                   Mật khẩu mới
                 </label>
                 <div className="relative">
-                  <Lock className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <Lock className="w-4 h-4 text-gray-400 dark:text-gray-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="password"
                     required
                     minLength={6}
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-gray-800"
+                    className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-[#282a2c] border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-gray-800 dark:text-gray-200"
                     placeholder="Tối thiểu 6 ký tự"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
                   Xác nhận mật khẩu mới
                 </label>
                 <div className="relative">
-                  <Lock className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <Lock className="w-4 h-4 text-gray-400 dark:text-gray-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="password"
                     required
                     minLength={6}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-gray-800"
+                    className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-[#282a2c] border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-gray-800 dark:text-gray-200"
                     placeholder="Nhập lại mật khẩu mới"
                   />
                 </div>
@@ -631,10 +631,10 @@ export default function UserProfileModal({ isOpen, onClose }) {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wider">
+                  <h4 className="text-xs font-bold text-gray-900 dark:text-gray-100 uppercase tracking-wider">
                     Thiết bị đang đăng nhập ({sessions.length})
                   </h4>
-                  <p className="text-[11px] text-gray-500">
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400">
                     Danh sách các trình duyệt và thiết bị có quyền truy cập vào tài khoản của bạn.
                   </p>
                 </div>
@@ -642,7 +642,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                   <button
                     onClick={fetchSessions}
                     disabled={isLoadingSessions}
-                    className="p-2 hover:bg-gray-100 rounded-xl text-gray-600 transition-colors"
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl text-gray-600 dark:text-gray-300 transition-colors"
                     title="Làm mới danh sách"
                   >
                     <RefreshCw className={`w-4 h-4 ${isLoadingSessions ? 'animate-spin' : ''}`} />
@@ -652,7 +652,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                     <button
                       onClick={handleRevokeAllOtherSessions}
                       disabled={isRevokingAll}
-                      className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 disabled:opacity-50"
+                      className="px-3 py-1.5 bg-rose-50 dark:bg-rose-500/15 hover:bg-rose-100 text-rose-600 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 disabled:opacity-50"
                     >
                       {isRevokingAll ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -666,12 +666,12 @@ export default function UserProfileModal({ isOpen, onClose }) {
               </div>
 
               {isLoadingSessions ? (
-                <div className="py-12 flex flex-col items-center justify-center text-gray-400 space-y-2">
-                  <Loader2 className="w-7 h-7 animate-spin text-blue-600" />
+                <div className="py-12 flex flex-col items-center justify-center text-gray-400 dark:text-gray-500 space-y-2">
+                  <Loader2 className="w-7 h-7 animate-spin text-blue-600 dark:text-blue-400" />
                   <p className="text-xs">Đang tải danh sách phiên đăng nhập...</p>
                 </div>
               ) : sessions.length === 0 ? (
-                <div className="py-10 text-center text-gray-500 text-xs border border-dashed border-gray-200 rounded-2xl">
+                <div className="py-10 text-center text-gray-500 dark:text-gray-400 text-xs border border-dashed border-gray-200 dark:border-gray-700 rounded-2xl">
                   Chưa có thông tin phiên đăng nhập.
                 </div>
               ) : (
@@ -683,10 +683,10 @@ export default function UserProfileModal({ isOpen, onClose }) {
                         key={sess.id}
                         className={`p-3.5 rounded-2xl border transition-all flex items-center justify-between gap-3 ${
                           sess.isCurrent
-                            ? 'bg-blue-50/40 border-blue-200 shadow-xs'
+                            ? 'bg-blue-50/40 dark:bg-blue-500/15 border-blue-200 shadow-xs'
                             : sess.isRevoked
-                            ? 'bg-gray-50/50 border-gray-200 opacity-60'
-                            : 'bg-white border-gray-200 hover:border-gray-300'
+                            ? 'bg-gray-50/50 dark:bg-white/5 border-gray-200 dark:border-gray-700 opacity-60'
+                            : 'bg-white dark:bg-[#282a2c] border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                         }`}
                       >
                         <div className="flex items-center gap-3 min-w-0">
@@ -694,32 +694,32 @@ export default function UserProfileModal({ isOpen, onClose }) {
                             className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
                               sess.isCurrent
                                 ? 'bg-blue-600 text-white'
-                                : 'bg-gray-100 text-gray-600'
+                                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
                             }`}
                           >
                             <Icon className="w-5 h-5" />
                           </div>
                           <div className="min-w-0">
                             <div className="flex items-center gap-2">
-                              <span className="text-xs font-bold text-gray-900 truncate">
+                              <span className="text-xs font-bold text-gray-900 dark:text-gray-100 truncate">
                                 {deviceString}
                               </span>
                               {sess.isCurrent && (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-bold">
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-100 text-emerald-700 dark:text-emerald-300 rounded-full text-[10px] font-bold">
                                   <CheckCircle2 className="w-3 h-3" /> Thiết bị này
                                 </span>
                               )}
                               {sess.isRevoked && (
-                                <span className="inline-flex items-center px-2 py-0.5 bg-gray-200 text-gray-600 rounded-full text-[10px] font-medium">
+                                <span className="inline-flex items-center px-2 py-0.5 bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full text-[10px] font-medium">
                                   Đã thu hồi
                                 </span>
                               )}
                             </div>
-                            <div className="flex items-center gap-2 text-[11px] text-gray-500 mt-0.5">
+                            <div className="flex items-center gap-2 text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
                               <span>IP: {sess.ipAddress}</span>
                               <span>•</span>
                               <span className="flex items-center gap-1">
-                                <Clock className="w-3 h-3 text-gray-400" />
+                                <Clock className="w-3 h-3 text-gray-400 dark:text-gray-500" />
                                 {formatSessionDate(sess.createdAt)}
                               </span>
                             </div>
@@ -749,7 +749,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
           )}
 
           {/* DANGER ZONE (VÙNG NGUY HIỂM) */}
-          <div className="pt-4 border-t border-gray-100">
+          <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
             <div className="p-4 rounded-2xl border border-rose-200 bg-rose-50/50 space-y-3">
               <div className="flex items-start gap-3">
                 <div className="w-8 h-8 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0 mt-0.5">
@@ -784,7 +784,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
             onClick={() => !isDeletingAccount && setShowDeleteModal(false)}
           />
           <div
-            className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden p-6 space-y-5 animate-in zoom-in-95 duration-150 border border-rose-100"
+            className="relative bg-white dark:bg-[#282a2c] rounded-3xl shadow-2xl w-full max-w-md overflow-hidden p-6 space-y-5 animate-in zoom-in-95 duration-150 border border-rose-100"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header Warning */}
@@ -793,13 +793,13 @@ export default function UserProfileModal({ isOpen, onClose }) {
                 <AlertTriangle className="w-6 h-6 text-rose-600" />
               </div>
               <div>
-                <h4 className="text-base font-bold text-gray-900">Xác nhận xoá tài khoản</h4>
+                <h4 className="text-base font-bold text-gray-900 dark:text-gray-100">Xác nhận xoá tài khoản</h4>
                 <p className="text-xs text-rose-600 font-medium">Hành động này mang tính vĩnh viễn</p>
               </div>
             </div>
 
             {/* Warning Description */}
-            <div className="p-3.5 bg-rose-50 rounded-2xl border border-rose-200/80 text-rose-900 text-xs space-y-1.5 leading-relaxed">
+            <div className="p-3.5 bg-rose-50 dark:bg-rose-500/15 rounded-2xl border border-rose-200/80 text-rose-900 text-xs space-y-1.5 leading-relaxed">
               <p className="font-bold">⚠️ Cảnh báo quan trọng:</p>
               <ul className="list-disc list-inside space-y-1 text-rose-800 text-[11px]">
                 <li>Toàn bộ tệp tin & thư mục cá nhân sẽ bị xoá vĩnh viễn khỏi Cloud.</li>
@@ -812,7 +812,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
             <div className="space-y-4">
               {user.provider === 'local' ? (
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
                     1. Nhập mật khẩu hiện tại của bạn
                   </label>
                   <input
@@ -820,11 +820,11 @@ export default function UserProfileModal({ isOpen, onClose }) {
                     value={deletePassword}
                     onChange={(e) => setDeletePassword(e.target.value)}
                     placeholder="Nhập mật khẩu tài khoản"
-                    className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all"
+                    className="w-full px-3.5 py-2.5 bg-white dark:bg-[#282a2c] border border-gray-300 dark:border-gray-600 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all"
                   />
                 </div>
               ) : (
-                <label className="flex items-start gap-2.5 p-3 rounded-xl border border-gray-200 bg-gray-50 cursor-pointer text-xs text-gray-700">
+                <label className="flex items-start gap-2.5 p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-white/5 cursor-pointer text-xs text-gray-700 dark:text-gray-300">
                   <input
                     type="checkbox"
                     checked={deleteConfirmedCheckbox}
@@ -838,7 +838,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
               )}
 
               <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
                   {user.provider === 'local' ? '2. ' : ''}Gõ chữ <span className="text-rose-600 font-mono font-black">DELETE</span> để xác nhận
                 </label>
                 <input
@@ -846,7 +846,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                   value={deleteConfirmText}
                   onChange={(e) => setDeleteConfirmText(e.target.value)}
                   placeholder="Nhập chữ DELETE"
-                  className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-xl text-sm font-mono tracking-wider focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all"
+                  className="w-full px-3.5 py-2.5 bg-white dark:bg-[#282a2c] border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-mono tracking-wider focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all"
                 />
               </div>
             </div>
@@ -857,7 +857,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                 type="button"
                 disabled={isDeletingAccount}
                 onClick={() => setShowDeleteModal(false)}
-                className="px-4 py-2.5 rounded-xl text-xs font-bold text-gray-700 hover:bg-gray-100 transition-colors disabled:opacity-50 cursor-pointer"
+                className="px-4 py-2.5 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors disabled:opacity-50 cursor-pointer"
               >
                 Hủy bỏ
               </button>

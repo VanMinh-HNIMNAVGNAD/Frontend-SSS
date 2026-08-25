@@ -24,18 +24,18 @@ export default function StarredPage() {
 
     return (
         <div className="flex flex-col h-full" onContextMenu={(e) => e.preventDefault()}>
-            <div className="flex items-center justify-between mb-2 pb-2 border-b border-gray-100">
+            <div className="flex items-center justify-between mb-2 pb-2 border-b border-gray-100 dark:border-gray-700">
                 <div className="flex items-center gap-2">
                     <Star className="w-6 h-6 text-amber-500 fill-amber-500" />
-                    <h1 className="text-xl font-bold text-gray-800">Mục được đánh dấu sao</h1>
+                    <h1 className="text-xl font-bold text-gray-800 dark:text-gray-200">Mục được đánh dấu sao</h1>
                 </div>
 
-                <div className="flex items-center bg-gray-100 rounded-full p-1 border border-gray-200">
+                <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-full p-1 border border-gray-200 dark:border-gray-700">
                     <button
                         onClick={() => setViewMode('list')}
                         title="Xem dạng danh sách"
                         className={`p-1.5 rounded-full transition-colors ${
-                            viewMode === 'list' ? 'bg-white shadow-xs text-blue-600 font-medium' : 'text-gray-500 hover:text-gray-800'
+                            viewMode === 'list' ? 'bg-white dark:bg-[#282a2c] shadow-xs text-blue-600 dark:text-blue-400 font-medium' : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100'
                         }`}
                     >
                         <List className="w-4 h-4" />
@@ -44,7 +44,7 @@ export default function StarredPage() {
                         onClick={() => setViewMode('grid')}
                         title="Xem dạng lưới"
                         className={`p-1.5 rounded-full transition-colors ${
-                            viewMode === 'grid' ? 'bg-white shadow-xs text-blue-600 font-medium' : 'text-gray-500 hover:text-gray-800'
+                            viewMode === 'grid' ? 'bg-white dark:bg-[#282a2c] shadow-xs text-blue-600 dark:text-blue-400 font-medium' : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100'
                         }`}
                     >
                         <LayoutGrid className="w-4 h-4" />

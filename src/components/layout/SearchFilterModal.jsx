@@ -45,18 +45,18 @@ export default function SearchFilterModal({ isOpen, onClose }) {
     return (
         <div 
             ref={modalRef}
-            className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-200 p-6 z-50 text-gray-800 animate-in fade-in duration-150 cursor-default text-left"
+            className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#282a2c] rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-6 z-50 text-gray-800 dark:text-gray-200 animate-in fade-in duration-150 cursor-default text-left"
         >
-            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Bộ lọc tìm kiếm driveR</h3>
+            <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">Bộ lọc tìm kiếm driveR</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 {/* Loại tệp */}
                 <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Loại tệp/Driver</label>
+                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">Loại tệp/Driver</label>
                     <select
                         value={filterType}
                         onChange={(e) => setFilterType(e.target.value)}
-                        className="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full bg-gray-50 dark:bg-white/5 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                         <option value="all">Tất cả loại (Driver, Folder, Tệp)</option>
                         <option value="folder">Thư mục / Driver</option>
@@ -68,11 +68,11 @@ export default function SearchFilterModal({ isOpen, onClose }) {
 
                 {/* Người sở hữu */}
                 <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Người sở hữu</label>
+                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">Người sở hữu</label>
                     <select
                         value={filterOwner}
                         onChange={(e) => setFilterOwner(e.target.value)}
-                        className="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full bg-gray-50 dark:bg-white/5 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                         <option value="all">Bất kỳ ai</option>
                         <option value="me">Tôi sở hữu</option>
@@ -82,11 +82,11 @@ export default function SearchFilterModal({ isOpen, onClose }) {
 
                 {/* Vị trí */}
                 <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Vị trí</label>
+                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">Vị trí</label>
                     <select
                         value={filterLocation}
                         onChange={(e) => setFilterLocation(e.target.value)}
-                        className="w-full bg-gray-50 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full bg-gray-50 dark:bg-white/5 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                         <option value="all">Bất kỳ đâu trong driveR</option>
                         <option value="my-drive">Driver riêng của tôi</option>
@@ -98,11 +98,11 @@ export default function SearchFilterModal({ isOpen, onClose }) {
                 </div>
             </div>
 
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-100">
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-100 dark:border-gray-700">
                 <button
                     type="button"
                     onClick={handleReset}
-                    className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
+                    className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 rounded-full transition-colors cursor-pointer"
                 >
                     Đặt lại
                 </button>

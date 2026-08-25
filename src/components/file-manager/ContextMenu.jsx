@@ -19,6 +19,17 @@ import {
     FolderUp,
     FolderPlus
 } from 'lucide-react';
+import { SHORTCUT_HINTS } from '../../hooks/useGlobalShortcuts';
+
+// Bảng phím tắt lấy thẳng từ hook — đã format sẵn theo hệ điều hành đang chạy,
+// nên phần hiển thị không bao giờ lệch với phím thật sự đang được lắng nghe.
+// (Trước đây chỗ này hardcode "Ctrl+Alt+E" — phím tắt toàn cục cho Đổi tên
+//  chưa từng dùng phím E. Ctrl+Alt+E chỉ chạy ở FileListView.jsx khi một HÀNG
+//  đang được focus bàn phím, nên bấm từ menu chuột phải thì không có gì xảy ra.)
+// An toàn về kiến trúc: useGlobalShortcuts.js chỉ phụ thuộc 'react', không
+// import ngược lại component nào → không có vòng lặp import.
+const RENAME_SHORTCUT_HINT =
+    SHORTCUT_HINTS.find((hint) => hint.label.toLowerCase().includes('đổi tên'))?.key ?? '';
 
 export default function ContextMenu({
     isOpen = true,
@@ -337,7 +348,7 @@ export default function ContextMenu({
                                 <Pencil className="w-4 h-4 text-gray-700 dark:text-gray-300 shrink-0" />
                                 <span>Đổi tên</span>
                             </div>
-                            <span className="text-[11px] text-gray-500 dark:text-gray-400 font-mono">Ctrl+Alt+E</span>
+                            <span className="text-[11px] text-gray-500 dark:text-gray-400 font-mono text-right leading-snug">{RENAME_SHORTCUT_HINT}</span>
                         </button>
                     ) : (
                         // Hiển thị disabled hint khi VIEWER

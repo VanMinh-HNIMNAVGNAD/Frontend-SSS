@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, memo } from 'react';
 import { useFiles } from '../../context/FileContext';
 import { filesApi, sharingApi } from '../../services/api';
+import { readDefaultShareRole } from '../../constants/privacy';
 import toast from 'react-hot-toast';
 import { formatBytes } from '../../utils/formatFileSize';
 import FileSkeleton from '../common/FileSkeleton';
@@ -496,6 +497,10 @@ export default function FileListView() {
     const handleQuickCopyLink = useCallback(async (item) => {
         try {
             const res = await sharingApi.createShareLink(item.id, {
+                // Sao chép nhanh không có giao diện chọn quyền — lấy "Quyền chia sẻ
+                // mặc định khi tạo Link" trong Cài đặt. Đọc tại chỗ (không cache theo
+                // useCallback) để đổi trong Cài đặt là có hiệu lực ngay ở lần bấm sau.
+                role: readDefaultShareRole(),
                 isDownloadAllowed: true,
                 isPreviewOnly: false,
             });

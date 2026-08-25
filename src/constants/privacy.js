@@ -1,23 +1,40 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Cấu hình "Quyền riêng tư & Bảo mật" (tab trong SettingsModal.jsx)
 // ─────────────────────────────────────────────────────────────────────────────
-// GIAI ĐOẠN TẠM THỜI — LƯU THUẦN CLIENT:
-// Hai cấu hình dưới đây hiện CHỈ nằm trong localStorage của trình duyệt, KHÔNG
-// gọi API và KHÔNG lưu DB. Lý do (tính đến 25/08/2026):
-//   • Bảng `users` chưa có cột nào để lưu hai giá trị này.
-//   • `UpdateProfileDto` bật `forbidNonWhitelisted: true`, nên PATCH
-//     /api/v1/users/me kèm trường lạ sẽ bị chặn ở tầng ValidationPipe (400),
-//     chứ không phải lặng lẽ bỏ qua.
+// HAI KHOÁ DƯỚI ĐÂY KHÔNG CÙNG HẠNG:
 //
-// TODO(backend): khi Schema được mở rộng, làm ĐỦ 4 bước rồi mới nối API:
+//   • PRIVACY_DISCOVERABLE_KEY — ĐÃ NỐI BACKEND. Nguồn sự thật là cột
+//     `users.is_discoverable_by_email` (migration
+//     backend/scripts/migrations/012-users-discoverable-by-email.sql), ghi qua
+//     PATCH /api/v1/users/me (`UpdateProfileDto.isDiscoverableByEmail`) và được
+//     THỰC THI ở FilesService.addShareAccess: người tắt cờ này thì luồng thêm
+//     quyền theo email trả về đúng lỗi "không tìm thấy người dùng" như email
+//     không tồn tại. localStorage chỉ còn là cache đọc-trước để modal không nháy
+//     giá trị mặc định lúc vừa mở — KHÔNG phải nơi quyết định.
+//
+//   • PRIVACY_SHARE_ROLE_KEY — vẫn LƯU THUẦN CLIENT: bảng `users` chưa có cột
+//     nào cho nó, mà `UpdateProfileDto` bật `forbidNonWhitelisted: true` nên
+//     PATCH kèm trường chưa khai báo sẽ bị ValidationPipe chặn (400) chứ không
+//     lặng lẽ bỏ qua.
+//
+// TODO(backend): muốn đồng bộ nốt quyền chia sẻ mặc định thì làm ĐỦ 4 bước, theo
+// đúng thứ tự đã dùng cho khoá trên:
 //   1. Thêm cột vào `users` + file .sql trong backend/scripts/migrations/
 //      (dự án chạy `synchronize: false` — xem ##8 trong .ai/task-ledger.md,
-//      thiếu bước này là lặp lại đúng sự cố 500 DB_SCHEMA_MISMATCH).
+//      thiếu bước này là lặp lại đúng sự cố 500 DB_SCHEMA_MISMATCH; nhớ khai cả
+//      @Column trong User entity).
 //   2. Khai báo field tương ứng trong `UpdateProfileDto` (bắt buộc, vì
 //      forbidNonWhitelisted sẽ chặn nếu không có).
-//   3. Trả hai field này về trong response của GET /api/v1/users/me.
+//   3. Trả field này về trong response của GET /api/v1/users/me.
 //   4. SettingsModal.jsx: đổi handler sang gọi API; giữ localStorage làm
 //      cache đọc-trước để không nháy giá trị mặc định lúc modal vừa mở.
+//
+// BƯỚC NẠP TỪ SERVER: đã làm cho PRIVACY_DISCOVERABLE_KEY — AuthContext.jsx có
+// một useEffect([user]) gọi writeDiscoverableByEmail() mỗi khi hồ sơ về (cả
+// GET /auth/me lẫn login), nên máy mới / vừa xoá dữ liệu trình duyệt không còn vẽ
+// công tắc theo mặc định BẬT trong khi DB đang là false. Vẫn CÒN THIẾU cho
+// PRIVACY_SHARE_ROLE_KEY, và chỉ làm được sau khi khoá đó đi hết 4 bước trên (chưa
+// có cột thì cũng chưa có gì để nạp về).
 //
 // Đặt tên khoá ở ĐÂY chứ không gõ chuỗi trực tiếp trong component: bên GHI
 // (SettingsModal) và bên ĐỌC (luồng chia sẻ, sau này là luồng đồng bộ hồ sơ)
@@ -36,10 +53,12 @@ export const SHARE_ROLES = ['VIEWER', 'EDITOR'];
 export const DEFAULT_SHARE_ROLE = 'VIEWER';
 
 /**
- * Người khác có tìm được mình qua email khi chia sẻ tệp hay không.
+ * Người khác có tìm được mình qua email khi chia sẻ tệp hay không — đọc từ CACHE
+ * localStorage, chỉ dùng để VẼ công tắc. Nơi quyết định thật là cột
+ * `users.is_discoverable_by_email` mà backend đọc trong addShareAccess.
  *
- * Chưa từng lưu = BẬT (đúng hành vi hiện tại của app: mọi người vẫn tìm được
- * nhau qua email). Chỉ khi người dùng chủ động tắt mới ghi chuỗi 'false'.
+ * Chưa từng lưu = BẬT, khớp với DEFAULT true của cột đó (migration 012). Chỉ khi
+ * người dùng chủ động tắt mới ghi chuỗi 'false'.
  * Bọc try/catch vì localStorage có thể ném lỗi khi trình duyệt chặn storage
  * (chế độ ẩn danh, iframe, cookie bị khoá).
  *
@@ -50,6 +69,30 @@ export function readDiscoverableByEmail() {
     return localStorage.getItem(PRIVACY_DISCOVERABLE_KEY) !== 'false';
   } catch {
     return true;
+  }
+}
+
+/**
+ * Ghi CACHE hiển thị của công tắc "Hiển thị thông tin cá nhân".
+ *
+ * Hai bên gọi, cùng một ý nghĩa "giá trị vừa biết chắc từ server hoặc từ thao tác
+ * của người dùng": AuthContext (nạp về từ hồ sơ) và SettingsModal (người dùng vừa
+ * gạt công tắc). Có hàm này để không bên nào gõ lại tên khoá — lệch một ký tự là
+ * ghi một nơi đọc một nẻo mà không ai báo lỗi.
+ *
+ * Ghi dạng CHUỖI 'true' / 'false' vì readDiscoverableByEmail() so sánh với chuỗi
+ * 'false'; truyền thẳng boolean vào setItem thì trình duyệt tự ép kiểu và nhánh
+ * TẮT vẫn đọc ra BẬT. Nuốt lỗi giống readDiscoverableByEmail(): localStorage có
+ * thể ném khi trình duyệt chặn storage, mà đây chỉ là cache hiển thị — hỏng cache
+ * thì lần sau vẽ theo mặc định, không được phép làm vỡ luồng đăng nhập.
+ *
+ * @param {boolean} value
+ */
+export function writeDiscoverableByEmail(value) {
+  try {
+    localStorage.setItem(PRIVACY_DISCOVERABLE_KEY, value ? 'true' : 'false');
+  } catch {
+    /* trình duyệt chặn storage — phiên này vẫn chạy đúng, chỉ là không nhớ được */
   }
 }
 

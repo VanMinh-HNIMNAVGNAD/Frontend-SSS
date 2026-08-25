@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { authApi, userApi } from '../services/api';
+import { writeDiscoverableByEmail } from '../constants/privacy';
 
 const AuthContext = createContext(null);
 
@@ -44,6 +45,29 @@ export function AuthProvider({ children }) {
       setIsLoading(false);
     }
   }, [accessToken]);
+
+  // Nạp cache hiển thị của công tắc "Hiển thị thông tin cá nhân" từ hồ sơ server.
+  //
+  // Đặt ở useEffect([user]) thay vì chèn vào fetchProfile() và login(): cả hai đều kết
+  // thúc bằng setUser(), nên lắng nghe `user` là bắt được CẢ HAI đường bằng một chỗ ghi
+  // duy nhất — kể cả đường thứ ba sau này (refreshUser, hay OAuth token trên URL cũng đi
+  // qua fetchProfile). Chép logic vào từng hàm thì thêm một luồng nạp hồ sơ mới là lại
+  // quên một chỗ.
+  //
+  // Vấn đề được sửa CHỈ là hiển thị: việc chặn đã đúng vì backend đọc thẳng cột
+  // users.is_discoverable_by_email. Nhưng máy mới hoặc vừa xoá dữ liệu trình duyệt có
+  // localStorage trống → readDiscoverableByEmail() rơi về mặc định BẬT và SettingsModal
+  // vẽ ra công tắc BẬT trong khi DB đang là false; người dùng tưởng mình đang cho tìm
+  // qua email, thực ra đang bị chặn.
+  //
+  // typeof === 'boolean' chứ không phải `!== undefined` hay truthy: `user` là null lúc
+  // chưa đăng nhập, và backend cũ chưa trả field này thì giá trị là undefined — ghi bừa
+  // lúc đó sẽ đè cache đúng bằng một giá trị bịa ra. Chỉ ghi khi server thật sự có nói.
+  useEffect(() => {
+    if (typeof user?.isDiscoverableByEmail === 'boolean') {
+      writeDiscoverableByEmail(user.isDiscoverableByEmail);
+    }
+  }, [user]);
 
   const login = async (email, password) => {
     try {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Settings, Keyboard, Sun, Moon, Laptop, ShieldCheck, AlertTriangle } from 'lucide-react';
+import { X, Settings, Keyboard, Sun, Moon, Laptop, ShieldCheck } from 'lucide-react';
 import {
   SHORTCUT_HINTS,
   PLATFORM_LABEL,
@@ -8,6 +8,7 @@ import {
 } from '../../hooks/useGlobalShortcuts';
 import useTheme from '../../hooks/useTheme';
 import { useLanguage } from '../../context/LanguageContext';
+import { userApi } from '../../services/api';
 import { STARTUP_PAGE_KEY, STARTUP_PAGES, readStartupPage } from '../../constants/routes';
 import {
   PRIVACY_DISCOVERABLE_KEY,
@@ -18,15 +19,21 @@ import {
 } from '../../constants/privacy';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Cài đặt trong modal này là cấu hình THUẦN UI: lưu ở localStorage của trình
-// duyệt, KHÔNG gọi API và KHÔNG lưu DB. Mỗi khoá được khai báo ở đúng file mà
-// bên ĐỌC nó cũng import — modal chỉ là bên GHI:
+// Trừ MỘT ngoại lệ, cài đặt trong modal này là cấu hình THUẦN UI: lưu ở
+// localStorage của trình duyệt, KHÔNG gọi API và KHÔNG lưu DB. Mỗi khoá được
+// khai báo ở đúng file mà bên ĐỌC nó cũng import — modal chỉ là bên GHI:
 //
 //   • STARTUP_PAGE_KEY      → constants/routes.js  (AppRouter.jsx đọc)
 //   • SHORTCUTS_ENABLED_KEY → hooks/useGlobalShortcuts.js (listener phím đọc)
-//   • PRIVACY_*_KEY         → constants/privacy.js (xem TODO(backend) trong đó)
+//   • PRIVACY_SHARE_ROLE_KEY → constants/privacy.js (ShareModal.jsx đọc)
 //   • driveR_settings_theme → hooks/useTheme.js (modal không tự chạm vào)
 //   • driveR_settings_language → context/LanguageContext.jsx (nt)
+//
+// NGOẠI LỆ — PRIVACY_DISCOVERABLE_KEY: nguồn sự thật là cột
+// `users.is_discoverable_by_email` ở DB, vì bên ĐỌC nó là BACKEND
+// (FilesService.addShareAccess, lúc tra email người được chia sẻ) chứ không phải
+// một màn hình nào của app này. localStorage chỉ còn là cache đọc-trước —
+// handleToggleDiscoverable() ghi cache rồi PATCH /users/me.
 //
 // Không khai báo lại tên khoá dưới dạng chuỗi ở đây: lệch một ký tự là cài đặt
 // ghi một nơi, đọc một nẻo mà không ai báo lỗi.
@@ -101,10 +108,10 @@ export default function SettingsModal({ isOpen, onClose }) {
   const [shortcutsEnabled, setShortcutsEnabled] = useState(areShortcutsEnabled);
 
   // Security & Privacy State
-  // Hai giá trị này lưu localStorage y như 2 cài đặt trên, KHÔNG gọi API: bảng
-  // `users` chưa có cột tương ứng và UpdateProfileDto đang bật
-  // forbidNonWhitelisted (gửi trường lạ lên là 400). Toàn bộ ghi chú về việc
-  // nối API sau này nằm ở TODO(backend) trong constants/privacy.js.
+  // `discoverableByEmail` được LƯU DB (cột users.is_discoverable_by_email) —
+  // localStorage chỉ là cache đọc-trước, xem handleToggleDiscoverable() bên dưới.
+  // `defaultShareRole` thì vẫn thuần localStorage: bảng `users` chưa có cột cho nó
+  // (xem ghi chú trong constants/privacy.js).
   const [discoverableByEmail, setDiscoverableByEmail] = useState(readDiscoverableByEmail);
   const [defaultShareRole, setDefaultShareRole] = useState(readDefaultShareRole); // 'VIEWER' | 'EDITOR'
 
@@ -123,14 +130,30 @@ export default function SettingsModal({ isOpen, onClose }) {
     safeSetItem(SHORTCUTS_ENABLED_KEY, enabled ? 'true' : 'false');
   };
 
-  const handleToggleDiscoverable = (enabled) => {
+  // Công tắc DUY NHẤT trong modal này có nguồn sự thật ở SERVER (cột
+  // users.is_discoverable_by_email). localStorage chỉ còn là cache đọc-trước để
+  // modal không nháy giá trị mặc định lúc vừa mở — nên ghi cache TRƯỚC, gọi API
+  // sau, rồi hoàn nguyên CẢ HAI nếu API thất bại. Bỏ bước hoàn nguyên là để lại
+  // đúng cái bẫy mà tính năng này vừa thoát khỏi: UI hiện "đã ẩn" trong khi máy
+  // chủ vẫn cho người khác tìm thấy mình.
+  const handleToggleDiscoverable = async (enabled) => {
+    const previous = discoverableByEmail;
+
     setDiscoverableByEmail(enabled);
     // Cùng lý do ép kiểu như handleToggleShortcuts: readDiscoverableByEmail()
     // so sánh với chuỗi 'false'
     safeSetItem(PRIVACY_DISCOVERABLE_KEY, enabled ? 'true' : 'false');
-    // TODO(backend): khi `users` đã có cột và UpdateProfileDto đã khai báo
-    // field, gọi PATCH /api/v1/users/me ở đây (giữ nguyên dòng ghi localStorage
-    // phía trên làm cache đọc-trước để modal không nháy giá trị mặc định).
+
+    try {
+      await userApi.updateMe({ isDiscoverableByEmail: enabled });
+    } catch (err) {
+      setDiscoverableByEmail(previous);
+      safeSetItem(PRIVACY_DISCOVERABLE_KEY, previous ? 'true' : 'false');
+      // Ghép CẢ HAI câu, không chỉ err.message: câu của backend giải thích LÝ DO
+      // nhưng không nói rằng công tắc vừa bị trả về trạng thái cũ — mà đó mới là
+      // điều người dùng phải biết để không tưởng mình đã tắt xong.
+      alert(`${t('settings.privacy.discoverable.saveError')}${err.message ? `\n\n${err.message}` : ''}`);
+    }
   };
 
   const handleChangeShareRole = (role) => {
@@ -142,12 +165,11 @@ export default function SettingsModal({ isOpen, onClose }) {
     // form "Thêm người có quyền truy cập", và đọc lại mỗi lần modal MỞ nên đổi ở
     // đây có hiệu lực ngay ở lần mở kế tiếp, khỏi F5.
     //
-    // GIỚI HẠN hiện tại — nhãn ghi "khi tạo Link" nhưng mới chỉ áp cho luồng THÊM
-    // NGƯỜI qua email (POST /files/:id/share-access). Luồng tạo LINK công khai
-    // (POST /files/:id/share) chưa nhận `role` từ frontend: ShareModal.handleCopyLink,
-    // FileListView.handleQuickCopyLink và FileGridView đều không gửi trường này, nên
-    // quyền của link do backend tự quyết. Muốn nhãn đúng với hành vi thì phải cho
-    // API /share nhận `role` trước, rồi truyền readDefaultShareRole() vào cả 3 chỗ.
+    // Luồng tạo LINK công khai (POST /files/:id/share) cũng đã gửi `role`:
+    // ShareModal.handleCopyLink, FileGridView.handleQuickCopyLink và
+    // FileListView.handleQuickCopyLink đều truyền readDefaultShareRole(). Nhãn "khi
+    // tạo Link" giờ đúng với CẢ HAI luồng — mời qua email và tạo link công khai.
+    // Ba chỗ đó đọc tại thời điểm bấm nên không cần F5 sau khi đổi ở đây.
   };
 
   // Không cần useEffect áp dụng theme lúc mount: src/hooks/useTheme.js áp dụng
@@ -368,30 +390,6 @@ export default function SettingsModal({ isOpen, onClose }) {
                   </button>
                 </div>
 
-                {/* CẢNH BÁO: công tắc ở trên CHƯA CHẶN ĐƯỢC GÌ.
-                    Lựa chọn chỉ nằm trong localStorage của MÁY NÀY, trong khi việc
-                    tra người dùng theo email chạy ở backend
-                    (backend/src/files/files.service.ts:1508 — userRepository.findOne
-                    theo email trong addShareAccess). Máy chủ không hề biết người BỊ
-                    tìm có muốn bị tìm hay không, nên tắt công tắc không thay đổi kết
-                    quả nào cả.
-
-                    Phải nói thẳng điều này với người dùng: một công tắc privacy trông
-                    như đang bảo vệ mà thực ra không, còn nguy hiểm hơn là không có
-                    công tắc nào — người dùng sẽ tin là mình đã ẩn.
-
-                    GỠ khối này đi khi: users có cột is_discoverable_by_email, DTO +
-                    PATCH /users/me nhận nó, và addShareAccess lọc theo nó. */}
-                <div
-                  role="note"
-                  className="flex items-start gap-2 p-2.5 rounded-xl border border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-500/10"
-                >
-                  <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-px text-amber-600 dark:text-amber-400" />
-                  <p className="text-[11px] leading-relaxed text-amber-800 dark:text-amber-200">
-                    {t('settings.privacy.discoverable.notEnforced')}
-                  </p>
-                </div>
-
                 {/* 2. Quyền chia sẻ mặc định khi tạo link */}
                 <div className="pt-1">
                   <label
@@ -419,10 +417,12 @@ export default function SettingsModal({ isOpen, onClose }) {
                   </p>
                 </div>
 
-                {/* Nói thẳng với người dùng giới hạn hiện tại: cài đặt chỉ nằm
-                    trên máy này. Không có dòng này thì đổi máy thấy giá trị khác
-                    sẽ bị hiểu thành lỗi mất cài đặt. Gỡ đi khi backend đã đồng
-                    bộ được (xem TODO(backend) ở constants/privacy.js). */}
+                {/* Nói thẳng giới hạn còn lại: ô "Quyền chia sẻ mặc định" ngay trên
+                    chỉ nằm trên máy này. Không có dòng này thì đổi máy thấy giá trị
+                    khác sẽ bị hiểu thành lỗi mất cài đặt. Công tắc ở đầu tab KHÔNG
+                    còn thuộc diện này nữa — nó đã lưu DB, nên câu chữ của
+                    'settings.privacy.localOnly' chỉ nói về ô chọn quyền. Gỡ đi khi
+                    quyền mặc định cũng được đồng bộ (xem constants/privacy.js). */}
                 <p className="text-[11px] text-gray-400 dark:text-gray-500 leading-relaxed px-0.5 pt-1 border-t border-gray-100 dark:border-gray-700">
                   {t('settings.privacy.localOnly')}
                 </p>

@@ -56,17 +56,17 @@ const translations = {
     'settings.privacy.shareRole.editor': 'Được chỉnh sửa (Editor)',
     'settings.privacy.shareRole.hint':
       'Áp dụng cho lần chia sẻ tiếp theo; các link đã tạo trước đó giữ nguyên quyền cũ.',
+    // Chỉ còn nói về ô "Quyền chia sẻ mặc định": công tắc "Hiển thị thông tin cá
+    // nhân" đã lưu ở máy chủ (cột users.is_discoverable_by_email) nên nó đồng bộ
+    // giữa các thiết bị. Khoá 'settings.privacy.discoverable.notEnforced' cũ đã bị
+    // xoá cùng lượt — máy chủ giờ thực thi thật ở FilesService.addShareAccess.
     'settings.privacy.localOnly':
-      'Hai cài đặt này hiện chỉ lưu trên trình duyệt của bạn, chưa đồng bộ giữa các thiết bị.',
+      'Quyền chia sẻ mặc định hiện chỉ lưu trên trình duyệt của bạn, chưa đồng bộ giữa các thiết bị.',
 
-    // Cảnh báo CHƯA CÓ TÁC DỤNG cho công tắc "Hiển thị thông tin cá nhân".
-    // Khác với 'settings.privacy.localOnly' (nói về việc chưa đồng bộ thiết bị),
-    // dòng này nói thẳng rằng tắt công tắc KHÔNG ngăn được gì: bảng `users` chưa
-    // có cột lưu lựa chọn, và luồng tra email nằm ở backend
-    // (files.service.ts → addShareAccess) nên nó không thể biết ý muốn của người
-    // BỊ tìm. Gỡ dòng này đi khi backend đã thực thi thật.
-    'settings.privacy.discoverable.notEnforced':
-      'Chưa có tác dụng thực tế: máy chủ chưa lưu lựa chọn này, nên tắt đi vẫn KHÔNG ngăn được người khác tìm thấy bạn qua email. Đang chờ hoàn thiện phía máy chủ.',
+    // Lỗi khi PATCH /users/me thất bại lúc bật/tắt công tắc. Câu này luôn hiện,
+    // còn `err.message` của backend (nếu có) được ghép thêm phía sau như phần lý do.
+    'settings.privacy.discoverable.saveError':
+      'Không lưu được tuỳ chọn này lên máy chủ. Công tắc đã được trả về trạng thái trước đó, vui lòng thử lại.',
 
     // 5. Nhãn NGẮN trên 3 nút chọn theme — các khoá 'settings.theme.light|dark|
     //    system' ở trên là câu dài, chỉ vừa cho tooltip
@@ -188,17 +188,18 @@ const translations = {
     'settings.privacy.shareRole.editor': 'Editor',
     'settings.privacy.shareRole.hint':
       'Applies to your next share; links you already created keep their current permission.',
+    // Now about the default-share-permission select only: the "Show my personal
+    // information" switch is stored server-side (users.is_discoverable_by_email),
+    // so it does sync across devices. The old
+    // 'settings.privacy.discoverable.notEnforced' key was dropped in the same
+    // change — the server now enforces the switch in FilesService.addShareAccess.
     'settings.privacy.localOnly':
-      'These two settings are stored in this browser only — they do not sync across devices yet.',
+      'The default sharing permission is stored in this browser only — it does not sync across devices yet.',
 
-    // "Not enforced" warning for the "Show my personal information" switch.
-    // Unlike 'settings.privacy.localOnly' (which is about cross-device sync),
-    // this line says plainly that turning the switch off blocks nothing: the
-    // `users` table has no column for it, and the email lookup lives in the
-    // backend (files.service.ts → addShareAccess), which therefore cannot know
-    // what the person BEING looked up wants. Remove this once the server enforces it.
-    'settings.privacy.discoverable.notEnforced':
-      'Not enforced yet: the server does not store this choice, so turning it off does NOT stop other people from finding you by email. Pending server-side support.',
+    // Shown when PATCH /users/me fails while toggling the switch. Always shown;
+    // the backend's `err.message`, if any, is appended after it as the reason.
+    'settings.privacy.discoverable.saveError':
+      'Could not save this setting to the server. The switch has been reverted — please try again.',
 
     // 5. Short labels for the 3 theme buttons — the 'settings.theme.light|dark|
     //    system' keys above are full sentences, tooltip-sized only

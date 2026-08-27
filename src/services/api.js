@@ -265,14 +265,6 @@ export const sharingApi = {
   removeShareAccess: (id, userId) => api.delete(`/files/${id}/share-access/${userId}`),
 };
 
-// Admin APIs (SUPER_ADMIN only)
-export const adminApi = {
-  getUsers: (params = {}) => api.get('/admin/users', { params }),
-  updateUserQuota: (id, storageLimitBytes) => api.patch(`/admin/users/${id}/quota`, { storageLimitBytes }),
-  updateUserStatus: (id, isActive) => api.patch(`/admin/users/${id}/status`, { isActive }),
-  getSystemAnalytics: () => api.get('/admin/analytics'),
-};
-
 // Shared Drives APIs
 export const sharedDrivesApi = {
   create: (data) => api.post('/shared-drives', data),

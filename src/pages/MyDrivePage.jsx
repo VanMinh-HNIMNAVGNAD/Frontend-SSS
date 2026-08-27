@@ -5,6 +5,7 @@ import FileGridView from '../components/file-manager/FileGridView';
 import FileFilterBar from '../components/common/FileFilterBar';
 import Breadcrumb from '../components/file-manager/Breadcrumb';
 import { List, LayoutGrid, UploadCloud, FolderInput, Loader2 } from 'lucide-react';
+import { collectDropEntries } from '../utils/uploadTree';
 
 export default function MyDrivePage() {
   const {
@@ -20,7 +21,7 @@ export default function MyDrivePage() {
     filterOwner,
     setFilterOwner,
     resetFilters,
-    uploadFile,
+    uploadEntries,
     breadcrumb,
     openFolder,
     clipboard,
@@ -31,6 +32,7 @@ export default function MyDrivePage() {
 
 
   const [isDragging, setIsDragging] = useState(false);
+  const [isReadingDrop, setIsReadingDrop] = useState(false);
 
   const currentFolder = items.find((i) => i.id === currentFolderId);
 
@@ -47,16 +49,30 @@ export default function MyDrivePage() {
     setIsDragging(false);
   };
 
-  const handleDrop = (e) => {
+  /**
+   * Thả tệp VÀ thư mục — kể cả nhiều thư mục cùng lúc.
+   *
+   * `dataTransfer.files` bỏ trắng mọi thư mục, nên trước đây kéo cả thư mục vào
+   * app thì không có gì xảy ra. Phải đi qua `webkitGetAsEntry()` (xem
+   * `utils/uploadTree`) — và đây cũng là cách DUY NHẤT của trình duyệt để nhận
+   * nhiều thư mục trong một thao tác, vì hộp thoại `webkitdirectory` chỉ cho
+   * chọn một thư mục mỗi lần.
+   */
+  const handleDrop = async (e) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
 
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      const droppedFiles = Array.from(e.dataTransfer.files);
-      droppedFiles.forEach((file) => {
-        uploadFile(file);
-      });
+    // Phải đọc DataTransfer NGAY tại đây: sau await đầu tiên trình duyệt thu hồi items
+    const treePromise = collectDropEntries(e.dataTransfer);
+
+    setIsReadingDrop(true);
+    try {
+      const tree = await treePromise;
+      if (tree.entries.length === 0 && tree.dirPaths.length === 0) return;
+      await uploadEntries(tree);
+    } finally {
+      setIsReadingDrop(false);
     }
   };
 
@@ -74,8 +90,16 @@ export default function MyDrivePage() {
           <div className="w-16 h-16 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-xl mb-4">
             <UploadCloud className="w-8 h-8" />
           </div>
-          <h3 className="text-xl font-bold text-blue-600 dark:text-blue-400">Thả tệp vào đây để tải lên ngay!</h3>
-          <p className="text-xs text-blue-500 mt-1">Tệp sẽ được tải lên Cloud storage an toàn</p>
+          <h3 className="text-xl font-bold text-blue-600 dark:text-blue-400">Thả tệp hoặc thư mục vào đây để tải lên ngay!</h3>
+          <p className="text-xs text-blue-500 mt-1">Thả được nhiều thư mục cùng lúc — cấu trúc thư mục con được giữ nguyên</p>
+        </div>
+      )}
+
+      {/* Đang đọc cây thư mục vừa thả — với thư mục lớn bước này mất vài giây */}
+      {isReadingDrop && (
+        <div className="absolute top-3 right-3 z-40 flex items-center gap-2 rounded-full bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow-lg">
+          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          <span>Đang đọc thư mục vừa thả...</span>
         </div>
       )}
 

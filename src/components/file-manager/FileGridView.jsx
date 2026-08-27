@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { useFiles } from '../../context/FileContext';
-import { filesApi, sharingApi } from '../../services/api';
+import { sharingApi } from '../../services/api';
 import { readDefaultShareRole } from '../../constants/privacy';
 import toast from 'react-hot-toast';
 import FileSkeleton from '../common/FileSkeleton';
@@ -11,6 +11,7 @@ import RenameModal from './RenameModal';
 import ShareModal from './ShareModal';
 import GeminiModal from './GeminiModal';
 import { Folder, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
+import { collectInputEntries } from '../../utils/uploadTree';
 
 export default function FileGridView() {
     const { 
@@ -49,7 +50,7 @@ export default function FileGridView() {
         enqueueUpload,
         currentFolderId,
         currentSharedDriveId,
-        triggerReload,
+        uploadEntries,
     } = useFiles();
 
 
@@ -120,11 +121,15 @@ export default function FileGridView() {
         selectedFiles.forEach((file) => enqueueUpload(file));
     }, [activeTab, currentSharedDriveId, currentFolderId, enqueueUpload]);
 
-    // Tải folder lên, giữ nguyên cấu trúc thư mục con (giống NewButton.jsx)
+    /**
+     * Tải thư mục lên từ menu chuột phải — dùng chung `uploadEntries` của
+     * FileContext (xây cây thư mục + đưa từng tệp vào hàng đợi, chỉ chèn thêm
+     * card mới thay vì tải lại toàn bộ danh sách).
+     */
     const handleFolderInputChange = useCallback(async (e) => {
-        const selectedFiles = Array.from(e.target.files || []);
+        const tree = collectInputEntries(e.target.files);
         e.target.value = '';
-        if (selectedFiles.length === 0) return;
+        if (tree.entries.length === 0) return;
 
         if (activeTab === 'shared-drives' && !currentSharedDriveId && !currentFolderId) {
             alert('Vui lòng mở một Bộ nhớ dùng chung trước khi tải thư mục lên.');
@@ -133,50 +138,11 @@ export default function FileGridView() {
 
         setIsBuildingTree(true);
         try {
-            const dirPathSet = new Set();
-            selectedFiles.forEach((file) => {
-                const parts = file.webkitRelativePath.split('/');
-                for (let depth = 1; depth < parts.length; depth++) {
-                    dirPathSet.add(parts.slice(0, depth).join('/'));
-                }
-            });
-
-            const sortedDirPaths = Array.from(dirPathSet).sort((a, b) => {
-                const depthA = a.split('/').length;
-                const depthB = b.split('/').length;
-                if (depthA !== depthB) return depthA - depthB;
-                return a.localeCompare(b);
-            });
-
-            let batchFolderIdMap = {};
-            const effectiveSharedDriveId = activeTab === 'shared-drives' ? currentSharedDriveId : undefined;
-            if (sortedDirPaths.length > 0) {
-                try {
-                    batchFolderIdMap = await filesApi.createFoldersBatch(
-                        sortedDirPaths,
-                        currentFolderId,
-                        effectiveSharedDriveId,
-                    );
-                } catch (error) {
-                    console.error('Lỗi khi tạo hàng loạt thư mục:', error);
-                    alert('Không thể tạo toàn bộ cấu trúc thư mục, một số tệp có thể bị đặt sai vị trí.');
-                }
-            }
-
-            const folderIdMap = { '': currentFolderId, ...batchFolderIdMap };
-
-            selectedFiles.forEach((file) => {
-                const parts = file.webkitRelativePath.split('/');
-                const dirPath = parts.slice(0, -1).join('/');
-                const targetId = folderIdMap[dirPath] ?? currentFolderId;
-                enqueueUpload(file, targetId, undefined, effectiveSharedDriveId);
-            });
-
-            triggerReload();
+            await uploadEntries(tree);
         } finally {
             setIsBuildingTree(false);
         }
-    }, [activeTab, currentSharedDriveId, currentFolderId, enqueueUpload, triggerReload]);
+    }, [activeTab, currentSharedDriveId, currentFolderId, uploadEntries]);
 
     const handleItemDoubleClick = useCallback((item) => {
         if (item.type === 'folder' && !item.isTrash && !item.isSpam) {

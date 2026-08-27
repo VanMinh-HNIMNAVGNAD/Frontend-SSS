@@ -4,8 +4,10 @@ import toast from 'react-hot-toast';
 import { filesApi, storageApi, sharingApi, chunkedApi } from '../services/api';
 import { useAuth } from './AuthContext';
 import { useDebounce } from '../hooks/useDebounce';
-import { useUpload } from './UploadContext';
+import { useUploadActions } from './UploadContext';
 import { formatBytes } from '../utils/formatFileSize';
+import { buildSortedDirPaths } from '../utils/uploadTree';
+import { CHUNK_THRESHOLD } from '../constants/upload';
 
 const FileContext = createContext();
 
@@ -37,6 +39,75 @@ const formatApiItem = (item, isSharedWithMe = false) => {
     ...base,
     owner: 'Tôi',
   };
+};
+
+/**
+ * So khớp NÔNG hai phiên bản của cùng một item.
+ * Mục đích duy nhất: biết được item nào KHÔNG đổi sau một lần đồng bộ với server.
+ */
+const isSameItemData = (prev, next) => {
+  if (prev === next) return true;
+  if (!prev || !next) return false;
+  const keys = new Set([...Object.keys(prev), ...Object.keys(next)]);
+  for (const key of keys) {
+    const a = prev[key];
+    const b = next[key];
+    if (a === b) continue;
+    // sharedOwner… là object mới sau mỗi lần parse JSON — so sánh theo nội dung
+    if (a && b && typeof a === 'object' && typeof b === 'object') {
+      if (JSON.stringify(a) === JSON.stringify(b)) continue;
+    }
+    return false;
+  }
+  return true;
+};
+
+/**
+ * Trộn danh sách mới từ server vào danh sách đang hiển thị.
+ *
+ * Tập hợp và THỨ TỰ luôn theo server; hàm này chỉ TÁI SỬ DỤNG object cũ cho
+ * những item không đổi. FileCard/FolderCard đều là `memo()` nên giữ nguyên
+ * reference = không re-render = thumbnail không phải tải lại. Nếu không có gì
+ * đổi thì trả về đúng mảng cũ để React bỏ qua luôn lần render đó.
+ */
+const mergeItemsPreservingRefs = (prevItems, nextItems) => {
+  const prevById = new Map(prevItems.map((item) => [item.id, item]));
+  let changed = prevItems.length !== nextItems.length;
+
+  const merged = nextItems.map((next, index) => {
+    const prev = prevById.get(next.id);
+    if (prev && isSameItemData(prev, next)) {
+      if (prevItems[index] !== prev) changed = true; // cùng dữ liệu nhưng đổi vị trí
+      return prev;
+    }
+    changed = true;
+    return next;
+  });
+
+  return changed ? merged : prevItems;
+};
+
+/**
+ * GCS giữ một phiên resumable upload 7 ngày rồi tự xoá. Quá hạn thì bản ghi
+ * trong localStorage chỉ còn là rác — đừng mời người dùng "tải tiếp" một phiên
+ * mà máy chủ đã quên.
+ */
+const RESUMABLE_SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+/**
+ * Số byte đã đẩy lên theo bản ghi localStorage.
+ *
+ * Bản ghi cũ (trước khi chuyển sang đếm theo byte) chỉ có `chunksDone` — vẫn
+ * phải đọc được, nếu không thì ngay lần cập nhật này mọi phiên đang dở của người
+ * dùng đều bị tính là 0% và tải lại từ đầu.
+ */
+const readUploadedBytes = (session) => {
+  if (!session) return 0;
+  if (typeof session.uploadedBytes === 'number') return session.uploadedBytes;
+  if (typeof session.chunksDone === 'number' && typeof session.chunkSize === 'number') {
+    return Math.min(session.chunksDone * session.chunkSize, session.totalSizeBytes || Infinity);
+  }
+  return 0;
 };
 
 export function FileProvider({ children }) {
@@ -156,6 +227,91 @@ export function FileProvider({ children }) {
   const itemsRef = useRef(items);
   itemsRef.current = items;
 
+  /**
+   * Ảnh chụp "người dùng đang xem gì" để các callback bất đồng bộ (upload chạy
+   * nền xong sau vài giây) biết item vừa tạo có thuộc màn hình hiện tại hay
+   * không, mà không cần đưa cả bộ filter vào dependency của runUploadJob.
+   */
+  const viewRef = useRef(null);
+  viewRef.current = {
+    activeTab,
+    currentFolderId,
+    currentSharedDriveId,
+    search: debouncedSearch,
+    filterType,
+    filterDate,
+    filterOwner,
+  };
+
+  /**
+   * Chèn / cập nhật item vào danh sách đang hiển thị mà KHÔNG gọi lại API.
+   *
+   * Đây là thứ thay thế cho `fetchFiles()` sau mỗi lần upload xong: tải 30 tệp
+   * trước đây là 30 lần tải lại toàn bộ thư mục (skeleton nháy, thumbnail dựng
+   * lại từ đầu, cuộn trang nhảy); giờ mỗi tệp xong chỉ thêm đúng một card.
+   *
+   * @param {object|object[]} raw  entity thô từ backend (`{ file }` của
+   *                               confirm-upload / chunked complete / proxy)
+   * @param {boolean} skipExisting  true = id đã có thì bỏ qua, không ghi đè
+   *                                (dùng cho folder optimistic, tránh đè dữ
+   *                                liệu thật bằng dữ liệu tự dựng ở client)
+   */
+  const upsertItems = useCallback((raw, { skipExisting = false } = {}) => {
+    const incoming = (Array.isArray(raw) ? raw : [raw]).filter((item) => item && item.id);
+    if (incoming.length === 0) return;
+
+    setItems((prev) => {
+      const byId = new Map(prev.map((item) => [item.id, item]));
+      const appended = [];
+      let changed = false;
+
+      incoming.forEach((item) => {
+        const existing = byId.get(item.id);
+        if (existing && skipExisting) return;
+
+        const formatted = formatApiItem(item, viewRef.current?.activeTab === 'shared-with-me');
+        const next = existing ? { ...existing, ...formatted } : formatted;
+        if (existing && isSameItemData(existing, next)) return;
+
+        changed = true;
+        byId.set(item.id, next);
+        if (!existing) appended.push(item.id);
+      });
+
+      if (!changed) return prev;
+
+      // Item mới xuống cuối; sortedFolders/sortedFiles sẽ tự xếp lại đúng chỗ
+      return [...prev.map((item) => byId.get(item.id) || item), ...appended.map((id) => byId.get(id))];
+    });
+  }, []);
+
+  /**
+   * Item vừa tạo có thuộc đúng màn hình người dùng đang xem không.
+   * Nếu không (đang ở tab khác, đã đi sang thư mục khác, hoặc đang bật tìm
+   * kiếm/lọc — lúc đó tập kết quả do server quyết định) thì không chèn gì cả:
+   * lần đồng bộ im lặng ở cuối hàng đợi sẽ lo phần còn lại.
+   */
+  const belongsToCurrentView = useCallback((entity) => {
+    const view = viewRef.current;
+    if (!view || !entity) return false;
+    if (!['my-drive', 'home', 'shared-drives'].includes(view.activeTab)) return false;
+    if (view.search) return false;
+    if (view.filterType !== 'all' || view.filterDate !== 'all' || view.filterOwner !== 'all') return false;
+
+    const parentId = entity.parentId ?? null;
+    const viewFolderId = view.currentFolderId ?? null;
+    if (parentId !== viewFolderId) return false;
+
+    if (view.activeTab === 'shared-drives') {
+      const driveId = entity.sharedDriveId ?? null;
+      if (!viewFolderId && driveId !== (view.currentSharedDriveId ?? null)) return false;
+    } else if (entity.sharedDriveId && !viewFolderId) {
+      return false;
+    }
+
+    return true;
+  }, []);
+
   // Ref tracking latest fetch request ID to prevent race conditions on concurrent fetches
   const fetchRequestIdRef = useRef(0);
 
@@ -180,30 +336,58 @@ export function FileProvider({ children }) {
   const [isInfoDrawerOpen, setIsInfoDrawerOpen] = useState(false);
   const [infoDrawerTab, setInfoDrawerTab] = useState('details');
 
-  // Upload Queue — delegate hoàn toàn sang UploadContext
-  // FileContext chỉ dùng updateJob/enqueueJob/removeJob/resetJob từ UploadContext
+  // Upload Queue — delegate hoàn toàn sang UploadContext.
+  // Dùng `useUploadActions` (không phải `useUpload`): FileContext chỉ điều khiển
+  // hàng đợi chứ không vẽ tiến độ, nên nó KHÔNG được phép render lại theo từng %.
   const {
-    uploadQueue,
-    setUploadQueue,
     uploadQueueRef,
     updateJob,
     enqueueJob,
     removeJob,
     resetJob,
-  } = useUpload();
+  } = useUploadActions();
 
   const activeCountRef = useRef(0);   // số job đang chạy thực sự
   const pendingQueueRef = useRef([]); // mirror của uploadQueue để runner đọc không bị stale
 
-  const CONCURRENCY = 2;    // 2 file song song
-  const CHUNK_THRESHOLD = 10 * 1024 * 1024; // 10MB: file lớn hơn → dùng chunked upload
+  const CONCURRENCY = 2;    // 2 file song song (CHUNK_THRESHOLD nằm ở constants/upload.js
+                           // vì bảng tiến trình cũng cần biết tệp nào tạm dừng được)
+
+  /**
+   * jobId → AbortController của request đang chạy. Nút "Huỷ" cắt đúng request
+   * này; không có nó thì bấm huỷ chỉ đổi được nhãn trên màn hình còn dữ liệu
+   * vẫn tiếp tục chảy lên cloud.
+   */
+  const abortControllersRef = useRef(new Map());
+
+  /** jobId → { storageKey, storageProvider, resumableUrl } để còn dọn rác khi huỷ */
+  const uploadSessionsRef = useRef(new Map());
+
+  /** Những job người dùng đã bấm huỷ — để phân biệt "bị huỷ" với "lỗi thật" */
+  const canceledJobIdsRef = useRef(new Set());
+
+  /**
+   * Những job đang TẠM DỪNG. Khác huỷ ở đúng chỗ quan trọng nhất: phiên trên GCS
+   * và bản ghi localStorage được GIỮ NGUYÊN, nên bấm "Tiếp tục" là đẩy tiếp từ
+   * byte đang dở chứ không tải lại từ đầu.
+   */
+  const pausedJobIdsRef = useRef(new Set());
+
+  /**
+   * jobId → timer dọn dòng "Đã huỷ" khỏi bảng tiến trình.
+   * Giữ lại để còn huỷ timer khi người dùng bấm "Tải lại" ngay sau đó — không
+   * thì dòng vừa được bật lại đã bị chính timer cũ xoá mất.
+   */
+  const cancelCleanupTimersRef = useRef(new Map());
 
   // ── localStorage helpers (keyed by userId — ngăn resume vào tài khoản khác) ──
   const getChunkStateKey = (jobId) => `driveR_chunk_${user?.id || 'anon'}_${jobId}`;
 
   const saveChunkState = (jobId, state) => {
     try {
-      localStorage.setItem(getChunkStateKey(jobId), JSON.stringify(state));
+      // `savedAt` để biết phiên đã cũ bao lâu: session resumable của GCS chỉ sống
+      // 7 ngày, quá hạn thì đề nghị "tải tiếp" chỉ tổ làm người dùng mất công.
+      localStorage.setItem(getChunkStateKey(jobId), JSON.stringify({ ...state, savedAt: Date.now() }));
     } catch { /* quota exceeded — bỏ qua */ }
   };
 
@@ -217,6 +401,61 @@ export function FileProvider({ children }) {
   const clearChunkState = (jobId) => {
     try { localStorage.removeItem(getChunkStateKey(jobId)); } catch { /* ignore */ }
   };
+
+  /**
+   * Liệt kê các phiên tải lên còn dở của CHÍNH người dùng này.
+   *
+   * Đây là thứ khiến "tải tiếp sau khi F5" trở nên khả thi: nội dung tệp thì
+   * trình duyệt không giữ lại được qua một lần tải lại trang (đối tượng File
+   * chết theo tab), nhưng phiên trên GCS thì vẫn còn — chỉ cần người dùng chọn
+   * lại đúng tệp đó là đẩy tiếp từ chỗ đang dở.
+   *
+   * Bỏ qua: phiên của tài khoản khác, phiên quá 7 ngày (GCS đã xoá), và phiên
+   * của job đang chạy ngay trong phiên làm việc hiện tại.
+   */
+  const listResumableSessions = useCallback(() => {
+    const prefix = `driveR_chunk_${user?.id || 'anon'}_`;
+    const activeJobIds = new Set(uploadQueueRef.current.map((job) => job.id));
+    const sessions = [];
+
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (!key || !key.startsWith(prefix)) continue;
+
+        let data;
+        try {
+          data = JSON.parse(localStorage.getItem(key));
+        } catch {
+          localStorage.removeItem(key); // bản ghi hỏng — dọn luôn
+          continue;
+        }
+
+        if (!data || data.userId !== user?.id) continue;
+
+        const jobId = key.slice(prefix.length);
+        if (activeJobIds.has(jobId)) continue;
+
+        const ageMs = Date.now() - (data.savedAt || 0);
+        if (ageMs > RESUMABLE_SESSION_TTL_MS) {
+          localStorage.removeItem(key);
+          continue;
+        }
+
+        const uploadedBytes = readUploadedBytes(data);
+        sessions.push({
+          ...data,
+          jobId,
+          uploadedBytes,
+          percent: data.totalSizeBytes ? Math.round((uploadedBytes / data.totalSizeBytes) * 100) : 0,
+        });
+      }
+    } catch {
+      return []; // localStorage bị chặn (ẩn danh, iframe) — coi như không có phiên nào
+    }
+
+    return sessions.sort((a, b) => (b.savedAt || 0) - (a.savedAt || 0));
+  }, [user?.id, uploadQueueRef]);
 
   const openInfoDrawer = useCallback((item, tab = 'details') => {
     setInfoDrawerItem(item);
@@ -249,12 +488,12 @@ export function FileProvider({ children }) {
 
   // Fetch dữ liệu cho Trang chủ: gọi song song các tab hợp lệ của cùng API
   // GET /files (không thêm endpoint mới), rồi gộp và loại trùng theo id.
-  const fetchHomeItems = useCallback(async () => {
+  const fetchHomeItems = useCallback(async ({ silent = false } = {}) => {
     if (isAuthLoading || !isAuthenticated) return;
 
     // Dùng chung bộ đếm request với fetchFiles để response cũ không ghi đè response mới
     const requestId = ++fetchRequestIdRef.current;
-    setIsLoading(true);
+    if (!silent) setIsLoading(true);
     setError(null);
 
     try {
@@ -288,10 +527,10 @@ export function FileProvider({ children }) {
         });
       });
 
-      setItems(Array.from(mergedById.values()));
+      setItems((prev) => mergeItemsPreservingRefs(prev, Array.from(mergedById.values())));
       setError(responses.every((response) => response === null) ? 'Không thể tải danh sách tệp' : null);
     } finally {
-      if (requestId === fetchRequestIdRef.current) {
+      if (!silent && requestId === fetchRequestIdRef.current) {
         setIsLoading(false);
       }
     }
@@ -299,19 +538,21 @@ export function FileProvider({ children }) {
 
   // Fetch Files and Folders from Backend API
   const fetchFiles = useCallback(
-    async (retries = 1) => {
+    async (retries = 1, { silent = false } = {}) => {
       // Chờ cho đến khi AuthContext đã resolve xong mới fetch
       if (isAuthLoading || !isAuthenticated) return;
       // Trang chủ đi theo luồng gộp riêng (xem fetchHomeItems) vì cần dữ liệu nhiều tab
       if (activeTab === 'home') {
-        await fetchHomeItems();
+        await fetchHomeItems({ silent });
         return;
       }
       if (!VALID_FILE_TABS.includes(activeTab)) return; // Billing không cần danh sách file
 
       const requestId = ++fetchRequestIdRef.current;
-      setIsLoading(true);
-      setError(null);
+      // `silent` = đồng bộ nền (sau khi upload xong): KHÔNG bật skeleton, chỉ
+      // trộn dữ liệu mới vào danh sách đang hiện — người dùng không thấy gì nháy
+      if (!silent) setIsLoading(true);
+      if (!silent) setError(null);
 
       const doFetch = async (remainingRetries) => {
         try {
@@ -333,7 +574,7 @@ export function FileProvider({ children }) {
           const rawItems = response.items || [];
           const formattedItems = rawItems.map((item) => formatApiItem(item, activeTab === 'shared-with-me'));
 
-          setItems(formattedItems);
+          setItems((prev) => mergeItemsPreservingRefs(prev, formattedItems));
           if (response.meta) {
             setTotalItems(response.meta.total || formattedItems.length);
             setTotalPages(response.meta.totalPages || 1);
@@ -347,17 +588,17 @@ export function FileProvider({ children }) {
 
           if (remainingRetries > 0) {
             console.warn(`Lỗi khi lấy danh sách file, đang thử lại sau 1s (còn ${remainingRetries} lần thử):`, err);
-            setError('Danh sách có thể chưa cập nhật, đang thử tải lại...');
+            if (!silent) setError('Danh sách có thể chưa cập nhật, đang thử tải lại...');
             await new Promise((resolve) => setTimeout(resolve, 1000));
             if (requestId !== fetchRequestIdRef.current) return;
             return await doFetch(remainingRetries - 1);
           }
 
           console.error('Lỗi khi lấy danh sách file sau khi thử lại:', err);
-          setError(err.message || 'Không thể tải danh sách tệp');
+          if (!silent) setError(err.message || 'Không thể tải danh sách tệp');
           // Giữ lại danh sách items cũ, KHÔNG gọi setItems([]) để tránh làm trắng trang
         } finally {
-          if (requestId === fetchRequestIdRef.current) {
+          if (!silent && requestId === fetchRequestIdRef.current) {
             setIsLoading(false);
           }
         }
@@ -368,10 +609,75 @@ export function FileProvider({ children }) {
     [isAuthenticated, isAuthLoading, activeTab, currentFolderId, currentSharedDriveId, debouncedSearch, filterType, filterDate, filterOwner, currentPage, pageSize, fetchHomeItems]
   );
 
+  /**
+   * Ref tới bản `fetchFiles` MỚI NHẤT.
+   *
+   * Bắt buộc cho lần đồng bộ nền sau khi upload xong: hàng đợi chạy nhiều giây,
+   * người dùng có thể đã sang thư mục khác. Nếu dùng `fetchFiles` mà callback
+   * đóng gói lúc bắt đầu upload thì request phát ra mang folderId CŨ nhưng lại
+   * là request mới nhất — nó sẽ thắng và đổ danh sách thư mục cũ lên màn hình
+   * thư mục mới.
+   */
+  const fetchFilesRef = useRef(null);
+  fetchFilesRef.current = fetchFiles;
+
   useEffect(() => {
     fetchFiles();
     fetchAnalytics();
   }, [fetchFiles, fetchAnalytics]);
+
+  /**
+   * Hai bộ gộp (debounce) dùng cho hàng đợi upload.
+   *
+   * Trước đây MỖI tệp xong đều gọi `fetchFiles()` + `fetchAnalytics()`. Tải một
+   * thư mục 40 tệp = 80 request và 40 lần dựng lại toàn bộ danh sách. Giờ:
+   *  - card của tệp vừa xong được chèn ngay tại chỗ (xem `upsertItems`),
+   *  - thống kê dung lượng gộp lại còn 1 lần / 1.2s,
+   *  - và chỉ khi hàng đợi rỗng hẳn mới đồng bộ lại với server MỘT lần, ở chế
+   *    độ im lặng (không skeleton) để bắt các thay đổi phía server mà client
+   *    không đoán được (đổi tên do trùng, cờ spam, quota…).
+   */
+  const analyticsTimerRef = useRef(null);
+  const silentSyncTimerRef = useRef(null);
+
+  const scheduleAnalyticsRefresh = useCallback(() => {
+    if (analyticsTimerRef.current) clearTimeout(analyticsTimerRef.current);
+    analyticsTimerRef.current = setTimeout(() => {
+      analyticsTimerRef.current = null;
+      fetchAnalytics();
+    }, 1200);
+  }, [fetchAnalytics]);
+
+  const scheduleSilentSync = useCallback(() => {
+    if (silentSyncTimerRef.current) clearTimeout(silentSyncTimerRef.current);
+
+    const tick = () => {
+      // Còn tệp đang tải thì hoãn tiếp — lần đồng bộ này chỉ có ý nghĩa khi hàng
+      // đợi đã rỗng hẳn, chen vào giữa chừng là tải lại danh sách vô ích
+      if (activeCountRef.current > 0 || pendingQueueRef.current.length > 0) {
+        silentSyncTimerRef.current = setTimeout(tick, 1500);
+        return;
+      }
+      silentSyncTimerRef.current = null;
+      fetchFilesRef.current?.(0, { silent: true });
+    };
+
+    silentSyncTimerRef.current = setTimeout(tick, 1500);
+  }, []);
+
+  useEffect(() => () => {
+    if (analyticsTimerRef.current) clearTimeout(analyticsTimerRef.current);
+    if (silentSyncTimerRef.current) clearTimeout(silentSyncTimerRef.current);
+  }, []);
+
+  /** Tệp vừa upload xong: chèn card mới, hẹn cập nhật quota + đồng bộ cuối hàng đợi */
+  const onUploadedFile = useCallback((entity) => {
+    if (entity && belongsToCurrentView(entity)) {
+      upsertItems(entity);
+    }
+    scheduleAnalyticsRefresh();
+    scheduleSilentSync();
+  }, [belongsToCurrentView, upsertItems, scheduleAnalyticsRefresh, scheduleSilentSync]);
 
   const resetFilters = useCallback(() => {
     setFilterType('all');
@@ -627,7 +933,6 @@ export function FileProvider({ children }) {
     let res;
     // 1. Thao tác chính: tạo thư mục ở backend
     try {
-      setIsLoading(true);
       const payload = {
         name: folderName.trim(),
         ...(currentFolderId ? { parentId: currentFolderId } : {}),
@@ -637,19 +942,19 @@ export function FileProvider({ children }) {
     } catch (err) {
       toast.error('Không thể tạo thư mục: ' + err.message);
       throw err;
-    } finally {
-      setIsLoading(false);
     }
 
-    // 2. Bước đồng bộ lại danh sách (tách riêng, không báo lỗi tạo thư mục nếu fetch lỗi)
-    try {
-      await fetchFiles();
-    } catch (fetchErr) {
-      console.warn('Lỗi đồng bộ danh sách sau khi tạo thư mục:', fetchErr);
+    // 2. Backend trả nguyên entity thư mục vừa tạo → chèn đúng MỘT card, không bật
+    // skeleton và không tải lại cả danh sách. `scheduleSilentSync` lo phần đối
+    // chiếu với server (ví dụ tên bị tự đổi vì trùng) ở chế độ im lặng.
+    const created = res?.id ? res : res?.data?.id ? res.data : null;
+    if (created && belongsToCurrentView(created)) {
+      upsertItems(created);
     }
+    scheduleSilentSync();
 
     return res;
-  }, [currentFolderId, activeTab, currentSharedDriveId, fetchFiles]);
+  }, [currentFolderId, activeTab, currentSharedDriveId, belongsToCurrentView, upsertItems, scheduleSilentSync]);
 
   /**
    * Tạo folder im lặng (không trigger loading, không gọi fetchFiles).
@@ -902,90 +1207,118 @@ export function FileProvider({ children }) {
   // --- Upload Queue Engine ---
   // updateJob, enqueueJob, removeJob, resetJob — được inject từ UploadContext (xem trên)
 
-  /** Chunked upload cho file > 10MB — resume được sau khi F5/đóng tab */
+  /**
+   * Chunked upload cho tệp > 10MB — tải tiếp được sau khi mất mạng, bấm Huỷ hụt,
+   * hay F5.
+   *
+   * Điểm tiếp tục được tính theo BYTE chứ không theo chỉ số chunk: khi đứt mạng
+   * giữa lúc PUT, GCS vẫn giữ phần đầu của chunk đó, nên tính theo chunk là ném
+   * đi vài MB đã đẩy lên rồi. Và số byte ấy HỎI THẲNG GCS (qua backend) chứ
+   * không tin con số client tự ghi — client có thể đã tắt máy đúng lúc đang gửi.
+   */
   const runChunkedUploadJob = useCallback(
-    async (job) => {
+    async (job, signal) => {
       const { id, fileObj, parentId, sharedDriveId } = job;
+      const totalSize = fileObj.size;
 
-      // ── Bước 1: Kiểm tra localStorage có session resume không ──
+      // ── Bước 1: Có phiên cũ trong localStorage không? ──
       let session = loadChunkState(id);
-      let resumableUrl, storageKey, chunkSize, totalChunks;
-      let chunksDone = 0;
+      let resumableUrl, storageKey, chunkSize;
+      let uploadedBytes = 0;
 
-      if (session && session.userId === user?.id) {
-        // Resume session cũ
-        ({ resumableUrl, storageKey, chunkSize, totalChunks, chunksDone } = session);
-        updateJob(id, { status: 'uploading', percent: Math.round((chunksDone / totalChunks) * 95) });
+      if (session && session.userId === user?.id && session.resumableUrl && session.storageKey) {
+        ({ resumableUrl, storageKey, chunkSize } = session);
+        chunkSize = chunkSize || CHUNK_THRESHOLD;
+        uploadedBytes = readUploadedBytes(session);
+
+        // Nguồn sự thật là GCS, không phải localStorage
+        updateJob(id, { status: 'uploading', percent: Math.round((uploadedBytes / totalSize) * 95) });
+        const remote = await chunkedApi
+          .status({ storageKey, resumableUrl, totalSizeBytes: totalSize })
+          .catch((err) => {
+            console.warn('Không hỏi được trạng thái phiên tải lên, dùng số liệu cục bộ:', err);
+            return null;
+          });
+
+        if (remote?.expired) {
+          // Phiên đã hết hạn/bị huỷ trên GCS → bỏ hẳn, khởi tạo lại từ đầu
+          clearChunkState(id);
+          session = null;
+        } else if (remote) {
+          uploadedBytes = remote.completed ? totalSize : Math.min(remote.receivedBytes || 0, totalSize);
+        }
       } else {
-        // Khởi tạo session mới
+        session = null;
+      }
+
+      // ── Bước 2: Chưa có phiên hợp lệ → xin GCS một session mới ──
+      if (!session) {
         updateJob(id, { status: 'uploading', percent: 1 });
         const initRes = await chunkedApi.init({
           name: fileObj.name,
-          totalSizeBytes: fileObj.size,
+          totalSizeBytes: totalSize,
           mimeType: fileObj.type || 'application/octet-stream',
           parentId: parentId || undefined,
           sharedDriveId: sharedDriveId || undefined,
         });
-        ({ resumableUrl, storageKey, chunkSize, totalChunks } = initRes);
-        chunksDone = 0;
+        ({ resumableUrl, storageKey, chunkSize } = initRes);
+        chunkSize = chunkSize || CHUNK_THRESHOLD;
+        uploadedBytes = 0;
+      }
 
-        // Lưu vào localStorage ngay — keyed by userId
+      // Ghi lại ngay để nút Huỷ có cái mà dọn, và để F5 còn tìm thấy phiên này
+      uploadSessionsRef.current.set(id, { storageKey, resumableUrl, storageProvider: 'google_cloud' });
+
+      const persist = (bytes) =>
         saveChunkState(id, {
           userId: user?.id,
           resumableUrl,
           storageKey,
           chunkSize,
-          totalChunks,
-          chunksDone: 0,
+          uploadedBytes: bytes,
           fileName: fileObj.name,
-          totalSizeBytes: fileObj.size,
+          totalSizeBytes: totalSize,
           mimeType: fileObj.type || 'application/octet-stream',
+          lastModified: fileObj.lastModified || null,
           parentId: parentId || null,
           sharedDriveId: sharedDriveId || null,
         });
-      }
 
-      // ── Bước 2: PUT từng chunk lên GCS resumable URL ──
-      for (let i = chunksDone; i < totalChunks; i++) {
-        const start = i * chunkSize;
-        const end   = Math.min(start + chunkSize, fileObj.size);
-        const chunk = fileObj.slice(start, end);
+      persist(uploadedBytes);
+
+      // ── Bước 3: PUT tiếp từ đúng byte đang dở ──
+      while (uploadedBytes < totalSize) {
+        const end = Math.min(uploadedBytes + chunkSize, totalSize);
+        const chunk = fileObj.slice(uploadedBytes, end);
+        const chunkStart = uploadedBytes;
 
         await chunkedApi.uploadChunkDirect(
           resumableUrl,
           chunk,
-          start,
-          fileObj.size,
-          () => {
-            const percent = Math.round(((i + 0.5) / totalChunks) * 95);
+          chunkStart,
+          totalSize,
+          (chunkPercent) => {
+            // Tiến độ trong lòng một chunk cũng phải hiện ra: với chunk 10MB trên
+            // đường truyền chậm, thanh tiến trình đứng im hàng chục giây là dấu
+            // hiệu duy nhất người dùng có, và nó nói sai.
+            const sentInChunk = Math.round((chunk.size * chunkPercent) / 100);
+            const percent = Math.round(((chunkStart + sentInChunk) / totalSize) * 95);
             updateJob(id, { percent, status: 'uploading' });
           },
+          signal,
         );
 
-        // Lưu progress sau mỗi chunk thành công
-        chunksDone = i + 1;
-        saveChunkState(id, {
-          userId: user?.id,
-          resumableUrl,
-          storageKey,
-          chunkSize,
-          totalChunks,
-          chunksDone,
-          fileName: fileObj.name,
-          totalSizeBytes: fileObj.size,
-          mimeType: fileObj.type || 'application/octet-stream',
-          parentId: parentId || null,
-          sharedDriveId: sharedDriveId || null,
-        });
-        updateJob(id, { percent: Math.round((chunksDone / totalChunks) * 95) });
+        uploadedBytes = end;
+        persist(uploadedBytes);
+        updateJob(id, { percent: Math.round((uploadedBytes / totalSize) * 95) });
       }
 
-      // ── Bước 3: Hoàn tất — backend tạo DB record và verify userId ──
+      // ── Bước 4: Hoàn tất — backend tạo DB record và verify userId ──
       updateJob(id, { percent: 98, status: 'confirming' });
       const completeRes = await chunkedApi.complete({
         storageKey,
         name: fileObj.name,
-        sizeBytes: fileObj.size,
+        sizeBytes: totalSize,
         mimeType: fileObj.type || 'application/octet-stream',
         parentId: parentId || undefined,
         sharedDriveId: sharedDriveId || undefined,
@@ -999,34 +1332,46 @@ export function FileProvider({ children }) {
 
       // Xoá localStorage — upload hoàn tất
       clearChunkState(id);
+      uploadSessionsRef.current.delete(id);
+
+      // Trả entity về cho runUploadJob chèn thẳng vào danh sách
+      return completeRes?.file || null;
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [user?.id, fetchFiles, fetchAnalytics],
+    [user?.id],
   );
 
   /** Thực thi upload cho 1 job (phân nhánh: chunked nếu > 10MB, thường nếu nhỏ hơn) */
   const runUploadJob = useCallback(
     async (job) => {
       const { id, fileObj, parentId, targetProvider, sharedDriveId } = job;
+
+      // Người dùng có thể đã bấm huỷ / tạm dừng trong lúc job còn nằm chờ tới lượt
+      if (canceledJobIdsRef.current.has(id) || pausedJobIdsRef.current.has(id)) {
+        activeCountRef.current -= 1;
+        dispatchRunner();
+        return;
+      }
+
+      const controller = new AbortController();
+      abortControllersRef.current.set(id, controller);
+      const { signal } = controller;
+
       updateJob(id, { status: 'uploading', percent: 0 });
 
       try {
         // ── Nếu file > 10MB → dùng GCS chunked resumable upload ──
         if (fileObj.size > CHUNK_THRESHOLD) {
-          await runChunkedUploadJob(job);
+          const uploadedEntity = await runChunkedUploadJob(job, signal);
           updateJob(id, { percent: 100, status: 'done' });
           setTimeout(() => removeJob(id), 5000);
-          try {
-            await fetchFiles();
-            await fetchAnalytics();
-          } catch (syncErr) {
-            console.warn('Lỗi đồng bộ sau khi tải lên file chunked:', syncErr);
-          }
+          onUploadedFile(uploadedEntity);
           return;
         }
 
         // ── File nhỏ ≤ 10MB: flow cũ (presigned PUT hoặc proxy) ──
         let isUploaded = false;
+        let uploadedEntity = null;
 
         // 1. Thử Direct Presigned PUT
         try {
@@ -1041,9 +1386,18 @@ export function FileProvider({ children }) {
 
           const { uploadUrl, storageKey, storageProvider } = presignedData;
 
-          await storageApi.uploadDirectToCloud(uploadUrl, fileObj, (percent) => {
-            updateJob(id, { percent, status: 'uploading' });
-          });
+          // Ghi lại trước khi đẩy: bấm Huỷ giữa chừng thì đây là thứ duy nhất
+          // cho biết phải xoá object nào trên cloud
+          uploadSessionsRef.current.set(id, { storageKey, storageProvider });
+
+          await storageApi.uploadDirectToCloud(
+            uploadUrl,
+            fileObj,
+            (percent) => {
+              updateJob(id, { percent, status: 'uploading' });
+            },
+            signal,
+          );
 
           updateJob(id, { percent: 99, status: 'confirming' });
 
@@ -1063,8 +1417,13 @@ export function FileProvider({ children }) {
             updateJob(id, { fileName: savedName, renamedFrom: fileObj.name });
           }
 
+          uploadedEntity = confirmRes?.file || null;
           isUploaded = true;
+          uploadSessionsRef.current.delete(id); // đã có hàng trong DB, không còn là rác
         } catch (directErr) {
+          // Huỷ KHÔNG phải là "direct upload hỏng" — rơi xuống proxy lúc này là
+          // tải lại đúng tệp người dùng vừa bảo dừng.
+          if (signal.aborted || canceledJobIdsRef.current.has(id)) throw directErr;
           console.warn('Direct upload failed, falling back to proxy:', directErr);
         }
 
@@ -1078,6 +1437,7 @@ export function FileProvider({ children }) {
               updateJob(id, { percent, status: 'uploading' });
             },
             sharedDriveId,
+            signal,
           );
 
           // Backend có thể đổi tên nếu trùng
@@ -1085,30 +1445,51 @@ export function FileProvider({ children }) {
           if (savedNameProxy !== fileObj.name) {
             updateJob(id, { fileName: savedNameProxy, renamedFrom: fileObj.name });
           }
+          uploadedEntity = proxyRes?.file || null;
+
+          // Lần PUT trực tiếp hỏng có thể đã để lại một object dở trên cloud mà
+          // không hàng nào trong `files` trỏ tới. Proxy vừa tạo hàng mới rồi, nên
+          // mẩu kia là rác — dọn ngay, đừng để tích lại theo từng lần lỗi mạng.
+          const orphan = uploadSessionsRef.current.get(id);
+          if (orphan?.storageKey) {
+            uploadSessionsRef.current.delete(id);
+            storageApi
+              .abortUpload({ storageKey: orphan.storageKey, storageProvider: orphan.storageProvider })
+              .catch((cleanupErr) => console.warn('Không dọn được tệp dở của lần tải trực tiếp:', cleanupErr));
+          }
         }
 
         updateJob(id, { percent: 100, status: 'done' });
         // Tự xóa job done sau 5 giây
         setTimeout(() => removeJob(id), 5000);
 
-        // Refresh sau khi 1 file xong (đồng bộ danh sách và dung lượng)
-        try {
-          await fetchFiles();
-          await fetchAnalytics();
-        } catch (syncErr) {
-          console.warn('Lỗi đồng bộ sau khi tải lên file:', syncErr);
-        }
+        // Chỉ thêm đúng card của tệp vừa xong — KHÔNG tải lại cả thư mục
+        onUploadedFile(uploadedEntity);
       } catch (err) {
-        console.error(`Lỗi upload "${fileObj.name}":`, err);
-        updateJob(id, { percent: 0, status: 'error', error: err.message });
+        // Bị huỷ hoặc tạm dừng thì không phải lỗi: không hiện đỏ, không mời "Thử lại"
+        const wasAborted =
+          signal.aborted || err?.code === 'ERR_CANCELED' || err?.name === 'CanceledError';
+        const wasPaused = pausedJobIdsRef.current.has(id) && wasAborted;
+        const wasCanceled = !wasPaused && (canceledJobIdsRef.current.has(id) || wasAborted);
+
+        if (wasPaused) {
+          // Giữ nguyên % đang có: đó là thông tin "đã tải tới đâu" của người dùng
+          updateJob(id, { status: 'paused', error: undefined });
+        } else if (wasCanceled) {
+          updateJob(id, { status: 'canceled', percent: 0, error: undefined });
+        } else {
+          console.error(`Lỗi upload "${fileObj.name}":`, err);
+          updateJob(id, { percent: 0, status: 'error', error: err.message });
+        }
       } finally {
+        abortControllersRef.current.delete(id);
         // Giảm bộ đếm và dispatch runner để chạy job tiếp theo
         activeCountRef.current -= 1;
         dispatchRunner();
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [runChunkedUploadJob, fetchFiles, fetchAnalytics],
+    [runChunkedUploadJob, onUploadedFile],
   );
 
   /** Runner: lấy job pending từ ref, chạy tối đa CONCURRENCY job cùng lúc */
@@ -1156,12 +1537,24 @@ export function FileProvider({ children }) {
    */
   const retryUploadJob = useCallback(
     (jobId) => {
-      const job = uploadQueueRef.current.find((j) => j.id === jobId && j.status === 'error');
+      const job = uploadQueueRef.current.find(
+        (j) => j.id === jobId && (j.status === 'error' || j.status === 'canceled'),
+      );
       if (!job) return;
+
+      // Job vừa bị huỷ: gỡ cờ huỷ và huỷ timer dọn dòng, nếu không thì job chạy
+      // lại được vài giây rồi biến mất khỏi bảng tiến trình
+      canceledJobIdsRef.current.delete(jobId);
+      const pendingCleanup = cancelCleanupTimersRef.current.get(jobId);
+      if (pendingCleanup) {
+        clearTimeout(pendingCleanup);
+        cancelCleanupTimersRef.current.delete(jobId);
+      }
 
       const retriedJob = { ...job, percent: 0, status: 'pending', error: undefined, renamedFrom: undefined };
       // Reset job trong UploadContext state
       resetJob(jobId, { percent: 0, status: 'pending', error: undefined, renamedFrom: undefined });
+      uploadSessionsRef.current.delete(jobId);
       // Đưa lại vào pendingQueueRef để runner xử lý
       pendingQueueRef.current.push(retriedJob);
       // Dispatch runner (setTimeout để state flush trước)
@@ -1170,9 +1563,267 @@ export function FileProvider({ children }) {
     [dispatchRunner, uploadQueueRef, resetJob],
   );
 
+  /**
+   * HUỶ một tệp đang tải lên.
+   *
+   * Ba việc, thiếu việc nào cũng là huỷ giả:
+   *  1. Nhấc job khỏi hàng đợi (nếu còn đang chờ tới lượt).
+   *  2. Cắt request đang chạy bằng AbortController — không có bước này thì dữ
+   *     liệu vẫn chảy lên cloud sau khi màn hình đã ghi "Đã huỷ".
+   *  3. Nhờ backend dọn phần đã đẩy lên: huỷ session resumable và xoá object
+   *     chưa được `confirm-upload` ghi vào DB. Bỏ bước này thì mỗi lần huỷ để
+   *     lại một mẩu rác không ai xoá được nữa nhưng vẫn tính tiền lưu trữ.
+   */
+  const cancelUploadJob = useCallback(
+    async (jobId) => {
+      const job = uploadQueueRef.current.find((j) => j.id === jobId);
+      if (!job || job.status === 'done' || job.status === 'canceled') return;
+
+      canceledJobIdsRef.current.add(jobId);
+      pausedJobIdsRef.current.delete(jobId); // huỷ một tệp đang tạm dừng cũng là huỷ
+      pendingQueueRef.current = pendingQueueRef.current.filter((j) => j.id !== jobId);
+
+      abortControllersRef.current.get(jobId)?.abort();
+      updateJob(jobId, { status: 'canceled', percent: 0, error: undefined });
+
+      // Thông tin phiên: ưu tiên bản trong bộ nhớ, ngã về localStorage (job chunked
+      // được khôi phục sau F5 thì chỉ còn bản này)
+      const inMemory = uploadSessionsRef.current.get(jobId);
+      const stored = inMemory ? null : loadChunkState(jobId);
+      const session =
+        inMemory ||
+        (stored?.storageKey
+          ? { storageKey: stored.storageKey, resumableUrl: stored.resumableUrl, storageProvider: 'google_cloud' }
+          : null);
+
+      uploadSessionsRef.current.delete(jobId);
+      clearChunkState(jobId);
+
+      if (session?.storageKey) {
+        try {
+          await storageApi.abortUpload({
+            storageKey: session.storageKey,
+            storageProvider: session.storageProvider,
+            resumableUrl: session.resumableUrl,
+          });
+        } catch (err) {
+          // Dọn rác hỏng không phải chuyện của người dùng — họ chỉ muốn dừng
+          console.warn('Không dọn được phần đã tải lên trên cloud:', err);
+        }
+      }
+
+      // Giữ dòng "Đã huỷ" một lát cho người dùng thấy việc đã xảy ra, rồi dẹp
+      const timer = setTimeout(() => {
+        cancelCleanupTimersRef.current.delete(jobId);
+        canceledJobIdsRef.current.delete(jobId);
+        removeJob(jobId);
+      }, 4000);
+      cancelCleanupTimersRef.current.set(jobId, timer);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [updateJob, removeJob, uploadQueueRef],
+  );
+
+  /**
+   * TẠM DỪNG một tệp đang tải (chỉ có nghĩa với tệp > 10MB — luồng chunked).
+   *
+   * Cắt request đang chạy NHƯNG không đụng gì tới phiên trên GCS: phần đã đẩy
+   * lên còn nguyên, `fileObj` vẫn nằm trong job, nên "Tiếp tục" là đẩy nốt phần
+   * còn thiếu. Đây chính là khác biệt với "Huỷ" — huỷ thì xoá sạch và lần sau
+   * phải tải lại từ đầu.
+   */
+  const pauseUploadJob = useCallback(
+    (jobId) => {
+      const job = uploadQueueRef.current.find((j) => j.id === jobId);
+      if (!job || !['pending', 'uploading', 'confirming'].includes(job.status)) return;
+      if (!(job.fileObj?.size > CHUNK_THRESHOLD)) return; // tệp nhỏ không có gì để quay lại
+
+      pausedJobIdsRef.current.add(jobId);
+      pendingQueueRef.current = pendingQueueRef.current.filter((j) => j.id !== jobId);
+      abortControllersRef.current.get(jobId)?.abort();
+      updateJob(jobId, { status: 'paused', error: undefined });
+    },
+    [updateJob, uploadQueueRef],
+  );
+
+  /** Tải tiếp một tệp đang tạm dừng — trong CÙNG phiên làm việc, không cần chọn lại tệp */
+  const resumePausedJob = useCallback(
+    (jobId) => {
+      const job = uploadQueueRef.current.find((j) => j.id === jobId && j.status === 'paused');
+      if (!job || !job.fileObj) return;
+
+      pausedJobIdsRef.current.delete(jobId);
+      resetJob(jobId, { status: 'pending', error: undefined });
+      pendingQueueRef.current.push({ ...job, status: 'pending' });
+      // setTimeout để state kịp flush trước khi runner đọc lại hàng đợi
+      setTimeout(() => dispatchRunner(), 0);
+    },
+    [resetJob, dispatchRunner, uploadQueueRef],
+  );
+
+  /** Huỷ toàn bộ tệp chưa xong — dùng cho nút "Huỷ tất cả" ở bảng tiến trình */
+  const cancelAllUploads = useCallback(async () => {
+    const unfinished = uploadQueueRef.current.filter(
+      (job) => job.status !== 'done' && job.status !== 'canceled',
+    ); // 'paused' và 'error' cũng nằm trong đây: đều là việc còn dở
+    await Promise.all(unfinished.map((job) => cancelUploadJob(job.id)));
+  }, [cancelUploadJob, uploadQueueRef]);
+
+  /**
+   * TẢI TIẾP một phiên còn dở sau khi F5 / đóng tab.
+   *
+   * Người dùng buộc phải chọn lại đúng tệp: trình duyệt không cho giữ nội dung
+   * tệp qua một lần tải lại trang, đó là giới hạn của nền tảng chứ không phải
+   * lựa chọn thiết kế. Đổi lại, phần đã đẩy lên GCS vẫn còn nguyên nên chỉ tải
+   * nốt phần thiếu.
+   *
+   * Kiểm tra tên + kích thước (+ ngày sửa nếu có) trước khi nối tiếp: ghép nhầm
+   * tệp vào một phiên đang dở sẽ tạo ra một tệp hỏng mà không báo lỗi ở đâu cả.
+   */
+  const resumeUpload = useCallback(
+    (session, file) => {
+      if (!session?.jobId || !file) return { ok: false, reason: 'missing' };
+      if (session.totalSizeBytes && file.size !== session.totalSizeBytes) {
+        return { ok: false, reason: 'size' };
+      }
+      if (session.fileName && file.name !== session.fileName) {
+        return { ok: false, reason: 'name' };
+      }
+      if (session.lastModified && file.lastModified && file.lastModified !== session.lastModified) {
+        return { ok: false, reason: 'modified' };
+      }
+
+      const job = {
+        id: session.jobId, // giữ nguyên id = giữ nguyên khoá localStorage của phiên
+        fileName: file.name,
+        fileObj: file,
+        parentId: session.parentId || null,
+        sharedDriveId: session.sharedDriveId || undefined,
+        targetProvider: undefined,
+        percent: session.percent || 0,
+        status: 'pending',
+        isResumed: true,
+      };
+
+      canceledJobIdsRef.current.delete(session.jobId);
+      enqueueJob(job);
+      pendingQueueRef.current.push(job);
+      dispatchRunner();
+      return { ok: true };
+    },
+    [enqueueJob, dispatchRunner],
+  );
+
+  /** Bỏ hẳn một phiên dở: xoá bản ghi cục bộ và dọn phần đã đẩy lên cloud */
+  const discardResumableSession = useCallback(async (session) => {
+    if (!session?.jobId) return;
+    clearChunkState(session.jobId);
+    if (session.storageKey) {
+      try {
+        await storageApi.abortUpload({
+          storageKey: session.storageKey,
+          storageProvider: 'google_cloud',
+          resumableUrl: session.resumableUrl,
+        });
+      } catch (err) {
+        console.warn('Không dọn được phiên tải lên đã bỏ:', err);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Backward-compat alias — code cũ gọi uploadFile vẫn hoạt động
 
   const uploadFile = enqueueUpload;
+
+  /**
+   * Tải lên MỘT HOẶC NHIỀU thư mục/tệp, giữ nguyên cấu trúc thư mục con.
+   *
+   * Trước đây logic này được sao chép ở ba chỗ (NewButton, FileGridView,
+   * FileListView) và mỗi chỗ đều kết thúc bằng `triggerReload()` — tức là tải
+   * lại toàn bộ danh sách. Giờ nó nằm một chỗ, và chỉ chèn thêm card của những
+   * thư mục gốc vừa tạo.
+   *
+   * @param {{entries: {file: File, relativePath: string}[], dirPaths: string[]}} tree
+   *        Kết quả của `collectInputEntries` (input) hoặc `collectDropEntries`
+   *        (kéo–thả, hỗ trợ nhiều thư mục cùng lúc) trong `utils/uploadTree`.
+   */
+  const uploadEntries = useCallback(
+    async (tree, { parentId, sharedDriveId } = {}) => {
+      const entries = tree?.entries || [];
+      const dirPaths = tree?.dirPaths || [];
+      if (entries.length === 0 && dirPaths.length === 0) {
+        return { fileCount: 0, folderCount: 0 };
+      }
+
+      const view = viewRef.current;
+      const targetParentId = parentId !== undefined ? parentId : view.currentFolderId;
+      const effectiveSharedDriveId =
+        sharedDriveId !== undefined
+          ? sharedDriveId
+          : view.activeTab === 'shared-drives'
+            ? view.currentSharedDriveId
+            : undefined;
+
+      const sortedDirPaths = buildSortedDirPaths({ entries, dirPaths });
+
+      let batchFolderIdMap = {};
+      if (sortedDirPaths.length > 0) {
+        try {
+          batchFolderIdMap = await filesApi.createFoldersBatch(
+            sortedDirPaths,
+            targetParentId,
+            effectiveSharedDriveId,
+          );
+        } catch (error) {
+          console.error('Lỗi khi tạo hàng loạt thư mục:', error);
+          toast.error('Không thể tạo toàn bộ cấu trúc thư mục, một số tệp có thể bị đặt sai vị trí.');
+        }
+      }
+
+      // '' = thư mục đang mở
+      const folderIdMap = { '': targetParentId ?? null, ...batchFolderIdMap };
+
+      // Thư mục gốc (cấp 1) là thứ duy nhất người dùng thấy ngay → chèn card cho
+      // chúng. `skipExisting` vì khi tải trùng tên, backend trả về id thư mục CŨ;
+      // ghi đè bằng dữ liệu tự dựng ở client sẽ làm mất ngày tạo thật.
+      const now = new Date().toISOString();
+      const rootFolders = sortedDirPaths
+        .filter((path) => !path.includes('/') && batchFolderIdMap[path])
+        .map((path) => ({
+          id: batchFolderIdMap[path],
+          name: path,
+          type: 'folder',
+          parentId: targetParentId ?? null,
+          sharedDriveId: effectiveSharedDriveId ?? null,
+          sizeBytes: 0,
+          isStarred: false,
+          isTrash: false,
+          isSpam: false,
+          createdAt: now,
+          updatedAt: now,
+        }))
+        .filter(belongsToCurrentView);
+
+      if (rootFolders.length > 0) {
+        upsertItems(rootFolders, { skipExisting: true });
+      }
+
+      entries.forEach(({ file, relativePath }) => {
+        const parts = relativePath.split('/');
+        const dirPath = parts.slice(0, -1).join('/');
+        const targetId = folderIdMap[dirPath] ?? targetParentId;
+        enqueueUpload(file, targetId, undefined, effectiveSharedDriveId);
+      });
+
+      // Cây thư mục sâu (folder con) chỉ hiện ra khi người dùng mở vào — lần đồng
+      // bộ im lặng sau khi hàng đợi rỗng sẽ chỉnh lại mọi thứ cho khớp server.
+      scheduleSilentSync();
+
+      return { fileCount: entries.length, folderCount: sortedDirPaths.length };
+    },
+    [belongsToCurrentView, upsertItems, enqueueUpload, scheduleSilentSync],
+  );
 
   // Backward compatibility alias for UI calls
   const uploadFileMock = useCallback((fileName) => {
@@ -1305,14 +1956,25 @@ export function FileProvider({ children }) {
     copyItem,
     uploadFile,
     enqueueUpload,
+    uploadEntries,
     retryUploadJob,
+    cancelUploadJob,
+    cancelAllUploads,
+    pauseUploadJob,
+    resumePausedJob,
+    listResumableSessions,
+    resumeUpload,
+    discardResumableSession,
     uploadFileMock,
     renameItem,
     getDownloadUrl,
     getPreviewUrl,
     getFileTextContent,
     createShareLink,
-    uploadQueue,
+    // uploadQueue CỐ TÌNH không nằm ở đây: nó đổi liên tục theo % tiến độ, mà
+    // contextValue này được cả FileGridView/FileListView/SideBar… tiêu thụ —
+    // để lại thì mỗi 2% tiến độ là một lần render toàn bộ màn hình danh sách.
+    // Ai cần hàng đợi thì dùng `useUpload()` (UploadProgress đang làm đúng vậy).
     infoDrawerItem,
     isInfoDrawerOpen,
     infoDrawerTab,
@@ -1357,7 +2019,9 @@ export function FileProvider({ children }) {
     emptyTrash, createFolder, createFolderSilent, moveItem, copyItem, renameItem,
     getDownloadUrl, getPreviewUrl, getFileTextContent, createShareLink,
     // ── Upload ──
-    uploadQueue, uploadFile, enqueueUpload, retryUploadJob, uploadFileMock,
+    uploadFile, enqueueUpload, uploadEntries, retryUploadJob, uploadFileMock,
+    cancelUploadJob, cancelAllUploads, pauseUploadJob, resumePausedJob,
+    listResumableSessions, resumeUpload, discardResumableSession,
     // ── Drawer / preview ──
     infoDrawerItem, isInfoDrawerOpen, infoDrawerTab, openInfoDrawer, closeInfoDrawer,
     previewItem, openPreview, closePreview,

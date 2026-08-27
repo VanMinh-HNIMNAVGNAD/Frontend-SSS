@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, memo } from 'react';
 import { useFiles } from '../../context/FileContext';
-import { filesApi, sharingApi } from '../../services/api';
+import { sharingApi } from '../../services/api';
 import { readDefaultShareRole } from '../../constants/privacy';
 import toast from 'react-hot-toast';
 import { formatBytes } from '../../utils/formatFileSize';
@@ -10,6 +10,8 @@ import RenameModal from './RenameModal';
 import ShareModal from './ShareModal';
 import GeminiModal from './GeminiModal';
 import StarButton from '../common/StarButton';
+import FileThumbnail from './FileThumbnail';
+import { collectInputEntries } from '../../utils/uploadTree';
 import {
     Folder,
     FileText,
@@ -245,8 +247,15 @@ const FileTableRow = memo(function FileTableRow({
 
             {/* Name Column */}
             <td className="py-2.5 px-3">
-                <div className="flex items-center gap-2">
-                    {getFileIcon(file)}
+                <div className="flex items-center gap-2.5">
+                    {/* Mini thumbnail (ảnh / video / trang đầu PDF), loại còn lại rơi về
+                        icon theo đuôi tệp — giống hàng ở Trang chủ. Hàng THƯ MỤC không
+                        dùng: xem FolderTableRow, vẫn là icon thư mục màu hổ phách. */}
+                    <FileThumbnail
+                        file={file}
+                        className="w-8 h-8 rounded-md bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gray-700/60"
+                        fallback={getFileIcon(file)}
+                    />
                     <span className="font-semibold text-gray-900 dark:text-gray-100 group-hover:text-blue-600 truncate max-w-[180px]" title={file.name}>
                         {file.name}
                     </span>
@@ -365,7 +374,7 @@ export default function FileListView() {
         enqueueUpload,
         currentFolderId,
         currentSharedDriveId,
-        triggerReload,
+        uploadEntries,
     } = useFiles();
 
     // Context menu state
@@ -410,11 +419,15 @@ export default function FileListView() {
         selectedFiles.forEach((file) => enqueueUpload(file));
     }, [activeTab, currentSharedDriveId, currentFolderId, enqueueUpload]);
 
-    // Tải folder lên, giữ nguyên cấu trúc thư mục con (giống NewButton.jsx)
+    /**
+     * Tải thư mục lên từ menu chuột phải — dùng chung `uploadEntries` của
+     * FileContext (xây cây thư mục + đưa từng tệp vào hàng đợi, chỉ chèn thêm
+     * card mới thay vì tải lại toàn bộ danh sách).
+     */
     const handleFolderInputChange = useCallback(async (e) => {
-        const selectedFiles = Array.from(e.target.files || []);
+        const tree = collectInputEntries(e.target.files);
         e.target.value = '';
-        if (selectedFiles.length === 0) return;
+        if (tree.entries.length === 0) return;
 
         if (activeTab === 'shared-drives' && !currentSharedDriveId && !currentFolderId) {
             alert('Vui lòng mở một Bộ nhớ dùng chung trước khi tải thư mục lên.');
@@ -423,50 +436,11 @@ export default function FileListView() {
 
         setIsBuildingTree(true);
         try {
-            const dirPathSet = new Set();
-            selectedFiles.forEach((file) => {
-                const parts = file.webkitRelativePath.split('/');
-                for (let depth = 1; depth < parts.length; depth++) {
-                    dirPathSet.add(parts.slice(0, depth).join('/'));
-                }
-            });
-
-            const sortedDirPaths = Array.from(dirPathSet).sort((a, b) => {
-                const depthA = a.split('/').length;
-                const depthB = b.split('/').length;
-                if (depthA !== depthB) return depthA - depthB;
-                return a.localeCompare(b);
-            });
-
-            let batchFolderIdMap = {};
-            const effectiveSharedDriveId = activeTab === 'shared-drives' ? currentSharedDriveId : undefined;
-            if (sortedDirPaths.length > 0) {
-                try {
-                    batchFolderIdMap = await filesApi.createFoldersBatch(
-                        sortedDirPaths,
-                        currentFolderId,
-                        effectiveSharedDriveId,
-                    );
-                } catch (error) {
-                    console.error('Lỗi khi tạo hàng loạt thư mục:', error);
-                    alert('Không thể tạo toàn bộ cấu trúc thư mục, một số tệp có thể bị đặt sai vị trí.');
-                }
-            }
-
-            const folderIdMap = { '': currentFolderId, ...batchFolderIdMap };
-
-            selectedFiles.forEach((file) => {
-                const parts = file.webkitRelativePath.split('/');
-                const dirPath = parts.slice(0, -1).join('/');
-                const targetId = folderIdMap[dirPath] ?? currentFolderId;
-                enqueueUpload(file, targetId, undefined, effectiveSharedDriveId);
-            });
-
-            triggerReload();
+            await uploadEntries(tree);
         } finally {
             setIsBuildingTree(false);
         }
-    }, [activeTab, currentSharedDriveId, currentFolderId, enqueueUpload, triggerReload]);
+    }, [activeTab, currentSharedDriveId, currentFolderId, uploadEntries]);
 
     // ── Selection Helpers ──
     const allCurrentCount = (folders?.length || 0) + (files?.length || 0);

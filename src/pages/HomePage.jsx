@@ -26,7 +26,7 @@ const safeFileIcon = (item) => {
 };
 
 // Compact Section Table Component (List Mode)
-const SectionTable = ({ itemList, emptyMessage = "Không có mục nào", onItemClick, onToggleStar }) => {
+const SectionTable = ({ itemList, emptyMessage = "Không có mục nào", onItemOpen, onToggleStar }) => {
     if (itemList.length === 0) {
         return <p className="text-xs text-gray-400 dark:text-gray-500 py-3 italic">{emptyMessage}</p>;
     }
@@ -36,8 +36,9 @@ const SectionTable = ({ itemList, emptyMessage = "Không có mục nào", onItem
             {itemList.map((item) => (
                 <div
                     key={item.id}
-                    onClick={() => onItemClick && onItemClick(item)}
-                    className="flex items-center justify-between py-2.5 px-3 hover:bg-gray-50/80 dark:hover:bg-white/5 transition-colors cursor-pointer rounded-md"
+                    onDoubleClick={() => onItemOpen && onItemOpen(item)}
+                    title="Bấm đúp để mở"
+                    className="flex items-center justify-between py-2.5 px-3 hover:bg-gray-50/80 dark:hover:bg-white/5 transition-colors cursor-pointer rounded-md select-none"
                 >
                     {/* Name & mini thumbnail (ảnh / video / trang đầu PDF, còn lại là icon) */}
                     <div className="flex items-center gap-3 flex-1 min-w-0 pr-4">
@@ -71,6 +72,7 @@ const SectionTable = ({ itemList, emptyMessage = "Không có mục nào", onItem
                         />
                         <button
                             onClick={(e) => { e.stopPropagation(); }}
+                            onDoubleClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
                             className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 p-1 rounded hover:bg-gray-200/50 dark:hover:bg-white/10"
                         >
                             <MoreVertical className="w-4 h-4" />
@@ -83,7 +85,7 @@ const SectionTable = ({ itemList, emptyMessage = "Không có mục nào", onItem
 };
 
 // Compact Section Grid Component (Grid Mode)
-const SectionGrid = ({ itemList, emptyMessage = "Không có mục nào", onItemClick, onToggleStar }) => {
+const SectionGrid = ({ itemList, emptyMessage = "Không có mục nào", onItemOpen, onToggleStar }) => {
     if (itemList.length === 0) {
         return <p className="text-xs text-gray-400 dark:text-gray-500 py-3 italic">{emptyMessage}</p>;
     }
@@ -93,8 +95,9 @@ const SectionGrid = ({ itemList, emptyMessage = "Không có mục nào", onItemC
             {itemList.map((item) => (
                 <div
                     key={item.id}
-                    onClick={() => onItemClick && onItemClick(item)}
-                    className="bg-white dark:bg-[#282a2c] border border-gray-200/80 dark:border-gray-700/60 rounded-xl p-2.5 hover:shadow-md hover:border-blue-300 transition-all cursor-pointer flex flex-col group h-44"
+                    onDoubleClick={() => onItemOpen && onItemOpen(item)}
+                    title="Bấm đúp để mở"
+                    className="bg-white dark:bg-[#282a2c] border border-gray-200/80 dark:border-gray-700/60 rounded-xl p-2.5 hover:shadow-md hover:border-blue-300 transition-all cursor-pointer flex flex-col group h-44 select-none"
                 >
                     <div className="flex items-center justify-between gap-1 mb-1.5">
                         {safeFileIcon(item)}
@@ -107,6 +110,7 @@ const SectionGrid = ({ itemList, emptyMessage = "Không có mục nào", onItemC
                             />
                             <button
                                 onClick={(e) => { e.stopPropagation(); }}
+                                onDoubleClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
                                 className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 p-1 rounded hover:bg-gray-100 dark:hover:bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity"
                             >
                                 <MoreVertical className="w-3.5 h-3.5" />
@@ -138,7 +142,9 @@ const SectionGrid = ({ itemList, emptyMessage = "Không có mục nào", onItemC
 export default function HomePage() {
     const { items, setActiveTab, isLoading, viewMode, setViewMode, openPreview, openFolder, toggleStar } = useFiles();
 
-    const handleItemClick = (item) => {
+    // Mở bằng BẤM ĐÚP (giống MyDrive/FileListView) — trước đây một cú click đã mở
+    // luôn nên rất dễ mở nhầm tệp khi chỉ muốn bấm ngôi sao hay quét chọn.
+    const handleItemOpen = (item) => {
         if (item.type === 'folder') {
             setActiveTab('my-drive');
             openFolder(item);
@@ -228,9 +234,9 @@ export default function HomePage() {
                     </button>
                 </div>
                 {viewMode === 'grid' ? (
-                    <SectionGrid itemList={myDriveItems} emptyMessage="Chưa có tệp nào trong Driver riêng của tôi." onItemClick={handleItemClick} onToggleStar={toggleStar} />
+                    <SectionGrid itemList={myDriveItems} emptyMessage="Chưa có tệp nào trong Driver riêng của tôi." onItemOpen={handleItemOpen} onToggleStar={toggleStar} />
                 ) : (
-                    <SectionTable itemList={myDriveItems} emptyMessage="Chưa có tệp nào trong Driver riêng của tôi." onItemClick={handleItemClick} onToggleStar={toggleStar} />
+                    <SectionTable itemList={myDriveItems} emptyMessage="Chưa có tệp nào trong Driver riêng của tôi." onItemOpen={handleItemOpen} onToggleStar={toggleStar} />
                 )}
             </section>
 
@@ -250,9 +256,9 @@ export default function HomePage() {
                     </button>
                 </div>
                 {viewMode === 'grid' ? (
-                    <SectionGrid itemList={recentItems} emptyMessage="Chưa có tệp nào mở gần đây." onItemClick={handleItemClick} onToggleStar={toggleStar} />
+                    <SectionGrid itemList={recentItems} emptyMessage="Chưa có tệp nào mở gần đây." onItemOpen={handleItemOpen} onToggleStar={toggleStar} />
                 ) : (
-                    <SectionTable itemList={recentItems} emptyMessage="Chưa có tệp nào mở gần đây." onItemClick={handleItemClick} onToggleStar={toggleStar} />
+                    <SectionTable itemList={recentItems} emptyMessage="Chưa có tệp nào mở gần đây." onItemOpen={handleItemOpen} onToggleStar={toggleStar} />
                 )}
             </section>
 
@@ -272,9 +278,9 @@ export default function HomePage() {
                     </button>
                 </div>
                 {viewMode === 'grid' ? (
-                    <SectionGrid itemList={sharedItems} emptyMessage="Chưa có tệp nào được chia sẻ với bạn." onItemClick={handleItemClick} onToggleStar={toggleStar} />
+                    <SectionGrid itemList={sharedItems} emptyMessage="Chưa có tệp nào được chia sẻ với bạn." onItemOpen={handleItemOpen} onToggleStar={toggleStar} />
                 ) : (
-                    <SectionTable itemList={sharedItems} emptyMessage="Chưa có tệp nào được chia sẻ với bạn." onItemClick={handleItemClick} onToggleStar={toggleStar} />
+                    <SectionTable itemList={sharedItems} emptyMessage="Chưa có tệp nào được chia sẻ với bạn." onItemOpen={handleItemOpen} onToggleStar={toggleStar} />
                 )}
             </section>
         </div>

@@ -135,9 +135,18 @@ export const storageApi = {
   getPreviewUrl: (id) => api.get(`/files/${id}/preview-url`),
   getFileTextContent: (id) => api.get(`/files/${id}/content`),
 
+  /**
+   * Huỷ một phiên tải lên đang dở và dọn rác trên cloud.
+   * `resumableUrl` chỉ có với luồng chunked; backend tự kiểm tra nó có đúng là
+   * session URI của GCS hay không.
+   */
+  abortUpload: (data) => api.post('/files/upload/abort', data),
+
   // Direct PUT Upload to Presigned URL (Cloudflare R2 / Backblaze B2 / GCS)
-  uploadDirectToCloud: async (presignedUrl, file, onUploadProgress) => {
+  // `signal` là AbortSignal của job — nút "Huỷ" cắt đúng request đang chạy.
+  uploadDirectToCloud: async (presignedUrl, file, onUploadProgress, signal) => {
     return axios.put(presignedUrl, file, {
+      signal,
       headers: {
         'Content-Type': file.type || 'application/octet-stream',
       },
@@ -149,7 +158,7 @@ export const storageApi = {
       },
     });
   },
-  uploadProxy: async (file, parentId, targetProvider, onUploadProgress, sharedDriveId) => {
+  uploadProxy: async (file, parentId, targetProvider, onUploadProgress, sharedDriveId, signal) => {
     const formData = new FormData();
     formData.append('file', file);
     if (parentId) formData.append('parentId', parentId);
@@ -157,6 +166,7 @@ export const storageApi = {
     if (targetProvider) formData.append('targetProvider', targetProvider);
 
     return api.post('/files/upload-proxy', formData, {
+      signal,
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -185,9 +195,10 @@ export const chunkedApi = {
    * GCS xác định vị trí chunk qua Content-Range header.
    * Không qua backend — gọi GCS endpoint trực tiếp.
    */
-  uploadChunkDirect: async (resumableUrl, chunk, start, totalSize, onProgress) => {
+  uploadChunkDirect: async (resumableUrl, chunk, start, totalSize, onProgress, signal) => {
     const end = start + chunk.size - 1;
     return axios.put(resumableUrl, chunk, {
+      signal,
       headers: {
         'Content-Type': 'application/octet-stream',
         'Content-Range': `bytes ${start}-${end}/${totalSize}`,
@@ -207,6 +218,17 @@ export const chunkedApi = {
    */
   complete: (data) =>
     api.post('/files/upload-chunk/complete', data),
+
+  /**
+   * Hỏi GCS đã nhận tới byte nào của phiên này.
+   *
+   * Đi vòng qua backend là CỐ Ý: câu trả lời nằm ở header `Range`, mà trình
+   * duyệt chỉ đọc được header đó nếu bucket khai báo nó trong CORS. Backend
+   * không bị ràng buộc ấy.
+   *
+   * Response: { expired, completed, receivedBytes }
+   */
+  status: (data) => api.post('/files/upload-chunk/status', data),
 };
 
 // Sharing APIs — Public share link & access management

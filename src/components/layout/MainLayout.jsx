@@ -11,6 +11,7 @@ import ShareModal from '../file-manager/ShareModal';
 import RenameModal from '../file-manager/RenameModal';
 import FilePreviewModal from '../file-manager/FilePreviewModal';
 import UploadProgress from '../file-manager/UploadProgress';
+import ResumeUploads from '../file-manager/ResumeUploads';
 
 // Pages are now rendered via react-router-dom <Outlet />
 
@@ -220,6 +221,9 @@ export default function MainLayout() {
 
             {/* Global Upload Progress — floating bottom-right */}
             <UploadProgress />
+
+            {/* Tệp lớn còn tải dở từ phiên trước (F5, đóng tab, mất điện) */}
+            <ResumeUploads />
         </div>
     );
 }

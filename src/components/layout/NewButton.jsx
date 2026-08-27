@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useFiles } from '../../context/FileContext';
 import { Plus, FolderPlus, FileUp, FolderUp, Loader2 } from 'lucide-react';
-import { filesApi } from '../../services/api';
+import { collectInputEntries } from '../../utils/uploadTree';
 
 export default function NewButton({ isCollapsed }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -9,12 +9,11 @@ export default function NewButton({ isCollapsed }) {
 
   const {
     createFolder,
-    createFolderSilent,
     enqueueUpload,
+    uploadEntries,
     currentFolderId,
     currentSharedDriveId,
     activeTab,
-    triggerReload,
   } = useFiles();
 
   const dropdownRef   = useRef(null);
@@ -69,79 +68,32 @@ export default function NewButton({ isCollapsed }) {
   };
 
   /**
-   * Tải folder lên và GIỮ NGUYÊN CẤU TRÚC THƯ MỤC.
+   * Tải thư mục lên, GIỮ NGUYÊN CẤU TRÚC THƯ MỤC CON.
    *
-   * Thuật toán:
-   * 1. Parse tất cả webkitRelativePath → xây tập hợp dir paths duy nhất
-   * 2. Sắp xếp từ nông → sâu (cha trước con)
-   * 3. Tạo từng folder tuần tự, lưu path → folderId vào map
-   * 4. Enqueue từng file vào đúng parentId
-   * 5. Refresh sau khi tất cả folder được tạo
+   * Toàn bộ thuật toán (gom đường dẫn → tạo folder theo lô → enqueue từng tệp)
+   * nay nằm trong `FileContext.uploadEntries`, dùng chung với menu chuột phải và
+   * với kéo–thả. Ở đây chỉ còn việc đọc `input.files`.
+   *
+   * Hộp thoại của trình duyệt CHỈ cho chọn một thư mục mỗi lần (giới hạn của
+   * `webkitdirectory`). Muốn nhiều thư mục cùng lúc thì kéo–thả vào vùng danh
+   * sách; hoặc bấm nút này nhiều lần liên tiếp — các lần chọn sau không còn làm
+   * gián đoạn/tải lại những gì đang tải dở nữa.
    */
   const handleFolderChange = async (e) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
+    const tree = collectInputEntries(e.target.files);
+    e.target.value = '';
+    if (tree.entries.length === 0) return;
 
     if (activeTab === 'shared-drives' && !currentSharedDriveId && !currentFolderId) {
       alert('Vui lòng mở một Bộ nhớ dùng chung trước khi tải thư mục lên.');
-      e.target.value = '';
       setIsOpen(false);
       return;
     }
 
     setIsOpen(false);
-    e.target.value = '';
     setIsBuildingTree(true);
-
     try {
-      // --- Bước 1: Gom tất cả đường dẫn thư mục duy nhất ---
-      const dirPathSet = new Set();
-      files.forEach((file) => {
-        const parts = file.webkitRelativePath.split('/');
-        // Thêm mọi ancestor path (trừ tên file ở cuối)
-        for (let depth = 1; depth < parts.length; depth++) {
-          dirPathSet.add(parts.slice(0, depth).join('/'));
-        }
-      });
-
-      // --- Bước 2: Sắp xếp từ nông → sâu ---
-      const sortedDirPaths = Array.from(dirPathSet).sort((a, b) => {
-        const depthA = a.split('/').length;
-        const depthB = b.split('/').length;
-        if (depthA !== depthB) return depthA - depthB;
-        return a.localeCompare(b);
-      });
-
-      // --- Bước 3: Tạo hàng loạt folder trên server ---
-      let batchFolderIdMap = {};
-      const effectiveSharedDriveId = activeTab === 'shared-drives' ? currentSharedDriveId : undefined;
-      if (sortedDirPaths.length > 0) {
-        try {
-          batchFolderIdMap = await filesApi.createFoldersBatch(
-            sortedDirPaths,
-            currentFolderId,
-            effectiveSharedDriveId,
-          );
-        } catch (error) {
-          console.error('Lỗi khi tạo hàng loạt thư mục:', error);
-          alert('Không thể tạo toàn bộ cấu trúc thư mục, một số tệp có thể bị đặt sai vị trí.');
-        }
-      }
-
-      // 'batchFolderIdMap' trả về dạng: { 'A': 'uuid1', 'A/B': 'uuid2' }
-      // '' (chuỗi rỗng) = root = currentFolderId
-      const folderIdMap = { '': currentFolderId, ...batchFolderIdMap };
-
-      // --- Bước 4: Enqueue từng file vào đúng parentId ---
-      files.forEach((file) => {
-        const parts     = file.webkitRelativePath.split('/');
-        const dirPath   = parts.slice(0, -1).join('/'); // '' nếu file ở root folder
-        const targetId  = folderIdMap[dirPath] ?? currentFolderId;
-        enqueueUpload(file, targetId, undefined, effectiveSharedDriveId);
-      });
-
-      // --- Bước 5: Refresh để hiện cây folder vừa tạo ---
-      triggerReload();
+      await uploadEntries(tree);
     } finally {
       setIsBuildingTree(false);
     }
@@ -227,7 +179,6 @@ export default function NewButton({ isCollapsed }) {
               <span className="font-medium">
                 {isBuildingTree ? 'Đang xây cây thư mục...' : 'Tải thư mục lên'}
               </span>
-              <span className="text-[11px] text-gray-400 dark:text-gray-500">Giữ nguyên cấu trúc thư mục</span>
             </div>
           </button>
         </div>

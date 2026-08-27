@@ -13,11 +13,22 @@ import {
   useState,
   useContext,
   useCallback,
+  useMemo,
   useRef,
   useEffect,
 } from 'react';
 
 const UploadContext = createContext(null);
+
+/**
+ * Context THỨ HAI chỉ chứa các hàm điều khiển hàng đợi — không chứa state.
+ *
+ * FileContext cần enqueueJob/updateJob/… nhưng KHÔNG cần đọc `uploadQueue`.
+ * Nếu nó lấy chung một context với state thì mỗi bước tiến độ (mỗi 2%) lại làm
+ * FileProvider render lại — đúng thứ gây cảm giác "cả trang tải lại liên tục"
+ * trong lúc upload. Giá trị của context này ổn định vĩnh viễn.
+ */
+const UploadActionsContext = createContext(null);
 
 export function UploadProvider({ children }) {
   // Upload Queue State — mỗi job: { id, fileName, percent, status, error? }
@@ -131,26 +142,38 @@ export function UploadProvider({ children }) {
     );
   }, []);
 
+  const actions = useMemo(
+    () => ({
+      setUploadQueue,
+      uploadQueueRef,
+      updateJob,
+      enqueueJob,
+      removeJob,
+      clearQueue,
+      resetJob,
+    }),
+    [updateJob, enqueueJob, removeJob, clearQueue, resetJob],
+  );
+
+  const value = useMemo(() => ({ uploadQueue, ...actions }), [uploadQueue, actions]);
+
   return (
-    <UploadContext.Provider
-      value={{
-        uploadQueue,
-        setUploadQueue,
-        uploadQueueRef,
-        updateJob,
-        enqueueJob,
-        removeJob,
-        clearQueue,
-        resetJob,
-      }}
-    >
-      {children}
-    </UploadContext.Provider>
+    <UploadActionsContext.Provider value={actions}>
+      <UploadContext.Provider value={value}>{children}</UploadContext.Provider>
+    </UploadActionsContext.Provider>
   );
 }
 
+/** Hàng đợi + hàm điều khiển. Component nào VẼ tiến độ thì dùng hook này. */
 export const useUpload = () => {
   const ctx = useContext(UploadContext);
   if (!ctx) throw new Error('useUpload must be used within UploadProvider');
+  return ctx;
+};
+
+/** Chỉ các hàm điều khiển — dùng khi không cần vẽ tiến độ, để không re-render theo %. */
+export const useUploadActions = () => {
+  const ctx = useContext(UploadActionsContext);
+  if (!ctx) throw new Error('useUploadActions must be used within UploadProvider');
   return ctx;
 };

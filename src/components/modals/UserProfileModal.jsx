@@ -96,12 +96,17 @@ export default function UserProfileModal({ isOpen, onClose }) {
   const { user, refreshUser, deleteAccount } = useAuth();
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
+  // Cờ theo dõi component còn mounted hay không, tránh setState sau khi unmount
+  const isMountedRef = useRef(true);
 
   // Modal Tabs State
   const [activeTab, setActiveTab] = useState('profile'); // 'profile' | 'password' | 'sessions'
 
   // Tab 1: Profile State
   const [fullName, setFullName] = useState('');
+  // Công tắc "Hiển thị thông tin cá nhân" — map 1:1 với
+  // UpdateProfileDto.isDiscoverableByEmail (cột users.is_discoverable_by_email).
+  const [isDiscoverable, setIsDiscoverable] = useState(true);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
@@ -124,10 +129,22 @@ export default function UserProfileModal({ isOpen, onClose }) {
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
+  // Theo dõi lifecycle để chặn mọi cập nhật state sau khi component unmount
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   // Fetch initial profile & reset states on open
   useEffect(() => {
     if (isOpen && user) {
       setFullName(user.fullName || '');
+      // `!== false` chứ không phải truthy: backend cũ chưa trả field này thì giá
+      // trị là undefined, và mặc định của cột là true (migration 012) — chỉ khi
+      // server nói rõ `false` mới vẽ công tắc ở trạng thái TẮT.
+      setIsDiscoverable(user.isDiscoverableByEmail !== false);
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
@@ -143,6 +160,11 @@ export default function UserProfileModal({ isOpen, onClose }) {
         .then((profileData) => {
           if (profileData?.fullName) {
             setFullName(profileData.fullName);
+          }
+          // typeof === 'boolean' để không đè giá trị đúng bằng undefined khi
+          // response thiếu field (cùng lý do như trong AuthContext).
+          if (typeof profileData?.isDiscoverableByEmail === 'boolean') {
+            setIsDiscoverable(profileData.isDiscoverableByEmail);
           }
         })
         .catch((err) => {
@@ -205,21 +227,45 @@ export default function UserProfileModal({ isOpen, onClose }) {
     }
   };
 
-  // 2. Xử lý Cập nhật Tên hiển thị
+  // 2. Xử lý Cập nhật Hồ sơ (tên hiển thị + công tắc hiển thị qua email)
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
-    if (!fullName.trim() || fullName.trim().length < 2) {
+
+    const trimmedName = fullName.trim();
+    const nameChanged = trimmedName !== (user.fullName || '');
+    const discoverableChanged = isDiscoverable !== user.isDiscoverableByEmail;
+
+    // Ràng buộc độ dài CHỈ áp cho lần thật sự đổi tên. UpdateProfileDto đã cho
+    // `fullName` là @IsOptional(), nên người dùng chỉ gạt công tắc thì payload
+    // không cần mang tên đi kèm — chặn ở đây sẽ khoá luôn thao tác bật/tắt.
+    if (nameChanged && trimmedName.length < 2) {
       toast.error('Tên hiển thị phải có ít nhất 2 ký tự');
       return;
     }
 
+    // Luôn gửi kèm công tắc: backend chặn body RỖNG bằng 400, mà "bấm Lưu khi
+    // không đổi gì" vẫn phải là một lần lưu không lỗi.
+    const payload = { isDiscoverableByEmail: isDiscoverable };
+    if (nameChanged) {
+      payload.fullName = trimmedName;
+    }
+
     setIsSavingProfile(true);
     try {
-      await userApi.updateMe({ fullName: fullName.trim() });
+      await userApi.updateMe(payload);
       await refreshUser();
-      toast.success('Cập nhật thông tin thành công!');
+      toast.success(
+        discoverableChanged && !nameChanged
+          ? isDiscoverable
+            ? 'Đã cho phép người khác tìm bạn qua email'
+            : 'Đã tắt hiển thị thông tin cá nhân qua email'
+          : 'Cập nhật thông tin thành công!',
+      );
     } catch (err) {
       toast.error(err.message || 'Lỗi khi cập nhật thông tin');
+      // Trả UI về giá trị gốc trong context để không kẹt lại thao tác vừa lỗi
+      setFullName(user.fullName || '');
+      setIsDiscoverable(user.isDiscoverableByEmail !== false);
     } finally {
       setIsSavingProfile(false);
     }
@@ -305,16 +351,23 @@ export default function UserProfileModal({ isOpen, onClose }) {
     }
 
     setIsDeletingAccount(true);
+    let isAccountDeleted = false;
     try {
+      // deleteAccount() xoá token + user trong AuthContext => component này bị unmount ngay sau đó
       await deleteAccount(isLocal ? deletePassword : null);
+      isAccountDeleted = true;
       toast.success('Tài khoản của bạn và toàn bộ dữ liệu đã được xoá vĩnh viễn');
-      setShowDeleteModal(false);
-      onClose();
-      navigate('/login');
+      navigate('/login', { replace: true });
     } catch (err) {
       toast.error(err.message || 'Lỗi khi xoá tài khoản');
     } finally {
-      setIsDeletingAccount(false);
+      // Chỉ dọn dẹp state khi xoá THẤT BẠI và component vẫn còn mounted.
+      // Xoá thành công => modal biến mất cùng component, mọi setState ở đây đều gây
+      // warning "update on unmounted component".
+      // Xoá thất bại: chỉ tắt loading, giữ modal xác nhận để người dùng thử lại.
+      if (!isAccountDeleted && isMountedRef.current) {
+        setIsDeletingAccount(false);
+      }
     }
   };
 
@@ -482,6 +535,40 @@ export default function UserProfileModal({ isOpen, onClose }) {
                       placeholder="Nhập tên hiển thị của bạn"
                     />
                   </div>
+                </div>
+
+                {/* Công tắc: cho phép tìm thấy mình qua email khi chia sẻ tệp */}
+                <div className="flex items-start justify-between gap-4 p-3.5 rounded-xl bg-gray-50/80 dark:bg-white/5 border border-gray-200 dark:border-gray-700">
+                  <div className="min-w-0">
+                    <p
+                      id="discoverable-label"
+                      className="text-sm font-bold text-gray-800 dark:text-gray-200"
+                    >
+                      Hiển thị thông tin cá nhân qua Email
+                    </p>
+                    <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">
+                      Cho phép người khác tìm thấy bạn bằng email khi họ muốn chia sẻ tệp
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={isDiscoverable}
+                    aria-labelledby="discoverable-label"
+                    onClick={() => setIsDiscoverable((prev) => !prev)}
+                    disabled={isSavingProfile}
+                    className={`relative shrink-0 mt-0.5 w-11 h-6 rounded-full transition-colors duration-300 ease-out focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-[#1f2020] disabled:opacity-60 disabled:cursor-not-allowed ${
+                      isDiscoverable
+                        ? 'bg-blue-600'
+                        : 'bg-gray-300 dark:bg-gray-600'
+                    }`}
+                  >
+                    <span
+                      className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-300 ease-out ${
+                        isDiscoverable ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
                 </div>
 
                 <div>
@@ -666,9 +753,30 @@ export default function UserProfileModal({ isOpen, onClose }) {
               </div>
 
               {isLoadingSessions ? (
-                <div className="py-12 flex flex-col items-center justify-center text-gray-400 dark:text-gray-500 space-y-2">
-                  <Loader2 className="w-7 h-7 animate-spin text-blue-600 dark:text-blue-400" />
-                  <p className="text-xs">Đang tải danh sách phiên đăng nhập...</p>
+                <div className="space-y-2.5" aria-busy="true" aria-live="polite">
+                  <span className="sr-only">Đang tải danh sách phiên đăng nhập...</span>
+                  {[0, 1, 2].map((i) => (
+                    <div
+                      key={i}
+                      className="p-3.5 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#282a2c] flex items-center justify-between gap-3 animate-pulse"
+                    >
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        {/* Placeholder icon thiết bị */}
+                        <div className="w-10 h-10 rounded-xl bg-gray-200 dark:bg-gray-700 shrink-0" />
+                        <div className="min-w-0 flex-1 space-y-2">
+                          {/* Dòng 1: tên thiết bị + badge */}
+                          <div className="flex items-center gap-2">
+                            <div className="h-3 w-32 rounded-full bg-gray-200 dark:bg-gray-700" />
+                            <div className="h-3 w-16 rounded-full bg-gray-100 dark:bg-gray-800" />
+                          </div>
+                          {/* Dòng 2: IP + thời gian */}
+                          <div className="h-2.5 w-48 max-w-full rounded-full bg-gray-100 dark:bg-gray-800" />
+                        </div>
+                      </div>
+                      {/* Placeholder nút Thu hồi */}
+                      <div className="h-6 w-16 rounded-xl bg-gray-100 dark:bg-gray-800 shrink-0" />
+                    </div>
+                  ))}
                 </div>
               ) : sessions.length === 0 ? (
                 <div className="py-10 text-center text-gray-500 dark:text-gray-400 text-xs border border-dashed border-gray-200 dark:border-gray-700 rounded-2xl">

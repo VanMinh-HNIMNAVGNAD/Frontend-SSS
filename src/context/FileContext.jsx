@@ -11,6 +11,37 @@ import { CHUNK_THRESHOLD } from '../constants/upload';
 
 const FileContext = createContext();
 
+// ── Kiểu hiển thị (list / grid) ─────────────────────────────────────────────
+// Khoá localStorage riêng cho preference này. Đọc/ghi bọc try/catch vì chế độ
+// ẩn danh hoặc iframe có thể chặn storage — chặn thì phiên đó không nhớ chứ
+// KHÔNG được làm sập cả app.
+// Tiền tố khoá localStorage của các phiên chunked upload còn dở. Khoá đầy đủ:
+// `driveR_chunk_<userId>_<jobId>`. Khai báo một chỗ vì cả getChunkStateKey(),
+// clearChunkState() và listResumableSessions() đều phải dựng đúng cùng dạng khoá.
+const CHUNK_STATE_PREFIX = 'driveR_chunk_';
+
+const VIEW_MODE_KEY = 'driver.viewMode';
+const VIEW_MODES = ['list', 'grid'];
+const DEFAULT_VIEW_MODE = 'list';
+
+/** Lazy initializer của useState: chỉ chạy đúng một lần lúc mount. */
+function readViewMode() {
+  try {
+    const saved = localStorage.getItem(VIEW_MODE_KEY);
+    return VIEW_MODES.includes(saved) ? saved : DEFAULT_VIEW_MODE;
+  } catch {
+    return DEFAULT_VIEW_MODE;
+  }
+}
+
+function safeSetViewMode(value) {
+  try {
+    localStorage.setItem(VIEW_MODE_KEY, value);
+  } catch {
+    /* bỏ qua: không lưu được thì phiên này vẫn dùng bình thường */
+  }
+}
+
 // Chuẩn hoá 1 item trả về từ API GET /files về đúng shape UI đang dùng.
 // `isSharedWithMe` = true khi item đến từ nguồn "được chia sẻ với tôi",
 // dùng để UI phân biệt tệp của mình với tệp người khác chia sẻ cho mình.
@@ -173,7 +204,22 @@ export function FileProvider({ children }) {
     }
   }, [navigate, activeTab]);
 
-  const [viewMode, setViewMode] = useState('list');
+  // Kiểu hiển thị (danh sách / lưới) là lựa chọn của người dùng nên phải sống
+  // sót qua F5 và qua việc đóng/mở lại app — useState thuần chỉ nằm trong RAM
+  // của tab hiện tại, nên trước đây reload là quay về 'list'.
+  const [viewMode, setViewModeState] = useState(readViewMode);
+
+  // Bọc setter để mọi nơi gọi setViewMode('grid') đều tự động ghi localStorage,
+  // thay vì bắt từng trang (MyDrivePage, TrashPage, ...) phải nhớ ghi thủ công.
+  // Vẫn hỗ trợ dạng updater function để giống hợp đồng của setState.
+  const setViewMode = useCallback((value) => {
+    setViewModeState((prev) => {
+      const next = typeof value === 'function' ? value(prev) : value;
+      const safe = VIEW_MODES.includes(next) ? next : prev;
+      safeSetViewMode(safe);
+      return safe;
+    });
+  }, []);
   // Dưới 1024px sidebar là lớp phủ (xem SideBar.jsx) nên mặc định phải thu gọn,
   // nếu không tablet/mobile vừa vào app đã bị lớp phủ che hết nội dung
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => window.innerWidth < 1024);
@@ -381,26 +427,51 @@ export function FileProvider({ children }) {
   const cancelCleanupTimersRef = useRef(new Map());
 
   // ── localStorage helpers (keyed by userId — ngăn resume vào tài khoản khác) ──
-  const getChunkStateKey = (jobId) => `driveR_chunk_${user?.id || 'anon'}_${jobId}`;
+  // Cả bốn hàm PHẢI là useCallback theo `user?.id`. Trước đây chúng là hàm thuần
+  // trong thân component nên callback nào có dependency array không chứa chúng
+  // (cancelUploadJob, discardResumableSession) sẽ giữ mãi bản của lần render đầu
+  // — lần render mà profile chưa tải xong nên `user` còn null và khoá bị tính ra
+  // `..._anon_<jobId>`. Hệ quả: bấm "Bỏ" xoá một khoá không tồn tại, bản ghi
+  // thật nằm nguyên đó và mỗi lần vào lại app là lại bị hỏi đúng phiên đó.
+  const getChunkStateKey = useCallback(
+    (jobId) => `${CHUNK_STATE_PREFIX}${user?.id || 'anon'}_${jobId}`,
+    [user?.id],
+  );
 
-  const saveChunkState = (jobId, state) => {
+  const saveChunkState = useCallback((jobId, state) => {
     try {
       // `savedAt` để biết phiên đã cũ bao lâu: session resumable của GCS chỉ sống
       // 7 ngày, quá hạn thì đề nghị "tải tiếp" chỉ tổ làm người dùng mất công.
       localStorage.setItem(getChunkStateKey(jobId), JSON.stringify({ ...state, savedAt: Date.now() }));
     } catch { /* quota exceeded — bỏ qua */ }
-  };
+  }, [getChunkStateKey]);
 
-  const loadChunkState = (jobId) => {
+  const loadChunkState = useCallback((jobId) => {
     try {
       const raw = localStorage.getItem(getChunkStateKey(jobId));
       return raw ? JSON.parse(raw) : null;
     } catch { return null; }
-  };
+  }, [getChunkStateKey]);
 
-  const clearChunkState = (jobId) => {
-    try { localStorage.removeItem(getChunkStateKey(jobId)); } catch { /* ignore */ }
-  };
+  const clearChunkState = useCallback((jobId) => {
+    try {
+      const key = getChunkStateKey(jobId);
+      const existed = localStorage.getItem(key) !== null;
+      localStorage.removeItem(key);
+      if (existed) return;
+
+      // Không thấy khoá mong đợi → quét theo jobId để bỏ cho hết. jobId là uuid
+      // nên không thể trùng giữa hai phiên; đây là lưới an toàn dọn cả những bản
+      // ghi đã bị ghi dưới khoá khác (di sản của lỗi khoá `anon` nói trên).
+      // "Bỏ" phải là bỏ hẳn — còn sót một bản ghi là app còn hỏi lại.
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith(CHUNK_STATE_PREFIX) && k.endsWith(`_${jobId}`)) {
+          localStorage.removeItem(k);
+        }
+      }
+    } catch { /* ignore */ }
+  }, [getChunkStateKey]);
 
   /**
    * Liệt kê các phiên tải lên còn dở của CHÍNH người dùng này.
@@ -414,7 +485,7 @@ export function FileProvider({ children }) {
    * của job đang chạy ngay trong phiên làm việc hiện tại.
    */
   const listResumableSessions = useCallback(() => {
-    const prefix = `driveR_chunk_${user?.id || 'anon'}_`;
+    const prefix = `${CHUNK_STATE_PREFIX}${user?.id || 'anon'}_`;
     const activeJobIds = new Set(uploadQueueRef.current.map((job) => job.id));
     const sessions = [];
 
@@ -1620,8 +1691,7 @@ export function FileProvider({ children }) {
       }, 4000);
       cancelCleanupTimersRef.current.set(jobId, timer);
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [updateJob, removeJob, uploadQueueRef],
+    [updateJob, removeJob, uploadQueueRef, loadChunkState, clearChunkState],
   );
 
   /**
@@ -1714,23 +1784,36 @@ export function FileProvider({ children }) {
     [enqueueJob, dispatchRunner],
   );
 
-  /** Bỏ hẳn một phiên dở: xoá bản ghi cục bộ và dọn phần đã đẩy lên cloud */
+  /**
+   * Bỏ hẳn một phiên dở: dọn phần đã đẩy lên cloud rồi xoá bản ghi cục bộ.
+   *
+   * Dọn cloud TRƯỚC rồi mới xoá bản ghi: `storageKey`/`resumableUrl` chỉ còn
+   * nằm trong chính bản ghi đó, xoá xong là không còn gì để dọn nữa.
+   *
+   * Trả về `{ cloudCleaned }` để UI nói được sự thật khi bước dọn thất bại —
+   * bản ghi cục bộ vẫn bị xoá (người dùng đã quyết định bỏ, không hỏi lại nữa),
+   * còn phiên trên GCS thì tự hết hiệu lực sau 7 ngày.
+   */
   const discardResumableSession = useCallback(async (session) => {
-    if (!session?.jobId) return;
-    clearChunkState(session.jobId);
+    if (!session?.jobId) return { cloudCleaned: true };
+
+    let cloudCleaned = true;
     if (session.storageKey) {
       try {
         await storageApi.abortUpload({
           storageKey: session.storageKey,
-          storageProvider: 'google_cloud',
+          storageProvider: session.storageProvider || 'google_cloud',
           resumableUrl: session.resumableUrl,
         });
       } catch (err) {
         console.warn('Không dọn được phiên tải lên đã bỏ:', err);
+        cloudCleaned = false;
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+
+    clearChunkState(session.jobId);
+    return { cloudCleaned };
+  }, [clearChunkState]);
 
   // Backward-compat alias — code cũ gọi uploadFile vẫn hoạt động
 
@@ -2008,7 +2091,7 @@ export function FileProvider({ children }) {
     // ── Điều hướng / tab ──
     activeTab, currentFolderId, currentSharedDriveId,
     handleSetActiveTab, handleSetCurrentFolderId, handleSetCurrentSharedDriveId,
-    openFolder, toggleSidebar,
+    openFolder, toggleSidebar, setViewMode,
     // ── Tìm kiếm / lọc / sắp xếp ──
     searchQuery, filterType, filterDate, filterOwner, filterLocation,
     sortField, sortDirection, resetFilters, uniqueOwners,

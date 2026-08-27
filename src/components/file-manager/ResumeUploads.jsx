@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useCallback } from 'react';
+import toast from 'react-hot-toast';
 import { useFiles } from '../../context/FileContext';
 import { RotateCcw, X, FileUp, AlertTriangle } from 'lucide-react';
 import { formatBytes } from '../../utils/formatFileSize';
@@ -68,9 +69,19 @@ export default function ResumeUploads() {
   );
 
   const handleDiscard = useCallback(
-    (session) => {
-      discardResumableSession(session);
+    async (session) => {
+      // Ẩn dòng này ngay, không chờ mạng: người dùng đã quyết định bỏ, và bản ghi
+      // cục bộ chắc chắn bị xoá dù bước dọn cloud có hỏng hay không — nên phiên
+      // này sẽ không quay lại sau khi tải lại trang.
       setHandled((prev) => new Set(prev).add(session.jobId));
+      setError(null);
+
+      const result = await discardResumableSession(session);
+      if (result && result.cloudCleaned === false) {
+        // Dùng toast chứ không phải ô lỗi trong bảng: bỏ phiên cuối cùng là bảng
+        // biến mất luôn, thông báo đặt trong đó sẽ không ai đọc được.
+        toast.error('Đã bỏ khỏi danh sách, nhưng chưa dọn được phần đã tải trên cloud.');
+      }
     },
     [discardResumableSession],
   );

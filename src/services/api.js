@@ -284,5 +284,34 @@ export const sharedDrivesApi = {
   removeMember: (id, userId) => api.delete(`/shared-drives/${id}/members/${userId}`),
 };
 
+// Billing / Thanh toán (payOS)
+//
+// payOS là cổng DUY NHẤT: nó phát mã VietQR nên mọi app ngân hàng Việt Nam đều quét được,
+// không cần tích hợp riêng từng ví. Vì vậy không có tham số chọn cổng ở đây.
+export const billingApi = {
+  // Bảng giá lấy từ DB (chỉ gói is_active). Trả [{ id, name, storageBytes, storageGB,
+  // priceMonthly, priceYearly }] đã sắp theo priceMonthly tăng dần.
+  getPlans: () => api.get('/billing/plans'),
+
+  // data: { planId, billingCycle: 'monthly' | 'yearly' }
+  //
+  // CỐ Ý không gửi `amount`: backend tự tra giá theo planId, và AppValidationPipe
+  // (whitelist: true) trả 400 nếu payload có thêm field lạ. Chữ ký payOS ký đúng con số
+  // được gửi lên nên nó KHÔNG phát hiện được client tự hạ giá — đó là lý do số tiền chỉ
+  // được sinh ở server.
+  //
+  // Trả { transactionId, orderCode, amount, checkoutUrl, qrCode, accountNumber,
+  // accountName, bin, description, expiredAt }. Link sống 15 phút.
+  createPaymentLink: (data) => api.post('/billing/payos/create-payment-link', data),
+
+  // 50 giao dịch gần nhất của chính mình, mới nhất trước.
+  getTransactions: () => api.get('/billing/transactions'),
+
+  // Trang /billing/success gọi cái này. Nó KHÔNG chỉ đọc DB: giao dịch còn PENDING thì
+  // backend hỏi thẳng payOS rồi ghi nhận kết quả — nhờ vậy luồng mua gói chạy được cả khi
+  // webhook URL chưa được đăng ký (máy dev không có HTTPS public).
+  getTransactionStatus: (orderCode) => api.get(`/billing/transactions/${orderCode}`),
+};
+
 export default api;
 

@@ -512,9 +512,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                     </span>
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">{user.email}</p>
-                  <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-1">
-                    Nhấp vào biểu tượng máy ảnh để thay đổi hình đại diện của bạn.
-                  </p>
+                  
                 </div>
               </div>
 

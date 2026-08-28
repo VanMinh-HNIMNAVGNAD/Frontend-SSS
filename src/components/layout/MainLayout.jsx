@@ -38,6 +38,7 @@ export default function MainLayout() {
         enqueueUpload,
         toggleStar,
         moveToTrash,
+        refreshStorageInfo,
     } = useFiles();
 
     const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
@@ -128,7 +129,7 @@ export default function MainLayout() {
         }
     }, [getSelection, toggleStar]);
 
-    const handleMoveToTrash = useCallback(() => {
+    const handleMoveToTrash = useCallback(async () => {
         if (activeTab === 'trash') return; // trong thùng rác thì không "xoá" thêm được
         const selected = getSelection();
         if (selected.length === 0) {
@@ -137,8 +138,42 @@ export default function MainLayout() {
         }
         const label = selected.length === 1 ? `"${selected[0].name}"` : `${selected.length} mục đã chọn`;
         if (!window.confirm(`Chuyển ${label} vào thùng rác?`)) return;
-        selected.forEach((item) => moveToTrash(item.id));
-    }, [activeTab, getSelection, moveToTrash]);
+
+        // `silent` như ở handleToggleStar: gộp N kết quả thành một câu thay vì để
+        // moveToTrash bắn một toast cho từng mục. Trước đây forEach không await
+        // nên lỗi còn về sau cả confirm tiếp theo.
+        const results = await Promise.all(
+            selected.map((item) => moveToTrash(item.id, { silent: true })),
+        );
+        const failed = [];
+        results.forEach((res, idx) => {
+            if (!res?.ok) {
+                failed.push({ name: selected[idx].name, reason: res?.error?.message || 'lỗi không xác định' });
+            }
+        });
+
+        if (failed.length === 0) {
+            toast.success(
+                selected.length === 1
+                    ? `Đã chuyển ${label} vào thùng rác`
+                    : `Đã chuyển ${selected.length} mục vào thùng rác`,
+            );
+        } else {
+            // Chi tiết ra console, toast chỉ nêu số lượng + một mục làm ví dụ
+            console.error(
+                `[MainLayout] ${failed.length}/${selected.length} mục thất bại:`,
+                failed.map((f) => `${f.name}: ${f.reason}`).join('\n'),
+            );
+            toast.error(
+                failed.length === 1
+                    ? `Không chuyển được "${failed[0].name}" vào thùng rác: ${failed[0].reason}`
+                    : `Có ${failed.length}/${selected.length} mục không chuyển được vào thùng rác (vd. "${failed[0].name}")`,
+            );
+        }
+
+        // Một lượt làm mới dung lượng cho cả lô, thay vì một lượt mỗi mục
+        if (failed.length < selected.length) refreshStorageInfo();
+    }, [activeTab, getSelection, moveToTrash, refreshStorageInfo]);
 
     // ── Đăng ký phím tắt toàn cục ───────────────────────────────────────────
     // Tạm tắt khi đang mở modal chặn thao tác để phím không "xuyên" qua lớp phủ

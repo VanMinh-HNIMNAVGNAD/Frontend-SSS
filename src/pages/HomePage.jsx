@@ -1,7 +1,12 @@
+import { useState, useCallback } from 'react';
 import { useFiles } from '../context/FileContext';
 import FileSkeleton from '../components/common/FileSkeleton';
 import FileThumbnail from '../components/file-manager/FileThumbnail';
 import StarButton from '../components/common/StarButton';
+import ContextMenu from '../components/file-manager/ContextMenu';
+import RenameModal from '../components/file-manager/RenameModal';
+import ShareModal from '../components/file-manager/ShareModal';
+import GeminiModal from '../components/file-manager/GeminiModal';
 import { getFileIcon } from '../utils/getFileIcon';
 import {
     HardDrive,
@@ -26,7 +31,7 @@ const safeFileIcon = (item) => {
 };
 
 // Compact Section Table Component (List Mode)
-const SectionTable = ({ itemList, emptyMessage = "Không có mục nào", onItemOpen, onToggleStar }) => {
+const SectionTable = ({ itemList, emptyMessage = "Không có mục nào", onItemOpen, onToggleStar, onContextMenu }) => {
     if (itemList.length === 0) {
         return <p className="text-xs text-gray-400 dark:text-gray-500 py-3 italic">{emptyMessage}</p>;
     }
@@ -37,6 +42,7 @@ const SectionTable = ({ itemList, emptyMessage = "Không có mục nào", onItem
                 <div
                     key={item.id}
                     onDoubleClick={() => onItemOpen && onItemOpen(item)}
+                    onContextMenu={(e) => onContextMenu && onContextMenu(e, item)}
                     title="Bấm đúp để mở"
                     className="flex items-center justify-between py-2.5 px-3 hover:bg-gray-50/80 dark:hover:bg-white/5 transition-colors cursor-pointer rounded-md select-none"
                 >
@@ -71,9 +77,14 @@ const SectionTable = ({ itemList, emptyMessage = "Không có mục nào", onItem
                             onToggle={() => onToggleStar && onToggleStar(item.id)}
                         />
                         <button
-                            onClick={(e) => { e.stopPropagation(); }}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                onContextMenu && onContextMenu(e, item);
+                            }}
                             onDoubleClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
                             className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 p-1 rounded hover:bg-gray-200/50 dark:hover:bg-white/10"
+                            title="Thao tác khác"
                         >
                             <MoreVertical className="w-4 h-4" />
                         </button>
@@ -85,7 +96,7 @@ const SectionTable = ({ itemList, emptyMessage = "Không có mục nào", onItem
 };
 
 // Compact Section Grid Component (Grid Mode)
-const SectionGrid = ({ itemList, emptyMessage = "Không có mục nào", onItemOpen, onToggleStar }) => {
+const SectionGrid = ({ itemList, emptyMessage = "Không có mục nào", onItemOpen, onToggleStar, onContextMenu }) => {
     if (itemList.length === 0) {
         return <p className="text-xs text-gray-400 dark:text-gray-500 py-3 italic">{emptyMessage}</p>;
     }
@@ -96,6 +107,7 @@ const SectionGrid = ({ itemList, emptyMessage = "Không có mục nào", onItemO
                 <div
                     key={item.id}
                     onDoubleClick={() => onItemOpen && onItemOpen(item)}
+                    onContextMenu={(e) => onContextMenu && onContextMenu(e, item)}
                     title="Bấm đúp để mở"
                     className="bg-white dark:bg-[#282a2c] border border-gray-200/80 dark:border-gray-700/60 rounded-xl p-2.5 hover:shadow-md hover:border-blue-300 transition-all cursor-pointer flex flex-col group h-44 select-none"
                 >
@@ -109,9 +121,14 @@ const SectionGrid = ({ itemList, emptyMessage = "Không có mục nào", onItemO
                                 onToggle={() => onToggleStar && onToggleStar(item.id)}
                             />
                             <button
-                                onClick={(e) => { e.stopPropagation(); }}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    e.preventDefault();
+                                    onContextMenu && onContextMenu(e, item);
+                                }}
                                 onDoubleClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
                                 className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 p-1 rounded hover:bg-gray-100 dark:hover:bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                title="Thao tác khác"
                             >
                                 <MoreVertical className="w-3.5 h-3.5" />
                             </button>
@@ -140,18 +157,82 @@ const SectionGrid = ({ itemList, emptyMessage = "Không có mục nào", onItemO
 };
 
 export default function HomePage() {
-    const { items, setActiveTab, isLoading, viewMode, setViewMode, openPreview, openFolder, toggleStar } = useFiles();
+    const {
+        items,
+        setActiveTab,
+        activeTab,
+        isLoading,
+        viewMode,
+        setViewMode,
+        openPreview,
+        openFolder,
+        toggleStar,
+        moveToTrash,
+        restoreFromTrash,
+        deletePermanently,
+        renameItem,
+        openInfoDrawer,
+        getDownloadUrl,
+        clipboard,
+        isPasting,
+        cutItems,
+        copyItems,
+        pasteItems,
+    } = useFiles();
+
+    // Context menu state
+    const [contextMenu, setContextMenu] = useState({ isOpen: false, x: 0, y: 0, item: null });
+
+    // Modals state
+    const [renameItemTarget, setRenameItemTarget] = useState(null);
+    const [shareItemTarget, setShareItemTarget] = useState(null);
+    const [geminiItemTarget, setGeminiItemTarget] = useState(null);
+
+    const openContextMenu = useCallback((e, item) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setContextMenu({
+            isOpen: true,
+            x: e.clientX,
+            y: e.clientY,
+            item
+        });
+    }, []);
+
+    const closeContextMenu = useCallback(() => {
+        setContextMenu({ isOpen: false, x: 0, y: 0, item: null });
+    }, []);
+
+    const handleDownloadItem = useCallback(async (item) => {
+        try {
+            if (item.type === 'folder') {
+                alert('Đang tạo liên kết tải xuống thư mục dạng ZIP...');
+                return;
+            }
+            const url = await getDownloadUrl(item.id);
+            if (url) {
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = item.name;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        } catch (error) {
+            console.error('Lỗi khi tải xuống:', error);
+        }
+    }, [getDownloadUrl]);
 
     // Mở bằng BẤM ĐÚP (giống MyDrive/FileListView) — trước đây một cú click đã mở
     // luôn nên rất dễ mở nhầm tệp khi chỉ muốn bấm ngôi sao hay quét chọn.
-    const handleItemOpen = (item) => {
+    const handleItemOpen = useCallback((item) => {
         if (item.type === 'folder') {
             setActiveTab('my-drive');
             openFolder(item);
         } else {
             openPreview(item);
         }
-    };
+    }, [setActiveTab, openFolder, openPreview]);
 
     // 1. Mục của tôi (My Drive) - Top 5-6
     const myDriveItems = items
@@ -234,9 +315,21 @@ export default function HomePage() {
                     </button>
                 </div>
                 {viewMode === 'grid' ? (
-                    <SectionGrid itemList={myDriveItems} emptyMessage="Chưa có tệp nào trong Driver riêng của tôi." onItemOpen={handleItemOpen} onToggleStar={toggleStar} />
+                    <SectionGrid
+                        itemList={myDriveItems}
+                        emptyMessage="Chưa có tệp nào trong Driver riêng của tôi."
+                        onItemOpen={handleItemOpen}
+                        onToggleStar={toggleStar}
+                        onContextMenu={openContextMenu}
+                    />
                 ) : (
-                    <SectionTable itemList={myDriveItems} emptyMessage="Chưa có tệp nào trong Driver riêng của tôi." onItemOpen={handleItemOpen} onToggleStar={toggleStar} />
+                    <SectionTable
+                        itemList={myDriveItems}
+                        emptyMessage="Chưa có tệp nào trong Driver riêng của tôi."
+                        onItemOpen={handleItemOpen}
+                        onToggleStar={toggleStar}
+                        onContextMenu={openContextMenu}
+                    />
                 )}
             </section>
 
@@ -256,9 +349,21 @@ export default function HomePage() {
                     </button>
                 </div>
                 {viewMode === 'grid' ? (
-                    <SectionGrid itemList={recentItems} emptyMessage="Chưa có tệp nào mở gần đây." onItemOpen={handleItemOpen} onToggleStar={toggleStar} />
+                    <SectionGrid
+                        itemList={recentItems}
+                        emptyMessage="Chưa có tệp nào mở gần đây."
+                        onItemOpen={handleItemOpen}
+                        onToggleStar={toggleStar}
+                        onContextMenu={openContextMenu}
+                    />
                 ) : (
-                    <SectionTable itemList={recentItems} emptyMessage="Chưa có tệp nào mở gần đây." onItemOpen={handleItemOpen} onToggleStar={toggleStar} />
+                    <SectionTable
+                        itemList={recentItems}
+                        emptyMessage="Chưa có tệp nào mở gần đây."
+                        onItemOpen={handleItemOpen}
+                        onToggleStar={toggleStar}
+                        onContextMenu={openContextMenu}
+                    />
                 )}
             </section>
 
@@ -278,11 +383,69 @@ export default function HomePage() {
                     </button>
                 </div>
                 {viewMode === 'grid' ? (
-                    <SectionGrid itemList={sharedItems} emptyMessage="Chưa có tệp nào được chia sẻ với bạn." onItemOpen={handleItemOpen} onToggleStar={toggleStar} />
+                    <SectionGrid
+                        itemList={sharedItems}
+                        emptyMessage="Chưa có tệp nào được chia sẻ với bạn."
+                        onItemOpen={handleItemOpen}
+                        onToggleStar={toggleStar}
+                        onContextMenu={openContextMenu}
+                    />
                 ) : (
-                    <SectionTable itemList={sharedItems} emptyMessage="Chưa có tệp nào được chia sẻ với bạn." onItemOpen={handleItemOpen} onToggleStar={toggleStar} />
+                    <SectionTable
+                        itemList={sharedItems}
+                        emptyMessage="Chưa có tệp nào được chia sẻ với bạn."
+                        onItemOpen={handleItemOpen}
+                        onToggleStar={toggleStar}
+                        onContextMenu={openContextMenu}
+                    />
                 )}
             </section>
+
+            {/* Context Menu floating */}
+            <ContextMenu
+                isOpen={contextMenu.isOpen}
+                x={contextMenu.x}
+                y={contextMenu.y}
+                item={contextMenu.item}
+                isTrashTab={false}
+                activeTab={activeTab || 'home'}
+                onClose={closeContextMenu}
+                onPreview={(item) => openPreview(item)}
+                onDownload={handleDownloadItem}
+                onRename={(item) => setRenameItemTarget(item)}
+                onCut={(targetItem) => cutItems([targetItem.id])}
+                onCopy={(targetItem) => copyItems([targetItem.id])}
+                onPaste={(targetParentId) => pasteItems(targetParentId)}
+                canPaste={clipboard?.items?.length > 0}
+                isPasting={isPasting}
+                onShare={(item) => setShareItemTarget(item)}
+                onGemini={(item) => setGeminiItemTarget(item)}
+                onToggleStar={(item) => toggleStar(item.id)}
+                onMoveToTrash={(item) => moveToTrash(item.id)}
+                onRestore={(item) => restoreFromTrash(item.id)}
+                onDeletePermanently={(item) => deletePermanently(item.id)}
+                onShowInfo={(item, tab) => openInfoDrawer(item, tab)}
+            />
+
+            {/* Modals */}
+            <RenameModal
+                isOpen={!!renameItemTarget}
+                item={renameItemTarget}
+                onClose={() => setRenameItemTarget(null)}
+                onRename={(id, newName) => renameItem(id, newName)}
+            />
+
+            <ShareModal
+                isOpen={!!shareItemTarget}
+                item={shareItemTarget}
+                onClose={() => setShareItemTarget(null)}
+            />
+
+            <GeminiModal
+                isOpen={!!geminiItemTarget}
+                item={geminiItemTarget}
+                onClose={() => setGeminiItemTarget(null)}
+            />
         </div>
     );
 }

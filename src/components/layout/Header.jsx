@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import toast from 'react-hot-toast';
 import { useFiles } from '../../context/FileContext';
 import { filesApi } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -47,7 +48,9 @@ export default function Header({ toggleRightSidebar }) {
         copyItem,
         cutItems,
         copyItems,
-        getDownloadUrl
+        getDownloadUrl,
+        triggerReload,
+        refreshStorageInfo
     } = useFiles();
 
     const { t } = useLanguage();
@@ -67,18 +70,79 @@ export default function Header({ toggleRightSidebar }) {
     const isSpamTab = activeTab === 'spam';
     const allCurrentSelected = (folders?.length + files?.length) > 0 && selectedCount >= (folders?.length + files?.length);
 
+    /**
+     * Gộp kết quả một thao tác hàng loạt thành ĐÚNG MỘT toast.
+     *
+     * Các hàm trong FileContext được gọi ở chế độ `silent` nên không tự thông
+     * báo: xóa 10 tệp mà lỗi cả 10 thì trước đây là 10 toast đỏ xếp chồng nhau,
+     * còn khi thành công thì tuyệt đối im lặng — người dùng không biết thao tác
+     * đã chạy hay chưa.
+     *
+     * @param {number} total Số mục đã thử xử lý
+     * @param {{name: string, reason: string}[]} errors Các mục thất bại, theo thứ tự xử lý
+     * @param {string} successKey Khoá i18n cho toast thành công — nhận {count}
+     * @param {string} errorKey Khoá i18n khi CHỈ MỘT mục thất bại — nhận {name}, {reason}
+     * @param {string} partialKey Khoá i18n khi nhiều mục thất bại — nhận {failed}, {total}, {name}
+     */
+    const showBatchResult = (total, errors, successKey, errorKey, partialKey) => {
+        if (!errors.length) {
+            toast.success(t(successKey, { count: total }));
+            return;
+        }
+        // Chi tiết từng mục đẩy ra console cho lúc cần truy vết, toast chỉ nêu
+        // số lượng + một mục làm ví dụ (giống pasteItems trong FileContext).
+        console.error(
+            `[Header] ${errors.length}/${total} mục thất bại:`,
+            errors.map((e) => `${e.name}: ${e.reason}`).join('\n'),
+        );
+        toast.error(
+            errors.length === 1
+                ? t(errorKey, { name: errors[0].name, reason: errors[0].reason })
+                : t(partialKey, { failed: errors.length, total, name: errors[0].name }),
+        );
+    };
+
+    /**
+     * Chạy `run` lần lượt cho từng mục đã chọn rồi báo kết quả một lần.
+     *
+     * `run` trả về `{ ok, error }` (hợp đồng chung của FileContext ở chế độ
+     * silent) và không throw; vẫn bọc try/catch để một lỗi ngoài dự kiến của
+     * một mục không chặn những mục còn lại.
+     *
+     * @returns {number} Số mục xử lý thành công — phía gọi dùng để quyết định
+     *          có cần đồng bộ lại danh sách hay không.
+     */
+    const runBatch = async (items, run, successKey, errorKey, partialKey) => {
+        const errors = [];
+        for (const item of items) {
+            try {
+                const res = await run(item);
+                if (res && res.ok === false) {
+                    errors.push({ name: item.name, reason: res.error?.message || t('common.unknownError') });
+                }
+            } catch (err) {
+                errors.push({ name: item.name, reason: err?.message || t('common.unknownError') });
+            }
+        }
+        deselectAll();
+        showBatchResult(items.length, errors, successKey, errorKey, partialKey);
+        return items.length - errors.length;
+    };
+
     const handleDeleteSelected = async () => {
         const items = getSelectedItems(folders, files);
         if (!items.length) return;
         if (!confirm(t('header.confirm.trash', { count: items.length }))) return;
 
-        const errors = [];
-        for (const item of items) {
-            try { await moveToTrash(item.id); } 
-            catch { errors.push(item.name); }
-        }
-        deselectAll();
-        if (errors.length) alert(t('header.error.delete', { names: errors.join(', ') }));
+        const succeeded = await runBatch(
+            items,
+            (item) => moveToTrash(item.id, { silent: true }),
+            'header.success.delete',
+            'header.error.delete',
+            'header.error.deletePartial',
+        );
+        // Một lượt làm mới dung lượng cho cả lô, thay vì một lượt mỗi mục
+        if (succeeded > 0) refreshStorageInfo();
     };
 
     const handleRestoreSelected = async () => {
@@ -86,13 +150,14 @@ export default function Header({ toggleRightSidebar }) {
         if (!items.length) return;
         if (!confirm(t('header.confirm.restore', { count: items.length }))) return;
 
-        const errors = [];
-        for (const item of items) {
-            try { await restoreFromTrash(item.id); } 
-            catch { errors.push(item.name); }
-        }
-        deselectAll();
-        if (errors.length) alert(t('header.error.restore', { names: errors.join(', ') }));
+        const succeeded = await runBatch(
+            items,
+            (item) => restoreFromTrash(item.id, { silent: true }),
+            'header.success.restore',
+            'header.error.restore',
+            'header.error.restorePartial',
+        );
+        if (succeeded > 0) refreshStorageInfo();
     };
 
     const handlePermanentDeleteSelected = async () => {
@@ -100,13 +165,14 @@ export default function Header({ toggleRightSidebar }) {
         if (!items.length) return;
         if (!confirm(t('header.confirm.deleteForever', { count: items.length }))) return;
 
-        const errors = [];
-        for (const item of items) {
-            try { await deletePermanently(item.id); } 
-            catch { errors.push(item.name); }
-        }
-        deselectAll();
-        if (errors.length) alert(t('header.error.deleteForever', { names: errors.join(', ') }));
+        const succeeded = await runBatch(
+            items,
+            (item) => deletePermanently(item.id, { silent: true }),
+            'header.success.deleteForever',
+            'header.error.deleteForever',
+            'header.error.deleteForeverPartial',
+        );
+        if (succeeded > 0) refreshStorageInfo();
     };
 
     const handleMoveSelected = async () => {
@@ -115,13 +181,16 @@ export default function Header({ toggleRightSidebar }) {
         const targetId = prompt(t('header.prompt.moveTarget'));
         if (targetId === null) return;
 
-        const errors = [];
-        for (const item of items) {
-            try { await moveItem(item.id, targetId || null); } 
-            catch { errors.push(item.name); }
-        }
-        deselectAll();
-        if (errors.length) alert(t('header.error.move', { names: errors.join(', ') }));
+        const succeeded = await runBatch(
+            items,
+            (item) => moveItem(item.id, targetId || null, { silent: true }),
+            'header.success.move',
+            'header.error.move',
+            'header.error.movePartial',
+        );
+        // moveItem/copyItem ở chế độ silent KHÔNG tự tải lại danh sách — nếu để
+        // nó tự làm thì mỗi mục là một lần tải lại cả trang cho cùng kết quả.
+        if (succeeded > 0) await triggerReload();
     };
 
     const handleCopySelected = async () => {
@@ -130,13 +199,17 @@ export default function Header({ toggleRightSidebar }) {
         const targetId = prompt(t('header.prompt.copyTarget'));
         if (targetId === null) return;
 
-        const errors = [];
-        for (const item of items) {
-            try { await copyItem(item.id, targetId || null); } 
-            catch { errors.push(item.name); }
+        const succeeded = await runBatch(
+            items,
+            (item) => copyItem(item.id, targetId || null, { silent: true }),
+            'header.success.copy',
+            'header.error.copy',
+            'header.error.copyPartial',
+        );
+        if (succeeded > 0) {
+            await triggerReload();
+            refreshStorageInfo();
         }
-        deselectAll();
-        if (errors.length) alert(t('header.error.copy', { names: errors.join(', ') }));
     };
 
     const handleDownloadSelected = async () => {
@@ -149,6 +222,9 @@ export default function Header({ toggleRightSidebar }) {
         // Có thư mục trong lựa chọn -> gói tất cả (file + toàn bộ cây thư mục con)
         // thành 1 file ZIP duy nhất do backend nén
         if (folderItems.length > 0) {
+            // Nén ở backend có thể mất vài giây: giữ một toast "đang tạo" rồi
+            // thay chính nó bằng kết quả (cùng `id`) để không sinh toast thứ hai.
+            const toastId = toast.loading(t('header.zip.creating'));
             try {
                 const zipBlob = await filesApi.downloadZip(items.map((i) => i.id));
                 const blobUrl = URL.createObjectURL(zipBlob);
@@ -159,29 +235,40 @@ export default function Header({ toggleRightSidebar }) {
                 link.click();
                 document.body.removeChild(link);
                 URL.revokeObjectURL(blobUrl);
+                toast.success(t('header.success.zip'), { id: toastId });
             } catch (error) {
                 console.error('[Header] ZIP download failed:', error);
-                alert(t('header.error.zip'));
+                toast.error(t('header.error.zip'), { id: toastId });
             }
             return;
         }
 
+        const errors = [];
         for (const item of fileItems) {
             try {
-                const url = await getDownloadUrl(item.id);
-                if (url) {
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = item.name;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    await new Promise((r) => setTimeout(r, 300));
+                const url = await getDownloadUrl(item.id, { silent: true });
+                if (!url) {
+                    errors.push({ name: item.name, reason: t('header.error.noDownloadUrl') });
+                    continue;
                 }
-            } catch {
-                console.error(`[Header] Download failed: ${item.name}`);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = item.name;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                await new Promise((r) => setTimeout(r, 300));
+            } catch (err) {
+                errors.push({ name: item.name, reason: err?.message || t('common.unknownError') });
             }
         }
+        showBatchResult(
+            fileItems.length,
+            errors,
+            'header.success.download',
+            'header.error.download',
+            'header.error.downloadPartial',
+        );
     };
 
     if (selectedCount > 0) {

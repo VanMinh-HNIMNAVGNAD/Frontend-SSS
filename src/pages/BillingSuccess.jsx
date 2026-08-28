@@ -41,7 +41,12 @@ const PENDING_STATUSES = ['PENDING', 'PROCESSING'];
 
 const formatVnd = (amount) => `${new Intl.NumberFormat('vi-VN').format(Number(amount) || 0)} đ`;
 
-const CYCLE_LABEL = { monthly: '1 tháng', yearly: '1 năm' };
+const CYCLE_LABEL = {
+  monthly: '1 tháng',
+  '3_months': '3 tháng (-5%)',
+  '6_months': '6 tháng (-15%)',
+  yearly: '1 năm (-20%)',
+};
 
 export default function BillingSuccess() {
   const [searchParams] = useSearchParams();

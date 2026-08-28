@@ -158,7 +158,6 @@ export default function NewButton({ isCollapsed }) {
             <FileUp className="w-5 h-5 text-blue-500" />
             <div className="flex flex-col items-start">
               <span className="font-medium">Tải tệp lên</span>
-              <span className="text-[11px] text-gray-400 dark:text-gray-500">Chọn nhiều tệp cùng lúc</span>
             </div>
           </button>
 

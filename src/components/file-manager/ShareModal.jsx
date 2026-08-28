@@ -1,7 +1,20 @@
 import { useState, useEffect, useCallback } from 'react';
-import { UserPlus, X, Copy, Check, Lock, Shield, Eye, Edit3, Loader2, AlertCircle } from 'lucide-react';
+import { UserPlus, X, Copy, Check, Lock, Shield, Eye, Edit3, Loader2, AlertCircle, HelpCircle } from 'lucide-react';
 import { sharingApi } from '../../services/api';
 import { readDefaultShareRole } from '../../constants/privacy';
+
+// Câu giải thích DÙNG CHUNG cho tooltip cạnh ô email và cho thông báo lỗi khi
+// backend trả 404. Lý do đặt một chỗ: hai bên phải nói CÙNG một điều, nếu không
+// người dùng đọc tooltip xong lại thấy lỗi mâu thuẫn với nó.
+//
+// Cố ý KHÔNG hứa hẹn phân biệt được hai trường hợp: FilesService.addShareAccess
+// gộp "email không tồn tại" và "người này tắt is_discoverable_by_email" vào ĐÚNG
+// một NotFoundException, có chủ đích — tách ra là biến ô nhập email thành máy tra
+// cứu xem địa chỉ nào có tài khoản driveR, thậm chí biết ai đã chủ động ẩn mình
+// (user enumeration). Vì vậy phía client cũng không được đoán: chỉ nêu ĐỦ CẢ HAI
+// khả năng để người chia sẻ không kết luận sai rằng email không tồn tại.
+const EMAIL_LOOKUP_HINT =
+    'Một số người dùng có thể không tìm thấy qua email nếu họ tắt "Hiển thị thông tin cá nhân" trong Cài đặt.';
 
 const ROLE_CONFIG = {
     VIEWER: {
@@ -133,7 +146,13 @@ export default function ShareModal({ isOpen, item, onClose }) {
             setEmail('');
             await loadMembers();
         } catch (err) {
-            setErrorMsg(err.message || 'Không tìm thấy người dùng với email này');
+            // 404 = nhánh gộp của backend: có thể email chưa có tài khoản, cũng có thể
+            // chủ tài khoản đã tự ẩn mình. Ghép thêm EMAIL_LOOKUP_HINT để người chia sẻ
+            // biết khả năng thứ hai thay vì tin chắc là mình gõ sai email. Các lỗi khác
+            // (403 không có quyền, 400 dữ liệu sai, mất mạng…) giữ nguyên câu của server
+            // — dán câu về quyền riêng tư vào đó chỉ làm người dùng đi sai hướng.
+            const message = err.message || 'Không tìm thấy người dùng với email này.';
+            setErrorMsg(err.status === 404 ? `${message} ${EMAIL_LOOKUP_HINT}` : message);
         } finally {
             setIsSubmitting(false);
         }
@@ -233,13 +252,30 @@ export default function ShareModal({ isOpen, item, onClose }) {
 
                     {/* Add people form */}
                     <form onSubmit={handleAddMember} className="space-y-2">
-                        <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Thêm người có quyền truy cập</label>
+                        <div className="flex items-center gap-1.5">
+                            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Thêm người có quyền truy cập</label>
+                            {/* Tooltip gốc của trình duyệt (thuộc tính title) thay vì popover tự
+                                dựng: chỉ là một câu tĩnh, không cần state/định vị, và vẫn đọc
+                                được bằng trình đọc màn hình qua aria-label. tabIndex={0} để tới
+                                được bằng bàn phím — chỉ đặt title lên <span> thì người không dùng
+                                chuột không bao giờ thấy câu này. */}
+                            <span
+                                role="img"
+                                title={EMAIL_LOOKUP_HINT}
+                                aria-label={EMAIL_LOOKUP_HINT}
+                                tabIndex={0}
+                                className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 rounded-full cursor-help transition-colors"
+                            >
+                                <HelpCircle className="w-3.5 h-3.5" />
+                            </span>
+                        </div>
                         <div className="flex gap-2">
                             <input
                                 type="email"
                                 value={email}
                                 onChange={(e) => { setEmail(e.target.value); setErrorMsg(''); }}
                                 placeholder="Email người dùng..."
+                                title={EMAIL_LOOKUP_HINT}
                                 className="flex-1 px-3.5 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-white/5 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 outline-none transition"
                             />
                             <select

@@ -123,6 +123,7 @@ const translations = {
     'common.selectAll': 'Chọn tất cả',
     'common.deselectAll': 'Bỏ chọn tất cả',
     'common.login': 'Đăng nhập',
+    'common.unknownError': 'lỗi không xác định',
 
     // ── 11. Thanh Header ────────────────────────────────────────────────────
     'header.selected': '{count} đã chọn',
@@ -144,12 +145,33 @@ const translations = {
       'Xóa vĩnh viễn {count} mục? Hành động này không thể hoàn tác!',
     'header.prompt.moveTarget': 'Nhập ID thư mục đích (để trống = gốc):',
     'header.prompt.copyTarget': 'Nhập ID thư mục đích cho sao chép (để trống = gốc):',
-    // Thông báo lỗi
-    'header.error.delete': 'Lỗi khi xóa: {names}',
-    'header.error.restore': 'Lỗi khi khôi phục: {names}',
-    'header.error.deleteForever': 'Lỗi khi xóa vĩnh viễn: {names}',
-    'header.error.move': 'Lỗi khi di chuyển: {names}',
-    'header.error.copy': 'Lỗi khi sao chép: {names}',
+    // Thông báo thành công — gộp cho cả thao tác nhiều mục, nên luôn nêu {count}
+    'header.success.delete': 'Đã chuyển {count} mục vào thùng rác',
+    'header.success.restore': 'Đã khôi phục {count} mục',
+    'header.success.deleteForever': 'Đã xóa vĩnh viễn {count} mục',
+    'header.success.move': 'Đã di chuyển {count} mục',
+    'header.success.copy': 'Đã sao chép {count} mục',
+    'header.success.download': 'Đã tải {count} tệp',
+    'header.zip.creating': 'Đang tạo tệp ZIP...',
+    'header.success.zip': 'Đã tạo tệp ZIP, đang tải xuống',
+    // Thông báo lỗi — hai bản cho mỗi thao tác: đúng một mục thất bại thì nêu
+    // luôn nguyên nhân, nhiều mục thì nêu số lượng + một mục làm ví dụ (danh
+    // sách đầy đủ đẩy ra console, toast góc phải không phải chỗ liệt kê)
+    'header.error.delete': 'Không chuyển được "{name}" vào thùng rác: {reason}',
+    'header.error.deletePartial':
+      'Có {failed}/{total} mục không chuyển được vào thùng rác (vd. "{name}")',
+    'header.error.restore': 'Không khôi phục được "{name}": {reason}',
+    'header.error.restorePartial': 'Có {failed}/{total} mục không khôi phục được (vd. "{name}")',
+    'header.error.deleteForever': 'Không xóa vĩnh viễn được "{name}": {reason}',
+    'header.error.deleteForeverPartial':
+      'Có {failed}/{total} mục không xóa vĩnh viễn được (vd. "{name}")',
+    'header.error.move': 'Không di chuyển được "{name}": {reason}',
+    'header.error.movePartial': 'Có {failed}/{total} mục không di chuyển được (vd. "{name}")',
+    'header.error.copy': 'Không sao chép được "{name}": {reason}',
+    'header.error.copyPartial': 'Có {failed}/{total} mục không sao chép được (vd. "{name}")',
+    'header.error.download': 'Không tải được "{name}": {reason}',
+    'header.error.downloadPartial': 'Có {failed}/{total} tệp không tải được (vd. "{name}")',
+    'header.error.noDownloadUrl': 'không nhận được link tải',
     'header.error.zip': 'Tải xuống ZIP thất bại, vui lòng thử lại.',
   },
 
@@ -255,6 +277,7 @@ const translations = {
     'common.selectAll': 'Select all',
     'common.deselectAll': 'Deselect all',
     'common.login': 'Sign in',
+    'common.unknownError': 'unknown error',
 
     // ── 11. Header bar ──────────────────────────────────────────────────────
     'header.selected': '{count} selected',
@@ -278,12 +301,32 @@ const translations = {
     'header.prompt.moveTarget': 'Enter the destination folder ID (leave empty for root):',
     'header.prompt.copyTarget':
       'Enter the destination folder ID for the copy (leave empty for root):',
-    // Error messages
-    'header.error.delete': 'Could not delete: {names}',
-    'header.error.restore': 'Could not restore: {names}',
-    'header.error.deleteForever': 'Could not permanently delete: {names}',
-    'header.error.move': 'Could not move: {names}',
-    'header.error.copy': 'Could not copy: {names}',
+    // Success messages — also used for batch actions, hence the {count}
+    'header.success.delete': 'Moved {count} item(s) to trash',
+    'header.success.restore': 'Restored {count} item(s)',
+    'header.success.deleteForever': 'Permanently deleted {count} item(s)',
+    'header.success.move': 'Moved {count} item(s)',
+    'header.success.copy': 'Copied {count} item(s)',
+    'header.success.download': 'Downloaded {count} file(s)',
+    'header.zip.creating': 'Creating ZIP file...',
+    'header.success.zip': 'ZIP file ready, downloading',
+    // Error messages — two variants per action: a single failure names the
+    // reason, several failures name the count plus one example (the full list
+    // goes to the console; a corner toast is no place for it)
+    'header.error.delete': 'Could not move "{name}" to trash: {reason}',
+    'header.error.deletePartial': 'Could not move {failed}/{total} item(s) to trash (e.g. "{name}")',
+    'header.error.restore': 'Could not restore "{name}": {reason}',
+    'header.error.restorePartial': 'Could not restore {failed}/{total} item(s) (e.g. "{name}")',
+    'header.error.deleteForever': 'Could not permanently delete "{name}": {reason}',
+    'header.error.deleteForeverPartial':
+      'Could not permanently delete {failed}/{total} item(s) (e.g. "{name}")',
+    'header.error.move': 'Could not move "{name}": {reason}',
+    'header.error.movePartial': 'Could not move {failed}/{total} item(s) (e.g. "{name}")',
+    'header.error.copy': 'Could not copy "{name}": {reason}',
+    'header.error.copyPartial': 'Could not copy {failed}/{total} item(s) (e.g. "{name}")',
+    'header.error.download': 'Could not download "{name}": {reason}',
+    'header.error.downloadPartial': 'Could not download {failed}/{total} file(s) (e.g. "{name}")',
+    'header.error.noDownloadUrl': 'no download link returned',
     'header.error.zip': 'ZIP download failed, please try again.',
   },
 };

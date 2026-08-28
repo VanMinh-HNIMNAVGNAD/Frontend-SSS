@@ -255,21 +255,21 @@ export default function ContextMenu({
 
     const isFolder = item.type === 'folder';
 
-    // ── RBAC: Phân quyền cho tab "Được chia sẻ với tôi" ──────────────
-    const isSharedWithMeTab = activeTab === 'shared-with-me';
+    // ── RBAC: Phân quyền cho tệp/thư mục được chia sẻ ──────────────
+    const isShared = item.isSharedWithMe || activeTab === 'shared-with-me';
     const sharedRole = item.sharedRole; // 'VIEWER' | 'EDITOR' | undefined
-    const isEditorInShared = isSharedWithMeTab && sharedRole === 'EDITOR';
+    const isEditorInShared = isShared && sharedRole === 'EDITOR';
 
-    // Trong shared-with-me:
+    // Trong mục được chia sẻ:
     // VIEWER: chỉ Preview + Download + Sao chép + Star + Hỏi Gemini + Thông tin
     // EDITOR: thêm Đổi tên + Cắt (di chuyển trong drive của chủ sở hữu). Không có
     // Thùng rác / Chia sẻ — hai việc đó vẫn chỉ chủ sở hữu mới làm được.
-    const canRename = !isSharedWithMeTab || isEditorInShared;
-    const canCut = !isSharedWithMeTab || isEditorInShared;
-    const canTrash = !isSharedWithMeTab;
-    const canShare = !isSharedWithMeTab; // Chỉ owner mới chia sẻ được
+    const canRename = !isShared || isEditorInShared;
+    const canCut = !isShared || isEditorInShared;
+    const canTrash = !isShared;
+    const canShare = !isShared; // Chỉ owner mới chia sẻ được
     // Dán VÀO một thư mục được chia sẻ cần quyền EDITOR — VIEWER bấm vào chỉ nhận 403
-    const canPasteIntoItem = !isSharedWithMeTab || !isFolder || isEditorInShared;
+    const canPasteIntoItem = !isShared || !isFolder || isEditorInShared;
     // Dấu sao lưu trên chính hàng `files` (cột is_starred) nên nó là dấu sao CỦA CHỦ
     // SỞ HỮU, không phải của từng người xem. Backend vì thế chỉ cho owner đổi; ẩn nút
     // đi thay vì để người dùng bấm rồi nhận 403.
@@ -286,7 +286,7 @@ export default function ContextMenu({
             {/* Header */}
             <div className="px-4 py-1.5 mb-1 border-b border-gray-200 dark:border-gray-700/60 text-xs font-semibold text-gray-500 dark:text-gray-400 truncate flex items-center gap-2">
                 <span className="truncate">{item.name}</span>
-                {isSharedWithMeTab && sharedRole && (
+                {isShared && sharedRole && (
                     <span className={`ml-auto shrink-0 px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
                         sharedRole === 'EDITOR'
                             ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-300'

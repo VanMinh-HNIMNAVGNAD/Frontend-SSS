@@ -7,7 +7,7 @@ import { useDebounce } from '../hooks/useDebounce';
 import { useUploadActions } from './UploadContext';
 import { formatBytes } from '../utils/formatFileSize';
 import { buildSortedDirPaths } from '../utils/uploadTree';
-import { CHUNK_THRESHOLD } from '../constants/upload';
+import { CHUNK_THRESHOLD, isResumableSize } from '../constants/upload';
 
 const FileContext = createContext();
 
@@ -488,28 +488,47 @@ export function FileProvider({ children }) {
     const prefix = `${CHUNK_STATE_PREFIX}${user?.id || 'anon'}_`;
     const activeJobIds = new Set(uploadQueueRef.current.map((job) => job.id));
     const sessions = [];
+    const junkKeys = [];
 
     try {
+      // Chụp danh sách khoá TRƯỚC, xoá SAU. localStorage.key(i) đánh theo chỉ số:
+      // removeItem() giữa vòng lặp dồn mọi mục phía sau lên một bậc, rồi `i++`
+      // nhảy qua đúng mục vừa dồn vào chỗ `i`. Tức là mỗi bản ghi rác bị dọn giữa
+      // chừng lại làm MỘT phiên còn tốt biến mất khỏi bảng "tải tiếp" — thứ khó
+      // thấy nhất vì phiên đó vẫn nằm nguyên trong localStorage.
+      const keys = [];
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        if (!key || !key.startsWith(prefix)) continue;
+        if (key && key.startsWith(prefix)) keys.push(key);
+      }
 
+      for (const key of keys) {
         let data;
         try {
           data = JSON.parse(localStorage.getItem(key));
         } catch {
-          localStorage.removeItem(key); // bản ghi hỏng — dọn luôn
+          junkKeys.push(key); // bản ghi hỏng
           continue;
         }
 
         if (!data || data.userId !== user?.id) continue;
+
+        // Không có kích thước thì không kiểm được tệp người dùng chọn lại có đúng
+        // tệp cũ không (resumeUpload chỉ so sánh khi `totalSizeBytes` tồn tại) —
+        // nối bừa vào phiên dở sẽ tạo ra tệp hỏng mà không báo lỗi ở đâu cả. Và
+        // dưới ngưỡng chunked thì vốn chẳng có phiên nào trên GCS để quay lại.
+        // Cả hai trường hợp đều là rác: bỏ hẳn thay vì mời tải tiếp.
+        if (!isResumableSize(data.totalSizeBytes)) {
+          junkKeys.push(key);
+          continue;
+        }
 
         const jobId = key.slice(prefix.length);
         if (activeJobIds.has(jobId)) continue;
 
         const ageMs = Date.now() - (data.savedAt || 0);
         if (ageMs > RESUMABLE_SESSION_TTL_MS) {
-          localStorage.removeItem(key);
+          junkKeys.push(key);
           continue;
         }
 
@@ -518,9 +537,11 @@ export function FileProvider({ children }) {
           ...data,
           jobId,
           uploadedBytes,
-          percent: data.totalSizeBytes ? Math.round((uploadedBytes / data.totalSizeBytes) * 100) : 0,
+          percent: Math.min(100, Math.round((uploadedBytes / data.totalSizeBytes) * 100)),
         });
       }
+
+      junkKeys.forEach((key) => localStorage.removeItem(key));
     } catch {
       return []; // localStorage bị chặn (ẩn danh, iframe) — coi như không có phiên nào
     }
@@ -931,33 +952,51 @@ export function FileProvider({ children }) {
     }
   }, []);
 
-  const moveToTrash = useCallback(async (id) => {
+  /**
+   * Ba hàm thùng rác dưới đây dùng chung một hợp đồng với `toggleStar`:
+   * trả `{ ok, error }` và KHÔNG throw, kèm tuỳ chọn `silent`.
+   *
+   * `silent` dành cho thao tác hàng loạt (thanh Header khi chọn nhiều mục):
+   *   • không bắn toast — phía gọi gộp N kết quả thành ĐÚNG MỘT thông báo,
+   *     thay vì xếp chồng 10 toast đỏ khi xóa 10 tệp mà lỗi cả 10;
+   *   • không gọi `fetchAnalytics()` — N mục là N lượt gọi /files/analytics
+   *     cho cùng một con số cuối cùng; phía gọi tự làm mới một lần
+   *     (`refreshStorageInfo`) sau khi chạy hết vòng lặp.
+   * Việc loại mục khỏi danh sách tại chỗ thì vẫn giữ: đó là phản hồi UI.
+   */
+  const moveToTrash = useCallback(async (id, { silent = false } = {}) => {
     try {
       await filesApi.moveToTrash(id);
       setItems((prev) => prev.filter((item) => item.id !== id));
-      fetchAnalytics();
+      if (!silent) fetchAnalytics();
+      return { ok: true };
     } catch (err) {
-      toast.error('Không thể chuyển vào thùng rác: ' + err.message);
+      if (!silent) toast.error('Không thể chuyển vào thùng rác: ' + err.message);
+      return { ok: false, error: err };
     }
   }, [fetchAnalytics]);
 
-  const restoreFromTrash = useCallback(async (id) => {
+  const restoreFromTrash = useCallback(async (id, { silent = false } = {}) => {
     try {
       await filesApi.restoreFromTrash(id);
       setItems((prev) => prev.filter((item) => item.id !== id));
-      fetchAnalytics();
+      if (!silent) fetchAnalytics();
+      return { ok: true };
     } catch (err) {
-      toast.error('Không thể khôi phục: ' + err.message);
+      if (!silent) toast.error('Không thể khôi phục: ' + err.message);
+      return { ok: false, error: err };
     }
   }, [fetchAnalytics]);
 
-  const deletePermanently = useCallback(async (id) => {
+  const deletePermanently = useCallback(async (id, { silent = false } = {}) => {
     try {
       await filesApi.deletePermanently(id);
       setItems((prev) => prev.filter((item) => item.id !== id));
-      fetchAnalytics();
+      if (!silent) fetchAnalytics();
+      return { ok: true };
     } catch (err) {
-      toast.error('Không thể xóa vĩnh viễn: ' + err.message);
+      if (!silent) toast.error('Không thể xóa vĩnh viễn: ' + err.message);
+      return { ok: false, error: err };
     }
   }, [fetchAnalytics]);
 
@@ -1049,39 +1088,51 @@ export function FileProvider({ children }) {
     }
   }, [activeTab, currentSharedDriveId]);
 
-  const moveItem = useCallback(async (id, targetParentId) => {
+  /**
+   * `silent` như ở `moveToTrash`: bỏ toast VÀ bỏ luôn bước đồng bộ lại. Ở đây
+   * bước đồng bộ mới là chỗ đắt — di chuyển 10 mục mà mỗi mục một lượt
+   * `fetchFiles()` là 10 lần tải lại cả trang danh sách cho cùng một kết quả.
+   * Phía gọi hàng loạt tự gọi `triggerReload` (+ `refreshStorageInfo`) một lần.
+   */
+  const moveItem = useCallback(async (id, targetParentId, { silent = false } = {}) => {
     // 1. Thao tác chính: di chuyển item ở backend
     try {
       await filesApi.moveItem(id, { targetParentId });
     } catch (err) {
-      toast.error('Không thể di chuyển: ' + err.message);
-      return;
+      if (!silent) toast.error('Không thể di chuyển: ' + err.message);
+      return { ok: false, error: err };
     }
 
     // 2. Bước đồng bộ lại danh sách
-    try {
-      await fetchFiles();
-    } catch (fetchErr) {
-      console.warn('Lỗi đồng bộ danh sách sau khi di chuyển:', fetchErr);
+    if (!silent) {
+      try {
+        await fetchFiles();
+      } catch (fetchErr) {
+        console.warn('Lỗi đồng bộ danh sách sau khi di chuyển:', fetchErr);
+      }
     }
+    return { ok: true };
   }, [fetchFiles]);
 
-  const copyItem = useCallback(async (id, targetParentId) => {
+  const copyItem = useCallback(async (id, targetParentId, { silent = false } = {}) => {
     // 1. Thao tác chính: sao chép item ở backend
     try {
       await filesApi.copyItem(id, { targetParentId });
     } catch (err) {
-      toast.error('Không thể sao chép: ' + err.message);
-      return;
+      if (!silent) toast.error('Không thể sao chép: ' + err.message);
+      return { ok: false, error: err };
     }
 
     // 2. Bước đồng bộ lại danh sách và thông số lưu trữ
-    try {
-      await fetchFiles();
-      await fetchAnalytics();
-    } catch (fetchErr) {
-      console.warn('Lỗi đồng bộ danh sách sau khi sao chép:', fetchErr);
+    if (!silent) {
+      try {
+        await fetchFiles();
+        await fetchAnalytics();
+      } catch (fetchErr) {
+        console.warn('Lỗi đồng bộ danh sách sau khi sao chép:', fetchErr);
+      }
     }
+    return { ok: true };
   }, [fetchFiles, fetchAnalytics]);
 
   // ── Cut / Copy / Paste Actions (Snapshot-based Clipboard) ──
@@ -1800,11 +1851,22 @@ export function FileProvider({ children }) {
     let cloudCleaned = true;
     if (session.storageKey) {
       try {
-        await storageApi.abortUpload({
+        const res = await storageApi.abortUpload({
           storageKey: session.storageKey,
           storageProvider: session.storageProvider || 'google_cloud',
           resumableUrl: session.resumableUrl,
         });
+
+        // 2xx KHÔNG có nghĩa là đã dọn xong. Backend cố tình nuốt lỗi của bước
+        // DELETE lên GCS (huỷ hộ người dùng, không phải việc của họ) và báo lại
+        // qua cờ `sessionCanceled`. Không đọc cờ đó thì `cloudCleaned` luôn true
+        // và lời hứa "nói được sự thật" ở doc trên là lời hứa suông.
+        // Chỉ xét khi CÓ gửi resumableUrl: không gửi thì backend bỏ qua bước huỷ
+        // session và trả về false vì chưa từng chạy, không phải vì thất bại.
+        if (session.resumableUrl && res?.sessionCanceled === false) {
+          console.warn('Backend không huỷ được session resumable trên GCS:', res);
+          cloudCleaned = false;
+        }
       } catch (err) {
         console.warn('Không dọn được phiên tải lên đã bỏ:', err);
         cloudCleaned = false;
@@ -1915,11 +1977,17 @@ export function FileProvider({ children }) {
     enqueueUpload(file);
   }, [enqueueUpload]);
 
-  const getDownloadUrl = useCallback(async (id) => {
+  /**
+   * `silent` cho tải hàng loạt: ném lại lỗi thay vì toast + trả null. Phía gọi
+   * cần chính `err.message` để gộp thành một thông báo có nguyên nhân, còn trả
+   * null suông thì nó chỉ biết "thất bại" mà không biết vì sao.
+   */
+  const getDownloadUrl = useCallback(async (id, { silent = false } = {}) => {
     try {
       const res = await storageApi.getDownloadUrl(id);
       return res.downloadUrl;
     } catch (err) {
+      if (silent) throw err;
       toast.error('Lỗi lấy link tải: ' + err.message);
       return null;
     }

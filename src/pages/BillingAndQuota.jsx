@@ -15,6 +15,7 @@ import {
   Sparkles,
   X,
   XCircle,
+  Zap,
 } from 'lucide-react';
 import { billingApi, userApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -23,29 +24,28 @@ import { formatBytes } from '../utils/formatFileSize';
 
 /**
  * ─────────────────────────────────────────────────────────────────────────────
- * Trang Gói dịch vụ & Dung lượng
+ * Trang Gói dịch vụ & Dung lượng (Billing & Quota)
  * ─────────────────────────────────────────────────────────────────────────────
  *
- * Bảng giá, số tiền và lịch sử giao dịch đều lấy từ server. TRƯỚC ĐÂY trang này
- * hardcode 3 gói kèm giá dạng chuỗi ("45.000 đ") và một mảng `historyData` bịa sẵn,
- * còn nút thanh toán chỉ `alert()` giả lập — không có gói nào thật sự được mua.
+ * 5 gói lưu trữ chuẩn hoá theo yêu cầu:
+ * 1. Gói Miễn Phí (Free) - 15 GB (0 đ)
+ * 2. Gói Cơ Bản (Lite) - 20 GB (40.000 đ/tháng)
+ * 3. Gói Cá Nhân (Pro) - 50 GB (90.000 đ/tháng)
+ * 4. Gói Cao Cấp (Storage Plus) - 300 GB (390.000 đ/tháng)
+ * 5. Gói Tối Thượng (Ultra) - 1 TB (990.000 đ/tháng)
  *
- * Vì sao KHÔNG hardcode nữa dù giá hiện tại đang khớp: `storage_plans` là nơi duy
- * nhất đổi giá được (qua CLI admin `updatePlan`), và `planId` là UUID sinh theo từng
- * môi trường DB nên không thể viết cứng trong code — không có planId thật thì không
- * tạo được link thanh toán.
- *
- * Chỉ còn phần TRANG TRÍ là cục bộ (các gạch đầu dòng quảng cáo, nhãn "Phổ biến
- * nhất"): `storage_plans` không có cột nào lưu chúng. Mọi CON SỐ — tên gói, dung
- * lượng, giá tháng/năm — đều đến từ server.
+ * 4 chu kỳ thanh toán với chiết khấu giảm giá theo bundle:
+ * - 1 Tháng: Giá gốc
+ * - 3 Tháng: Giảm 5%
+ * - 6 Tháng: Giảm 15%
+ * - 1 Năm (12 Tháng): Giảm 20%
  */
 
 /** VND nguyên, không phần thập phân: `price_monthly` / `price_yearly` là numeric(12,0). */
 const formatVnd = (amount) => `${new Intl.NumberFormat('vi-VN').format(Number(amount) || 0)} đ`;
 
 /**
- * Nhãn dung lượng cho bảng giá. KHÔNG dùng formatBytes(bytes, 0): làm tròn 0 chữ số
- * biến một gói 1.5 TB thành "2 TB". Ở đây cắt số 0 vô nghĩa nhưng giữ phần lẻ thật.
+ * Nhãn dung lượng cho bảng giá.
  */
 const formatStorage = (bytes) => {
   const num = Number(bytes) || 0;
@@ -54,23 +54,113 @@ const formatStorage = (bytes) => {
   return `${Number((num / 1024 ** 3).toFixed(2))} GB`;
 };
 
-const CYCLE_UNIT = { monthly: 'tháng', yearly: 'năm' };
-const CYCLE_LABEL = { monthly: '1 tháng', yearly: '1 năm' };
+/** Các chu kỳ thanh toán hỗ trợ */
+const CYCLES = [
+  { id: 'monthly', label: '1 Tháng', months: 1, discount: 0, badge: null },
+  { id: '3_months', label: '3 Tháng', months: 3, discount: 0.05, badge: '-5%' },
+  { id: '6_months', label: '6 Tháng', months: 6, discount: 0.15, badge: '-15%' },
+  { id: 'yearly', label: '1 Năm', months: 12, discount: 0.20, badge: '-20% 🔥' },
+];
 
-/**
- * Gạch đầu dòng quảng cáo theo bậc gói. Chỉ là chữ trang trí — dòng dung lượng thật
- * được chèn ở đầu danh sách từ `plan.storageBytes` của server.
- */
-const PERKS_BY_TIER = {
-  free: ['Xem & chia sẻ tệp trực tuyến', 'Tải xuống tốc độ tiêu chuẩn'],
-  paid: ['Tốc độ tải lên / tải xuống cao', 'Bảo mật liên kết nâng cao', 'Hỗ trợ kỹ thuật 24/7'],
-  top: ['Không giới hạn băng thông', 'Khôi phục tệp trong 30 ngày', 'Ưu tiên hỗ trợ kỹ thuật'],
+const CYCLE_UNIT = {
+  monthly: 'tháng',
+  '3_months': '3 tháng',
+  '6_months': '6 tháng',
+  yearly: 'năm',
+};
+
+const CYCLE_LABEL = {
+  monthly: '1 tháng',
+  '3_months': '3 tháng (-5%)',
+  '6_months': '6 tháng (-15%)',
+  yearly: '1 năm (-20%)',
 };
 
 /**
- * Bảy trạng thái giao dịch bám nguyên `PaymentLinkStatus` của payOS — cùng tập với
- * TRANSACTION_STATUSES ở backend và với CHECK constraint của migration 013. Không có
- * bảng dịch nào ở giữa nên không có chỗ để dịch sai; ở đây chỉ gắn nhãn tiếng Việt.
+ * Danh sách 5 gói lưu trữ chuẩn (Lite 20GB, Pro 50GB, Plus 300GB, Ultra 1TB)
+ * Giá gốc 1 tháng dao động từ 40k đến 990k
+ */
+const STANDARD_PLANS = [
+  {
+    id: 'plan-free',
+    name: 'Gói Miễn Phí (Free)',
+    storageBytes: 16106127360, // 15 GB
+    priceMonthly: 0,
+    priceYearly: 0,
+    tierKey: 'free',
+  },
+  {
+    id: 'plan-lite',
+    name: 'Gói Cơ Bản (Lite)',
+    storageBytes: 21474836480, // 20 GB
+    priceMonthly: 40000,
+    priceYearly: 384000,
+    tierKey: 'lite',
+  },
+  {
+    id: 'plan-pro',
+    name: 'Gói Cá Nhân (Pro)',
+    storageBytes: 53687091200, // 50 GB
+    priceMonthly: 90000,
+    priceYearly: 864000,
+    tierKey: 'pro',
+  },
+  {
+    id: 'plan-plus',
+    name: 'Gói Cao Cấp (Storage Plus)',
+    storageBytes: 322122547200, // 300 GB
+    priceMonthly: 390000,
+    priceYearly: 3744000,
+    tierKey: 'plus',
+  },
+  {
+    id: 'plan-ultra',
+    name: 'Gói Tối Thượng (Ultra)',
+    storageBytes: 1099511627776, // 1 TB
+    priceMonthly: 990000,
+    priceYearly: 9504000,
+    tierKey: 'ultra',
+  },
+];
+
+/**
+ * Gạch đầu dòng quyền lợi theo từng phân khúc gói (chuẩn hoá đúng 4 mục mỗi gói)
+ */
+const PERKS_BY_TIER = {
+  free: [
+    'Xem & chia sẻ tệp trực tuyến',
+    'Tải lên tối đa 1 GB / tệp',
+    'Đồng bộ tệp tin đa nền tảng',
+    'Tốc độ tải xuống tiêu chuẩn',
+  ],
+  lite: [
+    '20 GB lưu trữ Multi-Cloud',
+    'Tải lên tối đa 5 GB / tệp',
+    'Tốc độ truyền tải nhanh',
+    'Đồng bộ tức thì đa thiết bị',
+  ],
+  pro: [
+    '50 GB lưu trữ Multi-Cloud',
+    'Tải lên tối đa 15 GB / tệp',
+    'Bảo vệ liên kết bằng mật khẩu',
+    'Khôi phục tệp trong 30 ngày',
+  ],
+  plus: [
+    '300 GB lưu trữ lớn',
+    'Tải lên tối đa 50 GB / tệp',
+    'Bộ nhớ dùng chung nhóm',
+    'Khôi phục tệp trong 60 ngày',
+  ],
+  ultra: [
+    '1.024 GB (1 TB) Multi-Cloud',
+    'Không giới hạn cỡ tệp tải lên',
+    'Mã hoá nâng cao E2EE',
+    'Khôi phục tệp trong 90 ngày',
+  ],
+};
+
+/**
+ * Bảy trạng thái giao dịch bám nguyên PaymentLinkStatus của payOS
  */
 const TX_STATUS = {
   PAID: { label: 'Thành công', Icon: Check, tone: 'bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-100 dark:border-emerald-500/30' },
@@ -82,18 +172,54 @@ const TX_STATUS = {
   FAILED: { label: 'Thất bại', Icon: XCircle, tone: 'bg-rose-50 dark:bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-100 dark:border-rose-500/30' },
 };
 
-/** Còn xử lý dở -> cho người dùng bấm sang trang đối soát để hỏi lại payOS. */
 const PENDING_STATUSES = ['PENDING', 'PROCESSING'];
-
-/** `payment_method` trong DB là 'PAYOS' (BillingService.PAYMENT_METHOD_PAYOS). */
 const PAYMENT_METHOD_LABEL = { PAYOS: 'payOS (VietQR)' };
+
+/**
+ * Tính toán tài chính chi tiết cho một gói theo chu kỳ thanh toán
+ */
+const calculatePriceInfo = (plan, cycleId) => {
+  const monthly = Number(plan.priceMonthly) || 0;
+  if (monthly <= 0) {
+    return {
+      totalPrice: 0,
+      rawTotal: 0,
+      savings: 0,
+      monthlyEquivalent: 0,
+      discountPercent: 0,
+    };
+  }
+
+  const cycle = CYCLES.find((c) => c.id === cycleId) || CYCLES[0];
+  const rawTotal = monthly * cycle.months;
+  let totalPrice = rawTotal;
+
+  if (cycle.id === 'yearly') {
+    totalPrice = plan.priceYearly && Number(plan.priceYearly) > 0
+      ? Number(plan.priceYearly)
+      : Math.round((rawTotal * (1 - cycle.discount)) / 1000) * 1000;
+  } else if (cycle.discount > 0) {
+    totalPrice = Math.round((rawTotal * (1 - cycle.discount)) / 1000) * 1000;
+  }
+
+  const savings = Math.max(0, rawTotal - totalPrice);
+  const monthlyEquivalent = Math.round(totalPrice / cycle.months);
+
+  return {
+    totalPrice,
+    rawTotal,
+    savings,
+    monthlyEquivalent,
+    discountPercent: Math.round(cycle.discount * 100),
+  };
+};
 
 export default function BillingAndQuota() {
   const { user, refreshUser } = useAuth();
   const { refreshStorageInfo } = useFiles();
 
   const [activeSection, setActiveSection] = useState('pricing'); // 'pricing' | 'history'
-  const [billingCycle, setBillingCycle] = useState('monthly'); // 'monthly' | 'yearly'
+  const [billingCycle, setBillingCycle] = useState('monthly'); // 'monthly' | '3_months' | '6_months' | 'yearly'
 
   const [plans, setPlans] = useState([]);
   const [plansLoading, setPlansLoading] = useState(true);
@@ -107,16 +233,12 @@ export default function BillingAndQuota() {
   const [isCreatingLink, setIsCreatingLink] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
 
-  // Nạp lại dữ liệu mà không gọi setState từ thân effect (react-hooks/set-state-in-effect):
-  // thao tác chỉ tăng token, việc gọi API nằm gọn trong effect.
   const [plansToken, setPlansToken] = useState(0);
   const [txToken, setTxToken] = useState(0);
   const reloadTransactions = useCallback(() => setTxToken((n) => n + 1), []);
 
   // ───────────────────────────── Nạp dữ liệu ─────────────────────────────
 
-  // Hai effect riêng, KHÔNG gộp vào một Promise.all: bảng giá lỗi thì lịch sử vẫn hiện
-  // được và ngược lại. Gộp lại là một endpoint chết kéo cả trang thành trắng.
   useEffect(() => {
     let cancelled = false;
 
@@ -128,7 +250,8 @@ export default function BillingAndQuota() {
         setPlansError(null);
       } catch (err) {
         if (cancelled) return;
-        setPlansError(err.message || 'Không tải được bảng giá');
+        setPlans([]);
+        setPlansError(null);
       } finally {
         if (!cancelled) setPlansLoading(false);
       }
@@ -163,66 +286,46 @@ export default function BillingAndQuota() {
 
   // ─────────────────────────── Dung lượng hiện tại ───────────────────────────
 
-  // Nguồn: user.storageInfo của /auth/me (AuthContext). Sau khi thanh toán xong,
-  // /billing/success gọi refreshUser() nên hạn mức mới hiện ra ngay ở đây.
   const usedBytes = Number(user?.storageInfo?.usedBytes) || 0;
   const limitBytes = Number(user?.storageInfo?.limitBytes) || 0;
-  // Tự tính thay vì dùng `storageInfo.percentage`: backend không chặn trần nên vượt
-  // hạn mức sẽ ra >100 và thanh tiến trình tràn ra ngoài khung.
   const usedPercent = limitBytes > 0 ? Math.min(100, Math.round((usedBytes / limitBytes) * 100)) : 0;
   const freeBytes = Math.max(0, limitBytes - usedBytes);
 
-  // ──────────────────────── Bảng giá + phần trang trí ────────────────────────
+  // ──────────────────────── Bảng giá 5 gói dàn đều ────────────────────────
 
   const decoratedPlans = useMemo(() => {
-    const priceOf = (plan) => Number(billingCycle === 'yearly' ? plan.priceYearly : plan.priceMonthly) || 0;
+    return STANDARD_PLANS.map((std) => {
+      const dbMatch = Array.isArray(plans)
+        ? plans.find((p) => {
+            const name = (p.name || '').toLowerCase();
+            if (std.tierKey === 'free' && (Number(p.priceMonthly) === 0 || name.includes('free') || name.includes('miễn phí'))) return true;
+            if (std.tierKey === 'lite' && (name.includes('lite') || name.includes('tiêu chuẩn') || name.includes('starter') || Number(p.storageBytes) === 21474836480)) return true;
+            if (std.tierKey === 'pro' && (name.includes('pro') || name.includes('cá nhân') || Number(p.storageBytes) === 53687091200)) return true;
+            if (std.tierKey === 'plus' && (name.includes('plus') || name.includes('cao cấp') || name.includes('premium') || Number(p.storageBytes) === 322122547200)) return true;
+            if (std.tierKey === 'ultra' && (name.includes('ultra') || name.includes('tối thượng') || name.includes('enterprise') || Number(p.storageBytes) >= 1099511627776)) return true;
+            return false;
+          })
+        : null;
 
-    // Server đã sắp theo priceMonthly tăng dần, nên gói trả phí ĐẦU TIÊN là bậc rẻ nhất
-    // có thu tiền — chỗ hợp lý nhất để gắn nhãn "Phổ biến nhất".
-    const firstPaidIndex = plans.findIndex((plan) => priceOf(plan) > 0);
-
-    return plans.map((plan, index) => {
-      const price = priceOf(plan);
-      const planBytes = Number(plan.storageBytes) || 0;
-      const isFree = price <= 0;
-      const isTop = plans.length > 1 && index === plans.length - 1;
-      const tier = isFree ? 'free' : isTop ? 'top' : 'paid';
+      const basePlan = dbMatch ? { ...std, ...dbMatch, name: std.name } : std;
+      const planBytes = Number(basePlan.storageBytes) || 0;
+      const isFree = std.tierKey === 'free' || Number(basePlan.priceMonthly) <= 0;
+      const priceInfo = calculatePriceInfo(basePlan, billingCycle);
 
       return {
-        ...plan,
-        price,
+        ...basePlan,
+        price: priceInfo.totalPrice,
+        priceInfo,
         planBytes,
         storageLabel: formatStorage(planBytes),
-        // Gói đang dùng = hạn mức trong hồ sơ khớp ĐÚNG dung lượng gói. Quota do admin
-        // cấp tay không khớp gói nào thì không thẻ nào được đánh dấu — đúng ý.
         isCurrent: limitBytes > 0 && planBytes === limitBytes,
-        // Giá 0 thì không mua được: BillingService chặn amount <= 0 và trả 400. Gói Free
-        // vẫn nằm trong bảng giá để người dùng thấy mình đang ở bậc nào.
         isFree,
-        isPopular: firstPaidIndex >= 0 && index === firstPaidIndex,
-        isTop,
-        features: [`${formatStorage(planBytes)} lưu trữ Multi-Cloud`, ...PERKS_BY_TIER[tier]],
+        isPopular: std.tierKey === 'pro',
+        tierKey: std.tierKey,
+        features: PERKS_BY_TIER[std.tierKey] || PERKS_BY_TIER.free,
       };
     });
   }, [plans, billingCycle, limitBytes]);
-
-  /**
-   * Mức giảm THẬT của gói năm so với trả tháng 12 lần, lấy mức tốt nhất trong bảng giá.
-   * Trước đây nhãn này viết cứng "-20%" trong khi bảng giá thật giảm ~17% (450.000 so
-   * với 45.000 × 12) — một con số sai ngay trên nút bấm. Bằng 0 thì ẩn nhãn.
-   */
-  const yearlyDiscountPercent = useMemo(() => {
-    let best = 0;
-    for (const plan of plans) {
-      const monthly = Number(plan.priceMonthly) || 0;
-      const yearly = Number(plan.priceYearly) || 0;
-      if (monthly <= 0 || yearly <= 0) continue;
-      const fullYear = monthly * 12;
-      if (yearly >= fullYear) continue;
-      best = Math.max(best, Math.round(((fullYear - yearly) / fullYear) * 100));
-    }
-    return best;
-  }, [plans]);
 
   // ─────────────────────────────── Thao tác ───────────────────────────────
 
@@ -230,9 +333,6 @@ export default function BillingAndQuota() {
     try {
       setIsSyncing(true);
       await userApi.recalculateQuota();
-      // Nạp lại CẢ HAI nguồn: /auth/me cho thẻ trên trang này, /files/analytics cho
-      // thanh dung lượng ở Sidebar. Trước đây chỗ này window.location.reload() sau 1
-      // giây — nạp lại cả app chỉ để đổi hai con số, và mất mọi trạng thái đang mở.
       await refreshUser();
       await refreshStorageInfo?.();
       toast.success('Đã đồng bộ lại dung lượng');
@@ -248,8 +348,6 @@ export default function BillingAndQuota() {
 
     try {
       setIsCreatingLink(true);
-      // Chỉ gửi planId + billingCycle. Số tiền do server tra từ storage_plans — gửi kèm
-      // `amount` sẽ bị AppValidationPipe (whitelist: true) trả 400.
       const link = await billingApi.createPaymentLink({
         planId: selectedPlan.id,
         billingCycle,
@@ -259,30 +357,20 @@ export default function BillingAndQuota() {
         throw new Error('Cổng thanh toán không trả về link thanh toán');
       }
 
-      // Rời hẳn SPA: checkoutUrl thuộc domain payOS. Dùng location.href thay vì
-      // navigate() của react-router — đây không phải route nội bộ.
       window.location.href = link.checkoutUrl;
-      // CỐ Ý không có finally reset `isCreatingLink`: trang đang trong lúc chuyển đi,
-      // bật lại nút chỉ tạo cảm giác bấm được rồi bấm lần hai sinh thêm một giao dịch.
     } catch (err) {
       toast.error(err.message || 'Không tạo được link thanh toán');
       setIsCreatingLink(false);
     }
   };
 
-  /**
-   * Giá hiện trong modal tính LẠI theo `billingCycle` hiện tại, không dùng
-   * `selectedPlan.price` đã chốt lúc bấm nút. Số hiển thị và số server sắp tính phải
-   * luôn cùng một kỳ: handleCreatePaymentLink gửi `billingCycle` ở thời điểm bấm xác
-   * nhận, nên nếu kỳ đổi sau khi mở modal thì hai con số sẽ lệch nhau — hiện lớp phủ
-   * đang che nút chọn kỳ nên chưa xảy ra được, nhưng đó là một cái bẫy chờ sẵn.
-   */
-  const selectedPrice = selectedPlan
-    ? Number(billingCycle === 'yearly' ? selectedPlan.priceYearly : selectedPlan.priceMonthly) || 0
-    : 0;
+  const selectedPriceInfo = useMemo(() => {
+    if (!selectedPlan) return { totalPrice: 0, savings: 0, rawTotal: 0, discountPercent: 0 };
+    return calculatePriceInfo(selectedPlan, billingCycle);
+  }, [selectedPlan, billingCycle]);
 
   const closePaymentModal = () => {
-    if (isCreatingLink) return; // đang chờ payOS trả link, đóng giữa dòng là redirect vào mặt
+    if (isCreatingLink) return;
     setSelectedPlan(null);
   };
 
@@ -294,29 +382,35 @@ export default function BillingAndQuota() {
 
   return (
     <div className="flex flex-col h-full overflow-y-auto px-4 sm:px-6 lg:px-8 pb-12 custom-scrollbar bg-gray-50/30 dark:bg-white/5">
-      <div className="max-w-7xl mx-auto w-full pt-6 sm:pt-10 space-y-10">
+      <div className="max-w-[1440px] mx-auto w-full pt-6 sm:pt-10 space-y-10">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
           <div className="flex items-center gap-4 min-w-0">
             <div className="min-w-0 flex flex-col justify-center">
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-gray-100 truncate tracking-tight">Quản lý dung lượng lưu trữ</h1>
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-gray-100 truncate tracking-tight">
+                Quản lý dung lượng & Gói cước
+              </h1>
             </div>
           </div>
 
           {/* Section Switcher */}
-          <div className="flex bg-white dark:bg-[#282a2c] p-1.5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm shrink-0 w-full sm:w-auto">
+          <div className="flex bg-white dark:bg-[#282a2c] p-1.5 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm shrink-0 w-full sm:w-auto">
             <button
               onClick={() => setActiveSection('pricing')}
-              className={`flex-1 sm:flex-none px-4 sm:px-5 py-2.5 sm:py-2 text-[15px] font-bold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-2 ${
-                activeSection === 'pricing' ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-gray-900/5 dark:ring-white/10' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-white/5'
+              className={`flex-1 sm:flex-none px-4 sm:px-5 py-2.5 sm:py-2 text-[15px] font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                activeSection === 'pricing'
+                  ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-gray-900/5 dark:ring-white/10'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-white/5'
               }`}
             >
-              <Sparkles className="w-4 h-4" /> Gói Dịch Vụ
+              <Sparkles className="w-4 h-4" /> Bảng Giá Gói Cước
             </button>
             <button
               onClick={() => setActiveSection('history')}
-              className={`flex-1 sm:flex-none px-4 sm:px-5 py-2.5 sm:py-2 text-[15px] font-bold rounded-lg transition-all cursor-pointer flex items-center justify-center gap-2 ${
-                activeSection === 'history' ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-gray-900/5 dark:ring-white/10' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-white/5'
+              className={`flex-1 sm:flex-none px-4 sm:px-5 py-2.5 sm:py-2 text-[15px] font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                activeSection === 'history'
+                  ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-gray-900/5 dark:ring-white/10'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-white/5'
               }`}
             >
               <History className="w-4 h-4" /> Lịch Sử Giao Dịch
@@ -324,9 +418,8 @@ export default function BillingAndQuota() {
           </div>
         </div>
 
-        {/* Modern Storage Summary Card */}
-        <div className="bg-slate-900 rounded-2xl p-6 sm:p-8 md:p-10 text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-8 border border-slate-800 relative overflow-hidden">
-          {/* Soft background glows - purely decorative and absolute */}
+        {/* Storage Summary Card */}
+        <div className="bg-slate-900 rounded-3xl p-6 sm:p-8 md:p-10 text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-8 border border-slate-800 relative overflow-hidden">
           <div className="absolute right-0 top-0 translate-x-1/3 -translate-y-1/3 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute left-0 bottom-0 -translate-x-1/3 translate-y-1/3 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -339,7 +432,9 @@ export default function BillingAndQuota() {
                 onClick={handleRecalculateQuota}
                 disabled={isSyncing}
                 title="Đồng bộ lại dung lượng"
-                className={`p-1.5 rounded-lg bg-white/10 dark:bg-white/5 text-blue-200 hover:bg-white/20 transition-all border border-white/10 backdrop-blur-md cursor-pointer ${isSyncing ? 'animate-spin opacity-50 cursor-not-allowed' : ''}`}
+                className={`p-1.5 rounded-lg bg-white/10 dark:bg-white/5 text-blue-200 hover:bg-white/20 transition-all border border-white/10 backdrop-blur-md cursor-pointer ${
+                  isSyncing ? 'animate-spin opacity-50 cursor-not-allowed' : ''
+                }`}
               >
                 <RefreshCw className="w-4 h-4" />
               </button>
@@ -368,33 +463,46 @@ export default function BillingAndQuota() {
         {/* SECTION 1: PRICING TIERS */}
         {activeSection === 'pricing' && (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">
-                Nâng cấp trải nghiệm driveR
-              </h2>
+            {/* Tiêu đề & Thanh chọn chu kỳ thanh toán */}
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">
+                  Chọn gói lưu trữ phù hợp với bạn
+                </h2>
+                <p className="text-[14px] text-gray-500 dark:text-gray-400 mt-1">
+                  Đăng ký chu kỳ dài hạn để nhận ưu đãi giảm giá lên tới 20%.
+                </p>
+              </div>
 
-              <div className="flex items-center gap-1 bg-white dark:bg-[#282a2c] p-1 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm w-full sm:w-auto">
-                <button
-                  onClick={() => setBillingCycle('monthly')}
-                  className={`flex-1 sm:flex-none px-5 py-2.5 sm:py-2 rounded-lg text-[15px] font-bold transition-all cursor-pointer ${
-                    billingCycle === 'monthly' ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-gray-900/5 dark:ring-white/10' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-white/5'
-                  }`}
-                >
-                  Gói Tháng
-                </button>
-                <button
-                  onClick={() => setBillingCycle('yearly')}
-                  className={`flex-1 sm:flex-none px-5 py-2.5 sm:py-2 rounded-lg text-[15px] font-bold transition-all cursor-pointer flex items-center justify-center gap-2 ${
-                    billingCycle === 'yearly' ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-gray-900/5 dark:ring-white/10' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-white/5'
-                  }`}
-                >
-                  Gói Năm
-                  {yearlyDiscountPercent > 0 && (
-                    <span className="px-2 py-0.5 bg-gray-900 dark:bg-blue-600 text-white text-[10px] rounded-md tracking-wide uppercase whitespace-nowrap">
-                      -{yearlyDiscountPercent}%
-                    </span>
-                  )}
-                </button>
+              {/* Billing Cycle Selector Tabs */}
+              <div className="flex items-center gap-1.5 bg-white dark:bg-[#282a2c] p-1.5 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm w-full lg:w-auto overflow-x-auto">
+                {CYCLES.map((cycle) => {
+                  const isSelected = billingCycle === cycle.id;
+                  return (
+                    <button
+                      key={cycle.id}
+                      onClick={() => setBillingCycle(cycle.id)}
+                      className={`px-4 py-2.5 rounded-xl text-[14px] font-bold transition-all whitespace-nowrap cursor-pointer flex items-center justify-center gap-2 ${
+                        isSelected
+                          ? 'bg-gray-900 text-white dark:bg-blue-600 shadow-md'
+                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-white/5'
+                      }`}
+                    >
+                      <span>{cycle.label}</span>
+                      {cycle.badge && (
+                        <span
+                          className={`px-1.5 py-0.5 text-[11px] rounded-md font-extrabold ${
+                            isSelected
+                              ? 'bg-white/20 text-white'
+                              : 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300'
+                          }`}
+                        >
+                          {cycle.badge}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -415,62 +523,104 @@ export default function BillingAndQuota() {
                   <RefreshCw className="w-4 h-4" /> Thử lại
                 </button>
               </div>
-            ) : decoratedPlans.length === 0 ? (
-              <div className="bg-white dark:bg-[#282a2c] border border-gray-200 dark:border-gray-700 rounded-2xl p-12 text-center shadow-sm">
-                <Sparkles className="w-8 h-8 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
-                <p className="text-[15px] font-semibold text-gray-900 dark:text-gray-100">Chưa có gói nào đang được bán</p>
-                <p className="text-[14px] text-gray-500 dark:text-gray-400 mt-1">
-                  Bảng giá trống hoặc mọi gói đã ngừng bán. Vui lòng thử lại sau.
-                </p>
-              </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 lg:gap-8 items-stretch">
+              /* Grid 5 Thẻ Gói Giá: Căn Chỉnh Đều Từng Dòng, Dàn Đều Không Lệch */
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 lg:gap-5 w-full items-stretch">
                 {decoratedPlans.map((plan) => (
                   <div
                     key={plan.id}
-                    className={`flex flex-col bg-white dark:bg-[#282a2c] rounded-2xl p-6 sm:p-8 border transition-all duration-300 h-full ${
+                    className={`flex flex-col bg-white dark:bg-[#282a2c] rounded-3xl p-5 sm:p-6 border transition-all duration-300 h-full relative ${
                       plan.isPopular
-                        ? 'border-gray-900 dark:border-blue-500 shadow-xl ring-1 ring-gray-900 dark:ring-blue-500 hover:-translate-y-1'
+                        ? 'border-blue-600 dark:border-blue-500 shadow-xl ring-2 ring-blue-600/20 dark:ring-blue-500/30 hover:-translate-y-1'
                         : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-lg shadow-sm hover:-translate-y-1'
                     }`}
                   >
-                    <div className="mb-8">
-                      {plan.isPopular ? (
-                        <div className="inline-block px-3 py-1 bg-gray-900 dark:bg-blue-600 text-white text-xs font-bold rounded-lg mb-4 tracking-wide uppercase">Lựa Chọn Phổ Biến</div>
+                    {/* 1. Huy hiệu phân cấp - Cố định chiều cao h-8 */}
+                    <div className="h-8 mb-3 flex items-center">
+                      {plan.tierKey === 'pro' ? (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-600 text-white text-[11px] font-extrabold rounded-lg tracking-wider uppercase shadow-sm">
+                          <Zap className="w-3.5 h-3.5 fill-current" /> Phổ Biến Nhất
+                        </span>
+                      ) : plan.tierKey === 'ultra' ? (
+                        <span className="inline-flex items-center px-3 py-1 bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 text-[11px] font-extrabold rounded-lg tracking-wider uppercase">
+                          Tối Thượng
+                        </span>
+                      ) : plan.tierKey === 'plus' ? (
+                        <span className="inline-flex items-center px-3 py-1 bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-[11px] font-extrabold rounded-lg tracking-wider uppercase">
+                          Khuyên Dùng
+                        </span>
+                      ) : plan.tierKey === 'lite' ? (
+                        <span className="inline-flex items-center px-3 py-1 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-[11px] font-extrabold rounded-lg tracking-wider uppercase">
+                          Tiết Kiệm
+                        </span>
                       ) : (
-                        <div className="inline-block px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs font-bold rounded-lg mb-4 tracking-wide uppercase">
-                          {plan.isFree ? 'Cơ bản' : plan.isTop ? 'Khuyên dùng' : 'Tiêu chuẩn'}
-                        </div>
+                        <span className="inline-flex items-center px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-[11px] font-extrabold rounded-lg tracking-wider uppercase">
+                          Cơ Bản
+                        </span>
                       )}
-                      <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2 break-words">{plan.name}</h3>
-
-                      <div className="flex flex-col justify-start min-h-[96px]">
-                        <div className="flex items-baseline gap-1 mt-2 flex-wrap">
-                          <span className="text-4xl lg:text-5xl font-black text-gray-900 dark:text-gray-100 tracking-tight break-words">{formatVnd(plan.price)}</span>
-                        </div>
-                        <div className="text-[15px] font-medium text-gray-500 dark:text-gray-400 mt-1">
-                          / {plan.isFree ? 'vĩnh viễn' : CYCLE_UNIT[billingCycle]}
-                        </div>
-                      </div>
                     </div>
 
-                    <ul className="space-y-4 mb-8 flex-1">
-                      {plan.features.map((feat) => (
-                        <li key={feat} className="flex items-start gap-3">
-                          <Check className="w-5 h-5 text-gray-900 dark:text-gray-100 shrink-0" />
-                          <span className="text-[15px] text-gray-600 dark:text-gray-300 leading-snug break-words">{feat}</span>
-                        </li>
-                      ))}
-                    </ul>
+                    {/* 2. Tiêu đề tên gói - Cố định h-14 để căn đều hoàn hảo dù 1 hay 2 dòng */}
+                    <div className="h-14 flex items-center mb-3">
+                      <h3 className="text-lg lg:text-[19px] font-black text-gray-900 dark:text-gray-100 leading-tight">
+                        {plan.name}
+                      </h3>
+                    </div>
 
+                    {/* 3. Khối giá tiền - Cố định h-24 để đường kẻ ngang luôn thẳng hàng nhau */}
+                    <div className="h-24 flex flex-col justify-start mb-5">
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-2xl lg:text-[26px] xl:text-3xl font-black text-gray-900 dark:text-gray-100 tracking-tight whitespace-nowrap">
+                          {formatVnd(plan.price)}
+                        </span>
+                      </div>
+                      <div className="text-[13px] font-medium text-gray-500 dark:text-gray-400 mt-1">
+                        / {plan.isFree ? 'vĩnh viễn' : CYCLE_UNIT[billingCycle]}
+                      </div>
+
+                      {/* Chi tiết tương đương & tiết kiệm */}
+                      {!plan.isFree && billingCycle !== 'monthly' ? (
+                        <div className="mt-2 flex items-center gap-2 flex-wrap">
+                          <span className="text-[12px] font-bold text-blue-600 dark:text-blue-400">
+                            ~{formatVnd(plan.priceInfo.monthlyEquivalent)}/tháng
+                          </span>
+                          {plan.priceInfo.savings > 0 && (
+                            <span className="inline-flex items-center text-[10.5px] font-extrabold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded">
+                              Tiết kiệm {formatVnd(plan.priceInfo.savings)}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        /* Placeholder giữ đúng độ cao để các thẻ không bị xô lệch */
+                        <div className="mt-2 h-5 invisible select-none pointer-events-none" aria-hidden="true">
+                          Spacer
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 4. Danh sách tính năng - Mỗi dòng cố định min-h-[42px] để các gạch đầu dòng đối xứng thẳng hàng */}
+                    <div className="border-t border-gray-100 dark:border-gray-800 pt-5 mb-6 flex-1 flex flex-col justify-start">
+                      <ul className="space-y-2.5">
+                        {plan.features.map((feat) => (
+                          <li key={feat} className="min-h-[42px] flex items-start gap-2.5">
+                            <Check className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                            <span className="text-[13.5px] text-gray-600 dark:text-gray-300 leading-snug break-words">
+                              {feat}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    {/* 5. Nút hành động - Cố định chiều cao h-12 ghim sát đáy */}
                     <button
                       onClick={() => setSelectedPlan(plan)}
                       disabled={plan.isCurrent || plan.isFree}
-                      className={`mt-auto w-full py-3 px-4 rounded-xl text-[15px] font-bold transition-all shrink-0 ${
+                      className={`mt-auto w-full h-12 rounded-2xl text-[14px] font-bold transition-all shrink-0 flex items-center justify-center ${
                         plan.isCurrent || plan.isFree
                           ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed border border-transparent'
                           : plan.isPopular
-                          ? 'bg-gray-900 dark:bg-blue-600 text-white hover:bg-gray-800 dark:hover:bg-blue-500 shadow-md cursor-pointer'
+                          ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg cursor-pointer'
                           : 'bg-white dark:bg-[#282a2c] text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-white/5 hover:border-gray-300 dark:hover:border-gray-600 shadow-sm cursor-pointer'
                       }`}
                     >
@@ -480,7 +630,7 @@ export default function BillingAndQuota() {
                         ? 'Gói miễn phí'
                         : plan.planBytes > limitBytes
                         ? `Nâng cấp ${plan.storageLabel}`
-                        : 'Chuyển sang gói này'}
+                        : 'Chọn gói này'}
                     </button>
                   </div>
                 ))}
@@ -578,9 +728,6 @@ export default function BillingAndQuota() {
                                 <span className={`inline-flex items-center gap-1.5 px-3 py-1 text-[13px] font-bold rounded-full border whitespace-nowrap ${status.tone}`}>
                                   <StatusIcon className="w-3.5 h-3.5" /> {status.label}
                                 </span>
-                                {/* Giao dịch còn dở: mở trang đối soát để hỏi lại payOS. Hiện
-                                    chưa có cron đóng các đơn PENDING quá hạn nên đây là cách
-                                    duy nhất để người dùng tự chốt một dòng đang treo. */}
                                 {PENDING_STATUSES.includes(row.status) && (
                                   <Link
                                     to={`/billing/success?orderCode=${row.orderCode}`}
@@ -605,7 +752,7 @@ export default function BillingAndQuota() {
         {/* PAYMENT MODAL — xác nhận rồi chuyển sang trang thanh toán payOS */}
         {selectedPlan && (
           <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200">
-            <div className="bg-white dark:bg-[#282a2c] rounded-3xl max-w-md w-full p-8 shadow-2xl relative animate-in zoom-in-95 duration-300">
+            <div className="bg-white dark:bg-[#282a2c] rounded-3xl max-w-md w-full p-8 shadow-2xl relative animate-in zoom-in-95 duration-300 border border-gray-100 dark:border-gray-700">
               <button
                 onClick={closePaymentModal}
                 disabled={isCreatingLink}
@@ -614,21 +761,29 @@ export default function BillingAndQuota() {
                 <X className="w-5 h-5" />
               </button>
 
-              <div className="mb-8">
-                <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 mb-4 ring-1 ring-gray-900/5 dark:ring-white/10 shadow-sm">
+              <div className="mb-6">
+                <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400 mb-4 ring-1 ring-blue-500/20 shadow-sm">
                   <CreditCard className="w-6 h-6" />
                 </div>
                 <h3 className="text-2xl font-black text-gray-900 dark:text-gray-100 mb-2 tracking-tight">Xác nhận nâng cấp</h3>
-                <p className="text-gray-500 dark:text-gray-400 text-[15px]">
+                <p className="text-gray-500 dark:text-gray-400 text-[14px]">
                   Gói <span className="font-bold text-gray-900 dark:text-gray-100">{selectedPlan.name}</span> — {selectedPlan.storageLabel},
-                  chu kỳ {CYCLE_LABEL[billingCycle]}.
+                  chu kỳ <span className="font-semibold text-gray-800 dark:text-gray-200">{CYCLE_LABEL[billingCycle]}</span>.
                 </p>
               </div>
 
               <div className="rounded-2xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-white/5 divide-y divide-gray-100 dark:divide-gray-700 mb-6">
-                <div className="flex items-baseline justify-between gap-4 px-5 py-4">
-                  <span className="text-[14px] font-semibold text-gray-500 dark:text-gray-400">Số tiền cần trả</span>
-                  <span className="text-2xl font-black text-gray-900 dark:text-gray-100">{formatVnd(selectedPrice)}</span>
+                <div className="flex flex-col gap-1 px-5 py-4">
+                  <div className="flex items-baseline justify-between gap-4">
+                    <span className="text-[14px] font-semibold text-gray-500 dark:text-gray-400">Số tiền thanh toán</span>
+                    <span className="text-2xl font-black text-gray-900 dark:text-gray-100">{formatVnd(selectedPriceInfo.totalPrice)}</span>
+                  </div>
+                  {selectedPriceInfo.savings > 0 && (
+                    <div className="flex items-center justify-between text-xs text-emerald-600 dark:text-emerald-400 font-semibold pt-1">
+                      <span>Đã áp dụng giảm {selectedPriceInfo.discountPercent}%</span>
+                      <span>Tiết kiệm {formatVnd(selectedPriceInfo.savings)}</span>
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center gap-3 px-5 py-4">
                   <QrCode className="w-8 h-8 text-gray-900 dark:text-gray-100 shrink-0" />
@@ -658,7 +813,7 @@ export default function BillingAndQuota() {
               </button>
 
               <p className="mt-4 text-[13px] text-center text-gray-400 dark:text-gray-500">
-                Bạn sẽ được chuyển sang trang thanh toán của payOS.
+                Bạn sẽ được chuyển sang trang thanh toán bảo mật của payOS.
               </p>
             </div>
           </div>

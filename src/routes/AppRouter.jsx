@@ -15,6 +15,8 @@ import StarredPage from '../pages/StarredPage';
 import SpamPage from '../pages/SpamPage';
 import TrashPage from '../pages/TrashPage';
 import BillingAndQuota from '../pages/BillingAndQuota';
+import BillingSuccess from '../pages/BillingSuccess';
+import BillingCancel from '../pages/BillingCancel';
 
 import { readStartupPage } from '../constants/routes';
 
@@ -49,6 +51,20 @@ export default function AppRouter() {
 
             {/* Route công khai — xem file qua link chia sẻ, không cần đăng nhập */}
             <Route path="/share/:token" element={<SharePage />} />
+
+            {/*
+              Trang đích payOS đẩy trình duyệt khách về sau khi trả tiền / bấm huỷ.
+              Đường dẫn phải khớp ĐÚNG payos.returnUrl / payos.cancelUrl ở
+              backend/src/config/configuration.ts — mặc định là
+              ${FRONTEND_URL}/billing/success và /billing/cancel.
+
+              CỐ Ý đặt ngoài <Route path="/app">: payOS mở URL này như một trang
+              đích độc lập nên không nên bọc trong MainLayout (sidebar, header,
+              modal xem trước...). Auth/File/Toaster provider nằm ở App.jsx nên
+              hai trang vẫn gọi được useAuth() và các api có JWT.
+            */}
+            <Route path="/billing/success" element={<BillingSuccess />} />
+            <Route path="/billing/cancel" element={<BillingCancel />} />
 
             <Route path="/app" element={<MainLayout />}>
                 <Route index element={<IndexRedirect />} />

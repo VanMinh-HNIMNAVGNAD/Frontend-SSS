@@ -2021,6 +2021,15 @@ export function FileProvider({ children }) {
     setFilterLocation,
     resetFilters,
     storageInfo,
+    /**
+     * Nạp lại /files/analytics theo yêu cầu. Cần cho hai chỗ mà dung lượng đổi mà
+     * KHÔNG đi qua thao tác file nào, nên không effect nào trong file này bắt được:
+     *   • mua gói xong (hạn mức tăng — trang /billing/success),
+     *   • bấm "Đồng bộ lại dung lượng" ở trang Gói dịch vụ.
+     * Trước đây trang Gói dịch vụ phải window.location.reload() mới cập nhật được
+     * thanh dung lượng ở Sidebar — Sidebar đọc chính `storageInfo` này.
+     */
+    refreshStorageInfo: fetchAnalytics,
     uniqueOwners,
     folders: sortedFolders,
     files: sortedFiles,
@@ -2096,7 +2105,7 @@ export function FileProvider({ children }) {
     searchQuery, filterType, filterDate, filterOwner, filterLocation,
     sortField, sortDirection, resetFilters, uniqueOwners,
     // ── Lưu trữ ──
-    storageInfo,
+    storageInfo, fetchAnalytics,
     // ── Hành động trên file/folder ──
     fetchFiles, toggleStar, moveToTrash, restoreFromTrash, deletePermanently,
     emptyTrash, createFolder, createFolderSilent, moveItem, copyItem, renameItem,

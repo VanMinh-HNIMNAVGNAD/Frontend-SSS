@@ -270,6 +270,17 @@ export default function BillingAndQuota() {
     }
   };
 
+  /**
+   * Giá hiện trong modal tính LẠI theo `billingCycle` hiện tại, không dùng
+   * `selectedPlan.price` đã chốt lúc bấm nút. Số hiển thị và số server sắp tính phải
+   * luôn cùng một kỳ: handleCreatePaymentLink gửi `billingCycle` ở thời điểm bấm xác
+   * nhận, nên nếu kỳ đổi sau khi mở modal thì hai con số sẽ lệch nhau — hiện lớp phủ
+   * đang che nút chọn kỳ nên chưa xảy ra được, nhưng đó là một cái bẫy chờ sẵn.
+   */
+  const selectedPrice = selectedPlan
+    ? Number(billingCycle === 'yearly' ? selectedPlan.priceYearly : selectedPlan.priceMonthly) || 0
+    : 0;
+
   const closePaymentModal = () => {
     if (isCreatingLink) return; // đang chờ payOS trả link, đóng giữa dòng là redirect vào mặt
     setSelectedPlan(null);
@@ -617,7 +628,7 @@ export default function BillingAndQuota() {
               <div className="rounded-2xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-white/5 divide-y divide-gray-100 dark:divide-gray-700 mb-6">
                 <div className="flex items-baseline justify-between gap-4 px-5 py-4">
                   <span className="text-[14px] font-semibold text-gray-500 dark:text-gray-400">Số tiền cần trả</span>
-                  <span className="text-2xl font-black text-gray-900 dark:text-gray-100">{formatVnd(selectedPlan.price)}</span>
+                  <span className="text-2xl font-black text-gray-900 dark:text-gray-100">{formatVnd(selectedPrice)}</span>
                 </div>
                 <div className="flex items-center gap-3 px-5 py-4">
                   <QrCode className="w-8 h-8 text-gray-900 dark:text-gray-100 shrink-0" />

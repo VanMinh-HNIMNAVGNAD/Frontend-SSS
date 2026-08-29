@@ -3,216 +3,61 @@ import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
   AlertTriangle,
+  CalendarClock,
+  CalendarX,
   Check,
-  Clock,
+  ChevronRight,
   CreditCard,
   HardDrive,
   History,
   Loader2,
   QrCode,
   RefreshCw,
+  RotateCcw,
   ShieldCheck,
   Sparkles,
   X,
   XCircle,
-  Zap,
 } from 'lucide-react';
 import { billingApi, userApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useFiles } from '../context/FileContext';
 import { formatBytes } from '../utils/formatFileSize';
+import TransactionDetailModal from '../components/modals/TransactionDetailModal';
+import {
+  CYCLES,
+  CYCLE_DISCOUNT,
+  CYCLE_LABEL,
+  CYCLE_MONTHS,
+  CYCLE_UNIT,
+  PAYMENT_METHOD_LABEL,
+  PENDING_STATUSES,
+  formatPlanDate,
+  formatStorage,
+  formatVnd,
+  resolvePlanGridCols,
+  resolvePlanUi,
+  resolveStorageBytes,
+  resolveTxStatus,
+} from '../constants/billing';
 
 /**
- * ─────────────────────────────────────────────────────────────────────────────
+ * ───────────────────────────────────────────────────────────────────────────
  * Trang Gói dịch vụ & Dung lượng (Billing & Quota)
- * ─────────────────────────────────────────────────────────────────────────────
+ * ───────────────────────────────────────────────────────────────────────────
  *
- * 5 gói lưu trữ chuẩn hoá theo yêu cầu:
- * 1. Gói Miễn Phí (Free) - 15 GB (0 đ)
- * 2. Gói Cơ Bản (Lite) - 20 GB (40.000 đ/tháng)
- * 3. Gói Cá Nhân (Pro) - 50 GB (90.000 đ/tháng)
- * 4. Gói Cao Cấp (Storage Plus) - 300 GB (390.000 đ/tháng)
- * 5. Gói Tối Thượng (Ultra) - 1 TB (990.000 đ/tháng)
+ * NGUYÊN TẮC: trang này KHÔNG giữ bảng giá của riêng nó.
  *
- * 4 chu kỳ thanh toán với chiết khấu giảm giá theo bundle:
- * - 1 Tháng: Giá gốc
- * - 3 Tháng: Giảm 5%
- * - 6 Tháng: Giảm 15%
- * - 1 Năm (12 Tháng): Giảm 20%
+ * - Dữ liệu (tên gói, dung lượng, giá) đến từ `GET /billing/plans` → `billingApi.getPlans()`,
+ *   trả về `[{ id, name, storageBytes, storageGB, priceMonthly, priceYearly }]` đã sắp xếp
+ *   theo `priceMonthly` tăng dần. Bảng giá render bằng cách loop `plans` — DB trả bao nhiêu
+ *   gói thì có bấy nhiêu cột, không có mảng gói cứng nào ở đây nữa.
+ * - Giao diện (badge, icon, danh sách quyền lợi) nằm ở `PLAN_UI_CONFIG` trong
+ *   `constants/billing.js`, ghép vào dữ liệu API theo tên gói, dự phòng theo index.
+ *
+ * Trước đây trang render một mảng 3 gói hard-code nên khi DB lên 5 gói thì giá 199.000 đ của
+ * gói cuối bị lặp lại cho mọi gói phía sau. Mọi con số hiển thị bây giờ đều tính từ dữ liệu API.
  */
-
-/** VND nguyên, không phần thập phân: `price_monthly` / `price_yearly` là numeric(12,0). */
-const formatVnd = (amount) => `${new Intl.NumberFormat('vi-VN').format(Number(amount) || 0)} đ`;
-
-/**
- * Nhãn dung lượng cho bảng giá.
- */
-const formatStorage = (bytes) => {
-  const num = Number(bytes) || 0;
-  const inTB = num / 1024 ** 4;
-  if (inTB >= 1) return `${Number(inTB.toFixed(2))} TB`;
-  return `${Number((num / 1024 ** 3).toFixed(2))} GB`;
-};
-
-/** Các chu kỳ thanh toán hỗ trợ */
-const CYCLES = [
-  { id: 'monthly', label: '1 Tháng', months: 1, discount: 0, badge: null },
-  { id: '3_months', label: '3 Tháng', months: 3, discount: 0.05, badge: '-5%' },
-  { id: '6_months', label: '6 Tháng', months: 6, discount: 0.15, badge: '-15%' },
-  { id: 'yearly', label: '1 Năm', months: 12, discount: 0.20, badge: '-20% 🔥' },
-];
-
-const CYCLE_UNIT = {
-  monthly: 'tháng',
-  '3_months': '3 tháng',
-  '6_months': '6 tháng',
-  yearly: 'năm',
-};
-
-const CYCLE_LABEL = {
-  monthly: '1 tháng',
-  '3_months': '3 tháng (-5%)',
-  '6_months': '6 tháng (-15%)',
-  yearly: '1 năm (-20%)',
-};
-
-/**
- * Danh sách 5 gói lưu trữ chuẩn (Lite 20GB, Pro 50GB, Plus 300GB, Ultra 1TB)
- * Giá gốc 1 tháng dao động từ 40k đến 990k
- */
-const STANDARD_PLANS = [
-  {
-    id: 'plan-free',
-    name: 'Gói Miễn Phí (Free)',
-    storageBytes: 16106127360, // 15 GB
-    priceMonthly: 0,
-    priceYearly: 0,
-    tierKey: 'free',
-  },
-  {
-    id: 'plan-lite',
-    name: 'Gói Cơ Bản (Lite)',
-    storageBytes: 21474836480, // 20 GB
-    priceMonthly: 40000,
-    priceYearly: 384000,
-    tierKey: 'lite',
-  },
-  {
-    id: 'plan-pro',
-    name: 'Gói Cá Nhân (Pro)',
-    storageBytes: 53687091200, // 50 GB
-    priceMonthly: 90000,
-    priceYearly: 864000,
-    tierKey: 'pro',
-  },
-  {
-    id: 'plan-plus',
-    name: 'Gói Cao Cấp (Storage Plus)',
-    storageBytes: 322122547200, // 300 GB
-    priceMonthly: 390000,
-    priceYearly: 3744000,
-    tierKey: 'plus',
-  },
-  {
-    id: 'plan-ultra',
-    name: 'Gói Tối Thượng (Ultra)',
-    storageBytes: 1099511627776, // 1 TB
-    priceMonthly: 990000,
-    priceYearly: 9504000,
-    tierKey: 'ultra',
-  },
-];
-
-/**
- * Gạch đầu dòng quyền lợi theo từng phân khúc gói (chuẩn hoá đúng 4 mục mỗi gói)
- */
-const PERKS_BY_TIER = {
-  free: [
-    'Xem & chia sẻ tệp trực tuyến',
-    'Tải lên tối đa 1 GB / tệp',
-    'Đồng bộ tệp tin đa nền tảng',
-    'Tốc độ tải xuống tiêu chuẩn',
-  ],
-  lite: [
-    '20 GB lưu trữ Multi-Cloud',
-    'Tải lên tối đa 5 GB / tệp',
-    'Tốc độ truyền tải nhanh',
-    'Đồng bộ tức thì đa thiết bị',
-  ],
-  pro: [
-    '50 GB lưu trữ Multi-Cloud',
-    'Tải lên tối đa 15 GB / tệp',
-    'Bảo vệ liên kết bằng mật khẩu',
-    'Khôi phục tệp trong 30 ngày',
-  ],
-  plus: [
-    '300 GB lưu trữ lớn',
-    'Tải lên tối đa 50 GB / tệp',
-    'Bộ nhớ dùng chung nhóm',
-    'Khôi phục tệp trong 60 ngày',
-  ],
-  ultra: [
-    '1.024 GB (1 TB) Multi-Cloud',
-    'Không giới hạn cỡ tệp tải lên',
-    'Mã hoá nâng cao E2EE',
-    'Khôi phục tệp trong 90 ngày',
-  ],
-};
-
-/**
- * Bảy trạng thái giao dịch bám nguyên PaymentLinkStatus của payOS
- */
-const TX_STATUS = {
-  PAID: { label: 'Thành công', Icon: Check, tone: 'bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-100 dark:border-emerald-500/30' },
-  PENDING: { label: 'Đang chờ', Icon: Clock, tone: 'bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-100 dark:border-amber-500/30' },
-  PROCESSING: { label: 'Đang xử lý', Icon: Clock, tone: 'bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-100 dark:border-amber-500/30' },
-  UNDERPAID: { label: 'Trả thiếu', Icon: AlertTriangle, tone: 'bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-100 dark:border-amber-500/30' },
-  CANCELLED: { label: 'Đã huỷ', Icon: XCircle, tone: 'bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700' },
-  EXPIRED: { label: 'Hết hạn', Icon: XCircle, tone: 'bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700' },
-  FAILED: { label: 'Thất bại', Icon: XCircle, tone: 'bg-rose-50 dark:bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-100 dark:border-rose-500/30' },
-};
-
-const PENDING_STATUSES = ['PENDING', 'PROCESSING'];
-const PAYMENT_METHOD_LABEL = { PAYOS: 'payOS (VietQR)' };
-
-/**
- * Tính toán tài chính chi tiết cho một gói theo chu kỳ thanh toán
- */
-const calculatePriceInfo = (plan, cycleId) => {
-  const monthly = Number(plan.priceMonthly) || 0;
-  if (monthly <= 0) {
-    return {
-      totalPrice: 0,
-      rawTotal: 0,
-      savings: 0,
-      monthlyEquivalent: 0,
-      discountPercent: 0,
-    };
-  }
-
-  const cycle = CYCLES.find((c) => c.id === cycleId) || CYCLES[0];
-  const rawTotal = monthly * cycle.months;
-  let totalPrice = rawTotal;
-
-  if (cycle.id === 'yearly') {
-    totalPrice = plan.priceYearly && Number(plan.priceYearly) > 0
-      ? Number(plan.priceYearly)
-      : Math.round((rawTotal * (1 - cycle.discount)) / 1000) * 1000;
-  } else if (cycle.discount > 0) {
-    totalPrice = Math.round((rawTotal * (1 - cycle.discount)) / 1000) * 1000;
-  }
-
-  const savings = Math.max(0, rawTotal - totalPrice);
-  const monthlyEquivalent = Math.round(totalPrice / cycle.months);
-
-  return {
-    totalPrice,
-    rawTotal,
-    savings,
-    monthlyEquivalent,
-    discountPercent: Math.round(cycle.discount * 100),
-  };
-};
 
 export default function BillingAndQuota() {
   const { user, refreshUser } = useAuth();
@@ -229,20 +74,66 @@ export default function BillingAndQuota() {
   const [txLoading, setTxLoading] = useState(true);
   const [txError, setTxError] = useState(null);
 
+  // Gói đang chạy, từ `GET /billing/subscription`. `null` = chưa từng mua (hạn mức mặc định).
+  const [subscription, setSubscription] = useState(null);
+
+  // Báo giá thật của gói đang chọn trong modal xác nhận — gồm cả tiền bù trừ gói cũ.
+  const [quote, setQuote] = useState(null);
+  const [quoteLoading, setQuoteLoading] = useState(false);
+
+  // Hai bước cho lệnh tắt tự động gia hạn: bấm lần một mở dòng xác nhận ngay trong dải thông
+  // tin gói, bấm lần hai mới gọi API. Đây là thao tác dễ bấm nhầm mà đường bật lại phải đi qua
+  // thanh toán, nên không cho một cú click là xong.
+  const [confirmCancelRenewal, setConfirmCancelRenewal] = useState(false);
+  const [isCancellingRenewal, setIsCancellingRenewal] = useState(false);
+
   const [selectedPlan, setSelectedPlan] = useState(null);
+  const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [isCreatingLink, setIsCreatingLink] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
 
   const [plansToken, setPlansToken] = useState(0);
-  const [txToken, setTxToken] = useState(0);
-  const reloadTransactions = useCallback(() => setTxToken((n) => n + 1), []);
+
+  /**
+   * Lịch sử giao dịch được nạp bằng một hàm gọi trực tiếp chứ không qua token + useEffect:
+   * `TransactionDetailModal` phải `await` được lần tải lại này rồi mới đóng, nếu không bảng
+   * phía sau còn hiện "Đang chờ" trong khoảnh khắc modal vừa biến mất.
+   */
+  /**
+   * Gói đang chạy. Hỏng thì KHÔNG chặn cả trang: bảng giá vẫn dùng được, chỉ là mất dấu
+   * "Đang sử dụng" (rơi về so sánh dung lượng như cũ).
+   */
+  const fetchSubscription = useCallback(async () => {
+    try {
+      const data = await billingApi.getMySubscription();
+      setSubscription(data || null);
+    } catch {
+      setSubscription(null);
+    }
+  }, []);
+
+  const fetchTransactions = useCallback(async () => {
+    setTxLoading(true);
+    try {
+      const data = await billingApi.getTransactions();
+      setTransactions(Array.isArray(data) ? data : []);
+      setTxError(null);
+    } catch (err) {
+      setTxError(err.message || 'Không tải được lịch sử giao dịch');
+    } finally {
+      setTxLoading(false);
+    }
+  }, []);
 
   // ───────────────────────────── Nạp dữ liệu ─────────────────────────────
 
+  // Bảng giá là dữ liệu API thuần: hỏng thì báo lỗi + cho thử lại, KHÔNG vẽ giá dự phòng
+  // ở client — một bảng giá bịa ra trông y như thật là cách nhanh nhất để khách trả sai tiền.
   useEffect(() => {
     let cancelled = false;
 
     (async () => {
+      setPlansLoading(true);
       try {
         const data = await billingApi.getPlans();
         if (cancelled) return;
@@ -251,7 +142,7 @@ export default function BillingAndQuota() {
       } catch (err) {
         if (cancelled) return;
         setPlans([]);
-        setPlansError(null);
+        setPlansError(err.message || 'Không tải được bảng giá');
       } finally {
         if (!cancelled) setPlansLoading(false);
       }
@@ -263,26 +154,18 @@ export default function BillingAndQuota() {
   }, [plansToken]);
 
   useEffect(() => {
-    let cancelled = false;
-
+    // Bọc trong IIFE async cho khớp effect nạp bảng giá ở trên: gọi thẳng một hàm setState
+    // trong thân effect bị `react-hooks/set-state-in-effect` chặn.
     (async () => {
-      try {
-        const data = await billingApi.getTransactions();
-        if (cancelled) return;
-        setTransactions(Array.isArray(data) ? data : []);
-        setTxError(null);
-      } catch (err) {
-        if (cancelled) return;
-        setTxError(err.message || 'Không tải được lịch sử giao dịch');
-      } finally {
-        if (!cancelled) setTxLoading(false);
-      }
+      await fetchTransactions();
     })();
+  }, [fetchTransactions]);
 
-    return () => {
-      cancelled = true;
-    };
-  }, [txToken]);
+  useEffect(() => {
+    (async () => {
+      await fetchSubscription();
+    })();
+  }, [fetchSubscription]);
 
   // ─────────────────────────── Dung lượng hiện tại ───────────────────────────
 
@@ -291,41 +174,103 @@ export default function BillingAndQuota() {
   const usedPercent = limitBytes > 0 ? Math.min(100, Math.round((usedBytes / limitBytes) * 100)) : 0;
   const freeBytes = Math.max(0, limitBytes - usedBytes);
 
-  // ──────────────────────── Bảng giá 5 gói dàn đều ────────────────────────
+  // ──────────────────────────── Tính giá hiển thị ────────────────────────────
 
-  const decoratedPlans = useMemo(() => {
-    return STANDARD_PLANS.map((std) => {
-      const dbMatch = Array.isArray(plans)
-        ? plans.find((p) => {
-            const name = (p.name || '').toLowerCase();
-            if (std.tierKey === 'free' && (Number(p.priceMonthly) === 0 || name.includes('free') || name.includes('miễn phí'))) return true;
-            if (std.tierKey === 'lite' && (name.includes('lite') || name.includes('tiêu chuẩn') || name.includes('starter') || Number(p.storageBytes) === 21474836480)) return true;
-            if (std.tierKey === 'pro' && (name.includes('pro') || name.includes('cá nhân') || Number(p.storageBytes) === 53687091200)) return true;
-            if (std.tierKey === 'plus' && (name.includes('plus') || name.includes('cao cấp') || name.includes('premium') || Number(p.storageBytes) === 322122547200)) return true;
-            if (std.tierKey === 'ultra' && (name.includes('ultra') || name.includes('tối thượng') || name.includes('enterprise') || Number(p.storageBytes) >= 1099511627776)) return true;
-            return false;
-          })
-        : null;
+  /**
+   * Số tiền phải trả cho TRỌN chu kỳ `cycle` của `plan`.
+   *
+   * Bản sao đúng từng dòng của `BillingService.calculateAmountForCycle`. Server mới là nơi
+   * chốt số tiền thật khi tạo link payOS (client không gửi `amount` lên), nên hàm này chỉ
+   * để hiển thị — nhưng lệch công thức là khách thấy một giá, bị trừ một giá khác.
+   */
+  const calculateDisplayPrice = useCallback((plan, cycle) => {
+    const monthly = Number(plan?.priceMonthly) || 0;
+    if (monthly <= 0) return 0;
+    if (cycle === 'monthly') return monthly;
 
-      const basePlan = dbMatch ? { ...std, ...dbMatch, name: std.name } : std;
-      const planBytes = Number(basePlan.storageBytes) || 0;
-      const isFree = std.tierKey === 'free' || Number(basePlan.priceMonthly) <= 0;
-      const priceInfo = calculatePriceInfo(basePlan, billingCycle);
+    // Giá năm chốt sẵn trong DB được ưu tiên hơn công thức -20%: một gói có thể được
+    // niêm yết giá năm riêng, và backend cũng ưu tiên đúng như vậy.
+    if (cycle === 'yearly') {
+      const yearly = Number(plan?.priceYearly) || 0;
+      if (yearly > 0) return yearly;
+    }
+
+    const months = CYCLE_MONTHS[cycle];
+    const factor = CYCLE_DISCOUNT[cycle];
+    // Chu kỳ lạ (DB/backend thêm kỳ mới mà UI chưa biết) → trả giá 1 tháng thay vì NaN.
+    if (!months || !factor) return monthly;
+
+    // Làm tròn tới 1.000 đ — payOS nhận `amount` là số nguyên VND và backend làm tròn
+    // đúng như vậy; lệch cách làm tròn là khách thấy một giá, bị trừ một giá khác.
+    return Math.round((monthly * months * factor) / 1000) * 1000;
+  }, []);
+
+  /**
+   * Bọc quanh `calculateDisplayPrice` để có thêm phần "tương đương mỗi tháng" và số tiền
+   * tiết kiệm. `discountPercent` suy ngược từ hai con số thật, không lấy hằng số -20%: gói
+   * đặt `priceYearly` thủ công trong DB có thể giảm nhiều/ít hơn mức mặc định.
+   */
+  const buildPriceInfo = useCallback(
+    (plan, cycle) => {
+      const monthly = Number(plan?.priceMonthly) || 0;
+      const months = CYCLE_MONTHS[cycle] || 1;
+      const totalPrice = calculateDisplayPrice(plan, cycle);
+      const rawTotal = monthly * months;
 
       return {
-        ...basePlan,
-        price: priceInfo.totalPrice,
+        totalPrice,
+        rawTotal,
+        months,
+        savings: Math.max(0, rawTotal - totalPrice),
+        monthlyEquivalent: Math.round(totalPrice / months),
+        discountPercent: rawTotal > 0 ? Math.round(((rawTotal - totalPrice) / rawTotal) * 100) : 0,
+      };
+    },
+    [calculateDisplayPrice],
+  );
+
+  // ──────────────── Bảng giá: dữ liệu API + config giao diện ────────────────
+
+  const decoratedPlans = useMemo(() => {
+    if (!Array.isArray(plans)) return [];
+
+    return plans.map((plan, index) => {
+      const ui = resolvePlanUi(plan, index);
+      const planBytes = resolveStorageBytes(plan);
+      const storageLabel = formatStorage(planBytes);
+      const priceInfo = buildPriceInfo(plan, billingCycle);
+
+      return {
+        ...plan,
+        ui,
         priceInfo,
+        price: priceInfo.totalPrice,
         planBytes,
-        storageLabel: formatStorage(planBytes),
-        isCurrent: limitBytes > 0 && planBytes === limitBytes,
-        isFree,
-        isPopular: std.tierKey === 'pro',
-        tierKey: std.tierKey,
-        features: PERKS_BY_TIER[std.tierKey] || PERKS_BY_TIER.free,
+        storageLabel,
+        isFree: Number(plan.priceMonthly) <= 0,
+        // Gói đang dùng nhận diện bằng ID của subscription. Chỉ khi chưa có subscription
+        // (chưa mua bao giờ, hoặc endpoint lỗi) mới rơi về so dung lượng như cũ — cách so đó
+        // đánh dấu nhầm mọi gói trùng dung lượng.
+        isCurrent: subscription?.planId
+          ? subscription.planId === plan.id
+          : limitBytes > 0 && planBytes === limitBytes,
+        // Gói đang dùng nhưng ĐÃ hẹn dừng: nút phải MỞ trở lại. Đường duy nhất để bật lại tự
+        // động gia hạn là trả tiền mua tiếp chính gói đó (webhook xoá cờ và cộng chu kỳ vào
+        // `endDate` cũ nên không mất ngày nào) — khoá nút vì `isCurrent` là khoá luôn đường
+        // quay lại, khách chỉ còn cách đợi gói hết hạn rồi mua từ đầu.
+        isResumable: Boolean(
+          subscription?.planId === plan.id && subscription?.cancelAtPeriodEnd,
+        ),
+        // Backend chặn hạ cấp bằng 400. Biết trước ở đây để khoá nút kèm lý do, thay vì mời
+        // khách bấm một nút chắc chắn hỏng. Toast 400 vẫn giữ làm lưới an toàn cho ca lệch
+        // dữ liệu giữa client và server.
+        isDowngrade: limitBytes > 0 && planBytes < limitBytes,
+        isPopular: Boolean(ui.highlight),
+        // Gạch đầu dòng dung lượng sinh từ API, phần còn lại lấy ở PLAN_UI_CONFIG.
+        features: [`${storageLabel} lưu trữ Multi-Cloud`, ...ui.features],
       };
     });
-  }, [plans, billingCycle, limitBytes]);
+  }, [plans, billingCycle, limitBytes, subscription, buildPriceInfo]);
 
   // ─────────────────────────────── Thao tác ───────────────────────────────
 
@@ -340,6 +285,47 @@ export default function BillingAndQuota() {
       toast.error(err.message || 'Lỗi đồng bộ dung lượng');
     } finally {
       setIsSyncing(false);
+    }
+  };
+
+  /**
+   * Tắt tự động gia hạn gói đang chạy.
+   *
+   * KHÔNG đóng gói ngay: backend chỉ bật `cancel_at_period_end`, dung lượng giữ nguyên tới hết
+   * `endDate`. Vì vậy KHÔNG gọi `refreshStorageInfo()` ở đây — hạn mức không đổi, nạp lại chỉ
+   * làm dải dung lượng nhảy số vô cớ.
+   *
+   * Hiển thị NGUYÊN VĂN `message` của backend: câu đó chứa ngày kết thúc đã format theo giờ VN.
+   * Tự dựng câu ở client là mở đường cho ca lệch một ngày (client ở múi giờ khác).
+   */
+  const handleCancelRenewal = async () => {
+    try {
+      setIsCancellingRenewal(true);
+      const result = await billingApi.cancelSubscriptionRenewal();
+
+      // `alreadyCancelled` = lệnh huỷ trước đó đã có hiệu lực (hai tab, hoặc bấm lại sau khi
+      // reload). Backend trả 200 nên đây không phải lỗi — nhưng cũng không phải việc vừa làm,
+      // nên nói đúng như vậy thay vì chúc mừng lần hai.
+      if (result?.alreadyCancelled) {
+        toast(result.message || 'Gói cước này đã được hẹn dừng từ trước.', { icon: 'ℹ️' });
+      } else {
+        toast.success(result?.message || 'Đã tắt tự động gia hạn cho gói hiện tại.', { duration: 6000 });
+      }
+
+      // Nạp lại từ server chứ không tự sửa state: dải thông tin và nút trên thẻ gói đều đọc
+      // `subscription`, và response có thể mang cả `endDate` vừa bị webhook gia hạn đẩy xa.
+      await fetchSubscription();
+      setConfirmCancelRenewal(false);
+    } catch (err) {
+      // 404 (không có gói ACTIVE) và 400 (gói đã qua hạn) đều nghĩa là state ở client đã cũ —
+      // nạp lại để dải thông tin biến mất thay vì mời khách bấm tiếp một nút chắc chắn hỏng.
+      toast.error(err?.message || 'Không tắt được tự động gia hạn');
+      if (err?.status === 404 || err?.status === 400) {
+        setConfirmCancelRenewal(false);
+        await fetchSubscription();
+      }
+    } finally {
+      setIsCancellingRenewal(false);
     }
   };
 
@@ -359,15 +345,75 @@ export default function BillingAndQuota() {
 
       window.location.href = link.checkoutUrl;
     } catch (err) {
-      toast.error(err.message || 'Không tạo được link thanh toán');
+      // Backend chặn hạ cấp bằng 400 kèm câu tiếng Việt đầy đủ ("Bạn đang sử dụng gói cao
+      // hơn…") — hiển thị NGUYÊN VĂN message đó thay vì một câu chung chung, vì đó là thứ
+      // duy nhất cho khách biết vì sao nút không ăn. 400 cũng là mã của "gói không có giá
+      // cho kỳ này", nên không đoán lý do thay backend.
+      const message =
+        err?.message ||
+        (err?.status === 400
+          ? 'Không thể thanh toán gói này với chu kỳ đã chọn'
+          : 'Không tạo được link thanh toán');
+
+      toast.error(message, { duration: err?.status === 400 ? 6000 : 4000 });
+
+      // Lỗi 400 là lỗi "vĩnh viễn" với lựa chọn hiện tại: bấm lại cũng vẫn 400. Đóng modal để
+      // khách quay ra chọn gói/chu kỳ khác, đồng thời nạp lại gói đang chạy — 400 chống hạ cấp
+      // thường có nghĩa là state ở client đã lệch so với server.
+      if (err?.status === 400) {
+        setSelectedPlan(null);
+        await fetchSubscription();
+      }
       setIsCreatingLink(false);
     }
   };
 
   const selectedPriceInfo = useMemo(() => {
-    if (!selectedPlan) return { totalPrice: 0, savings: 0, rawTotal: 0, discountPercent: 0 };
-    return calculatePriceInfo(selectedPlan, billingCycle);
+    if (!selectedPlan) {
+      return { totalPrice: 0, rawTotal: 0, months: 1, savings: 0, monthlyEquivalent: 0, discountPercent: 0 };
+    }
+    return buildPriceInfo(selectedPlan, billingCycle);
+  }, [selectedPlan, billingCycle, buildPriceInfo]);
+
+  /**
+   * Báo giá THẬT cho gói đang chọn. Chạy lại khi đổi chu kỳ ngay trong lúc modal đang mở.
+   *
+   * Toàn bộ setState nằm trong IIFE async — gọi thẳng trong thân effect bị
+   * `react-hooks/set-state-in-effect` chặn.
+   */
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      if (!selectedPlan) {
+        setQuote(null);
+        return;
+      }
+
+      setQuoteLoading(true);
+      try {
+        const data = await billingApi.getQuote({ planId: selectedPlan.id, billingCycle });
+        if (!cancelled) setQuote(data || null);
+      } catch {
+        // Báo giá hỏng KHÔNG chặn việc mua: modal rơi về giá niêm yết tính ở client và nói rõ
+        // rằng số cuối cùng sẽ chốt ở bước thanh toán. Server vẫn là nơi quyết định số tiền.
+        if (!cancelled) setQuote(null);
+      } finally {
+        if (!cancelled) setQuoteLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [selectedPlan, billingCycle]);
+
+  // Con số hiển thị trong modal: ưu tiên báo giá của server (đã trừ bù gói cũ), không có thì
+  // dùng giá niêm yết tính ở client.
+  const listAmount = quote ? quote.listAmount : selectedPriceInfo.totalPrice;
+  const payableAmount = quote ? quote.amountToPay : selectedPriceInfo.totalPrice;
+  const creditAmount = Number(quote?.creditAmount) || 0;
+  const canPurchase = quote ? quote.canPurchase !== false : true;
 
   const closePaymentModal = () => {
     if (isCreatingLink) return;
@@ -460,6 +506,121 @@ export default function BillingAndQuota() {
           </div>
         </div>
 
+        {/* Dải thông tin gói đang chạy + tắt tự động gia hạn.
+            Chỉ hiện khi CÓ subscription: khách chưa mua gói thì không có gì để gia hạn, và
+            `fetchSubscription` cũng đặt `null` khi endpoint lỗi — thà không hiện còn hơn hiện
+            một trạng thái gia hạn bịa ra. */}
+        {subscription && (
+          <div
+            className={`rounded-2xl border p-5 sm:p-6 shadow-sm flex flex-col gap-4 ${
+              subscription.cancelAtPeriodEnd
+                ? 'bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-500/30'
+                : 'bg-white dark:bg-[#282a2c] border-gray-200 dark:border-gray-700'
+            }`}
+          >
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-start gap-3 min-w-0">
+                <div
+                  className={`shrink-0 w-10 h-10 rounded-xl flex items-center justify-center ${
+                    subscription.cancelAtPeriodEnd
+                      ? 'bg-amber-100 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400'
+                      : 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                  }`}
+                >
+                  {subscription.cancelAtPeriodEnd ? (
+                    <CalendarX className="w-5 h-5" />
+                  ) : (
+                    <CalendarClock className="w-5 h-5" />
+                  )}
+                </div>
+
+                <div className="min-w-0">
+                  <p className="text-[15px] font-bold text-gray-900 dark:text-gray-100">
+                    {subscription.planName || 'Gói đang sử dụng'}
+                    {subscription.billingCycle && (
+                      <span className="ml-2 text-[13px] font-semibold text-gray-500 dark:text-gray-400">
+                        {/* CYCLE_UNIT, không phải CYCLE_LABEL: nhãn kia mang sẵn phần
+                            chiết khấu ("3 tháng (-5%)") — đúng cho thanh chọn chu kỳ lúc mua,
+                            nhưng ở đây là gói ĐÃ mua nên một con số giảm giá không còn nghĩa. */}
+                        · chu kỳ {CYCLE_UNIT[subscription.billingCycle] || subscription.billingCycle}
+                      </span>
+                    )}
+                  </p>
+
+                  {/* Cùng một `endDate`, hai câu khác nhau: "gia hạn tiếp theo" và "kết thúc"
+                      là hai điều hoàn toàn khác với khách, nên không dùng chung một câu chung
+                      chung kiểu "hiệu lực đến". */}
+                  <p className="text-[14px] text-gray-600 dark:text-gray-400 mt-0.5">
+                    {subscription.cancelAtPeriodEnd
+                      ? `Sẽ không tự động gia hạn. Gói kết thúc vào ngày ${formatPlanDate(subscription.endDate)}`
+                      : `Tự động gia hạn vào ngày ${formatPlanDate(subscription.endDate)}`}
+                    {subscription.remainingDays > 0 && (
+                      <span className="text-gray-400 dark:text-gray-500"> (còn {subscription.remainingDays} ngày)</span>
+                    )}
+                  </p>
+                </div>
+              </div>
+
+              {/* Đã hẹn dừng thì KHÔNG có nút "bật lại" ở đây: bật lại phải đi qua thanh toán
+                  (mua tiếp chính gói đó), nên đường đó nằm ở nút trên thẻ gói — một nút ở đây
+                  sẽ hứa một thao tác một-click không tồn tại. */}
+              {!subscription.cancelAtPeriodEnd && !confirmCancelRenewal && (
+                <button
+                  onClick={() => setConfirmCancelRenewal(true)}
+                  className="shrink-0 self-start sm:self-auto px-4 py-2.5 rounded-xl text-[14px] font-bold text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-white/5 hover:text-rose-600 dark:hover:text-rose-400 hover:border-rose-200 dark:hover:border-rose-500/40 transition-all cursor-pointer"
+                >
+                  Hủy tự động gia hạn
+                </button>
+              )}
+
+              {subscription.cancelAtPeriodEnd && (
+                <p className="shrink-0 text-[13px] font-semibold text-amber-700 dark:text-amber-400 sm:text-right max-w-xs">
+                  Muốn dùng tiếp? Mua lại chính gói này — số ngày còn lại được cộng dồn, không
+                  mất ngày nào.
+                </p>
+              )}
+            </div>
+
+            {/* Bước xác nhận, mở ngay tại chỗ thay vì một modal riêng. Nói rõ HAI điều khách
+                hay hiểu sai: gói KHÔNG bị cắt ngay, và đường bật lại đi qua thanh toán. */}
+            {confirmCancelRenewal && !subscription.cancelAtPeriodEnd && (
+              <div className="border-t border-gray-100 dark:border-gray-700 pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <p className="text-[14px] text-gray-600 dark:text-gray-400 flex items-start gap-2 min-w-0">
+                  <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-amber-500" />
+                  <span>
+                    Bạn vẫn dùng đủ dung lượng đến hết ngày{' '}
+                    <strong className="text-gray-900 dark:text-gray-100">{formatPlanDate(subscription.endDate)}</strong>.
+                    Sau đó hạn mức trở về mức mặc định. Để dùng tiếp, bạn cần mua lại gói.
+                  </span>
+                </p>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => setConfirmCancelRenewal(false)}
+                    disabled={isCancellingRenewal}
+                    className="px-4 py-2.5 rounded-xl text-[14px] font-bold text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-white/5 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Giữ lại
+                  </button>
+                  <button
+                    onClick={handleCancelRenewal}
+                    disabled={isCancellingRenewal}
+                    className="px-4 py-2.5 rounded-xl text-[14px] font-bold text-white bg-rose-600 hover:bg-rose-700 transition-all inline-flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isCancellingRenewal ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" /> Đang hủy…
+                      </>
+                    ) : (
+                      'Xác nhận hủy gia hạn'
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* SECTION 1: PRICING TIERS */}
         {activeSection === 'pricing' && (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
@@ -470,7 +631,7 @@ export default function BillingAndQuota() {
                   Chọn gói lưu trữ phù hợp với bạn
                 </h2>
                 <p className="text-[14px] text-gray-500 dark:text-gray-400 mt-1">
-                  Đăng ký chu kỳ dài hạn để nhận ưu đãi giảm giá lên tới 20%.
+                  Đăng ký chu kỳ dài hạn để nhận ưu đãi giảm giá lên tới 17%.
                 </p>
               </div>
 
@@ -523,117 +684,144 @@ export default function BillingAndQuota() {
                   <RefreshCw className="w-4 h-4" /> Thử lại
                 </button>
               </div>
+            ) : decoratedPlans.length === 0 ? (
+              <div className="bg-white dark:bg-[#282a2c] border border-gray-200 dark:border-gray-700 rounded-2xl p-8 text-center shadow-sm">
+                <Sparkles className="w-8 h-8 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
+                <p className="text-[15px] font-semibold text-gray-900 dark:text-gray-100">Chưa có gói cước nào đang mở bán</p>
+                <p className="text-[14px] text-gray-500 dark:text-gray-400 mt-1">
+                  Vui lòng quay lại sau hoặc liên hệ quản trị viên.
+                </p>
+              </div>
             ) : (
-              /* Grid 5 Thẻ Gói Giá: Căn Chỉnh Đều Từng Dòng, Dàn Đều Không Lệch */
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 lg:gap-5 w-full items-stretch">
-                {decoratedPlans.map((plan) => (
-                  <div
-                    key={plan.id}
-                    className={`flex flex-col bg-white dark:bg-[#282a2c] rounded-3xl p-5 sm:p-6 border transition-all duration-300 h-full relative ${
-                      plan.isPopular
-                        ? 'border-blue-600 dark:border-blue-500 shadow-xl ring-2 ring-blue-600/20 dark:ring-blue-500/30 hover:-translate-y-1'
-                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-lg shadow-sm hover:-translate-y-1'
-                    }`}
-                  >
-                    {/* 1. Huy hiệu phân cấp - Cố định chiều cao h-8 */}
-                    <div className="h-8 mb-3 flex items-center">
-                      {plan.tierKey === 'pro' ? (
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-600 text-white text-[11px] font-extrabold rounded-lg tracking-wider uppercase shadow-sm">
-                          <Zap className="w-3.5 h-3.5 fill-current" /> Phổ Biến Nhất
-                        </span>
-                      ) : plan.tierKey === 'ultra' ? (
-                        <span className="inline-flex items-center px-3 py-1 bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 text-[11px] font-extrabold rounded-lg tracking-wider uppercase">
-                          Tối Thượng
-                        </span>
-                      ) : plan.tierKey === 'plus' ? (
-                        <span className="inline-flex items-center px-3 py-1 bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-[11px] font-extrabold rounded-lg tracking-wider uppercase">
-                          Khuyên Dùng
-                        </span>
-                      ) : plan.tierKey === 'lite' ? (
-                        <span className="inline-flex items-center px-3 py-1 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-[11px] font-extrabold rounded-lg tracking-wider uppercase">
-                          Tiết Kiệm
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-[11px] font-extrabold rounded-lg tracking-wider uppercase">
-                          Cơ Bản
-                        </span>
-                      )}
-                    </div>
+              /* Grid thẻ gói giá — render thẳng từ dữ liệu API, mỗi dòng căn đều nhau */
+              <div
+                className={`grid grid-cols-1 ${resolvePlanGridCols(decoratedPlans.length)} gap-4 lg:gap-5 w-full items-stretch`}
+              >
+                {decoratedPlans.map((plan) => {
+                  const PlanIcon = plan.ui.Icon;
+                  const badge = plan.ui.badge;
+                  const BadgeIcon = badge?.Icon;
 
-                    {/* 2. Tiêu đề tên gói - Cố định h-14 để căn đều hoàn hảo dù 1 hay 2 dòng */}
-                    <div className="h-14 flex items-center mb-3">
-                      <h3 className="text-lg lg:text-[19px] font-black text-gray-900 dark:text-gray-100 leading-tight">
-                        {plan.name}
-                      </h3>
-                    </div>
-
-                    {/* 3. Khối giá tiền - Cố định h-24 để đường kẻ ngang luôn thẳng hàng nhau */}
-                    <div className="h-24 flex flex-col justify-start mb-5">
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-2xl lg:text-[26px] xl:text-3xl font-black text-gray-900 dark:text-gray-100 tracking-tight whitespace-nowrap">
-                          {formatVnd(plan.price)}
-                        </span>
-                      </div>
-                      <div className="text-[13px] font-medium text-gray-500 dark:text-gray-400 mt-1">
-                        / {plan.isFree ? 'vĩnh viễn' : CYCLE_UNIT[billingCycle]}
-                      </div>
-
-                      {/* Chi tiết tương đương & tiết kiệm */}
-                      {!plan.isFree && billingCycle !== 'monthly' ? (
-                        <div className="mt-2 flex items-center gap-2 flex-wrap">
-                          <span className="text-[12px] font-bold text-blue-600 dark:text-blue-400">
-                            ~{formatVnd(plan.priceInfo.monthlyEquivalent)}/tháng
-                          </span>
-                          {plan.priceInfo.savings > 0 && (
-                            <span className="inline-flex items-center text-[10.5px] font-extrabold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded">
-                              Tiết kiệm {formatVnd(plan.priceInfo.savings)}
-                            </span>
-                          )}
-                        </div>
-                      ) : (
-                        /* Placeholder giữ đúng độ cao để các thẻ không bị xô lệch */
-                        <div className="mt-2 h-5 invisible select-none pointer-events-none" aria-hidden="true">
-                          Spacer
-                        </div>
-                      )}
-                    </div>
-
-                    {/* 4. Danh sách tính năng - Mỗi dòng cố định min-h-[42px] để các gạch đầu dòng đối xứng thẳng hàng */}
-                    <div className="border-t border-gray-100 dark:border-gray-800 pt-5 mb-6 flex-1 flex flex-col justify-start">
-                      <ul className="space-y-2.5">
-                        {plan.features.map((feat) => (
-                          <li key={feat} className="min-h-[42px] flex items-start gap-2.5">
-                            <Check className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
-                            <span className="text-[13.5px] text-gray-600 dark:text-gray-300 leading-snug break-words">
-                              {feat}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    {/* 5. Nút hành động - Cố định chiều cao h-12 ghim sát đáy */}
-                    <button
-                      onClick={() => setSelectedPlan(plan)}
-                      disabled={plan.isCurrent || plan.isFree}
-                      className={`mt-auto w-full h-12 rounded-2xl text-[14px] font-bold transition-all shrink-0 flex items-center justify-center ${
-                        plan.isCurrent || plan.isFree
-                          ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed border border-transparent'
-                          : plan.isPopular
-                          ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg cursor-pointer'
-                          : 'bg-white dark:bg-[#282a2c] text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-white/5 hover:border-gray-300 dark:hover:border-gray-600 shadow-sm cursor-pointer'
+                  return (
+                    <div
+                      key={plan.id}
+                      className={`flex flex-col bg-white dark:bg-[#282a2c] rounded-3xl p-5 sm:p-6 border transition-all duration-300 h-full relative ${
+                        plan.isPopular
+                          ? 'border-blue-600 dark:border-blue-500 shadow-xl ring-2 ring-blue-600/20 dark:ring-blue-500/30 hover:-translate-y-1'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-lg shadow-sm hover:-translate-y-1'
                       }`}
                     >
-                      {plan.isCurrent
-                        ? 'Đang sử dụng'
-                        : plan.isFree
-                        ? 'Gói miễn phí'
-                        : plan.planBytes > limitBytes
-                        ? `Nâng cấp ${plan.storageLabel}`
-                        : 'Chọn gói này'}
-                    </button>
-                  </div>
-                ))}
+                      {/* 1. Huy hiệu phân cấp (PLAN_UI_CONFIG) - h-8 giữ chỗ kể cả khi gói
+                          không có huy hiệu, để các thẻ cùng hàng không xô lệch */}
+                      <div className="h-8 mb-3 flex items-center">
+                        {badge && (
+                          <span
+                            className={`inline-flex items-center gap-1.5 px-3 py-1 text-[11px] font-extrabold rounded-lg tracking-wider uppercase ${badge.tone}`}
+                          >
+                            {BadgeIcon && <BadgeIcon className="w-3.5 h-3.5 fill-current" />}
+                            {badge.label}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* 2. Tên gói (API) + icon (PLAN_UI_CONFIG) - Cố định h-14 để căn đều dù 1 hay 2 dòng */}
+                      <div className="h-14 flex items-center gap-2.5 mb-3">
+                        {PlanIcon && <PlanIcon className={`w-5 h-5 shrink-0 ${plan.ui.iconTone}`} />}
+                        <h3 className="text-lg lg:text-[19px] font-black text-gray-900 dark:text-gray-100 leading-tight">
+                          {plan.name}
+                        </h3>
+                      </div>
+
+                      {/* 3. Khối giá tiền tính động theo chu kỳ - Cố định h-24 để đường kẻ ngang thẳng hàng */}
+                      <div className="h-24 flex flex-col justify-start mb-5">
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-2xl lg:text-[26px] xl:text-3xl font-black text-gray-900 dark:text-gray-100 tracking-tight whitespace-nowrap">
+                            {formatVnd(calculateDisplayPrice(plan, billingCycle))}
+                          </span>
+                        </div>
+                        <div className="text-[13px] font-medium text-gray-500 dark:text-gray-400 mt-1">
+                          / {plan.isFree ? 'vĩnh viễn' : CYCLE_UNIT[billingCycle]}
+                        </div>
+
+                        {/* Chi tiết tương đương & tiết kiệm */}
+                        {!plan.isFree && billingCycle !== 'monthly' ? (
+                          <div className="mt-2 flex items-center gap-2 flex-wrap">
+                            <span className="text-[12px] font-bold text-blue-600 dark:text-blue-400">
+                              ~{formatVnd(plan.priceInfo.monthlyEquivalent)}/tháng
+                            </span>
+                            {plan.priceInfo.savings > 0 && (
+                              <span className="inline-flex items-center text-[10.5px] font-extrabold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded">
+                                Tiết kiệm {formatVnd(plan.priceInfo.savings)}
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          /* Placeholder giữ đúng độ cao để các thẻ không bị xô lệch */
+                          <div className="mt-2 h-5 invisible select-none pointer-events-none" aria-hidden="true">
+                            Spacer
+                          </div>
+                        )}
+                      </div>
+
+                      {/* 4. Danh sách tính năng - Mỗi dòng cố định min-h-[42px] để các gạch đầu dòng thẳng hàng */}
+                      <div className="border-t border-gray-100 dark:border-gray-800 pt-5 mb-6 flex-1 flex flex-col justify-start">
+                        <ul className="space-y-2.5">
+                          {plan.features.map((feat) => (
+                            <li key={feat} className="min-h-[42px] flex items-start gap-2.5">
+                              <Check className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                              <span className="text-[13.5px] text-gray-600 dark:text-gray-300 leading-snug break-words">
+                                {feat}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {/* 5. Nút hành động - Cố định chiều cao h-12 ghim sát đáy */}
+                      {/* `isResumable` (gói đang dùng nhưng đã hẹn dừng) là NGOẠI LỆ DUY NHẤT
+                          của luật "gói đang dùng thì khoá nút": bật lại tự động gia hạn chỉ
+                          làm được bằng cách mua tiếp chính gói đó, nên khoá ở đây là bít luôn
+                          đường quay lại. Vẫn nhường cho `isFree`/`isDowngrade` — hai ca đó
+                          khoá vì backend sẽ trả 400. */}
+                      <button
+                        onClick={() => setSelectedPlan(plan)}
+                        disabled={(plan.isCurrent && !plan.isResumable) || plan.isFree || plan.isDowngrade}
+                        title={
+                          plan.isDowngrade
+                            ? 'Không thể hạ cấp khi gói hiện tại còn hiệu lực — dữ liệu đang lưu trữ có thể vượt hạn mức gói nhỏ hơn.'
+                            : plan.isResumable
+                            ? 'Thanh toán để bật lại tự động gia hạn. Số ngày còn lại của gói hiện tại được cộng dồn, không mất ngày nào.'
+                            : undefined
+                        }
+                        className={`mt-auto w-full h-12 rounded-2xl text-[14px] font-bold transition-all shrink-0 flex items-center justify-center gap-2 ${
+                          (plan.isCurrent && !plan.isResumable) || plan.isFree || plan.isDowngrade
+                            ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed border border-transparent'
+                            : plan.isResumable
+                            ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-md hover:shadow-lg cursor-pointer'
+                            : plan.isPopular
+                            ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg cursor-pointer'
+                            : 'bg-white dark:bg-[#282a2c] text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-white/5 hover:border-gray-300 dark:hover:border-gray-600 shadow-sm cursor-pointer'
+                        }`}
+                      >
+                        {plan.isResumable ? (
+                          <>
+                            <RotateCcw className="w-4 h-4" /> Bật lại gia hạn
+                          </>
+                        ) : plan.isCurrent ? (
+                          'Đang sử dụng'
+                        ) : plan.isFree ? (
+                          'Gói miễn phí'
+                        ) : plan.isDowngrade ? (
+                          'Không thể hạ cấp'
+                        ) : plan.planBytes > limitBytes ? (
+                          `Nâng cấp ${plan.storageLabel}`
+                        ) : (
+                          'Chọn gói này'
+                        )}
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -647,7 +835,7 @@ export default function BillingAndQuota() {
                 50 giao dịch gần nhất của bạn, mới nhất trước.
               </p>
               <button
-                onClick={reloadTransactions}
+                onClick={fetchTransactions}
                 disabled={txLoading}
                 className="px-4 py-2 rounded-xl bg-white dark:bg-[#282a2c] border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 font-bold text-[14px] transition-all inline-flex items-center gap-2 shrink-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -667,7 +855,7 @@ export default function BillingAndQuota() {
                   <p className="text-[15px] font-semibold text-gray-900 dark:text-gray-100 mb-1">Không tải được lịch sử giao dịch</p>
                   <p className="text-[14px] text-gray-500 dark:text-gray-400 mb-5">{txError}</p>
                   <button
-                    onClick={reloadTransactions}
+                    onClick={fetchTransactions}
                     className="px-5 py-2.5 rounded-xl bg-gray-900 dark:bg-blue-600 hover:bg-black dark:hover:bg-blue-500 text-white font-bold text-[14px] transition-all inline-flex items-center gap-2 cursor-pointer"
                   >
                     <RefreshCw className="w-4 h-4" /> Thử lại
@@ -691,19 +879,31 @@ export default function BillingAndQuota() {
                         <th className="py-4 px-6 whitespace-nowrap">Tổng tiền</th>
                         <th className="py-4 px-6 whitespace-nowrap">Phương thức</th>
                         <th className="py-4 px-6 whitespace-nowrap">Trạng thái</th>
+                        <th className="py-4 px-6 w-px" aria-label="Chi tiết" />
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 dark:divide-gray-700 text-[15px]">
                       {transactions.map((row) => {
-                        const status = TX_STATUS[row.status] || {
-                          label: row.status,
-                          Icon: AlertTriangle,
-                          tone: 'bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700',
-                        };
+                        const status = resolveTxStatus(row.status);
                         const StatusIcon = status.Icon;
 
                         return (
-                          <tr key={row.id} className="hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors group">
+                          <tr
+                            key={row.id}
+                            onClick={() => setSelectedTransaction(row)}
+                            // Bàn phím cũng phải mở được chi tiết: <tr> không tự nhận focus
+                            // nên role/tabIndex phải khai báo thủ công.
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={(event) => {
+                              if (event.key === 'Enter' || event.key === ' ') {
+                                event.preventDefault();
+                                setSelectedTransaction(row);
+                              }
+                            }}
+                            aria-label={`Xem chi tiết giao dịch ${row.orderCode}`}
+                            className="hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500"
+                          >
                             <td className="py-4 px-6">
                               <div className="font-mono font-bold text-gray-900 dark:text-gray-100">{row.orderCode}</div>
                               <div className="text-sm text-gray-400 dark:text-gray-500 mt-0.5">
@@ -731,12 +931,18 @@ export default function BillingAndQuota() {
                                 {PENDING_STATUSES.includes(row.status) && (
                                   <Link
                                     to={`/billing/success?orderCode=${row.orderCode}`}
+                                    // Không có stopPropagation thì một cú bấm vừa điều hướng
+                                    // sang trang đối soát vừa bật modal chi tiết.
+                                    onClick={(event) => event.stopPropagation()}
                                     className="text-[13px] font-bold text-blue-600 dark:text-blue-400 hover:underline"
                                   >
                                     Kiểm tra lại
                                   </Link>
                                 )}
                               </div>
+                            </td>
+                            <td className="py-4 pr-6 text-right">
+                              <ChevronRight className="w-5 h-5 text-gray-300 dark:text-gray-600 group-hover:text-gray-500 dark:group-hover:text-gray-400 transition-colors inline-block" />
                             </td>
                           </tr>
                         );
@@ -748,6 +954,16 @@ export default function BillingAndQuota() {
             </div>
           </div>
         )}
+
+        {/* MODAL CHI TIẾT GIAO DỊCH — bấm vào một dòng lịch sử để mở */}
+        <TransactionDetailModal
+          // `key` theo id: mở một giao dịch khác thì modal remount, nên bước xác nhận huỷ
+          // của giao dịch trước không dính sang giao dịch sau.
+          key={selectedTransaction?.id}
+          transaction={selectedTransaction}
+          onClose={() => setSelectedTransaction(null)}
+          onCancelled={fetchTransactions}
+        />
 
         {/* PAYMENT MODAL — xác nhận rồi chuyển sang trang thanh toán payOS */}
         {selectedPlan && (
@@ -765,24 +981,80 @@ export default function BillingAndQuota() {
                 <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400 mb-4 ring-1 ring-blue-500/20 shadow-sm">
                   <CreditCard className="w-6 h-6" />
                 </div>
-                <h3 className="text-2xl font-black text-gray-900 dark:text-gray-100 mb-2 tracking-tight">Xác nhận nâng cấp</h3>
+                <h3 className="text-2xl font-black text-gray-900 dark:text-gray-100 mb-2 tracking-tight">
+                  {quote?.isRenewal ? 'Xác nhận gia hạn' : 'Xác nhận nâng cấp'}
+                </h3>
                 <p className="text-gray-500 dark:text-gray-400 text-[14px]">
                   Gói <span className="font-bold text-gray-900 dark:text-gray-100">{selectedPlan.name}</span> — {selectedPlan.storageLabel},
                   chu kỳ <span className="font-semibold text-gray-800 dark:text-gray-200">{CYCLE_LABEL[billingCycle]}</span>.
+                  {quote?.isRenewal && ' Chu kỳ mới được cộng tiếp vào ngày hết hạn hiện tại.'}
                 </p>
+
+                {/* `resumesAutoRenew` = khách đang hẹn dừng CHÍNH gói này, nên lần thanh toán
+                    này rút lại lệnh huỷ (backend xoá `cancel_at_period_end` khi settle). Phải
+                    nói trước ở đây: im lặng thì khách vừa bấm huỷ gia hạn xong lại thấy nó bật
+                    lại và không hiểu vì đâu. */}
+                {quote?.resumesAutoRenew && (
+                  <div className="mt-4 flex items-start gap-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/25 border border-amber-200 dark:border-amber-500/30 px-4 py-3">
+                    <RotateCcw className="w-4 h-4 mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />
+                    <p className="text-[13.5px] text-amber-800 dark:text-amber-200 leading-snug">
+                      Bạn đang hẹn dừng gói này. Thanh toán thành công sẽ <strong>bật lại tự động gia hạn</strong>
+                      {' '}và cộng chu kỳ mới vào ngày hết hạn hiện tại.
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="rounded-2xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-white/5 divide-y divide-gray-100 dark:divide-gray-700 mb-6">
                 <div className="flex flex-col gap-1 px-5 py-4">
+                  {/* Giá niêm yết chỉ tách thành dòng riêng khi CÓ bù trừ — không thì hai
+                      dòng cùng một con số trông như lỗi hiển thị. */}
+                  {creditAmount > 0 && (
+                    <>
+                      <div className="flex items-baseline justify-between gap-4 text-[14px]">
+                        <span className="font-semibold text-gray-500 dark:text-gray-400">Giá gói {CYCLE_LABEL[billingCycle]}</span>
+                        <span className="font-bold text-gray-700 dark:text-gray-300">{formatVnd(listAmount)}</span>
+                      </div>
+                      <div className="flex items-baseline justify-between gap-4 text-[14px] text-emerald-600 dark:text-emerald-400">
+                        <span className="font-semibold min-w-0">
+                          Bù trừ {quote?.previousPlanName ? `gói ${quote.previousPlanName}` : 'gói cũ'}
+                          {quote?.creditedDays ? ` (còn ${quote.creditedDays} ngày)` : ''}
+                        </span>
+                        <span className="font-bold whitespace-nowrap">− {formatVnd(creditAmount)}</span>
+                      </div>
+                    </>
+                  )}
+
                   <div className="flex items-baseline justify-between gap-4">
                     <span className="text-[14px] font-semibold text-gray-500 dark:text-gray-400">Số tiền thanh toán</span>
-                    <span className="text-2xl font-black text-gray-900 dark:text-gray-100">{formatVnd(selectedPriceInfo.totalPrice)}</span>
+                    <span className="text-2xl font-black text-gray-900 dark:text-gray-100">
+                      {quoteLoading ? (
+                        <Loader2 className="w-6 h-6 animate-spin text-gray-400 dark:text-gray-500" />
+                      ) : (
+                        formatVnd(payableAmount)
+                      )}
+                    </span>
                   </div>
+
                   {selectedPriceInfo.savings > 0 && (
                     <div className="flex items-center justify-between text-xs text-emerald-600 dark:text-emerald-400 font-semibold pt-1">
                       <span>Đã áp dụng giảm {selectedPriceInfo.discountPercent}%</span>
                       <span>Tiết kiệm {formatVnd(selectedPriceInfo.savings)}</span>
                     </div>
+                  )}
+
+                  {quote?.flooredToMinimum && (
+                    <p className="text-[12.5px] text-amber-600 dark:text-amber-400 font-semibold pt-1 leading-snug">
+                      Phần chưa dùng của gói cũ lớn hơn giá gói mới nên hoá đơn được thu ở mức tối thiểu{' '}
+                      {formatVnd(quote.minimumAmount)} của cổng thanh toán.
+                    </p>
+                  )}
+
+                  {!quoteLoading && !quote && (
+                    <p className="text-[12.5px] text-gray-500 dark:text-gray-400 pt-1 leading-snug">
+                      Chưa lấy được báo giá chi tiết. Đây là giá niêm yết — số tiền cuối cùng sẽ hiển thị ở
+                      trang thanh toán.
+                    </p>
                   )}
                 </div>
                 <div className="flex items-center gap-3 px-5 py-4">
@@ -796,9 +1068,18 @@ export default function BillingAndQuota() {
                 </div>
               </div>
 
+              {!canPurchase && quote?.blockedReason && (
+                <div className="flex items-start gap-2.5 rounded-2xl border border-rose-200 dark:border-rose-500/30 bg-rose-50/60 dark:bg-rose-950/30 p-4 mb-4">
+                  <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+                  <p className="text-[13.5px] text-rose-800 dark:text-rose-200 leading-snug">{quote.blockedReason}</p>
+                </div>
+              )}
+
               <button
                 onClick={handleCreatePaymentLink}
-                disabled={isCreatingLink}
+                // Khoá luôn trong lúc chờ báo giá: bấm sớm là tạo hoá đơn cho một con số mà
+                // khách chưa kịp nhìn thấy.
+                disabled={isCreatingLink || quoteLoading || !canPurchase}
                 className="w-full py-4 rounded-xl bg-gray-900 hover:bg-black dark:bg-blue-600 dark:hover:bg-blue-500 text-white font-bold text-[15px] shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:translate-y-0"
               >
                 {isCreatingLink ? (

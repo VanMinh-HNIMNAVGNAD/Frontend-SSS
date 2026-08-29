@@ -52,11 +52,11 @@ export default function Sidebar() {
         title={isSidebarCollapsed ? label : undefined}
         className={`w-full flex items-center gap-4 px-4 py-2.5 rounded-full transition-all duration-150 text-[14px] font-medium text-left group relative ${
           isSidebarCollapsed ? 'justify-center px-0 py-3' : 'justify-start'
-        } ${isActive ? 'bg-[#c2e7ff] dark:bg-blue-500/25 text-[#001d35] dark:text-blue-100 font-semibold' : 'text-[#444746] dark:text-gray-300 hover:bg-[#e1e5ea] dark:hover:bg-white/5'}`}
+        } ${isActive ? 'bg-[#d3e3fd] dark:bg-blue-500/25 text-[#041e49] dark:text-blue-100 font-bold shadow-2xs' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200/80 dark:hover:bg-white/5'}`}
       >
         <Icon
           className={`w-5 h-5 shrink-0 transition-colors duration-150 ${
-            isActive ? activeColor : `text-gray-500 dark:text-gray-400 ${hoverColor}`
+            isActive ? activeColor : `text-gray-600 dark:text-gray-400 ${hoverColor}`
           }`}
         />
 
@@ -83,7 +83,7 @@ export default function Sidebar() {
         />
       )}
       <aside
-        className={`bg-[#f8fafd] dark:bg-[#1e1e1e] border-r border-gray-100 dark:border-gray-700 flex flex-col pt-3 select-none transition-all duration-300 ease-in-out shrink-0 h-full 
+        className={`bg-[#f0f4f9] dark:bg-[#1e1e1e] border-r border-gray-200 dark:border-gray-700 flex flex-col pt-3 select-none transition-all duration-300 ease-in-out shrink-0 h-full 
           fixed lg:relative z-50 lg:z-0 top-0 left-0
           ${isSidebarCollapsed ? '-translate-x-full lg:translate-x-0 lg:w-20 px-2' : 'translate-x-0 w-72 lg:w-64 px-3'}
         `}
@@ -102,18 +102,18 @@ export default function Sidebar() {
           <NavItem id="recent" label={t('nav.recent')} icon={Clock} hoverColor="group-hover:text-amber-500" activeColor="text-amber-500 dark:text-amber-400" />
           <NavItem id="starred" label={t('nav.starred')} icon={Star} hoverColor="group-hover:text-yellow-500" activeColor="text-yellow-500 dark:text-yellow-400" />
 
-          <div className="my-2 border-t border-gray-200/60 dark:border-gray-700/60" />
+          <div className="my-2 border-t border-gray-200 dark:border-gray-700/60" />
 
           <NavItem id="spam" label={t('nav.spam')} icon={ShieldAlert} badge={spamCount} badgeColor="bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300" hoverColor="group-hover:text-orange-600" activeColor="text-orange-600 dark:text-orange-400" />
           <NavItem id="trash" label={t('nav.trash')} icon={Trash2} badge={trashCount} hoverColor="group-hover:text-rose-600" activeColor="text-rose-600 dark:text-rose-400" />
 
-          <div className="my-2 border-t border-gray-200/60 dark:border-gray-700/60" />
+          <div className="my-2 border-t border-gray-200 dark:border-gray-700/60" />
 
           <NavItem id="billing" label={t('nav.billing')} icon={CreditCard} hoverColor="group-hover:text-purple-600" activeColor="text-purple-600 dark:text-purple-400" />
         </nav>
 
         {/* KHỐI THANH LƯU TRỮ DYNAMIC COLOR */}
-        <div className="mt-auto pt-3 pb-4 border-t border-gray-200/60 dark:border-gray-700/60">
+        <div className="mt-auto pt-3 pb-4 border-t border-gray-200 dark:border-gray-700/60">
           {isSidebarCollapsed ? (
             <div
               onClick={() => setActiveTab('billing')}
@@ -128,7 +128,7 @@ export default function Sidebar() {
               <span className="text-[10px] font-bold text-gray-700 dark:text-gray-300">{storageInfo.percentage}%</span>
             </div>
           ) : (
-            <div className="px-3 py-2 bg-white/70 dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-2xs">
+            <div className="px-3 py-2 bg-white dark:bg-white/5 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-2xs">
               <div className="flex items-center justify-between mb-2 text-xs font-semibold text-gray-700 dark:text-gray-300">
                 <div className="flex items-center gap-2">
                   <Cloud className="w-4 h-4 text-blue-600 dark:text-blue-400" />

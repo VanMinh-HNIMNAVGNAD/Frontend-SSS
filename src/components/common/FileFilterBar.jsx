@@ -69,7 +69,7 @@ export default function FileFilterBar({
     };
 
     return (
-        <div className="flex flex-wrap items-center gap-2 py-2 mb-3 border-b border-gray-100 dark:border-gray-700 select-none">
+        <div className="flex flex-wrap items-center gap-2 py-2 mb-3 border-b border-gray-200 dark:border-gray-700 select-none">
             <SelectDropdown
                 label="Sắp xếp"
                 icon={ArrowUpDown}
@@ -79,7 +79,7 @@ export default function FileFilterBar({
                 active={sortField !== 'name' || sortDirection !== 'asc'}
             />
             
-            <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1"></div>
+            <div className="w-px h-6 bg-gray-300 dark:bg-gray-700 mx-1"></div>
 
             {/* Filter by File Type */}
             <SelectDropdown
@@ -106,7 +106,7 @@ export default function FileFilterBar({
                 <button
                     type="button"
                     onClick={onReset}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold text-rose-600 dark:text-rose-300 bg-rose-50 dark:bg-rose-500/15 hover:bg-rose-100 dark:hover:bg-rose-500/25 transition-colors shadow-2xs cursor-pointer"
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-500/15 border border-rose-200 dark:border-rose-800 hover:bg-rose-100 dark:hover:bg-rose-500/25 transition-colors shadow-2xs cursor-pointer"
                     title="Xóa tất cả bộ lọc"
                 >
                     <XCircle className="w-3.5 h-3.5" />

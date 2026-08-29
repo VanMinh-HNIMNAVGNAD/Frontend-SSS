@@ -24,20 +24,20 @@ export default function SpamPage() {
         <div className="flex flex-col h-full" onContextMenu={(e) => e.preventDefault()}>
             {/* Header */}
             <div className="mb-2">
-                <div className="flex items-center justify-between mb-2 pb-2 border-b border-gray-100 dark:border-gray-700">
+                <div className="flex items-center justify-between mb-2 pb-2 border-b border-gray-200 dark:border-gray-700">
                     <div className="flex items-center gap-2">
                         <ShieldAlert className="w-6 h-6 text-amber-600 dark:text-amber-400" />
-                        <h1 className="text-xl font-bold text-gray-800 dark:text-gray-200">Nội dung rác</h1>
+                        <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Nội dung rác</h1>
                     </div>
 
                     {/* View Switcher */}
-                    <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-full p-1 border border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center bg-gray-200/90 dark:bg-gray-700 rounded-full p-0.5 border border-gray-300 dark:border-gray-700">
                         <button
                             onClick={() => setViewMode('list')}
                             title="Xem dạng danh sách"
                             className={`p-1.5 rounded-full transition-colors ${viewMode === 'list'
-                                    ? 'bg-white dark:bg-[#282a2c] shadow-xs text-blue-600 dark:text-blue-400 font-medium'
-                                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100'
+                                    ? 'bg-white dark:bg-[#282a2c] shadow-xs text-blue-700 dark:text-blue-400 font-bold'
+                                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
                                 }`}
                         >
                             <List className="w-4 h-4" />
@@ -46,8 +46,8 @@ export default function SpamPage() {
                             onClick={() => setViewMode('grid')}
                             title="Xem dạng lưới"
                             className={`p-1.5 rounded-full transition-colors ${viewMode === 'grid'
-                                    ? 'bg-white dark:bg-[#282a2c] shadow-xs text-blue-600 dark:text-blue-400 font-medium'
-                                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100'
+                                    ? 'bg-white dark:bg-[#282a2c] shadow-xs text-blue-700 dark:text-blue-400 font-bold'
+                                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
                                 }`}
                         >
                             <LayoutGrid className="w-4 h-4" />
@@ -56,11 +56,11 @@ export default function SpamPage() {
                 </div>
 
                 {/* Banner Cảnh báo Spam / Virus */}
-                <div className="bg-amber-50 dark:bg-amber-500/15 border border-amber-200 dark:border-amber-900/50 rounded-2xl p-4 flex items-start gap-3 text-amber-900 dark:text-amber-200 text-sm shadow-2xs">
+                <div className="bg-amber-50/80 dark:bg-amber-500/15 border border-amber-300 dark:border-amber-900/50 rounded-2xl p-4 flex items-start gap-3 text-amber-950 dark:text-amber-200 text-sm shadow-2xs">
                     <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                     <div>
-                        <p className="font-semibold mb-0.5">Cảnh báo an toàn tệp nghi ngờ:</p>
-                        <p className="text-xs text-amber-800 dark:text-amber-300">
+                        <p className="font-bold mb-0.5">Cảnh báo an toàn tệp nghi ngờ:</p>
+                        <p className="text-xs text-amber-900 dark:text-amber-300 font-medium">
                             Các tệp bị gắn cờ chứa nội dung spam, tin nhắn lừa đảo hoặc dấu hiệu nhiễm virus sẽ tự động bị xóa vĩnh viễn sau 30 ngày. Không mở tệp nếu không rõ nguồn gốc.
                         </p>
                     </div>

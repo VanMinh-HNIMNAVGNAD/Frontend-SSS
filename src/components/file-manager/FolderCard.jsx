@@ -3,14 +3,14 @@ import { Folder, MoreVertical, Users, CheckSquare, Square } from 'lucide-react';
 import StarButton from '../common/StarButton';
 
 const folderColorPalettes = [
-    { bg: 'bg-red-50 dark:bg-red-500/15 border-red-200 dark:border-red-900/50 hover:bg-red-100 dark:hover:bg-red-500/25 hover:border-red-300', text: 'text-red-700 dark:text-red-300', icon: 'text-red-500 dark:text-red-400' },
-    { bg: 'bg-amber-50 dark:bg-amber-500/15 border-amber-200 dark:border-amber-900/50 hover:bg-amber-100 dark:hover:bg-amber-500/25 hover:border-amber-300', text: 'text-amber-700 dark:text-amber-300', icon: 'text-amber-500 dark:text-amber-400' },
-    { bg: 'bg-emerald-50 dark:bg-emerald-500/15 border-emerald-200 dark:border-emerald-900/50 hover:bg-emerald-100 dark:hover:bg-emerald-500/25 hover:border-emerald-300', text: 'text-emerald-700 dark:text-emerald-300', icon: 'text-emerald-500 dark:text-emerald-400' },
-    { bg: 'bg-blue-50 dark:bg-blue-500/15 border-blue-200 dark:border-blue-900/50 hover:bg-blue-100 dark:hover:bg-blue-500/25 hover:border-blue-300', text: 'text-blue-700 dark:text-blue-300', icon: 'text-blue-500 dark:text-blue-400' },
-    { bg: 'bg-purple-50 dark:bg-purple-500/15 border-purple-200 dark:border-purple-900/50 hover:bg-purple-100 dark:hover:bg-purple-500/25 hover:border-purple-300', text: 'text-purple-700 dark:text-purple-300', icon: 'text-purple-500 dark:text-purple-400' },
-    { bg: 'bg-teal-50 dark:bg-teal-500/15 border-teal-200 dark:border-teal-900/50 hover:bg-teal-100 dark:hover:bg-teal-500/25 hover:border-teal-300', text: 'text-teal-700 dark:text-teal-300', icon: 'text-teal-500 dark:text-teal-400' },
-    { bg: 'bg-indigo-50 dark:bg-indigo-500/15 border-indigo-200 dark:border-indigo-900/50 hover:bg-indigo-100 dark:hover:bg-indigo-500/25 hover:border-indigo-300', text: 'text-indigo-700 dark:text-indigo-300', icon: 'text-indigo-500 dark:text-indigo-400' },
-    { bg: 'bg-sky-50 dark:bg-sky-500/15 border-sky-200 dark:border-sky-900/50 hover:bg-sky-100 dark:hover:bg-sky-500/25 hover:border-sky-300', text: 'text-sky-700 dark:text-sky-300', icon: 'text-sky-500 dark:text-sky-400' },
+    { bg: 'bg-red-50/70 dark:bg-red-500/15 border-red-300/90 dark:border-red-900/50 hover:bg-red-100/80 dark:hover:bg-red-500/25 hover:border-red-400', text: 'text-red-900 dark:text-red-300 font-bold', icon: 'text-red-600 dark:text-red-400' },
+    { bg: 'bg-amber-50/70 dark:bg-amber-500/15 border-amber-300/90 dark:border-amber-900/50 hover:bg-amber-100/80 dark:hover:bg-amber-500/25 hover:border-amber-400', text: 'text-amber-900 dark:text-amber-300 font-bold', icon: 'text-amber-600 dark:text-amber-400' },
+    { bg: 'bg-emerald-50/70 dark:bg-emerald-500/15 border-emerald-300/90 dark:border-emerald-900/50 hover:bg-emerald-100/80 dark:hover:bg-emerald-500/25 hover:border-emerald-400', text: 'text-emerald-900 dark:text-emerald-300 font-bold', icon: 'text-emerald-600 dark:text-emerald-400' },
+    { bg: 'bg-blue-50/70 dark:bg-blue-500/15 border-blue-300/90 dark:border-blue-900/50 hover:bg-blue-100/80 dark:hover:bg-blue-500/25 hover:border-blue-400', text: 'text-blue-900 dark:text-blue-300 font-bold', icon: 'text-blue-600 dark:text-blue-400' },
+    { bg: 'bg-purple-50/70 dark:bg-purple-500/15 border-purple-300/90 dark:border-purple-900/50 hover:bg-purple-100/80 dark:hover:bg-purple-500/25 hover:border-purple-400', text: 'text-purple-900 dark:text-purple-300 font-bold', icon: 'text-purple-600 dark:text-purple-400' },
+    { bg: 'bg-teal-50/70 dark:bg-teal-500/15 border-teal-300/90 dark:border-teal-900/50 hover:bg-teal-100/80 dark:hover:bg-teal-500/25 hover:border-teal-400', text: 'text-teal-900 dark:text-teal-300 font-bold', icon: 'text-teal-600 dark:text-teal-400' },
+    { bg: 'bg-indigo-50/70 dark:bg-indigo-500/15 border-indigo-300/90 dark:border-indigo-900/50 hover:bg-indigo-100/80 dark:hover:bg-indigo-500/25 hover:border-indigo-400', text: 'text-indigo-900 dark:text-indigo-300 font-bold', icon: 'text-indigo-600 dark:text-indigo-400' },
+    { bg: 'bg-sky-50/70 dark:bg-sky-500/15 border-sky-300/90 dark:border-sky-900/50 hover:bg-sky-100/80 dark:hover:bg-sky-500/25 hover:border-sky-400', text: 'text-sky-900 dark:text-sky-300 font-bold', icon: 'text-sky-600 dark:text-sky-400' },
 ];
 
 function getFolderPalette(name = '') {

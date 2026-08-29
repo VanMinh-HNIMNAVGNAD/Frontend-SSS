@@ -293,6 +293,50 @@ export const billingApi = {
   // priceMonthly, priceYearly }] đã sắp theo priceMonthly tăng dần.
   getPlans: () => api.get('/billing/plans'),
 
+  // Gói ĐANG CHẠY của chính mình, hoặc null nếu chưa từng mua (đang ở hạn mức mặc định).
+  // Trả { planId, planName, storageBytes, billingCycle, status, cancelAtPeriodEnd, startDate,
+  // endDate, remainingDays }.
+  //
+  // Cần cái này để biết thẻ nào là "đang sử dụng": suy từ `storageInfo.limitBytes` thì hai gói
+  // cùng dung lượng khác giá sẽ cùng bị đánh dấu, và một hạn mức chỉnh tay làm mọi thẻ mất dấu.
+  //
+  // `status` vẫn là 'ACTIVE' khi khách đã hẹn dừng gói — muốn biết gói còn tự gia hạn hay không
+  // thì phải đọc `cancelAtPeriodEnd`, không đọc `status`.
+  getMySubscription: () => api.get('/billing/subscription'),
+
+  // Tắt TỰ ĐỘNG GIA HẠN gói đang chạy. Gói KHÔNG bị đóng ngay: status vẫn 'ACTIVE' và dung
+  // lượng giữ nguyên đến hết `endDate` — những ngày đó khách đã trả tiền rồi.
+  //
+  // Đừng lẫn với `cancelTransaction` (huỷ một hoá đơn CHƯA trả tiền). Ở đây không có giao dịch
+  // nào để huỷ bên payOS.
+  //
+  // Trả nguyên hình dạng của `getMySubscription` (đã có `cancelAtPeriodEnd: true`) + `message`
+  // (câu thông báo kèm ngày kết thúc, đã format theo giờ VN) + `alreadyCancelled`.
+  // `alreadyCancelled: true` = gói đã hẹn dừng từ trước, lần gọi này không đổi gì — vẫn 200,
+  // gọi lại nhiều lần KHÔNG lỗi.
+  //
+  // 404 nếu không có gói ACTIVE nào, 400 nếu gói đã qua hạn.
+  //
+  // MUỐN BẬT LẠI: mua tiếp CHÍNH gói đó. Webhook thanh toán xoá cờ và cộng chu kỳ mới vào
+  // `endDate` cũ nên không mất ngày nào — `getQuote` báo trước ca này bằng `resumesAutoRenew`.
+  cancelSubscriptionRenewal: (reason) =>
+    api.post('/billing/subscription/cancel', reason ? { reason } : {}),
+
+  // Báo giá THỬ một gói + kỳ. Không tạo giao dịch, không gọi payOS.
+  //
+  // Số tiền thật của một lần ĐỔI GÓI không bằng giá niêm yết — backend trừ phần chưa dùng của
+  // gói cũ (`applyProration`). Endpoint này trả đúng phép tính mà create-payment-link sẽ dùng,
+  // nên modal xác nhận hiện được cùng con số với trang payOS.
+  //
+  // Trả { listAmount, creditAmount, creditedDays, amountToPay, isRenewal, flooredToMinimum,
+  // minimumAmount, previousPlanName, previousCycle, previousCancelAtPeriodEnd,
+  // resumesAutoRenew, canPurchase, blockedReason }.
+  //
+  // `resumesAutoRenew: true` = khách đang hẹn dừng chính gói này, trả tiền là RÚT LẠI lệnh
+  // huỷ. Modal xác nhận phải nói trước điều đó, không thì khách vừa bấm huỷ gia hạn lại thấy
+  // nó tự bật lại mà không hiểu vì sao.
+  getQuote: (params) => api.get('/billing/quote', { params }),
+
   // data: { planId, billingCycle: 'monthly' | 'yearly' }
   //
   // CỐ Ý không gửi `amount`: backend tự tra giá theo planId, và AppValidationPipe
@@ -311,6 +355,18 @@ export const billingApi = {
   // backend hỏi thẳng payOS rồi ghi nhận kết quả — nhờ vậy luồng mua gói chạy được cả khi
   // webhook URL chưa được đăng ký (máy dev không có HTTPS public).
   getTransactionStatus: (orderCode) => api.get(`/billing/transactions/${orderCode}`),
+
+  // Huỷ một hoá đơn CHƯA thanh toán (PENDING/PROCESSING). Backend huỷ link bên payOS rồi
+  // ghi status CANCELLED — huỷ mỗi ở DB thì khách vẫn quét được QR cũ và trả tiền cho một
+  // giao dịch đã đóng.
+  //
+  // Chỉ gọi được với giao dịch của chính mình. Trả 400 nếu giao dịch đã PAID/CANCELLED/EXPIRED,
+  // 404 nếu orderCode không thuộc về người gọi.
+  //
+  // Chỉ huỷ được giao dịch PENDING. PROCESSING bị backend từ chối bằng 400 CÓ CHỦ Ý: lúc đó
+  // cổng thanh toán đang ghi nhận một khoản chuyển khoản.
+  cancelTransaction: (orderCode, reason) =>
+    api.post(`/billing/transactions/${orderCode}/cancel`, reason ? { reason } : {}),
 };
 
 export default api;

@@ -305,8 +305,8 @@ export default function SettingsModal({ isOpen, onClose }) {
                         aria-pressed={theme === value}
                         className={`flex flex-col items-center justify-center py-2.5 px-1.5 rounded-xl border gap-1 transition-all cursor-pointer ${
                           theme === value
-                            ? 'border-blue-600 bg-blue-50/60 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400 font-semibold shadow-2xs'
-                            : 'border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-300'
+                            ? 'border-blue-600 bg-blue-50 dark:bg-blue-500/15 text-blue-800 dark:text-blue-300 font-bold shadow-2xs'
+                            : 'border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-800 dark:text-gray-300 font-medium'
                         }`}
                       >
                         <Icon className={`w-4.5 h-4.5 ${iconClass}`} />
@@ -317,7 +317,7 @@ export default function SettingsModal({ isOpen, onClose }) {
                 </div>
 
                 {/* 2. Ngôn ngữ */}
-                <div className="pt-2 border-t border-gray-100 dark:border-gray-700">
+                <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
                   <label className="block text-xs font-semibold text-gray-800 dark:text-gray-200 mb-1.5">{t('settings.language.label')}</label>
                   <select
                     value={language}
@@ -462,19 +462,19 @@ export default function SettingsModal({ isOpen, onClose }) {
                   {/* Tắt phím tắt thì bảng mờ đi — nếu vẫn hiện y như cũ, người
                       dùng không có cách nào biết công tắc vừa rồi có tác dụng gì */}
                   <div
-                    className={`border border-gray-200 dark:border-gray-600 rounded-xl overflow-hidden divide-y divide-gray-100 dark:divide-gray-700 transition-opacity ${
+                    className={`border border-gray-300 dark:border-gray-600 rounded-xl overflow-hidden divide-y divide-gray-200 dark:divide-gray-700 transition-opacity ${
                       shortcutsEnabled ? '' : 'opacity-50'
                     }`}
                   >
                     {shortcutsList.map((item, idx) => (
-                      <div key={idx} className="flex items-center justify-between gap-2 px-3 py-2 text-xs bg-white dark:bg-transparent hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors">
-                        <span className="text-gray-700 dark:text-gray-300 font-medium text-xs truncate">{item.label}</span>
+                      <div key={idx} className="flex items-center justify-between gap-2 px-3 py-2 text-xs bg-white dark:bg-transparent hover:bg-gray-100/70 dark:hover:bg-white/5 transition-colors">
+                        <span className="text-gray-900 dark:text-gray-200 font-semibold text-xs truncate">{item.label}</span>
                         {/* Mỗi tổ hợp là một chip riêng — dòng dài tự xuống hàng thay vì tràn */}
                         <div className="flex flex-wrap justify-end gap-1 shrink-0 max-w-[55%]">
                           {item.keys.map((combo, i) => (
                             <kbd
                               key={i}
-                              className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md font-mono text-[11px] font-semibold text-gray-800 dark:text-gray-100 shadow-2xs whitespace-nowrap"
+                              className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md font-mono text-[11px] font-bold text-gray-900 dark:text-gray-100 shadow-2xs whitespace-nowrap"
                             >
                               {combo}
                             </kbd>

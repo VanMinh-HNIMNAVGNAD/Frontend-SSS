@@ -309,21 +309,21 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                 onClick={(e) => e.stopPropagation()}
             >
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-800">
                 <div className="flex items-center gap-2.5 min-w-0 pr-2">
                     {getFileIconLarge() && <div className="shrink-0">{getFileIconLarge()}</div>}
                     <div className="min-w-0">
                         <h3 className="font-bold text-sm text-gray-900 dark:text-gray-100 truncate" title={item.name}>
                             {item.name}
                         </h3>
-                        <p className="text-[11px] text-gray-400 font-medium truncate">
+                        <p className="text-[11px] text-gray-600 dark:text-gray-400 font-medium truncate">
                             {isFolder ? 'Thư mục' : item.mimeType || 'Tệp dữ liệu'}
                         </p>
                     </div>
                 </div>
                 <button
                     onClick={onClose}
-                    className="p-1.5 rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors shrink-0 cursor-pointer"
+                    className="p-1.5 rounded-full text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors shrink-0 cursor-pointer"
                     title="Đóng"
                 >
                     <X className="w-5 h-5" />
@@ -331,13 +331,13 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
             </div>
 
             {/* Tab Navigation */}
-            <div className="flex border-b border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-[#252728]">
+            <div className="flex border-b border-gray-200 dark:border-gray-800 bg-gray-100/90 dark:bg-[#252728]">
                 <button
                     onClick={() => setCurrentTab('details')}
                     className={`flex-1 py-3 text-center font-semibold transition-colors border-b-2 flex items-center justify-center gap-1.5 cursor-pointer ${
                         currentTab === 'details'
-                            ? 'border-blue-600 text-blue-600 dark:text-blue-400 bg-white dark:bg-[#1e1e1e]'
-                            : 'border-transparent text-gray-500 hover:text-gray-800 dark:hover:text-gray-200'
+                            ? 'border-blue-600 text-blue-700 dark:text-blue-400 bg-white dark:bg-[#1e1e1e] font-bold'
+                            : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 font-medium'
                     }`}
                 >
                     <InfoIcon className="w-3.5 h-3.5" />
@@ -348,8 +348,8 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                     onClick={() => setCurrentTab('activity')}
                     className={`flex-1 py-3 text-center font-semibold transition-colors border-b-2 flex items-center justify-center gap-1.5 cursor-pointer ${
                         currentTab === 'activity'
-                            ? 'border-blue-600 text-blue-600 dark:text-blue-400 bg-white dark:bg-[#1e1e1e]'
-                            : 'border-transparent text-gray-500 hover:text-gray-800 dark:hover:text-gray-200'
+                            ? 'border-blue-600 text-blue-700 dark:text-blue-400 bg-white dark:bg-[#1e1e1e] font-bold'
+                            : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 font-medium'
                     }`}
                 >
                     <ActivityIcon className="w-3.5 h-3.5" />
@@ -361,8 +361,8 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                         onClick={() => setCurrentTab('versions')}
                         className={`flex-1 py-3 text-center font-semibold transition-colors border-b-2 flex items-center justify-center gap-1.5 cursor-pointer ${
                             currentTab === 'versions'
-                                ? 'border-blue-600 text-blue-600 dark:text-blue-400 bg-white dark:bg-[#1e1e1e]'
-                                : 'border-transparent text-gray-500 hover:text-gray-800 dark:hover:text-gray-200'
+                                ? 'border-blue-600 text-blue-700 dark:text-blue-400 bg-white dark:bg-[#1e1e1e] font-bold'
+                                : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 font-medium'
                         }`}
                     >
                         <History className="w-3.5 h-3.5" />
@@ -426,68 +426,68 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                             </h4>
 
                             {/* Property item: Loại tệp */}
-                            <div className="flex justify-between py-1.5 border-b border-gray-100 dark:border-gray-800">
-                                <span className="text-gray-500 dark:text-gray-400 font-medium">Loại tệp</span>
-                                <span className="font-semibold text-gray-800 dark:text-gray-200">
+                            <div className="flex justify-between py-1.5 border-b border-gray-200 dark:border-gray-800">
+                                <span className="text-gray-600 dark:text-gray-400 font-semibold">Loại tệp</span>
+                                <span className="font-semibold text-gray-900 dark:text-gray-100">
                                     {isFolder ? 'Thư mục' : item.mimeType || 'Tệp dữ liệu'}
                                 </span>
                             </div>
 
                             {/* Property item: Kích thước */}
                             {!isFolder && (
-                                <div className="flex justify-between py-1.5 border-b border-gray-100 dark:border-gray-800">
-                                    <span className="text-gray-500 dark:text-gray-400 font-medium">Kích thước</span>
-                                    <span className="font-semibold text-gray-800 dark:text-gray-200 font-mono">
+                                <div className="flex justify-between py-1.5 border-b border-gray-200 dark:border-gray-800">
+                                    <span className="text-gray-600 dark:text-gray-400 font-semibold">Kích thước</span>
+                                    <span className="font-semibold text-gray-900 dark:text-gray-100 font-mono">
                                         {formatBytes(item.size)}
                                     </span>
                                 </div>
                             )}
 
                             {/* Property item: Vị trí */}
-                            <div className="flex justify-between py-1.5 border-b border-gray-100 dark:border-gray-800">
-                                <span className="text-gray-500 dark:text-gray-400 font-medium">Vị trí</span>
-                                <span className="font-semibold text-blue-600 dark:text-blue-400 flex items-center gap-1">
+                            <div className="flex justify-between py-1.5 border-b border-gray-200 dark:border-gray-800">
+                                <span className="text-gray-600 dark:text-gray-400 font-semibold">Vị trí</span>
+                                <span className="font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-1">
                                     <FolderTree className="w-3.5 h-3.5" />
                                     {item.parentId ? 'Thư mục con' : 'Driver riêng của tôi'}
                                 </span>
                             </div>
 
                             {/* Property item: Người sở hữu */}
-                            <div className="flex justify-between py-1.5 border-b border-gray-100 dark:border-gray-800">
-                                <span className="text-gray-500 dark:text-gray-400 font-medium">Owner</span>
-                                <span className="font-semibold text-gray-800 dark:text-gray-200">
+                            <div className="flex justify-between py-1.5 border-b border-gray-200 dark:border-gray-800">
+                                <span className="text-gray-600 dark:text-gray-400 font-semibold">Owner</span>
+                                <span className="font-semibold text-gray-900 dark:text-gray-100">
                                     {item.owner || 'Tôi'}
                                 </span>
                             </div>
 
                             {/* Property item: Group */}
-                            <div className="flex justify-between py-1.5 border-b border-gray-100 dark:border-gray-800">
-                                <span className="text-gray-500 dark:text-gray-400 font-medium">Group</span>
-                                <span className="font-semibold text-gray-800 dark:text-gray-200 font-mono">
+                            <div className="flex justify-between py-1.5 border-b border-gray-200 dark:border-gray-800">
+                                <span className="text-gray-600 dark:text-gray-400 font-semibold">Group</span>
+                                <span className="font-semibold text-gray-900 dark:text-gray-100 font-mono">
                                     {item.group || 'users'}
                                 </span>
                             </div>
 
                             {/* Property item: Permissions */}
-                            <div className="flex justify-between py-1.5 border-b border-gray-100 dark:border-gray-800">
-                                <span className="text-gray-500 dark:text-gray-400 font-medium">Permissions</span>
-                                <span className="font-mono font-semibold px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
+                            <div className="flex justify-between py-1.5 border-b border-gray-200 dark:border-gray-800">
+                                <span className="text-gray-600 dark:text-gray-400 font-semibold">Permissions</span>
+                                <span className="font-mono font-bold px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-700">
                                     {item.permissions || (isFolder ? 'rwxr-xr-x' : 'rw-r--r--')}
                                 </span>
                             </div>
 
                             {/* Property item: Sửa đổi lần cuối */}
-                            <div className="flex justify-between py-1.5 border-b border-gray-100 dark:border-gray-800">
-                                <span className="text-gray-500 dark:text-gray-400 font-medium">Sửa đổi (Modified)</span>
-                                <span className="font-semibold text-gray-800 dark:text-gray-200 font-mono">
+                            <div className="flex justify-between py-1.5 border-b border-gray-200 dark:border-gray-800">
+                                <span className="text-gray-600 dark:text-gray-400 font-semibold">Sửa đổi (Modified)</span>
+                                <span className="font-semibold text-gray-900 dark:text-gray-100 font-mono">
                                     {item.updatedAt || 'Vừa xong'}
                                 </span>
                             </div>
 
                             {/* Property item: Ngày tạo (Created) */}
-                            <div className="flex justify-between py-1.5 border-b border-gray-100 dark:border-gray-800">
-                                <span className="text-gray-500 dark:text-gray-400 font-medium">Ngày tạo (Created)</span>
-                                <span className="font-semibold text-gray-800 dark:text-gray-200 font-mono">
+                            <div className="flex justify-between py-1.5 border-b border-gray-200 dark:border-gray-800">
+                                <span className="text-gray-600 dark:text-gray-400 font-semibold">Ngày tạo (Created)</span>
+                                <span className="font-semibold text-gray-900 dark:text-gray-100 font-mono">
                                     {item.createdAt || '2026-07-01 09:15'}
                                 </span>
                             </div>
@@ -500,7 +500,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                                     Mô tả
                                 </h4>
                                 {savedDescSuccess && (
-                                    <span className="text-emerald-500 font-medium flex items-center gap-1 text-[11px] animate-fade-in">
+                                    <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1 text-[11px] animate-fade-in">
                                         <Check className="w-3.5 h-3.5" /> Đã lưu
                                     </span>
                                 )}
@@ -510,13 +510,13 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                                 onChange={(e) => setDescription(e.target.value)}
                                 placeholder="Thêm mô tả cho mục này..."
                                 rows={3}
-                                className="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#282a2c] text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-blue-500 outline-none text-xs leading-relaxed"
+                                className="w-full p-3 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-[#282a2c] text-gray-900 dark:text-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-xs leading-relaxed"
                             />
                             <div className="flex justify-end">
                                 <button
                                     onClick={handleSaveDescription}
                                     disabled={isSavingDesc}
-                                    className="px-3 py-1.5 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-semibold rounded-lg text-xs transition-colors cursor-pointer"
+                                    className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-200 font-bold border border-gray-300 dark:border-transparent rounded-lg text-xs transition-colors cursor-pointer"
                                 >
                                     {isSavingDesc ? 'Đang lưu...' : 'Lưu mô tả'}
                                 </button>

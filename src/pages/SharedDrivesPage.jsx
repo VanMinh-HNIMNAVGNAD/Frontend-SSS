@@ -240,14 +240,14 @@ export default function SharedDrivesPage() {
                         </div>
                     </div>
 
-                    <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-full p-1 border border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center bg-gray-200/90 dark:bg-gray-700 rounded-full p-0.5 border border-gray-300 dark:border-gray-700">
                         <button
                             onClick={() => setViewMode('list')}
                             title="Xem dạng danh sách"
                             className={`p-1.5 rounded-full transition-colors ${
                                 viewMode === 'list'
-                                    ? 'bg-white dark:bg-[#282a2c] shadow-xs text-blue-600 dark:text-blue-400 font-medium'
-                                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100'
+                                    ? 'bg-white dark:bg-[#282a2c] shadow-xs text-blue-700 dark:text-blue-400 font-bold'
+                                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
                             }`}
                         >
                             <List className="w-4 h-4" />
@@ -257,8 +257,8 @@ export default function SharedDrivesPage() {
                             title="Xem dạng lưới"
                             className={`p-1.5 rounded-full transition-colors ${
                                 viewMode === 'grid'
-                                    ? 'bg-white dark:bg-[#282a2c] shadow-xs text-blue-600 dark:text-blue-400 font-medium'
-                                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100'
+                                    ? 'bg-white dark:bg-[#282a2c] shadow-xs text-blue-700 dark:text-blue-400 font-bold'
+                                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
                             }`}
                         >
                             <LayoutGrid className="w-4 h-4" />
@@ -276,19 +276,19 @@ export default function SharedDrivesPage() {
     // Default view: list of shared drives
     return (
         <div className="flex flex-col h-full overflow-y-auto pr-2 pb-12" onContextMenu={suppressNativeMenu}>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-gray-100 dark:border-gray-700">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-gray-200 dark:border-gray-700">
                 <div className="flex items-start sm:items-center gap-3.5">
-                    <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 shadow-2xs">
+                    <div className="w-12 h-12 rounded-2xl bg-indigo-100 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-400 flex items-center justify-center shrink-0 shadow-2xs border border-indigo-200 dark:border-transparent">
                         <FolderGit2 className="w-6 h-6" />
                     </div>
                     <div>
                         <div className="flex items-center gap-2 flex-wrap">
-                            <h1 className="text-2xl font-black text-gray-800 dark:text-gray-200 tracking-tight">Bộ nhớ dùng chung</h1>
-                            <span className="px-2 py-0.5 text-[11px] font-bold bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 rounded-md border border-indigo-100/80 dark:border-indigo-800/60">
+                            <h1 className="text-2xl font-black text-gray-900 dark:text-gray-100 tracking-tight">Bộ nhớ dùng chung</h1>
+                            <span className="px-2 py-0.5 text-[11px] font-bold bg-indigo-100 dark:bg-indigo-500/15 text-indigo-800 dark:text-indigo-300 rounded-md border border-indigo-200 dark:border-indigo-800/60">
                                 Không gian nhóm
                             </span>
                         </div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mt-1 leading-relaxed">
+                        <p className="text-xs text-gray-600 dark:text-gray-400 font-medium mt-1 leading-relaxed">
                             Không gian lưu trữ tập thể cho đội ngũ &amp; dự án — Tệp thuộc về cả nhóm thay vì một cá nhân riêng lẻ.
                         </p>
                     </div>
@@ -296,7 +296,7 @@ export default function SharedDrivesPage() {
 
                 <button
                     onClick={() => setIsCreateModalOpen(true)}
-                    className="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition-all shadow-sm shrink-0"
+                    className="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold transition-all shadow-xs shrink-0 cursor-pointer"
                 >
                     <Plus className="w-4 h-4" />
                     Tạo mới
@@ -308,19 +308,19 @@ export default function SharedDrivesPage() {
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
                 </div>
             ) : error ? (
-                <div className="p-4 bg-red-50 dark:bg-red-500/15 text-red-600 dark:text-red-300 rounded-xl text-sm font-semibold border border-red-100 dark:border-red-900/50 flex items-center justify-center">{error}</div>
+                <div className="p-4 bg-red-50 dark:bg-red-500/15 text-red-700 dark:text-red-300 rounded-xl text-sm font-semibold border border-red-200 dark:border-red-900/50 flex items-center justify-center">{error}</div>
             ) : drives.length === 0 ? (
-                <div className="flex flex-col items-center justify-center p-12 text-center bg-gray-50/50 dark:bg-white/5 rounded-3xl border border-dashed border-gray-200 dark:border-gray-700 mt-4">
-                    <div className="w-16 h-16 bg-white dark:bg-[#282a2c] rounded-full flex items-center justify-center mb-4 shadow-sm border border-gray-100 dark:border-gray-700 text-indigo-600 dark:text-indigo-400">
-                        <FolderGit2 className="w-8 h-8 text-indigo-500" />
+                <div className="flex flex-col items-center justify-center p-12 text-center bg-gray-50/70 dark:bg-white/5 rounded-3xl border border-dashed border-gray-300 dark:border-gray-700 mt-4">
+                    <div className="w-16 h-16 bg-white dark:bg-[#282a2c] rounded-full flex items-center justify-center mb-4 shadow-sm border border-gray-200 dark:border-gray-700 text-indigo-600 dark:text-indigo-400">
+                        <FolderGit2 className="w-8 h-8 text-indigo-600" />
                     </div>
-                    <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200 mb-1.5">Chưa có bộ nhớ dùng chung nào</h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md mb-6 leading-relaxed">
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1.5">Chưa có bộ nhớ dùng chung nào</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 max-w-md mb-6 leading-relaxed">
                         Bộ nhớ dùng chung giúp phòng ban hoặc nhóm dự án của bạn lưu trữ và quản lý tài liệu tại một nơi tập trung. Tài liệu thuộc sở hữu của cả nhóm và không bị mất khi có thành viên rời đi.
                     </p>
                     <button
                         onClick={() => setIsCreateModalOpen(true)}
-                        className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition-all shadow-sm flex items-center gap-2"
+                        className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold transition-all shadow-xs flex items-center gap-2 cursor-pointer"
                     >
                         <Plus className="w-4 h-4" />
                         Tạo Bộ nhớ nhóm đầu tiên
@@ -336,15 +336,15 @@ export default function SharedDrivesPage() {
                                 setCurrentFolderId(null);
                             }}
                             onContextMenu={(e) => openDriveMenu(e, drive)}
-                            className="p-5 border border-gray-200 dark:border-gray-700 rounded-3xl hover:border-indigo-300 hover:shadow-md transition-all cursor-pointer bg-white dark:bg-[#282a2c] group flex flex-col"
+                            className="p-5 border border-gray-300/80 dark:border-gray-700 rounded-3xl hover:border-indigo-400 hover:shadow-md transition-all cursor-pointer bg-white dark:bg-[#282a2c] group flex flex-col shadow-2xs"
                         >
                             <div className="flex items-start justify-between mb-4">
-                                <div className="w-12 h-12 rounded-2xl bg-indigo-50/80 text-indigo-600 dark:text-indigo-400 flex items-center justify-center group-hover:scale-105 transition-transform">
+                                <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center group-hover:scale-105 transition-transform border border-indigo-100">
                                     <FolderGit2 className="w-6 h-6" />
                                 </div>
 
                                 <div className="flex items-center gap-1 shrink-0">
-                                    <span className="px-2.5 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-[10px] font-extrabold rounded-full uppercase tracking-wider">
+                                    <span className="px-2.5 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-[10px] font-extrabold rounded-full uppercase tracking-wider border border-gray-200 dark:border-transparent">
                                         {drive.userRole}
                                     </span>
 
@@ -352,7 +352,7 @@ export default function SharedDrivesPage() {
                                     <button
                                         onClick={(e) => { e.stopPropagation(); handleToggleStar(drive); }}
                                         title={drive.isStarred ? 'Bỏ khỏi mục gắn sao' : 'Thêm vào mục gắn sao'}
-                                        className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-amber-500 rounded-full hover:bg-amber-50 transition-colors"
+                                        className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-amber-500 rounded-full hover:bg-amber-50 transition-colors"
                                     >
                                         <Star className={`w-4 h-4 ${drive.isStarred ? 'fill-amber-400 text-amber-500' : ''}`} />
                                     </button>
@@ -361,7 +361,7 @@ export default function SharedDrivesPage() {
                                     <button
                                         onClick={(e) => { e.stopPropagation(); setShareTarget(drive); }}
                                         title="Chia sẻ & quản lý thành viên"
-                                        className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-indigo-600 rounded-full hover:bg-indigo-50 transition-colors"
+                                        className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-indigo-600 rounded-full hover:bg-indigo-50 transition-colors"
                                     >
                                         <Share2 className="w-4 h-4" />
                                     </button>
@@ -370,17 +370,17 @@ export default function SharedDrivesPage() {
                                     <button
                                         onClick={(e) => openDriveMenu(e, drive)}
                                         title="Tùy chọn khác"
-                                        className="p-1.5 text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 rounded-full hover:bg-gray-100 dark:hover:bg-white/5 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                        className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 rounded-full hover:bg-gray-100 dark:hover:bg-white/5 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
                                     >
                                         <MoreVertical className="w-4 h-4" />
                                     </button>
                                 </div>
                             </div>
                             <h3 className="font-bold text-gray-900 dark:text-gray-100 text-[15px] mb-1.5 truncate group-hover:text-indigo-700 dark:group-hover:text-indigo-400 transition-colors">{drive.name}</h3>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 flex-1 mb-4 leading-relaxed">
+                            <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2 flex-1 mb-4 leading-relaxed font-medium">
                                 {drive.description || 'Không có mô tả'}
                             </p>
-                            <div className="flex items-center gap-2 text-[11px] font-bold text-indigo-600/80 dark:text-indigo-400 mt-auto pt-3 border-t border-gray-50 dark:border-gray-700/60">
+                            <div className="flex items-center gap-2 text-[11px] font-bold text-indigo-700 dark:text-indigo-400 mt-auto pt-3 border-t border-gray-100 dark:border-gray-700/60">
                                 <Users className="w-3.5 h-3.5" />
                                 <span className="uppercase tracking-wider">Không gian nhóm / Dự án</span>
                             </div>

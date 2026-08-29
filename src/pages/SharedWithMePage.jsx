@@ -27,14 +27,14 @@ export default function SharedWithMePage() {
     return (
         <div className="flex flex-col h-full" onContextMenu={(e) => e.preventDefault()}>
             {/* Header */}
-            <div className="flex items-center justify-between mb-2 pb-2 border-b border-gray-100 dark:border-gray-700">
+            <div className="flex items-center justify-between mb-2 pb-2 border-b border-gray-200 dark:border-gray-700">
                 <div className="flex items-center gap-2 flex-1 min-w-0">
                     <Users className="w-6 h-6 text-blue-600 dark:text-blue-400 shrink-0" />
                     {currentFolderId ? (
-                        <nav className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-300 font-medium overflow-x-auto py-1">
+                        <nav className="flex items-center gap-1.5 text-sm text-gray-700 dark:text-gray-300 font-medium overflow-x-auto py-1">
                             <button
                                 onClick={() => openFolder({ id: null })}
-                                className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors shrink-0 text-xl font-bold text-gray-800 dark:text-gray-200 cursor-pointer"
+                                className="hover:text-blue-700 dark:hover:text-blue-400 transition-colors shrink-0 text-xl font-bold text-gray-900 dark:text-gray-100 cursor-pointer"
                             >
                                 Được chia sẻ với tôi
                             </button>
@@ -42,13 +42,13 @@ export default function SharedWithMePage() {
                                 .filter((b) => b.id !== null)
                                 .map((item, index, arr) => (
                                     <div key={item.id || index} className="flex items-center gap-1 shrink-0">
-                                        <ChevronRight className="w-4 h-4 text-gray-400 dark:text-gray-500 shrink-0" />
+                                        <ChevronRight className="w-4 h-4 text-gray-500 dark:text-gray-500 shrink-0" />
                                         <button
                                             onClick={() => openFolder({ id: item.id })}
-                                            className={`hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer text-xl ${
+                                            className={`hover:text-blue-700 dark:hover:text-blue-400 transition-colors cursor-pointer text-xl ${
                                                 index === arr.length - 1
                                                     ? 'font-bold text-gray-900 dark:text-gray-100'
-                                                    : 'text-gray-600 dark:text-gray-300 font-semibold'
+                                                    : 'text-gray-700 dark:text-gray-300 font-semibold'
                                             }`}
                                         >
                                             {item.name}
@@ -57,19 +57,19 @@ export default function SharedWithMePage() {
                                 ))}
                         </nav>
                     ) : (
-                        <h1 className="text-xl font-bold text-gray-800 dark:text-gray-200">Được chia sẻ với tôi</h1>
+                        <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Được chia sẻ với tôi</h1>
                     )}
                 </div>
 
                 {/* View Switcher */}
-                <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-full p-1 border border-gray-200 dark:border-gray-700 shrink-0">
+                <div className="flex items-center bg-gray-200/90 dark:bg-gray-700 rounded-full p-0.5 border border-gray-300 dark:border-gray-700 shrink-0">
                     <button
                         onClick={() => setViewMode('list')}
                         title="Xem dạng danh sách"
                         className={`p-1.5 rounded-full transition-colors ${
                             viewMode === 'list'
-                                ? 'bg-white dark:bg-[#282a2c] shadow-xs text-blue-600 dark:text-blue-400 font-medium'
-                                : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100'
+                                ? 'bg-white dark:bg-[#282a2c] shadow-xs text-blue-700 dark:text-blue-400 font-bold'
+                                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
                         }`}
                     >
                         <List className="w-4 h-4" />
@@ -79,8 +79,8 @@ export default function SharedWithMePage() {
                         title="Xem dạng lưới"
                         className={`p-1.5 rounded-full transition-colors ${
                             viewMode === 'grid'
-                                ? 'bg-white dark:bg-[#282a2c] shadow-xs text-blue-600 dark:text-blue-400 font-medium'
-                                : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100'
+                                ? 'bg-white dark:bg-[#282a2c] shadow-xs text-blue-700 dark:text-blue-400 font-bold'
+                                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
                         }`}
                     >
                         <LayoutGrid className="w-4 h-4" />

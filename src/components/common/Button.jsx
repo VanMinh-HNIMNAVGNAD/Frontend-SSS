@@ -14,10 +14,10 @@ export default function Button({
 
     const variants = {
         primary: 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm hover:shadow-md active:scale-[0.98]',
-        secondary: 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 active:scale-[0.98]',
-        outline: 'border border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 bg-white dark:bg-[#282a2c] hover:bg-gray-50 dark:hover:bg-white/5 text-gray-700 dark:text-gray-300 shadow-2xs',
+        secondary: 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 active:scale-[0.98]',
+        outline: 'border border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 bg-white dark:bg-[#282a2c] hover:bg-gray-50 dark:hover:bg-white/5 text-gray-800 dark:text-gray-200 shadow-2xs font-semibold',
         danger: 'bg-rose-600 hover:bg-rose-700 text-white shadow-sm active:scale-[0.98]',
-        ghost: 'bg-transparent hover:bg-gray-100 dark:hover:bg-white/5 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100',
+        ghost: 'bg-transparent hover:bg-gray-100 dark:hover:bg-white/5 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100',
     };
 
     const sizes = {

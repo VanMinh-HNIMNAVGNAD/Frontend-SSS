@@ -69,21 +69,50 @@ export function AuthProvider({ children }) {
     }
   }, [user]);
 
-  const login = async (email, password) => {
+  /**
+   * @param {string} email
+   * @param {string} password
+   * @param {object} [extraPayload] Field phụ ghép vào body — hiện dùng cho
+   *   `{ captchaToken }` mà `useTurnstile().payload()` trả về. Nhận nguyên một
+   *   object thay vì thêm tham số `captchaToken` riêng: backend còn hai endpoint
+   *   nữa sẽ bắt CAPTCHA (docs/sercurity.md mục 5), và cách này không phải sửa
+   *   lại chữ ký mỗi lần thêm field.
+   */
+  /**
+   * Lưu phiên vừa nhận được. Dùng chung cho bước 2 của đăng nhập (`verifyLoginOtp`) —
+   * tách ra để chỗ nào phát sinh phiên cũng ghi localStorage + state theo đúng một cách.
+   */
+  const applySession = (data) => {
+    const token = data.accessToken || data.token;
+    if (token) {
+      localStorage.setItem('accessToken', token);
+      setAccessToken(token);
+    }
+    const userProfile = data.user || data;
+    setUser(userProfile);
+    return userProfile;
+  };
+
+  /**
+   * BƯỚC 1 của đăng nhập: gửi email + mật khẩu + captchaToken.
+   *
+   * KHÔNG còn trả về hồ sơ người dùng — backend nay trả `{ requiresOtp: true }` và mã đã
+   * được gửi tới email. Người gọi phải chuyển sang màn nhập mã rồi gọi `verifyLoginOtp()`.
+   *
+   * Vẫn xử lý nhánh `accessToken` để phòng trường hợp gọi tới một backend bản cũ chưa bật
+   * OTP — khi đó đăng nhập xong ngay ở bước này.
+   */
+  const login = async (email, password, extraPayload = {}) => {
     try {
       setIsLoading(true);
       setError(null);
-      const data = await authApi.login({ email, password });
-      
-      const token = data.accessToken || data.token;
-      if (token) {
-        localStorage.setItem('accessToken', token);
-        setAccessToken(token);
+      const data = await authApi.login({ email, password, ...extraPayload });
+
+      if (data?.requiresOtp) {
+        return { requiresOtp: true, email: data.email || email, expiresInSeconds: data.expiresInSeconds };
       }
-      
-      const userProfile = data.user || data;
-      setUser(userProfile);
-      return userProfile;
+
+      return { requiresOtp: false, user: applySession(data) };
     } catch (err) {
       setError(err.message || 'Đăng nhập thất bại');
       throw err;
@@ -92,15 +121,84 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const register = async (email, password, fullName) => {
+  /** BƯỚC 2 của đăng nhập: đổi mã OTP lấy phiên thật. */
+  const verifyLoginOtp = async (email, otp) => {
     try {
       setIsLoading(true);
       setError(null);
-      const data = await authApi.register({ email, password, fullName });
-      return data;
+      return applySession(await authApi.verifyLoginOtp({ email, otp }));
+    } catch (err) {
+      setError(err.message || 'Xác minh thất bại');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  /**
+   * BƯỚC 1 của đăng ký: gửi TOÀN BỘ thông tin tài khoản + captchaToken để xin mã.
+   *
+   * Backend băm mật khẩu rồi cất tạm trong Redis 10 phút, nên bước 2 chỉ cần email + mã —
+   * màn nhập OTP không phải giữ lại mật khẩu.
+   */
+  const sendRegisterOtp = async (email, password, fullName, extraPayload = {}) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      return await authApi.sendRegisterOtp({ email, password, fullName, ...extraPayload });
+    } catch (err) {
+      setError(err.message || 'Không gửi được mã xác minh');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  /** BƯỚC 2 của đăng ký: đổi mã lấy tài khoản thật. */
+  const verifyRegisterOtp = async (email, otp) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      return await authApi.verifyRegisterOtp({ email, otp });
     } catch (err) {
       setError(err.message || 'Đăng ký thất bại');
       throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // ── QUÊN MẬT KHẨU (3 bước) ──────────────────────────────────────────────────
+  //
+  // Ba hàm này KHÔNG đặt `error` vào context như login/register: trang quên mật khẩu tự
+  // giữ câu lỗi của riêng nó. Dùng chung `error` sẽ khiến lỗi còn sót từ một lần đăng nhập
+  // hỏng trước đó hiện ra ngay khi vừa mở trang.
+
+  /** BƯỚC 1: xin mã. `extraPayload` mang `{ captchaToken }`. */
+  const forgotPassword = async (email, extraPayload = {}) => {
+    setIsLoading(true);
+    try {
+      return await authApi.forgotPassword({ email, ...extraPayload });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  /** BƯỚC 2: đổi mã lấy `resetToken` sống 15 phút. */
+  const verifyResetOtp = async (email, otp) => {
+    setIsLoading(true);
+    try {
+      return await authApi.verifyResetOtp({ email, otp });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  /** BƯỚC 3: đổi `resetToken` lấy mật khẩu mới. Backend thu hồi mọi phiên đang mở. */
+  const resetPassword = async (resetToken, newPassword) => {
+    setIsLoading(true);
+    try {
+      return await authApi.resetPassword({ resetToken, newPassword });
     } finally {
       setIsLoading(false);
     }
@@ -134,7 +232,12 @@ export function AuthProvider({ children }) {
     isLoading,
     error,
     login,
-    register,
+    verifyLoginOtp,
+    sendRegisterOtp,
+    verifyRegisterOtp,
+    forgotPassword,
+    verifyResetOtp,
+    resetPassword,
     logout,
     deleteAccount,
     refreshUser: fetchProfile,

@@ -81,8 +81,21 @@ api.interceptors.response.use(
 
 // Auth APIs
 export const authApi = {
-  register: (data) => api.post('/auth/register', data),
+  // Đăng ký hai bước: bước 1 gửi CẢ thông tin tài khoản + captchaToken (dữ liệu được cất
+  // tạm trong Redis 10 phút); bước 2 chỉ cần { email, otp }.
+  // `POST /auth/register` cũ KHÔNG CÒN — nó là đường tạo tài khoản không cần xác minh email.
+  sendRegisterOtp: (data) => api.post('/auth/send-register-otp', data),
+  verifyRegisterOtp: (data) => api.post('/auth/verify-register-otp', data),
+
+  // Đăng nhập hai bước: /auth/login KHÔNG còn trả accessToken mà trả { requiresOtp: true };
+  // phiên chỉ ra đời ở /auth/verify-login-otp.
   login: (data) => api.post('/auth/login', data),
+  verifyLoginOtp: (data) => api.post('/auth/verify-login-otp', data),
+
+  // Quên mật khẩu ba bước: xin mã → đổi mã lấy resetToken → đổi token lấy mật khẩu mới.
+  forgotPassword: (data) => api.post('/auth/forgot-password', data),
+  verifyResetOtp: (data) => api.post('/auth/verify-reset-otp', data),
+  resetPassword: (data) => api.post('/auth/reset-password', data),
   getProfile: () => api.get('/auth/me'),
   updateProfile: (data) => api.patch('/users/me', data),
   updatePassword: (data) => api.patch('/users/me/password', data),

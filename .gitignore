@@ -13,8 +13,10 @@ dist-ssr
 *.local
 context-frontend.xml
 #env files
+# Chỉ bỏ qua .env THẬT. `.env.example` PHẢI được commit — nó là bản mẫu để người
+# mới clone repo biết frontend cần biến gì (trước đây dòng .env.example ở đây làm
+# file mẫu bị bỏ qua trong im lặng).
 .env
-.env.example
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

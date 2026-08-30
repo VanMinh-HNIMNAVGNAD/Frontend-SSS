@@ -3,18 +3,26 @@ import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { Lock, Mail, User, ArrowRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import AuthBackground from '../components/ui/AuthBackground';
+import TurnstileWidget from '../components/security/TurnstileWidget';
+import useTurnstile from '../hooks/useTurnstile';
+import { TURNSTILE_ACTIONS } from '../constants/turnstile';
+import OtpForm from '../components/security/OtpForm';
 
 export default function RegisterPage() {
   const navigate = useNavigate();
-  const { register, error: authError } = useAuth();
+  const { sendRegisterOtp, verifyRegisterOtp, isLoading, error: authError } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [localError, setLocalError] = useState('');
-  const [isSuccess, setIsSuccess] = useState(false);
   const location = useLocation();
 
-  // Đọc query param ?error=oauth_failed khi OAuth cụ redirect về với lỗi
+  const captcha = useTurnstile({ action: TURNSTILE_ACTIONS.REGISTER });
+
+  // 'form' (điền thông tin + CAPTCHA) → 'otp' (nhập mã). Tài khoản chỉ được tạo ở bước 'otp'.
+  const [step, setStep] = useState('form');
+
+  // Đọc query param ?error=oauth_failed khi OAuth redirect về với lỗi
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     if (params.get('error') === 'oauth_failed') {
@@ -45,15 +53,59 @@ export default function RegisterPage() {
       return;
     }
 
-    try {
-      await register(email, password, fullName);
-      setIsSuccess(true);
-      setTimeout(() => {
-        navigate('/login');
-      }, 1500);
-    } catch (err) {
-      console.error('Đăng ký thất bại:', err);
+    if (!captcha.isVerified) {
+      setLocalError('Vui lòng hoàn tất xác minh CAPTCHA bên dưới.');
+      return;
     }
+
+    // BƯỚC 1: gửi cả thông tin tài khoản để backend băm mật khẩu và cất tạm vào Redis.
+    // Chưa có tài khoản nào được tạo ở đây.
+    try {
+      await sendRegisterOtp(email, password, fullName, captcha.payload());
+      setStep('otp');
+    } catch (err) {
+      console.error('Không gửi được mã xác minh:', err);
+    } finally {
+      // Token Turnstile dùng một lần, phải làm mới kể cả khi bước 1 hỏng.
+      captcha.reset();
+    }
+  };
+
+  /**
+   * BƯỚC 2: đổi mã lấy tài khoản thật.
+   *
+   * NÉM tiếp lỗi ra ngoài thay vì nuốt: `OtpForm` cần biết để lắc đỏ. Nuốt ở đây thì mã sai
+   * trông y như mã đúng.
+   */
+  const handleVerifyOtp = async (otp) => {
+    setLocalError('');
+    await verifyRegisterOtp(email, otp);
+  };
+
+  /** Gửi lại mã = chạy lại bước 1, cần một token CAPTCHA mới. */
+  const handleResendOtp = async () => {
+    setLocalError('');
+    // Token CAPTCHA dùng MỘT LẦN: cái đã dùng cho lần gửi đầu bị captcha.reset() xoá ngay
+    // sau khi submit. Không có token mới thì payload() trả object rỗng và backend trả 400
+    // ("Vui lòng hoàn tất xác minh CAPTCHA") — chặn tại đây để người dùng đọc được câu
+    // đúng việc họ cần làm. <OtpForm captcha={captcha}> là nơi hiện ô CAPTCHA để lấy token.
+    if (!captcha.isVerified) {
+      setLocalError('Vui lòng hoàn tất xác minh CAPTCHA bên dưới rồi bấm gửi lại.');
+      return;
+    }
+    try {
+      await sendRegisterOtp(email, password, fullName, captcha.payload());
+    } catch (err) {
+      console.error('Gửi lại mã thất bại:', err);
+    } finally {
+      captcha.reset();
+    }
+  };
+
+  const handleBackToForm = () => {
+    setStep('form');
+    setLocalError('');
+    captcha.reset();
   };
 
   const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1';
@@ -75,14 +127,26 @@ export default function RegisterPage() {
   return (
     <AuthBackground>
       {/* Auth Card */}
-      <div className="w-full max-w-[460px] bg-slate-900/70 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-2xl shadow-black/50 ring-1 ring-white/5 relative z-10">
-        <h1 className="text-2xl font-bold text-center text-white tracking-tight">
-          Đăng ký driveR
+      <div className="w-full bg-[#111726]/95 backdrop-blur-xl border border-white/[0.12] rounded-2xl p-8 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.8)] ring-1 ring-white/5 relative z-10">
+        <h1 className="text-2xl font-bold text-center text-white tracking-tight mb-6">
+          {step === 'otp' ? 'Xác minh email' : 'Đăng ký driveR'}
         </h1>
-        <p className="text-sm font-medium text-slate-400 text-center mt-2 mb-6">
-          
-        </p>
 
+        {step === 'otp' ? (
+          <OtpForm
+            email={email}
+            onSubmit={handleVerifyOtp}
+            onResend={handleResendOtp}
+            captcha={captcha}
+            onBack={handleBackToForm}
+            onSuccess={() => navigate('/login')}
+            isLoading={isLoading}
+            error={displayError}
+            submitLabel="Tạo Tài Khoản"
+            successMessage="Đăng ký thành công!"
+          />
+        ) : (
+        <>
         {/* Social register buttons */}
         <div className="flex gap-3 mb-6">
           {/* Google */}
@@ -149,12 +213,6 @@ export default function RegisterPage() {
           </div>
         </div>
 
-        {isSuccess && (
-          <div className="p-3 mb-5 bg-emerald-500/20 border border-emerald-500/30 rounded-xl text-sm text-emerald-300 text-center font-semibold">
-            🎉 Đăng ký thành công! Đang chuyển hướng sang Đăng nhập...
-          </div>
-        )}
-
         {displayError && (
           <div className="p-3 mb-5 bg-red-500/20 border border-red-500/30 rounded-xl text-sm text-red-300 text-center font-semibold">
             {displayError}
@@ -207,22 +265,31 @@ export default function RegisterPage() {
             </div>
           </div>
 
+          {/* Ô CAPTCHA. Tự ẩn khi thiếu VITE_TURNSTILE_SITE_KEY, lúc đó
+              captcha.isVerified luôn true nên form vẫn submit được. */}
+          <div className="pt-1">
+            <TurnstileWidget {...captcha.widgetProps} />
+          </div>
+
           {/* CTA — điểm nhấn DUY NHẤT trong toàn bộ card */}
           <button
             type="submit"
-            className="w-full h-12 mt-6 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-base font-bold tracking-wide transition flex items-center justify-center gap-2.5 shadow-lg shadow-blue-600/25 cursor-pointer"
+            disabled={isLoading || !captcha.isVerified}
+            className="w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-base font-bold tracking-wide transition flex items-center justify-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-600/25 cursor-pointer"
           >
-            <span>Tạo Tài Khoản</span>
+            <span>{isLoading ? 'Đang tạo tài khoản...' : 'Tạo Tài Khoản'}</span>
             <ArrowRight className="w-5 h-5" />
           </button>
 
-          <div className="text-center text-sm font-medium text-slate-400 pt-3">
+          <div className="text-center text-sm font-medium text-slate-400 pt-2">
             Đã có tài khoản?{' '}
             <Link to="/login" className="text-blue-400 hover:underline font-bold">
               Đăng nhập ngay
             </Link>
           </div>
         </form>
+        </>
+        )}
       </div>
     </AuthBackground>
   );

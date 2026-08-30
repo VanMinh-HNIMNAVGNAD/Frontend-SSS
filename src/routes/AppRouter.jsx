@@ -1,6 +1,7 @@
 import { Routes, Route, useNavigate, Navigate, useLocation } from 'react-router-dom';
 import LoginPage from '../pages/LoginPage';
 import RegisterPage from '../pages/RegisterPage';
+import ForgotPasswordPage from '../pages/ForgotPasswordPage';
 import MainLayout from '../components/layout/MainLayout';
 import PageNotFound from '../pages/PageNotFound';
 import SharePage from '../pages/SharePage';
@@ -48,6 +49,7 @@ export default function AppRouter() {
             <Route path="/" element={<Navigate to="/app" replace />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
             {/* Route công khai — xem file qua link chia sẻ, không cần đăng nhập */}
             <Route path="/share/:token" element={<SharePage />} />

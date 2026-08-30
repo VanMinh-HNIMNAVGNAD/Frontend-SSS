@@ -360,3 +360,32 @@ html {
   border-radius: 0.5rem;
   margin: 1rem auto;
 }
+/* ── Hiệu ứng cho ô nhập OTP (components/security/OtpInput.jsx) ──────────────
+   Đặt ở đây thay vì style inline: Tailwind v4 cần @keyframes ở tầng CSS mới
+   dùng được qua animate-[...]. Hai hiệu ứng, hai vai trò rõ ràng:
+     otpShake — nhập SAI: lắc ngang, cảm giác "bị từ chối", không đổi layout.
+     otpPop   — nhập ĐÚNG: nảy nhẹ một nhịp rồi về 1, đủ để mắt bắt được mà
+                không làm người dùng phải chờ. */
+@keyframes otpShake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+
+@keyframes otpPop {
+  0% { transform: scale(0.6); opacity: 0; }
+  60% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Tôn trọng người bật "giảm chuyển động" trong cài đặt hệ điều hành: hiệu ứng
+   lắc có thể gây khó chịu với người nhạy cảm tiền đình. Trạng thái vẫn được
+   truyền đạt bằng MÀU và ICON nên không mất thông tin nào. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-\[otpShake_0\.4s_ease-in-out\],
+  .animate-\[otpPop_0\.35s_ease-out\] {
+    animation: none;
+  }
+}

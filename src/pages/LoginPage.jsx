@@ -3,15 +3,28 @@ import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { Lock, Mail, ArrowRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import AuthBackground from '../components/ui/AuthBackground';
+import TurnstileWidget from '../components/security/TurnstileWidget';
+import useTurnstile from '../hooks/useTurnstile';
+import { TURNSTILE_ACTIONS } from '../constants/turnstile';
+import OtpForm from '../components/security/OtpForm';
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { login, isLoading, error: authError } = useAuth();
+  const { login, verifyLoginOtp, isLoading, error: authError } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [localError, setLocalError] = useState('');
   const location = useLocation();
+
+  // Token CAPTCHA của form này. `action` phải đúng TURNSTILE_ACTIONS.LOGIN ('login'):
+  // backend sẽ đối chiếu nhãn này khi bật `expectedAction`, lệch một chữ là mọi lần
+  // đăng nhập trượt với `action-mismatch`. Xem constants/turnstile.js.
+  const captcha = useTurnstile({ action: TURNSTILE_ACTIONS.LOGIN });
+
+  // Bước đang đứng: 'credentials' (email+mật khẩu+CAPTCHA) → 'otp' (mã 6 số).
+  // Backend chỉ phát phiên ở bước 'otp', nên state này thuần tuý là chuyện hiển thị.
+  const [step, setStep] = useState('credentials');
 
   // Đọc query param ?error=oauth_failed khi OAuth cụ redirect về với lỗi
   useEffect(() => {
@@ -39,12 +52,72 @@ export default function LoginPage() {
       return;
     }
 
+    // Chặn sớm cho đỡ tốn một vòng gọi API chắc chắn 400. Đây CHỈ là tiện ích
+    // giao diện — lớp chặn thật nằm ở backend, nơi token được đem hỏi Cloudflare.
+    if (!captcha.isVerified) {
+      setLocalError('Vui lòng hoàn tất xác minh CAPTCHA bên dưới.');
+      return;
+    }
+
     try {
-      await login(email, password);
+      // `payload()` trả `{ captchaToken }`, hoặc object rỗng khi CAPTCHA bị tắt vì
+      // thiếu VITE_TURNSTILE_SITE_KEY (khi đó backend sẽ từ chối — fail-closed).
+      const result = await login(email, password, captcha.payload());
+
+      // Mật khẩu đúng mới là yếu tố thứ nhất: backend đã gửi mã và chưa phát phiên nào.
+      if (result?.requiresOtp) {
+        setStep('otp');
+        return;
+      }
+
+      // Backend bản cũ chưa bật OTP thì đăng nhập xong ngay tại đây.
       navigate('/app');
     } catch (err) {
       console.error('Đăng nhập thất bại:', err);
+    } finally {
+      // BẮT BUỘC, kể cả khi đăng nhập hỏng: token Turnstile dùng MỘT LẦN. Không
+      // reset thì lần bấm thứ hai gửi lại token đã chết và người dùng nhận lỗi
+      // 'timeout-or-duplicate' chẳng liên quan gì tới việc họ vừa làm.
+      captcha.reset();
     }
+  };
+
+  /**
+   * NÉM tiếp lỗi ra ngoài thay vì nuốt: `OtpForm` cần biết để lắc đỏ và xoá ô nhập. Câu lỗi
+   * thật (mã sai / hết hạn / còn mấy lượt) đã nằm ở `authError` do AuthContext đặt.
+   */
+  const handleVerifyOtp = async (otp) => {
+    setLocalError('');
+    await verifyLoginOtp(email, otp);
+  };
+
+  /**
+   * Gửi lại mã = chạy lại BƯỚC 1, vì mã đăng nhập chỉ được phát sau khi mật khẩu đúng.
+   * Cần một token CAPTCHA mới: token cũ đã bị Cloudflare ghi nhận là đã dùng.
+   */
+  const handleResendOtp = async () => {
+    setLocalError('');
+    // Token CAPTCHA dùng MỘT LẦN: cái đã dùng cho lần gửi đầu bị captcha.reset() xoá ngay
+    // sau khi submit. Không có token mới thì payload() trả object rỗng và backend trả 400
+    // ("Vui lòng hoàn tất xác minh CAPTCHA") — chặn tại đây để người dùng đọc được câu
+    // đúng việc họ cần làm. <OtpForm captcha={captcha}> là nơi hiện ô CAPTCHA để lấy token.
+    if (!captcha.isVerified) {
+      setLocalError('Vui lòng hoàn tất xác minh CAPTCHA bên dưới rồi bấm gửi lại.');
+      return;
+    }
+    try {
+      await login(email, password, captcha.payload());
+    } catch (err) {
+      console.error('Gửi lại mã thất bại:', err);
+    } finally {
+      captcha.reset();
+    }
+  };
+
+  const handleBackToCredentials = () => {
+    setStep('credentials');
+    setLocalError('');
+    captcha.reset();
   };
 
   const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1';
@@ -66,13 +139,26 @@ export default function LoginPage() {
   return (
     <AuthBackground>
       {/* Auth Card */}
-      <div className="w-full max-w-[460px] bg-slate-900/70 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-2xl shadow-black/50 ring-1 ring-white/5 relative z-10">
-        <h1 className="text-2xl font-bold text-center text-white tracking-tight">
-          Đăng nhập driveR
+      <div className="w-full bg-[#111726]/95 backdrop-blur-xl border border-white/[0.12] rounded-2xl p-8 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.8)] ring-1 ring-white/5 relative z-10">
+        <h1 className="text-2xl font-bold text-center text-white tracking-tight mb-6">
+          {step === 'otp' ? 'Xác minh đăng nhập' : 'Đăng nhập driveR'}
         </h1>
-        <p className="text-sm font-medium text-slate-400 text-center mt-2 mb-6">
-        </p>
 
+        {step === 'otp' ? (
+          <OtpForm
+            email={email}
+            onSubmit={handleVerifyOtp}
+            onResend={handleResendOtp}
+            captcha={captcha}
+            onBack={handleBackToCredentials}
+            onSuccess={() => navigate('/app')}
+            isLoading={isLoading}
+            error={displayError}
+            submitLabel="Vào Workspace"
+            successMessage="Đăng nhập thành công!"
+          />
+        ) : (
+        <>
         {/* Social login buttons */}
         <div className="flex gap-3 mb-6">
           {/* Google */}
@@ -176,23 +262,38 @@ export default function LoginPage() {
             </div>
           </div>
 
+          {/* Ô CAPTCHA. Tự ẩn khi thiếu VITE_TURNSTILE_SITE_KEY, lúc đó
+              captcha.isVerified luôn true nên form vẫn submit được. */}
+          <div className="pt-1">
+            <TurnstileWidget {...captcha.widgetProps} />
+          </div>
+
           {/* CTA — điểm nhấn DUY NHẤT trong toàn bộ card */}
           <button
             type="submit"
-            disabled={isLoading}
-            className="w-full h-12 mt-6 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-base font-bold tracking-wide transition flex items-center justify-center gap-2.5 disabled:opacity-50 shadow-lg shadow-blue-600/25 cursor-pointer"
+            disabled={isLoading || !captcha.isVerified}
+            className="w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-base font-bold tracking-wide transition flex items-center justify-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-600/25 cursor-pointer"
           >
             <span>{isLoading ? 'Đang xử lý...' : 'Vào Workspace'}</span>
             <ArrowRight className="w-5 h-5" />
           </button>
 
-          <div className="text-center text-sm font-medium text-slate-400 pt-3">
-            Chưa có tài khoản?{' '}
-            <Link to="/register" className="text-blue-400 hover:underline font-bold">
-              Đăng ký ngay
-            </Link>
+          <div className="text-center text-sm font-medium text-slate-400 pt-2 space-y-2">
+            <div>
+              <Link to="/forgot-password" className="text-slate-400 hover:text-blue-400 hover:underline">
+                Quên mật khẩu?
+              </Link>
+            </div>
+            <div>
+              Chưa có tài khoản?{' '}
+              <Link to="/register" className="text-blue-400 hover:underline font-bold">
+                Đăng ký ngay
+              </Link>
+            </div>
           </div>
         </form>
+        </>
+        )}
       </div>
     </AuthBackground>
   );

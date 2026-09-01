@@ -6,6 +6,7 @@ import AuthBackground from '../components/ui/AuthBackground';
 import TurnstileWidget from '../components/security/TurnstileWidget';
 import useTurnstile from '../hooks/useTurnstile';
 import { TURNSTILE_ACTIONS } from '../constants/turnstile';
+import { API_BASE_URL } from '../constants/api';
 import OtpForm from '../components/security/OtpForm';
 
 export default function RegisterPage() {
@@ -108,15 +109,13 @@ export default function RegisterPage() {
     captcha.reset();
   };
 
-  const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1';
-
   const handleSocialRegister = (providerName) => {
     if (providerName === 'Google') {
-      window.location.href = `${apiBase}/auth/google`;
+      window.location.href = `${API_BASE_URL}/auth/google`;
     } else if (providerName === 'GitHub') {
-      window.location.href = `${apiBase}/auth/github`;
+      window.location.href = `${API_BASE_URL}/auth/github`;
     } else if (providerName === 'Facebook') {
-      window.location.href = `${apiBase}/auth/facebook`;
+      window.location.href = `${API_BASE_URL}/auth/facebook`;
     } else {
       setLocalError(`Đăng nhập bằng ${providerName} sắp ra mắt. Vui lòng sử dụng Google, GitHub, Facebook hoặc Email!`);
     }

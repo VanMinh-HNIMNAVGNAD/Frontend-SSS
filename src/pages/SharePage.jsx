@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { sharingApi } from '../services/api';
+import { API_BASE_URL } from '../constants/api';
 import { formatBytes } from '../utils/formatFileSize';
 import * as pdfjsLib from 'pdfjs-dist';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
@@ -894,9 +895,8 @@ function FolderBrowser({ token, rootFolderName, isDownloadAllowed, onOpenFile, s
     if (zipLoading) return;
     setZipLoading(true);
     try {
-      const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1';
       const headers = shareAuthToken ? { Authorization: `Bearer ${shareAuthToken}` } : {};
-      const res = await fetch(`${apiBase}/shares/${token}/download-url`, { headers });
+      const res = await fetch(`${API_BASE_URL}/shares/${token}/download-url`, { headers });
 
       if (!res.ok) {
         let message = 'Không thể tải xuống thư mục lúc này.';

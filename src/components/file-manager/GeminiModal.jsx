@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
 import { Sparkles, X, Send, Bot, FileText, CheckCircle2 } from 'lucide-react';
 
+import { useLanguage } from '../../context/LanguageContext';
+
 export default function GeminiModal({ isOpen, item, onClose }) {
+    const { t } = useLanguage();
     const [prompt, setPrompt] = useState('');
     const [messages, setMessages] = useState([
-        { 
-            sender: 'ai', 
-            text: `Xin chào! Tôi là Gemini. Bạn muốn tôi tóm tắt, trích xuất dữ liệu hay phân tích nội dung của "${item?.name || 'mục này'}"?` 
+        {
+            sender: 'ai',
+            text: t('gemini.greeting', { name: item?.name || t('gemini.thisItem') }),
         }
     ]);
     const [isThinking, setIsThinking] = useState(false);
@@ -42,7 +45,14 @@ export default function GeminiModal({ isOpen, item, onClose }) {
                 ...prev, 
                 { 
                     sender: 'ai', 
-                    text: `Dựa trên dữ liệu tệp "${item.name}", tôi đã phân tích yêu cầu "${userMsg}":\n\n• Tệp chứa thông tin cấu trúc hợp lệ.\n• Kích thước tệp: ${item.size ? (item.size / 1024 / 1024).toFixed(2) + ' MB' : 'Thư mục'}.\n• Ngày cập nhật: ${item.updatedAt}.\n\nBạn có cần tôi hỗ trợ xuất báo cáo hoặc tạo bản tóm tắt chi tiết hơn không?` 
+                    text: t('gemini.mockReply', {
+                        name: item.name,
+                        question: userMsg,
+                        size: item.size
+                            ? `${(item.size / 1024 / 1024).toFixed(2)} MB`
+                            : t('gemini.folderSize'),
+                        updatedAt: item.updatedAt,
+                    })
                 }
             ]);
         }, 1000);
@@ -116,13 +126,13 @@ export default function GeminiModal({ isOpen, item, onClose }) {
                 {/* Quick Suggestion Chips */}
                 <div className="px-4 py-2 bg-white dark:bg-[#1e1e1e] border-t border-gray-100 dark:border-gray-800 flex gap-2 overflow-x-auto text-xs">
                     <button 
-                        onClick={() => setPrompt('Tóm tắt ý chính của tệp này')}
+                        onClick={() => setPrompt(t('gemini.suggest.summarize'))}
                         className="px-3 py-1 bg-gray-100 dark:bg-gray-800 hover:bg-purple-50 dark:hover:bg-purple-900/30 text-gray-700 dark:text-gray-300 rounded-full shrink-0 transition-colors border border-gray-200 dark:border-gray-700 flex items-center gap-1 cursor-pointer"
                     >
                         <FileText className="w-3.5 h-3.5 text-purple-500" /> Tóm tắt tệp
                     </button>
                     <button 
-                        onClick={() => setPrompt('Tạo các câu hỏi trắc nghiệm liên quan')}
+                        onClick={() => setPrompt(t('gemini.suggest.quiz'))}
                         className="px-3 py-1 bg-gray-100 dark:bg-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-gray-700 dark:text-gray-300 rounded-full shrink-0 transition-colors border border-gray-200 dark:border-gray-700 flex items-center gap-1 cursor-pointer"
                     >
                         <CheckCircle2 className="w-3.5 h-3.5 text-blue-500" /> Tạo câu hỏi
@@ -135,7 +145,7 @@ export default function GeminiModal({ isOpen, item, onClose }) {
                         type="text"
                         value={prompt}
                         onChange={(e) => setPrompt(e.target.value)}
-                        placeholder="Hỏi Gemini bất cứ điều gì về tệp này..."
+                        placeholder={t('gemini.placeholder')}
                         className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#282a2c] text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 outline-none text-xs"
                     />
                     <button

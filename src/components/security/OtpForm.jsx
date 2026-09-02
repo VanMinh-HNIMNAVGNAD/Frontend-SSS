@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ArrowRight, Check, MailCheck, RotateCw } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 import OtpInput from './OtpInput';
 import TurnstileWidget from './TurnstileWidget';
 
@@ -40,9 +41,13 @@ export default function OtpForm({
   error = '',
   resendCooldown = 60,
   captcha = null,
-  submitLabel = 'Xác nhận',
-  successMessage = 'Xác minh thành công!',
+  // Không đặt mặc định là chuỗi tiếng Việt ngay trong tham số: giá trị mặc định
+  // được tính lúc gọi component, mà `t` chỉ có bên trong thân hàm. Để undefined
+  // rồi ngã về `t(...)` ở dưới thì nhãn mới đổi theo ngôn ngữ.
+  submitLabel,
+  successMessage,
 }) {
+  const { t } = useLanguage();
   const [otp, setOtp] = useState('');
   const [status, setStatus] = useState('idle'); // 'idle' | 'error' | 'success'
   const [secondsLeft, setSecondsLeft] = useState(resendCooldown);
@@ -108,7 +113,7 @@ export default function OtpForm({
           <div className="w-16 h-16 rounded-full bg-emerald-500/15 border border-emerald-500/40 flex items-center justify-center animate-[otpPop_0.35s_ease-out]">
             <Check className="w-8 h-8 text-emerald-400" strokeWidth={3} />
           </div>
-          <p className="text-base font-bold text-emerald-300">{successMessage}</p>
+          <p className="text-base font-bold text-emerald-300">{successMessage ?? t('otp.success')}</p>
         </div>
         <OtpInput value={otp} onChange={() => {}} status="success" disabled />
       </div>
@@ -157,7 +162,7 @@ export default function OtpForm({
             : 'bg-blue-600/40 cursor-not-allowed'
         }`}
       >
-        <span>{busy ? 'Đang xác minh...' : submitLabel}</span>
+        <span>{busy ? t('otp.verifying') : (submitLabel ?? t('otp.confirm'))}</span>
         <ArrowRight className="w-5 h-5" />
       </button>
 
@@ -199,7 +204,7 @@ export default function OtpForm({
           className="flex items-center gap-1.5 text-blue-400 hover:underline font-bold disabled:text-slate-500 disabled:no-underline disabled:cursor-not-allowed cursor-pointer"
         >
           <RotateCw className="w-4 h-4" />
-          {secondsLeft > 0 ? `Gửi lại sau ${secondsLeft}s` : 'Gửi lại mã'}
+          {secondsLeft > 0 ? t('otp.resendIn', { seconds: secondsLeft }) : t('otp.resend')}
         </button>
       </div>
     </form>

@@ -34,7 +34,10 @@ import {
 // ─────────────────────────────── Định dạng số ───────────────────────────────
 
 /** VND nguyên, không phần thập phân: `price_monthly` / `price_yearly` là numeric(12,0). */
-export const formatVnd = (amount) => `${new Intl.NumberFormat('vi-VN').format(Number(amount) || 0)} đ`;
+// Đơn vị vẫn là VND ở mọi ngôn ngữ (payOS chỉ nhận VND) nhưng cách nhóm chữ số
+// theo locale: 1.000.000 đ (vi) vs 1,000,000 đ (en).
+export const formatVnd = (amount, locale = 'vi-VN') =>
+  `${new Intl.NumberFormat(locale).format(Number(amount) || 0)} đ`;
 
 /**
  * `endDate` (ISO từ API) -> `"01/09/2026"`. Chuỗi rỗng nếu thiếu/không parse được, để chỗ gọi
@@ -44,12 +47,12 @@ export const formatVnd = (amount) => `${new Intl.NumberFormat('vi-VN').format(Nu
  * đọc theo giờ ở đó. Câu thông báo sau khi huỷ gia hạn thì KHÁC: nó lấy nguyên `message` của
  * backend (đã format theo giờ VN) chứ không dựng lại ở đây, để hai bên không lệch một ngày.
  */
-export const formatPlanDate = (value) => {
+export const formatPlanDate = (value, locale = 'vi-VN') => {
   if (!value) return '';
   const date = new Date(value);
   return Number.isNaN(date.getTime())
     ? ''
-    : date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    : date.toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' });
 };
 
 /** Nhãn dung lượng cho bảng giá (GB dưới 1 TB, còn lại quy ra TB). */
@@ -85,11 +88,13 @@ export const resolveStorageBytes = (plan) => {
 // con số tiết kiệm IN TRÊN TỪNG THẺ thì không cần, nó suy ngược từ giá thật trong
 // `buildPriceInfo` (pages/BillingAndQuota.jsx).
 
+// `labelKey` thay cho `label`: file này là module hằng số, nạp một lần lúc import,
+// nên chuỗi chốt ở đây sẽ đóng băng theo ngôn ngữ lúc tải trang. Nơi render gọi t().
 export const CYCLES = [
-  { id: 'monthly', label: '1 Tháng', badge: null },
-  { id: '3_months', label: '3 Tháng', badge: '-5%' },
-  { id: '6_months', label: '6 Tháng', badge: '-15%' },
-  { id: 'yearly', label: '1 Năm', badge: '-17% 🔥' },
+  { id: 'monthly', labelKey: 'billing.cycle.monthly', badge: null },
+  { id: '3_months', labelKey: 'billing.cycle.3months', badge: '-5%' },
+  { id: '6_months', labelKey: 'billing.cycle.6months', badge: '-15%' },
+  { id: 'yearly', labelKey: 'billing.cycle.yearly', badge: '-17% 🔥' },
 ];
 
 /** Số tháng của mỗi chu kỳ — dùng để quy đổi "mỗi tháng tương đương". */
@@ -98,18 +103,20 @@ export const CYCLE_MONTHS = { monthly: 1, '3_months': 3, '6_months': 6, yearly: 
 /** Hệ số chiết khấu của mỗi chu kỳ. Sửa ở đây là phải sửa cả backend. */
 export const CYCLE_DISCOUNT = { monthly: 1, '3_months': 0.95, '6_months': 0.85, yearly: 0.8 };
 
-export const CYCLE_UNIT = {
-  monthly: 'tháng',
-  '3_months': '3 tháng',
-  '6_months': '6 tháng',
-  yearly: 'năm',
+/** Khoá dịch cho đơn vị chu kỳ ("… / tháng"). */
+export const CYCLE_UNIT_KEY = {
+  monthly: 'billing.unit.monthly',
+  '3_months': 'billing.unit.3months',
+  '6_months': 'billing.unit.6months',
+  yearly: 'billing.unit.yearly',
 };
 
-export const CYCLE_LABEL = {
-  monthly: '1 tháng',
-  '3_months': '3 tháng (-5%)',
-  '6_months': '6 tháng (-15%)',
-  yearly: '1 năm (-17%)',
+/** Khoá dịch cho nhãn chu kỳ đầy đủ (kèm mức giảm giá). */
+export const CYCLE_LABEL_KEY = {
+  monthly: 'billing.cycleLabel.monthly',
+  '3_months': 'billing.cycleLabel.3months',
+  '6_months': 'billing.cycleLabel.6months',
+  yearly: 'billing.cycleLabel.yearly',
 };
 
 // ───────────────────────── CẤU HÌNH GIAO DIỆN CỦA GÓI ─────────────────────────
@@ -130,39 +137,39 @@ export const PLAN_UI_CONFIG = [
     match: ['free', 'miễn phí', 'mien phi'],
     Icon: Cloud,
     badge: {
-      label: 'Cơ Bản',
+      labelKey: 'billing.badge.free',
       Icon: null,
       tone: 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-transparent',
     },
     highlight: false,
     iconTone: 'text-slate-400 dark:text-slate-500',
-    features: ['Truy vấn AI: 5 tệp nhỏ', 'Lưu trữ tiêu chuẩn', 'Đồng bộ đa nền tảng'],
+    featureKeys: ['billing.feature.free.ai', 'billing.feature.free.storage', 'billing.feature.free.sync'],
   },
   {
     key: 'lite',
     match: ['lite', 'starter', 'tiêu chuẩn', 'tieu chuan'],
     Icon: Package,
     badge: {
-      label: 'Tiết Kiệm',
+      labelKey: 'billing.badge.lite',
       Icon: null,
       tone: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30',
     },
     highlight: false,
     iconTone: 'text-emerald-500 dark:text-emerald-400',
-    features: ['Truy vấn AI: Giới hạn thấp', 'Bảo mật mã hoá file', 'Tăng tốc độ tải (Cơ bản)'],
+    featureKeys: ['billing.feature.lite.ai', 'billing.feature.lite.crypto', 'billing.feature.lite.speed'],
   },
   {
     key: 'pro',
     match: ['pro', 'cá nhân', 'ca nhan', 'personal'],
     Icon: Zap,
     badge: {
-      label: 'Phổ Biến',
+      labelKey: 'billing.badge.pro',
       Icon: Zap,
       tone: 'bg-blue-600 text-white border border-transparent shadow-sm',
     },
     highlight: true,
     iconTone: 'text-blue-600 dark:text-blue-400',
-    features: ['Truy vấn AI: Trung bình', 'Bảo mật mã hoá file', 'Tốc độ Upload/Download cao'],
+    featureKeys: ['billing.feature.pro.ai', 'billing.feature.lite.crypto', 'billing.feature.pro.speed'],
   },
   {
     key: 'plus',
@@ -172,11 +179,11 @@ export const PLAN_UI_CONFIG = [
     badge: null,
     highlight: false,
     iconTone: 'text-amber-500 dark:text-amber-400',
-    features: [
-      'Truy vấn AI: Hạn mức cao',
-      'Mã hoá nâng cao',
-      'Tốc độ Ưu tiên',
-      'Bộ nhớ dùng chung',
+    featureKeys: [
+      'billing.feature.plus.ai',
+      'billing.feature.plus.crypto',
+      'billing.feature.plus.speed',
+      'billing.feature.plus.drives',
     ],
   },
   {
@@ -184,17 +191,17 @@ export const PLAN_UI_CONFIG = [
     match: ['ultra', 'tối thượng', 'toi thuong', 'enterprise', 'business'],
     Icon: Crown,
     badge: {
-      label: 'Tối Thượng',
+      labelKey: 'billing.badge.ultra',
       Icon: null,
       tone: 'bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30',
     },
     highlight: false,
     iconTone: 'text-purple-500 dark:text-purple-400',
-    features: [
-      'Truy vấn AI: Không giới hạn',
-      'Mã hoá E2EE',
-      'Băng thông tối đa',
-      'Hỗ trợ VIP 24/7',
+    featureKeys: [
+      'billing.feature.ultra.ai',
+      'billing.feature.ultra.crypto',
+      'billing.feature.ultra.speed',
+      'billing.feature.ultra.support',
     ],
   },
 ];
@@ -206,10 +213,10 @@ export const FALLBACK_PLAN_UI = {
   badge: null,
   highlight: false,
   iconTone: 'text-slate-400 dark:text-slate-500',
-  features: [
-    'Toàn bộ tính năng chia sẻ & đồng bộ',
-    'Hỗ trợ kỹ thuật tiêu chuẩn',
-    'Thanh toán an toàn qua payOS',
+  featureKeys: [
+    'billing.feature.custom.share',
+    'billing.feature.custom.support',
+    'billing.feature.custom.payos',
   ],
 };
 
@@ -263,13 +270,13 @@ export const resolvePlanGridCols = (count) => PLAN_GRID_COLS[count] || PLAN_GRID
 // cột `payment_transactions.status`).
 
 export const TX_STATUS = {
-  PAID: { label: 'Thành công', Icon: Check, tone: 'bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-100 dark:border-emerald-500/30' },
-  PENDING: { label: 'Đang chờ', Icon: Clock, tone: 'bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-100 dark:border-amber-500/30' },
-  PROCESSING: { label: 'Đang xử lý', Icon: Clock, tone: 'bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-100 dark:border-amber-500/30' },
-  UNDERPAID: { label: 'Trả thiếu', Icon: AlertTriangle, tone: 'bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-100 dark:border-amber-500/30' },
-  CANCELLED: { label: 'Đã huỷ', Icon: XCircle, tone: 'bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700' },
-  EXPIRED: { label: 'Hết hạn', Icon: XCircle, tone: 'bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700' },
-  FAILED: { label: 'Thất bại', Icon: XCircle, tone: 'bg-rose-50 dark:bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-100 dark:border-rose-500/30' },
+  PAID: { labelKey: 'billing.tx.paid', Icon: Check, tone: 'bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-100 dark:border-emerald-500/30' },
+  PENDING: { labelKey: 'billing.tx.pending', Icon: Clock, tone: 'bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-100 dark:border-amber-500/30' },
+  PROCESSING: { labelKey: 'billing.tx.processing', Icon: Clock, tone: 'bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-100 dark:border-amber-500/30' },
+  UNDERPAID: { labelKey: 'billing.tx.underpaid', Icon: AlertTriangle, tone: 'bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-100 dark:border-amber-500/30' },
+  CANCELLED: { labelKey: 'billing.tx.cancelled', Icon: XCircle, tone: 'bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700' },
+  EXPIRED: { labelKey: 'billing.tx.expired', Icon: XCircle, tone: 'bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700' },
+  FAILED: { labelKey: 'billing.tx.failed', Icon: XCircle, tone: 'bg-rose-50 dark:bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-100 dark:border-rose-500/30' },
 };
 
 /** Trạng thái chưa chốt: còn kiểm tra lại được với payOS. */
@@ -278,7 +285,10 @@ export const PENDING_STATUSES = ['PENDING', 'PROCESSING'];
 /** Nhãn trạng thái cho status lạ (payOS thêm status mới) — không để rơi ra chuỗi trống. */
 export const resolveTxStatus = (status) =>
   TX_STATUS[status] || {
-    label: status || 'Không xác định',
+    // Status lạ: dùng thẳng mã payOS làm nhãn (không dịch được cái chưa biết),
+    // chỉ khi rỗng mới ngã về khoá "Không xác định".
+    label: status || null,
+    labelKey: status ? null : 'billing.tx.unknown',
     Icon: AlertTriangle,
     tone: 'bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700',
   };

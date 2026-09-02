@@ -1,7 +1,10 @@
 import React from 'react';
 import { Loader2 } from 'lucide-react';
 
-export default function Spinner({ size = 'md', className = '', label = 'Đang tải...' }) {
+import { useLanguage } from '../../context/LanguageContext';
+
+export default function Spinner({ size = 'md', className = '', label }) {
+    const { t } = useLanguage();
     const sizes = {
         sm: 'w-4 h-4',
         md: 'w-6 h-6',
@@ -12,7 +15,13 @@ export default function Spinner({ size = 'md', className = '', label = 'Đang t�
     return (
         <div className={`flex items-center justify-center gap-2 ${className}`}>
             <Loader2 className={`${sizes[size] || sizes.md} animate-spin text-blue-600 dark:text-blue-400`} />
-            {label && <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">{label}</span>}
+            {/* `label ?? t(...)`, không phải `label ||`: chuỗi rỗng vẫn là ý muốn ẩn nhãn.
+                Mặc định cũ là chuỗi tiếng Việt ghi trong tham số, không dịch được. */}
+            {(label ?? t('common.loading')) && (
+                <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                    {label ?? t('common.loading')}
+                </span>
+            )}
         </div>
     );
 }

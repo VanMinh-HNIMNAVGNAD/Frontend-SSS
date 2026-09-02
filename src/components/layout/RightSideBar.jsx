@@ -1,3 +1,4 @@
+import { useLanguage } from '../../context/LanguageContext';
 import useTheme from '../../hooks/useTheme';
 
 export default function RightSideBar({ isOpen }) {
@@ -5,6 +6,7 @@ export default function RightSideBar({ isOpen }) {
     // <html>) do src/hooks/useTheme.js quản lý, nên nút này và 3 lựa chọn trong
     // SettingsModal.jsx luôn nhìn thấy cùng một giá trị.
     const { isDark, toggle } = useTheme();
+    const { t } = useLanguage();
 
     return (
         <aside className={`transition-all duration-300 ease-in-out flex flex-col items-center bg-[#f8fafd] dark:bg-[#1e1e1e]
@@ -16,8 +18,8 @@ export default function RightSideBar({ isOpen }) {
                     người dùng đang chọn "Hệ thống" (bấm một lần là đổi ngay) */}
                 <button
                     onClick={toggle}
-                    title={isDark ? 'Chế độ sáng' : 'Chế độ tối'}
-                    aria-label={isDark ? 'Chuyển sang chế độ sáng' : 'Chuyển sang chế độ tối'}
+                    title={isDark ? t('theme.toggle.toLight') : t('theme.toggle.toDark')}
+                    aria-label={isDark ? t('theme.toggle.aria.toLight') : t('theme.toggle.aria.toDark')}
                     aria-pressed={isDark}
                     className="w-10 h-10 rounded-full text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center transition-colors cursor-pointer"
                 >

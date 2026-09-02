@@ -1,5 +1,7 @@
 import { useEffect, useRef } from 'react';
 
+import { useLanguage } from '../../context/LanguageContext';
+
 const LENGTH = 6;
 
 /**
@@ -30,6 +32,7 @@ export default function OtpInput({
   status = 'idle',
   disabled = false,
 }) {
+  const { t } = useLanguage();
   const inputsRef = useRef([]);
 
   const digits = value.padEnd(LENGTH, ' ').slice(0, LENGTH).split('');
@@ -150,7 +153,7 @@ export default function OtpInput({
           // Không cho bấm nhảy cóc vào ô giữa khi các ô trước còn trống — mã phải điền
           // tuần tự, nếu không sẽ sinh ra khoảng trống trong chuỗi.
           onClick={() => inputsRef.current[focusIndex]?.focus()}
-          aria-label={`Chữ số thứ ${index + 1} của mã xác minh`}
+          aria-label={t('otp.digitAria', { index: index + 1 })}
           className={boxClass(index)}
         />
       ))}

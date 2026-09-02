@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, memo } from 'react';
 import { useFiles } from '../../context/FileContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { sharingApi } from '../../services/api';
 import { readDefaultShareRole } from '../../constants/privacy';
 import toast from 'react-hot-toast';
@@ -12,6 +13,7 @@ import GeminiModal from './GeminiModal';
 import StarButton from '../common/StarButton';
 import FileThumbnail from './FileThumbnail';
 import { collectInputEntries } from '../../utils/uploadTree';
+import tRich from '../../utils/tRich';
 import {
     Folder,
     FileText,
@@ -36,25 +38,32 @@ import {
     ShieldAlert
 } from 'lucide-react';
 
-const getFileTypeLabel = (item) => {
-    if (item.type === 'folder') return 'Thư mục';
+/**
+ * Trả về KHOÁ DỊCH của loại tệp, không phải chuỗi hiển thị.
+ *
+ * Hàm ở ngoài component nên không gọi được `useLanguage()`; nếu trả chuỗi tiếng
+ * Việt như trước thì cột "Loại" đứng nguyên tiếng Việt kể cả khi giao diện đã
+ * chuyển sang English. Nơi render gọi `t(getFileTypeKey(item))`.
+ */
+const getFileTypeKey = (item) => {
+    if (item.type === 'folder') return 'fileType.folder';
     const name = item.name.toLowerCase();
-    if (name.endsWith('.pdf')) return 'Tài liệu PDF';
-    if (name.endsWith('.xlsx') || name.endsWith('.csv')) return 'Bảng tính Excel';
-    if (name.endsWith('.docx') || name.endsWith('.doc')) return 'Văn bản Word';
-    if (name.endsWith('.pptx') || name.endsWith('.ppt')) return 'Trình chiếu PPT';
-    if (name.endsWith('.png') || name.endsWith('.jpg') || name.endsWith('.jpeg')) return 'Hình ảnh PNG/JPG';
-    if (name.endsWith('.svg')) return 'Đồ họa Vector SVG';
-    if (name.endsWith('.mp4') || name.endsWith('.mkv')) return 'Video Clip MP4';
-    if (name.endsWith('.mp3') || name.endsWith('.wav')) return 'Âm thanh MP3';
-    if (name.endsWith('.py')) return 'Mã nguồn Python';
-    if (name.endsWith('.js') || name.endsWith('.jsx') || name.endsWith('.ts')) return 'Mã nguồn Script';
-    if (name.endsWith('.sql') || name.endsWith('.db')) return 'Cơ sở dữ liệu SQL';
-    if (name.endsWith('.zip') || name.endsWith('.rar') || name.endsWith('.7z')) return 'Tệp nén ZIP/RAR';
-    if (name.endsWith('.md')) return 'Tài liệu Markdown';
-    if (name.endsWith('.fig')) return 'Thiết kế Figma';
-    if (name.endsWith('.exe')) return 'Tệp Thực thi EXE';
-    return 'Tệp tin';
+    if (name.endsWith('.pdf')) return 'fileType.pdf';
+    if (name.endsWith('.xlsx') || name.endsWith('.csv')) return 'fileType.spreadsheet';
+    if (name.endsWith('.docx') || name.endsWith('.doc')) return 'fileType.word';
+    if (name.endsWith('.pptx') || name.endsWith('.ppt')) return 'fileType.ppt';
+    if (name.endsWith('.png') || name.endsWith('.jpg') || name.endsWith('.jpeg')) return 'fileType.image';
+    if (name.endsWith('.svg')) return 'fileType.svg';
+    if (name.endsWith('.mp4') || name.endsWith('.mkv')) return 'fileType.video';
+    if (name.endsWith('.mp3') || name.endsWith('.wav')) return 'fileType.audio';
+    if (name.endsWith('.py')) return 'fileType.python';
+    if (name.endsWith('.js') || name.endsWith('.jsx') || name.endsWith('.ts')) return 'fileType.script';
+    if (name.endsWith('.sql') || name.endsWith('.db')) return 'fileType.sql';
+    if (name.endsWith('.zip') || name.endsWith('.rar') || name.endsWith('.7z')) return 'fileType.archive';
+    if (name.endsWith('.md')) return 'fileType.markdown';
+    if (name.endsWith('.fig')) return 'fileType.figma';
+    if (name.endsWith('.exe')) return 'fileType.exe';
+    return 'fileType.other';
 };
 
 const getFileIcon = (file) => {
@@ -86,6 +95,7 @@ const FolderTableRow = memo(function FolderTableRow({
     onSelectRange,
     onToggleStar,
 }) {
+    const { t } = useLanguage();
     return (
         <tr
             tabIndex={0}
@@ -166,11 +176,11 @@ const FolderTableRow = memo(function FolderTableRow({
                                 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-400' 
                                 : 'bg-sky-100 text-sky-800 dark:bg-sky-500/20 dark:text-sky-400'
                         }`}>
-                            {folder.sharedRole === 'EDITOR' ? 'Sửa' : 'Xem'}
+                            {folder.sharedRole === 'EDITOR' ? t('list.role.editor') : t('list.role.viewer')}
                         </span>
                     </div>
                 ) : (
-                    folder.owner || 'Tôi'
+                    folder.owner || t('list.owner.me')
                 )}
             </td>
 
@@ -206,6 +216,7 @@ const FileTableRow = memo(function FileTableRow({
     onSelectRange,
     onToggleStar,
 }) {
+    const { t } = useLanguage();
     return (
         <tr
             tabIndex={0}
@@ -263,7 +274,7 @@ const FileTableRow = memo(function FileTableRow({
                     {file.isSpam && (
                         <span
                             className="shrink-0 text-amber-600 dark:text-amber-400"
-                            title={file.suspiciousReason || 'Tệp bị gắn cờ đáng ngờ'}
+                            title={file.suspiciousReason || t('list.suspicious')}
                         >
                             <ShieldAlert className="w-4 h-4" />
                         </span>
@@ -279,7 +290,7 @@ const FileTableRow = memo(function FileTableRow({
             {/* Type Column */}
             <td className="py-2.5 px-3 hidden lg:table-cell">
                 <span className="px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-500/15 text-blue-800 dark:text-blue-300 font-semibold text-[11px] border border-blue-200 dark:border-blue-800/60 whitespace-nowrap">
-                    {getFileTypeLabel(file)}
+                    {t(getFileTypeKey(file))}
                 </span>
             </td>
 
@@ -300,11 +311,11 @@ const FileTableRow = memo(function FileTableRow({
                                 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-400' 
                                 : 'bg-sky-100 text-sky-800 dark:bg-sky-500/20 dark:text-sky-400'
                         }`}>
-                            {file.sharedRole === 'EDITOR' ? 'Sửa' : 'Xem'}
+                            {file.sharedRole === 'EDITOR' ? t('list.role.editor') : t('list.role.viewer')}
                         </span>
                     </div>
                 ) : (
-                    file.owner || 'Tôi'
+                    file.owner || t('list.owner.me')
                 )}
             </td>
 
@@ -331,6 +342,7 @@ const FileTableRow = memo(function FileTableRow({
 // ──────────────────────────────────────────────────────────────────
 
 export default function FileListView() {
+    const { t } = useLanguage();
     const {
         folders,
         files,
@@ -399,25 +411,25 @@ export default function FileListView() {
 
     const handleCreateFolderPrompt = useCallback(() => {
         if (activeTab === 'shared-drives' && !currentSharedDriveId && !currentFolderId) {
-            alert('Vui lòng mở một Bộ nhớ dùng chung trước khi tạo thư mục mới.');
+            alert(t('newBtn.needDrive.folder'));
             return;
         }
-        const name = prompt('Nhập tên thư mục mới:', 'Thư mục chưa đặt tên');
+        const name = prompt(t('newBtn.prompt.folderName'), t('newBtn.defaultFolderName'));
         if (name) {
             createFolder(name);
         }
-    }, [activeTab, currentSharedDriveId, currentFolderId, createFolder]);
+    }, [activeTab, currentSharedDriveId, currentFolderId, createFolder, t]);
 
     const handleFileInputChange = useCallback((e) => {
         const selectedFiles = Array.from(e.target.files || []);
         e.target.value = '';
         if (selectedFiles.length === 0) return;
         if (activeTab === 'shared-drives' && !currentSharedDriveId && !currentFolderId) {
-            alert('Vui lòng mở một Bộ nhớ dùng chung trước khi tải tệp lên.');
+            alert(t('newBtn.needDrive.file'));
             return;
         }
         selectedFiles.forEach((file) => enqueueUpload(file));
-    }, [activeTab, currentSharedDriveId, currentFolderId, enqueueUpload]);
+    }, [activeTab, currentSharedDriveId, currentFolderId, enqueueUpload, t]);
 
     /**
      * Tải thư mục lên từ menu chuột phải — dùng chung `uploadEntries` của
@@ -430,7 +442,7 @@ export default function FileListView() {
         if (tree.entries.length === 0) return;
 
         if (activeTab === 'shared-drives' && !currentSharedDriveId && !currentFolderId) {
-            alert('Vui lòng mở một Bộ nhớ dùng chung trước khi tải thư mục lên.');
+            alert(t('newBtn.needDrive.uploadFolder'));
             return;
         }
 
@@ -440,7 +452,7 @@ export default function FileListView() {
         } finally {
             setIsBuildingTree(false);
         }
-    }, [activeTab, currentSharedDriveId, currentFolderId, uploadEntries]);
+    }, [activeTab, currentSharedDriveId, currentFolderId, uploadEntries, t]);
 
     // ── Selection Helpers ──
     const allCurrentCount = (folders?.length || 0) + (files?.length || 0);
@@ -480,12 +492,12 @@ export default function FileListView() {
             });
             const fullShareUrl = `${window.location.origin}/share/${res.shareToken}`;
             await navigator.clipboard.writeText(fullShareUrl);
-            toast.success('Đã sao chép liên kết chia sẻ');
+            toast.success(t('list.share.copied'));
         } catch (error) {
             console.error('Lỗi khi sao chép nhanh liên kết chia sẻ:', error);
-            toast.error(error?.message || 'Không thể sao chép liên kết chia sẻ');
+            toast.error(error?.message || t('list.share.copyFailed'));
         }
-    }, []);
+    }, [t]);
 
     const openContextMenu = useCallback((e, item) => {
         e.preventDefault();
@@ -537,10 +549,10 @@ export default function FileListView() {
                 className="flex flex-col items-center justify-center h-full py-20 text-gray-400 dark:text-gray-500 select-none"
             >
                 <FolderOpen className="w-16 h-16 stroke-1 text-gray-300 mb-3" />
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Chưa có tệp hoặc thư mục nào ở đây</p>
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('list.empty.title')}</p>
 
-                <input type="file" ref={fileInputRef} onChange={handleFileInputChange} multiple className="hidden" aria-label="Chọn nhiều tệp để tải lên" />
-                <input type="file" ref={setFolderInputRef} onChange={handleFolderInputChange} multiple className="hidden" aria-label="Chọn thư mục để tải lên" />
+                <input type="file" ref={fileInputRef} onChange={handleFileInputChange} multiple className="hidden" aria-label={t('newBtn.aria.pickFiles')} />
+                <input type="file" ref={setFolderInputRef} onChange={handleFolderInputChange} multiple className="hidden" aria-label={t('newBtn.aria.pickFolder')} />
 
                 <ContextMenu
                     isOpen={contextMenu.isOpen}
@@ -564,8 +576,8 @@ export default function FileListView() {
             onContextMenu={openBlankContextMenu}
             className="w-full flex flex-col h-full justify-between select-none text-xs sm:text-sm relative"
         >
-            <input type="file" ref={fileInputRef} onChange={handleFileInputChange} multiple className="hidden" aria-label="Chọn nhiều tệp để tải lên" />
-            <input type="file" ref={setFolderInputRef} onChange={handleFolderInputChange} multiple className="hidden" aria-label="Chọn thư mục để tải lên" />
+            <input type="file" ref={fileInputRef} onChange={handleFileInputChange} multiple className="hidden" aria-label={t('newBtn.aria.pickFiles')} />
+            <input type="file" ref={setFolderInputRef} onChange={handleFolderInputChange} multiple className="hidden" aria-label={t('newBtn.aria.pickFolder')} />
 
             {/* Extended Metadata Table View */}
             <div className="w-full overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700 shadow-xs bg-white dark:bg-[#282a2c]">
@@ -577,7 +589,7 @@ export default function FileListView() {
                                 <button
                                     onClick={() => allSelected ? deselectAll() : selectAll(folders, files)}
                                     className="flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                                    title={allSelected ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
+                                    title={allSelected ? t('common.deselectAll') : t('common.selectAll')}
                                 >
                                     {allSelected ? (
                                         <CheckSquare className="w-4 h-4 text-blue-600 dark:text-blue-400" />
@@ -598,7 +610,7 @@ export default function FileListView() {
                                 className="py-3 px-3 font-bold hover:text-blue-700 dark:hover:text-blue-400 cursor-pointer transition-colors"
                             >
                                 <div className="flex items-center gap-1">
-                                    <span>Name</span>
+                                    <span>{t('list.col.name')}</span>
                                     {sortField === 'name' && (
                                         sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 text-blue-600 dark:text-blue-400" /> : <ArrowDown className="w-3 h-3 text-blue-600 dark:text-blue-400" />
                                     )}
@@ -611,7 +623,7 @@ export default function FileListView() {
                                 className="py-3 px-3 font-bold hover:text-blue-700 dark:hover:text-blue-400 cursor-pointer transition-colors"
                             >
                                 <div className="flex items-center gap-1">
-                                    <span>Size</span>
+                                    <span>{t('list.col.size')}</span>
                                     {sortField === 'size' && (
                                         sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 text-blue-600 dark:text-blue-400" /> : <ArrowDown className="w-3 h-3 text-blue-600 dark:text-blue-400" />
                                     )}
@@ -624,7 +636,7 @@ export default function FileListView() {
                                 className="py-3 px-3 font-bold hover:text-blue-700 dark:hover:text-blue-400 cursor-pointer transition-colors hidden lg:table-cell"
                             >
                                 <div className="flex items-center gap-1">
-                                    <span>Type</span>
+                                    <span>{t('list.col.type')}</span>
                                     {sortField === 'type' && (
                                         sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 text-blue-600 dark:text-blue-400" /> : <ArrowDown className="w-3 h-3 text-blue-600 dark:text-blue-400" />
                                     )}
@@ -637,7 +649,7 @@ export default function FileListView() {
                                 className="py-3 px-3 font-bold hover:text-blue-700 dark:hover:text-blue-400 cursor-pointer transition-colors hidden lg:table-cell"
                             >
                                 <div className="flex items-center gap-1">
-                                    <span>Owner</span>
+                                    <span>{t('list.col.owner')}</span>
                                     {sortField === 'owner' && (
                                         sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 text-blue-600 dark:text-blue-400" /> : <ArrowDown className="w-3 h-3 text-blue-600 dark:text-blue-400" />
                                     )}
@@ -650,7 +662,7 @@ export default function FileListView() {
                                 className="py-3 px-3 font-bold hover:text-blue-700 dark:hover:text-blue-400 cursor-pointer transition-colors hidden sm:table-cell"
                             >
                                 <div className="flex items-center gap-1">
-                                    <span>Modified</span>
+                                    <span>{t('list.col.modified')}</span>
                                     {sortField === 'updatedAt' && (
                                         sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 text-blue-600 dark:text-blue-400" /> : <ArrowDown className="w-3 h-3 text-blue-600 dark:text-blue-400" />
                                     )}
@@ -711,7 +723,11 @@ export default function FileListView() {
             {totalPages > 1 && (
                 <div className="flex items-center justify-between pt-4 text-xs text-gray-600 dark:text-gray-400">
                     <div>
-                        Hiển thị <span className="font-bold text-gray-900 dark:text-gray-100">{((currentPage - 1) * pageSize) + 1}</span> - <span className="font-bold text-gray-900 dark:text-gray-100">{Math.min(currentPage * pageSize, totalItems)}</span> trong <span className="font-bold text-gray-900 dark:text-gray-100">{totalItems}</span> mục
+                        {tRich(t('list.pagination.showing'), {
+                            from: <span className="font-bold text-gray-900 dark:text-gray-100">{((currentPage - 1) * pageSize) + 1}</span>,
+                            to: <span className="font-bold text-gray-900 dark:text-gray-100">{Math.min(currentPage * pageSize, totalItems)}</span>,
+                            total: <span className="font-bold text-gray-900 dark:text-gray-100">{totalItems}</span>,
+                        })}
                     </div>
                     <div className="flex items-center gap-1">
                         <button
@@ -751,7 +767,7 @@ export default function FileListView() {
                 onPreview={(item) => openPreview(item)}
                 onDownload={async (item) => {
                     if (item.type === 'folder') {
-                        alert('Đang tạo liên kết tải xuống thư mục dạng ZIP...');
+                        alert(t('list.zip.creating'));
                         return;
                     }
                     const url = await getDownloadUrl(item.id);

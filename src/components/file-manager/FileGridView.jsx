@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { useFiles } from '../../context/FileContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { sharingApi } from '../../services/api';
 import { readDefaultShareRole } from '../../constants/privacy';
 import toast from 'react-hot-toast';
@@ -12,8 +13,10 @@ import ShareModal from './ShareModal';
 import GeminiModal from './GeminiModal';
 import { Folder, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
 import { collectInputEntries } from '../../utils/uploadTree';
+import tRich from '../../utils/tRich';
 
 export default function FileGridView() {
+    const { t } = useLanguage();
     const { 
         folders, 
         files, 
@@ -101,25 +104,25 @@ export default function FileGridView() {
 
     const handleCreateFolderPrompt = useCallback(() => {
         if (activeTab === 'shared-drives' && !currentSharedDriveId && !currentFolderId) {
-            alert('Vui lòng mở một Bộ nhớ dùng chung trước khi tạo thư mục mới.');
+            alert(t('newBtn.needDrive.folder'));
             return;
         }
-        const name = prompt('Nhập tên thư mục mới:', 'Thư mục chưa đặt tên');
+        const name = prompt(t('newBtn.prompt.folderName'), t('newBtn.defaultFolderName'));
         if (name) {
             createFolder(name);
         }
-    }, [activeTab, currentSharedDriveId, currentFolderId, createFolder]);
+    }, [activeTab, currentSharedDriveId, currentFolderId, createFolder, t]);
 
     const handleFileInputChange = useCallback((e) => {
         const selectedFiles = Array.from(e.target.files || []);
         e.target.value = '';
         if (selectedFiles.length === 0) return;
         if (activeTab === 'shared-drives' && !currentSharedDriveId && !currentFolderId) {
-            alert('Vui lòng mở một Bộ nhớ dùng chung trước khi tải tệp lên.');
+            alert(t('newBtn.needDrive.file'));
             return;
         }
         selectedFiles.forEach((file) => enqueueUpload(file));
-    }, [activeTab, currentSharedDriveId, currentFolderId, enqueueUpload]);
+    }, [activeTab, currentSharedDriveId, currentFolderId, enqueueUpload, t]);
 
     /**
      * Tải thư mục lên từ menu chuột phải — dùng chung `uploadEntries` của
@@ -132,7 +135,7 @@ export default function FileGridView() {
         if (tree.entries.length === 0) return;
 
         if (activeTab === 'shared-drives' && !currentSharedDriveId && !currentFolderId) {
-            alert('Vui lòng mở một Bộ nhớ dùng chung trước khi tải thư mục lên.');
+            alert(t('newBtn.needDrive.uploadFolder'));
             return;
         }
 
@@ -142,7 +145,7 @@ export default function FileGridView() {
         } finally {
             setIsBuildingTree(false);
         }
-    }, [activeTab, currentSharedDriveId, currentFolderId, uploadEntries]);
+    }, [activeTab, currentSharedDriveId, currentFolderId, uploadEntries, t]);
 
     const handleItemDoubleClick = useCallback((item) => {
         if (item.type === 'folder' && !item.isTrash && !item.isSpam) {
@@ -155,7 +158,7 @@ export default function FileGridView() {
     const handleDownloadItem = useCallback(async (item) => {
         try {
             if (item.type === 'folder') {
-                alert('Đang tạo liên kết tải xuống thư mục dạng ZIP...');
+                alert(t('list.zip.creating'));
                 return;
             }
             const url = await getDownloadUrl(item.id);
@@ -170,7 +173,7 @@ export default function FileGridView() {
         } catch (error) {
             console.error('Lỗi khi tải xuống:', error);
         }
-    }, [getDownloadUrl]);
+    }, [getDownloadUrl, t]);
 
     const handleQuickCopyLink = useCallback(async (item) => {
         try {
@@ -184,12 +187,12 @@ export default function FileGridView() {
             });
             const fullShareUrl = `${window.location.origin}/share/${res.shareToken}`;
             await navigator.clipboard.writeText(fullShareUrl);
-            toast.success('Đã sao chép liên kết chia sẻ');
+            toast.success(t('list.share.copied'));
         } catch (error) {
             console.error('Lỗi khi sao chép nhanh liên kết chia sẻ:', error);
-            toast.error(error?.message || 'Không thể sao chép liên kết chia sẻ');
+            toast.error(error?.message || t('list.share.copyFailed'));
         }
-    }, []);
+    }, [t]);
 
     const handleSelectRange = useCallback((id) => {
         selectRange(id, folders, files);
@@ -208,11 +211,11 @@ export default function FileGridView() {
                 <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-3 text-gray-300">
                     <Folder className="w-8 h-8" />
                 </div>
-                <p className="text-base font-medium text-gray-600 dark:text-gray-300">Thư mục này chưa có tệp hoặc thư mục nào</p>
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Kéo thả tệp vào đây hoặc nhấn nút "+ Mới" để bắt đầu</p>
+                <p className="text-base font-medium text-gray-600 dark:text-gray-300">{t('list.empty.gridTitle')}</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{t('list.empty.gridHint')}</p>
 
-                <input type="file" ref={fileInputRef} onChange={handleFileInputChange} multiple className="hidden" aria-label="Chọn nhiều tệp để tải lên" />
-                <input type="file" ref={setFolderInputRef} onChange={handleFolderInputChange} multiple className="hidden" aria-label="Chọn thư mục để tải lên" />
+                <input type="file" ref={fileInputRef} onChange={handleFileInputChange} multiple className="hidden" aria-label={t('newBtn.aria.pickFiles')} />
+                <input type="file" ref={setFolderInputRef} onChange={handleFolderInputChange} multiple className="hidden" aria-label={t('newBtn.aria.pickFolder')} />
 
                 <ContextMenu
                     isOpen={contextMenu.isOpen}
@@ -236,15 +239,15 @@ export default function FileGridView() {
             onContextMenu={openBlankContextMenu}
             className="flex flex-col h-full justify-between pb-4 select-none"
         >
-            <input type="file" ref={fileInputRef} onChange={handleFileInputChange} multiple className="hidden" aria-label="Chọn nhiều tệp để tải lên" />
-            <input type="file" ref={setFolderInputRef} onChange={handleFolderInputChange} multiple className="hidden" aria-label="Chọn thư mục để tải lên" />
+            <input type="file" ref={fileInputRef} onChange={handleFileInputChange} multiple className="hidden" aria-label={t('newBtn.aria.pickFiles')} />
+            <input type="file" ref={setFolderInputRef} onChange={handleFolderInputChange} multiple className="hidden" aria-label={t('newBtn.aria.pickFolder')} />
             <div className="space-y-6 overflow-y-auto pr-1">
                 {/* Section 1: Thư mục (Folders) */}
                 {folders && folders.length > 0 && (
                     <div>
                         <div className="flex items-center gap-2 mb-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                             <Folder className="w-4 h-4 text-amber-500" />
-                            <span>Thư mục ({folders.length})</span>
+                            <span>{t('list.group.folders', { count: folders.length })}</span>
                         </div>
                         <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-3.5">
                             {folders.map((folder) => (
@@ -269,7 +272,7 @@ export default function FileGridView() {
                     <div>
                         <div className="flex items-center gap-2 mb-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                             <FileText className="w-4 h-4 text-blue-500" />
-                            <span>Tệp ({files.length})</span>
+                            <span>{t('list.group.files', { count: files.length })}</span>
                         </div>
                         <div className="grid grid-cols-[repeat(auto-fill,minmax(210px,1fr))] gap-4">
                             {files.map((file) => (
@@ -295,7 +298,11 @@ export default function FileGridView() {
             {totalPages > 1 && (
                 <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
                     <div>
-                        Hiển thị <span className="font-semibold text-gray-700 dark:text-gray-300">{((currentPage - 1) * pageSize) + 1}</span> - <span className="font-semibold text-gray-700 dark:text-gray-300">{Math.min(currentPage * pageSize, totalItems)}</span> trong <span className="font-semibold text-gray-700 dark:text-gray-300">{totalItems}</span> mục
+                        {tRich(t('list.pagination.showing'), {
+                            from: <span className="font-semibold text-gray-700 dark:text-gray-300">{((currentPage - 1) * pageSize) + 1}</span>,
+                            to: <span className="font-semibold text-gray-700 dark:text-gray-300">{Math.min(currentPage * pageSize, totalItems)}</span>,
+                            total: <span className="font-semibold text-gray-700 dark:text-gray-300">{totalItems}</span>,
+                        })}
                     </div>
                     <div className="flex items-center gap-1">
                         <button

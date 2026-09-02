@@ -1,6 +1,7 @@
 import { useState, useMemo, memo, useCallback } from 'react';
 import { useUpload } from '../../context/UploadContext';
 import { useFiles } from '../../context/FileContext';
+import { useLanguage } from '../../context/LanguageContext';
 import {
     UploadCloud,
     CheckCircle2,
@@ -18,6 +19,7 @@ import {
 import Modal from '../common/Modal';
 import Button from '../common/Button';
 import { formatBytes } from '../../utils/formatFileSize';
+import tRich from '../../utils/tRich';
 import { isResumableSize } from '../../constants/upload';
 
 /**
@@ -38,6 +40,7 @@ const PAUSABLE = new Set(['pending', 'uploading']);
  * Tự động kết nối tới UploadContext & FileContext (hoặc nhận qua props nếu có).
  */
 export default memo(function UploadProgress({ queue, onDismissError, onRetry }) {
+    const { t } = useLanguage();
     const { uploadQueue, removeJob, clearQueue } = useUpload();
     const {
         retryUploadJob, cancelUploadJob, cancelAllUploads, pauseUploadJob, resumePausedJob,
@@ -104,9 +107,21 @@ export default memo(function UploadProgress({ queue, onDismissError, onRetry }) 
 
     if (!effectiveQueue || effectiveQueue.length === 0) return null;
 
+    // Các mệnh đề phụ (" · 2 lỗi", " · 3 chờ") là khoá riêng và được nhúng vào câu
+    // chính qua {extra} — ghép bằng template literal như bản cũ thì trật tự và dấu
+    // phân cách bị khoá cứng theo tiếng Việt.
     const headerLabel = allDone
-        ? `Hoàn tất ${doneCount}/${effectiveQueue.length} tệp${errorCount > 0 ? ` · ${errorCount} lỗi` : ''}${canceledCount > 0 ? ` · ${canceledCount} đã huỷ` : ''}`
-        : `Đang tải lên ${activeCount > 0 ? `${activeCount} tệp` : ''}${pendingCount > 0 ? ` · ${pendingCount} chờ` : ''}`;
+        ? t('upload.summary.done', {
+              done: doneCount,
+              total: effectiveQueue.length,
+              extra:
+                  (errorCount > 0 ? t('upload.summary.errors', { count: errorCount }) : '') +
+                  (canceledCount > 0 ? t('upload.summary.canceled', { count: canceledCount }) : ''),
+          })
+        : t('upload.summary.uploading', {
+              active: activeCount > 0 ? t('upload.summary.nFiles', { count: activeCount }) : '',
+              extra: pendingCount > 0 ? t('upload.summary.pending', { count: pendingCount }) : '',
+          });
 
     return (
         <div className="fixed bottom-6 right-6 z-50 w-88 bg-white dark:bg-[#282a2c] rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden transition-all duration-200"
@@ -123,7 +138,7 @@ export default memo(function UploadProgress({ queue, onDismissError, onRetry }) 
                         <button
                             onClick={() => setCancelTarget({ kind: 'all', count: cancellableCount })}
                             className="px-2 py-1 mr-1 rounded-full text-[11px] font-semibold bg-white/10 hover:bg-rose-500/80 text-slate-200 hover:text-white transition-colors cursor-pointer"
-                            title={`Huỷ ${cancellableCount} tệp chưa tải xong`}
+                            title={t('upload.cancelN', { count: cancellableCount })}
                         >
                             Huỷ tất cả
                         </button>
@@ -131,7 +146,7 @@ export default memo(function UploadProgress({ queue, onDismissError, onRetry }) 
                     <button
                         onClick={() => setIsMinimized(!isMinimized)}
                         className="p-1 hover:bg-white/10 rounded transition-colors text-slate-300 hover:text-white"
-                        title={isMinimized ? 'Mở rộng' : 'Thu gọn'}
+                        title={isMinimized ? t('upload.expand') : t('upload.collapse')}
                     >
                         {isMinimized
                             ? <ChevronUp className="w-4 h-4" />
@@ -141,7 +156,7 @@ export default memo(function UploadProgress({ queue, onDismissError, onRetry }) 
                         <button
                             onClick={clearQueue}
                             className="p-1 hover:bg-white/10 rounded transition-colors text-slate-300 hover:text-white"
-                            title="Đóng bảng tiến trình"
+                            title={t('upload.closePanel')}
                         >
                             <X className="w-4 h-4" />
                         </button>
@@ -152,7 +167,7 @@ export default memo(function UploadProgress({ queue, onDismissError, onRetry }) 
             {/* Thanh tổng tiến trình — luôn hiện ngay cả khi minimize */}
             <div className="px-4 py-2 bg-slate-800 border-b border-slate-700">
                 <div className="flex items-center justify-between mb-1">
-                    <span className="text-[11px] text-slate-400 font-medium">Tổng tiến trình</span>
+                    <span className="text-[11px] text-slate-400 font-medium">{t('upload.totalProgress')}</span>
                     <span className="text-[11px] font-mono font-bold text-blue-400">{totalPercent}%</span>
                 </div>
                 <div className="w-full bg-slate-700 rounded-full h-1.5 overflow-hidden">
@@ -190,30 +205,38 @@ export default memo(function UploadProgress({ queue, onDismissError, onRetry }) 
             <Modal
                 isOpen={Boolean(cancelTarget)}
                 onClose={closeCancelPrompt}
-                title={cancelTarget?.kind === 'all' ? 'Huỷ tất cả tệp đang tải?' : 'Huỷ tải tệp này?'}
+                title={cancelTarget?.kind === 'all' ? t('upload.confirmCancelAll') : t('upload.confirmCancelOne')}
                 maxWidth="max-w-sm"
             >
                 <div className="space-y-4">
                     {cancelTarget?.kind === 'all' ? (
                         <p className="text-sm text-gray-600 dark:text-gray-300">
-                            <span className="font-semibold text-gray-900 dark:text-gray-100">{cancelTarget.count} tệp</span>{' '}
-                            chưa tải xong sẽ dừng lại. Phần đã tải lên bị xoá khỏi cloud, tải lại sẽ bắt đầu từ đầu.
+                            {tRich(t('upload.cancelAll.body'), {
+                                count: (
+                                    <span className="font-semibold text-gray-900 dark:text-gray-100">
+                                        {t('upload.summary.nFiles', { count: cancelTarget.count })}
+                                    </span>
+                                ),
+                            })}
                         </p>
                     ) : (
                         <div className="space-y-2">
                             <p className="text-sm text-gray-600 dark:text-gray-300">
-                                Dừng tải{' '}
-                                <span className="font-semibold text-gray-900 dark:text-gray-100 break-all">
-                                    {cancelTarget?.job?.fileName}
-                                </span>
-                                ?
+                                {tRich(t('upload.cancelOne.title'), {
+                                    name: (
+                                        <span className="font-semibold text-gray-900 dark:text-gray-100 break-all">
+                                            {cancelTarget?.job?.fileName}
+                                        </span>
+                                    ),
+                                })}
                             </p>
                             <p className="text-xs text-gray-500 dark:text-gray-400">
-                                Đã tải {cancelTarget?.job?.percent || 0}%
-                                {cancelTarget?.job?.fileObj?.size
-                                    ? ` của ${formatBytes(cancelTarget.job.fileObj.size)}`
-                                    : ''}
-                                . Phần này sẽ bị xoá khỏi cloud, tải lại sẽ bắt đầu từ đầu.
+                                {t('upload.cancelOne.body', {
+                                    percent: cancelTarget?.job?.percent || 0,
+                                    ofSize: cancelTarget?.job?.fileObj?.size
+                                        ? t('upload.ofSize', { size: formatBytes(cancelTarget.job.fileObj.size) })
+                                        : '',
+                                })}
                             </p>
                         </div>
                     )}
@@ -223,7 +246,7 @@ export default memo(function UploadProgress({ queue, onDismissError, onRetry }) 
                             Tiếp tục tải
                         </Button>
                         <Button variant="danger" onClick={confirmCancel}>
-                            {cancelTarget?.kind === 'all' ? 'Huỷ tất cả' : 'Huỷ tải lên'}
+                            {cancelTarget?.kind === 'all' ? t('upload.cancelAll') : t('upload.cancelThis')}
                         </Button>
                     </div>
                 </div>
@@ -235,6 +258,7 @@ export default memo(function UploadProgress({ queue, onDismissError, onRetry }) 
 
 /** Một dòng hiển thị trạng thái 1 file */
 const FileJobRow = memo(function FileJobRow({ job, jobId, onDismissError, onRetry, onCancel, onPause, onResume }) {
+    const { t } = useLanguage();
     const { fileName, percent, status, error } = job;
 
     // Bind jobId bên trong component với useCallback để tạo stable ref
@@ -298,13 +322,13 @@ const FileJobRow = memo(function FileJobRow({ job, jobId, onDismissError, onRetr
                                 : status === 'error'
                                     ? '✗'
                                     : status === 'canceled'
-                                        ? 'Đã huỷ'
+                                        ? t('upload.state.canceled')
                                         : status === 'paused'
-                                            ? `Tạm dừng · ${percent}%`
+                                            ? t('upload.state.paused', { percent })
                                             : status === 'confirming'
-                                                ? 'Đang lưu...'
+                                                ? t('upload.state.saving')
                                                 : status === 'pending'
-                                                    ? 'Chờ...'
+                                                    ? t('upload.state.waiting')
                                                     : `${percent}%`}
                         </span>
                     </div>
@@ -321,7 +345,7 @@ const FileJobRow = memo(function FileJobRow({ job, jobId, onDismissError, onRetr
 
                     {/* Thông báo đổi tên do trùng */}
                     {status === 'done' && job.renamedFrom && (
-                        <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-1 truncate" title={`Tên gốc: ${job.renamedFrom}`}>
+                        <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-1 truncate" title={t('upload.originalName', { name: job.renamedFrom })}>
                             ↪ Đã đổi tên từ "{job.renamedFrom}"
                         </p>
                     )}
@@ -339,8 +363,8 @@ const FileJobRow = memo(function FileJobRow({ job, jobId, onDismissError, onRetr
                     <button
                         onClick={handlePause}
                         className="p-1 shrink-0 rounded hover:bg-amber-50 dark:hover:bg-amber-500/15 transition-colors cursor-pointer"
-                        title="Tạm dừng (giữ nguyên phần đã tải)"
-                        aria-label={`Tạm dừng ${fileName}`}
+                        title={t('upload.pause')}
+                        aria-label={t('upload.pauseAria', { name: fileName })}
                     >
                         <Pause className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500 hover:text-amber-500" />
                     </button>
@@ -350,8 +374,8 @@ const FileJobRow = memo(function FileJobRow({ job, jobId, onDismissError, onRetr
                     <button
                         onClick={handleResume}
                         className="p-1 shrink-0 rounded hover:bg-emerald-50 dark:hover:bg-emerald-500/15 transition-colors cursor-pointer"
-                        title="Tải tiếp từ chỗ đang dở"
-                        aria-label={`Tải tiếp ${fileName}`}
+                        title={t('upload.resume')}
+                        aria-label={t('upload.resumeAria', { name: fileName })}
                     >
                         <Play className="w-3.5 h-3.5 text-emerald-500" />
                     </button>
@@ -362,8 +386,8 @@ const FileJobRow = memo(function FileJobRow({ job, jobId, onDismissError, onRetr
                     <button
                         onClick={handleCancel}
                         className="p-1 shrink-0 rounded hover:bg-rose-50 dark:hover:bg-rose-500/15 transition-colors cursor-pointer"
-                        title="Huỷ tải tệp này"
-                        aria-label={`Huỷ tải lên ${fileName}`}
+                        title={t('upload.cancelOne')}
+                        aria-label={t('upload.cancelOneAria', { name: fileName })}
                     >
                         <X className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500 hover:text-rose-500" />
                     </button>
@@ -375,14 +399,14 @@ const FileJobRow = memo(function FileJobRow({ job, jobId, onDismissError, onRetr
                         <button
                             onClick={handleRetry}
                             className="p-0.5 hover:bg-blue-50 dark:hover:bg-blue-500/15 rounded transition-colors cursor-pointer"
-                            title="Tải lại tệp này từ đầu"
+                            title={t('upload.restart')}
                         >
                             <RefreshCw className="w-3.5 h-3.5 text-blue-400" />
                         </button>
                         <button
                             onClick={handleDismiss}
                             className="p-0.5 hover:bg-gray-100 dark:hover:bg-white/5 rounded transition-colors cursor-pointer"
-                            title="Bỏ dòng này"
+                            title={t('upload.dismissRow')}
                         >
                             <X className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
                         </button>
@@ -395,14 +419,14 @@ const FileJobRow = memo(function FileJobRow({ job, jobId, onDismissError, onRetr
                         <button
                             onClick={handleRetry}
                             className="p-0.5 hover:bg-blue-50 dark:hover:bg-blue-500/15 rounded transition-colors"
-                            title="Thử lại"
+                            title={t('upload.retry')}
                         >
                             <RefreshCw className="w-3.5 h-3.5 text-blue-400" />
                         </button>
                         <button
                             onClick={handleDismiss}
                             className="p-0.5 hover:bg-rose-50 rounded transition-colors"
-                            title="Xóa thông báo lỗi"
+                            title={t('upload.clearError')}
                         >
                             <X className="w-3.5 h-3.5 text-rose-400" />
                         </button>

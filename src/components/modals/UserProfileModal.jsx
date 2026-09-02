@@ -1,7 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
+import { localeTagOf } from '../../utils/locale';
 import {
   X,
   User as UserIcon,
@@ -29,10 +31,12 @@ import { userApi } from '../../services/api';
 /**
  * Helper phân tích User-Agent để hiển thị icon và tên thiết bị thân thiện
  */
-function parseUserAgent(uaString = '') {
+function parseUserAgent(uaString = '', t) {
   const ua = uaString.toLowerCase();
-  let deviceName = 'Thiết bị không xác định';
-  let browserName = 'Trình duyệt Web';
+  // Chỉ hai giá trị dự phòng cần dịch — tên hệ máy và tên trình duyệt là danh từ
+  // riêng ('Windows PC', 'Google Chrome'), giữ nguyên ở mọi ngôn ngữ.
+  let deviceName = t('profile.device.unknown');
+  let browserName = t('profile.browser.unknown');
   let Icon = Monitor;
 
   if (ua.includes('windows')) {
@@ -76,11 +80,11 @@ function parseUserAgent(uaString = '') {
 /**
  * Helper định dạng thời gian thân thiện
  */
-function formatSessionDate(dateString) {
-  if (!dateString) return 'Gần đây';
+function formatSessionDate(dateString, t, locale) {
+  if (!dateString) return t('profile.session.recent');
   try {
     const d = new Date(dateString);
-    return d.toLocaleString('vi-VN', {
+    return d.toLocaleString(locale, {
       hour: '2-digit',
       minute: '2-digit',
       day: '2-digit',
@@ -94,6 +98,8 @@ function formatSessionDate(dateString) {
 
 export default function UserProfileModal({ isOpen, onClose }) {
   const { user, refreshUser, deleteAccount } = useAuth();
+  const { t, language } = useLanguage();
+  const locale = localeTagOf(language);
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
   // Cờ theo dõi component còn mounted hay không, tránh setState sau khi unmount
@@ -173,24 +179,26 @@ export default function UserProfileModal({ isOpen, onClose }) {
     }
   }, [isOpen, user]);
 
-  // Fetch sessions when switching to sessions tab
-  const fetchSessions = async () => {
+  // Fetch sessions when switching to sessions tab.
+  // useCallback vì hàm này giờ đọc `t` (câu lỗi phải theo ngôn ngữ), nên nó không
+  // còn ổn định giữa các lần render — để trần thì useEffect bên dưới thiếu dependency.
+  const fetchSessions = useCallback(async () => {
     setIsLoadingSessions(true);
     try {
       const data = await userApi.getMySessions();
       setSessions(Array.isArray(data) ? data : []);
     } catch (err) {
-      toast.error(err.message || 'Không thể tải danh sách thiết bị đang đăng nhập');
+      toast.error(err.message || t('profile.sessions.loadFailed'));
     } finally {
       setIsLoadingSessions(false);
     }
-  };
+  }, [t]);
 
   useEffect(() => {
     if (isOpen && activeTab === 'sessions') {
       fetchSessions();
     }
-  }, [isOpen, activeTab]);
+  }, [isOpen, activeTab, fetchSessions]);
 
   if (!isOpen || !user) return null;
 
@@ -200,12 +208,12 @@ export default function UserProfileModal({ isOpen, onClose }) {
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      toast.error('Chỉ chấp nhận tệp hình ảnh (PNG, JPG, WEBP, ...)');
+      toast.error(t('profile.avatar.wrongType'));
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      toast.error('Kích thước ảnh đại diện không được vượt quá 5MB');
+      toast.error(t('profile.avatar.tooBig'));
       return;
     }
 
@@ -216,9 +224,9 @@ export default function UserProfileModal({ isOpen, onClose }) {
     try {
       await userApi.updateAvatar(formData);
       await refreshUser();
-      toast.success('Đã cập nhật ảnh đại diện thành công!');
+      toast.success(t('profile.avatar.updated'));
     } catch (err) {
-      toast.error(err.message || 'Lỗi khi tải ảnh đại diện');
+      toast.error(err.message || t('profile.avatar.failed'));
     } finally {
       setIsUploadingAvatar(false);
       if (fileInputRef.current) {
@@ -239,7 +247,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
     // `fullName` là @IsOptional(), nên người dùng chỉ gạt công tắc thì payload
     // không cần mang tên đi kèm — chặn ở đây sẽ khoá luôn thao tác bật/tắt.
     if (nameChanged && trimmedName.length < 2) {
-      toast.error('Tên hiển thị phải có ít nhất 2 ký tự');
+      toast.error(t('profile.name.tooShort'));
       return;
     }
 
@@ -257,12 +265,12 @@ export default function UserProfileModal({ isOpen, onClose }) {
       toast.success(
         discoverableChanged && !nameChanged
           ? isDiscoverable
-            ? 'Đã cho phép người khác tìm bạn qua email'
-            : 'Đã tắt hiển thị thông tin cá nhân qua email'
-          : 'Cập nhật thông tin thành công!',
+            ? t('profile.discoverable.on')
+            : t('profile.discoverable.off')
+          : t('profile.updated'),
       );
     } catch (err) {
-      toast.error(err.message || 'Lỗi khi cập nhật thông tin');
+      toast.error(err.message || t('profile.updateFailed'));
       // Trả UI về giá trị gốc trong context để không kẹt lại thao tác vừa lỗi
       setFullName(user.fullName || '');
       setIsDiscoverable(user.isDiscoverableByEmail !== false);
@@ -276,29 +284,29 @@ export default function UserProfileModal({ isOpen, onClose }) {
     e.preventDefault();
 
     if (!currentPassword) {
-      toast.error('Vui lòng nhập mật khẩu hiện tại');
+      toast.error(t('profile.password.needCurrent'));
       return;
     }
 
     if (newPassword.length < 6) {
-      toast.error('Mật khẩu mới phải có ít nhất 6 ký tự');
+      toast.error(t('profile.password.tooShort'));
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      toast.error('Mật khẩu xác nhận không khớp với mật khẩu mới');
+      toast.error(t('profile.password.mismatch'));
       return;
     }
 
     setIsChangingPassword(true);
     try {
       await userApi.updatePassword({ currentPassword, newPassword });
-      toast.success('Đã thay đổi mật khẩu thành công!');
+      toast.success(t('profile.password.changed'));
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } catch (err) {
-      toast.error(err.message || 'Lỗi khi thay đổi mật khẩu');
+      toast.error(err.message || t('profile.password.failed'));
     } finally {
       setIsChangingPassword(false);
     }
@@ -309,10 +317,10 @@ export default function UserProfileModal({ isOpen, onClose }) {
     setRevokingSessionId(sessionId);
     try {
       await userApi.revokeSession(sessionId);
-      toast.success('Đã thu hồi phiên đăng nhập thành công!');
+      toast.success(t('profile.session.revoked'));
       await fetchSessions();
     } catch (err) {
-      toast.error(err.message || 'Lỗi khi thu hồi phiên đăng nhập');
+      toast.error(err.message || t('profile.session.revokeFailed'));
     } finally {
       setRevokingSessionId(null);
     }
@@ -323,10 +331,10 @@ export default function UserProfileModal({ isOpen, onClose }) {
     setIsRevokingAll(true);
     try {
       await userApi.revokeAllOtherSessions();
-      toast.success('Đã đăng xuất khỏi tất cả các thiết bị khác thành công!');
+      toast.success(t('profile.sessions.allRevoked'));
       await fetchSessions();
     } catch (err) {
-      toast.error(err.message || 'Lỗi khi đăng xuất các thiết bị khác');
+      toast.error(err.message || t('profile.sessions.allRevokeFailed'));
     } finally {
       setIsRevokingAll(false);
     }
@@ -336,17 +344,17 @@ export default function UserProfileModal({ isOpen, onClose }) {
   const handleDeleteAccount = async () => {
     const isLocal = user.provider === 'local';
     if (isLocal && !deletePassword) {
-      toast.error('Vui lòng nhập mật khẩu để xác nhận xoá tài khoản');
+      toast.error(t('profile.delete.needPassword'));
       return;
     }
 
     if (!isLocal && !deleteConfirmedCheckbox) {
-      toast.error('Vui lòng đánh dấu xác nhận đồng ý xoá dữ liệu');
+      toast.error(t('profile.delete.needCheckbox'));
       return;
     }
 
     if (deleteConfirmText.trim() !== 'DELETE') {
-      toast.error('Vui lòng nhập chính xác từ "DELETE" để xác nhận');
+      toast.error(t('profile.delete.needKeyword'));
       return;
     }
 
@@ -356,10 +364,10 @@ export default function UserProfileModal({ isOpen, onClose }) {
       // deleteAccount() xoá token + user trong AuthContext => component này bị unmount ngay sau đó
       await deleteAccount(isLocal ? deletePassword : null);
       isAccountDeleted = true;
-      toast.success('Tài khoản của bạn và toàn bộ dữ liệu đã được xoá vĩnh viễn');
+      toast.success(t('profile.delete.done'));
       navigate('/login', { replace: true });
     } catch (err) {
-      toast.error(err.message || 'Lỗi khi xoá tài khoản');
+      toast.error(err.message || t('profile.delete.failed'));
     } finally {
       // Chỉ dọn dẹp state khi xoá THẤT BẠI và component vẫn còn mounted.
       // Xoá thành công => modal biến mất cùng component, mọi setState ở đây đều gây
@@ -403,8 +411,8 @@ export default function UserProfileModal({ isOpen, onClose }) {
               <UserIcon className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-gray-900 dark:text-gray-100 text-base">Tài khoản cá nhân</h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Quản lý thông tin, bảo mật và các phiên đăng nhập</p>
+              <h3 className="font-bold text-gray-900 dark:text-gray-100 text-base">{t('profile.title')}</h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{t('profile.subtitle')}</p>
             </div>
           </div>
           <button
@@ -473,7 +481,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                 <div
                   className="relative group cursor-pointer shrink-0"
                   onClick={() => !isUploadingAvatar && fileInputRef.current?.click()}
-                  title="Nhấn để đổi ảnh đại diện"
+                  title={t('profile.avatar.clickToChange')}
                 >
                   <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold flex items-center justify-center text-3xl shadow-md border-2 border-white overflow-hidden relative">
                     {user.avatarUrl ? (
@@ -495,7 +503,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                       fileInputRef.current?.click();
                     }}
                     className="absolute -bottom-1 -right-1 p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-md border-2 border-white transition-all group-hover:scale-110 disabled:opacity-50"
-                    title="Tải ảnh lên"
+                    title={t('profile.avatar.upload')}
                   >
                     <Camera className="w-4 h-4" />
                   </button>
@@ -504,7 +512,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <h4 className="text-base font-bold text-gray-900 dark:text-gray-100 truncate">
-                      {user.fullName || 'Người dùng driveR'}
+                      {user.fullName || t('profile.defaultName')}
                     </h4>
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 dark:text-blue-300 rounded-full text-[10px] font-bold">
                       <ShieldCheck className="w-3 h-3" />
@@ -530,7 +538,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                       className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-[#282a2c] border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-gray-800 dark:text-gray-200"
-                      placeholder="Nhập tên hiển thị của bạn"
+                      placeholder={t('profile.name.placeholder')}
                     />
                   </div>
                 </div>
@@ -624,7 +632,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                   />
                 </div>
                 <div className="flex justify-between items-center text-[11px] text-gray-500 dark:text-gray-400">
-                  <span>Gói cước: Miễn phí (Mặc định)</span>
+                  <span>{t('profile.plan.free')}</span>
                   <span>{100 - storagePercentage}% còn trống</span>
                 </div>
               </div>
@@ -671,7 +679,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-[#282a2c] border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-gray-800 dark:text-gray-200"
-                    placeholder="Tối thiểu 6 ký tự"
+                    placeholder={t('profile.password.minHint')}
                   />
                 </div>
               </div>
@@ -689,7 +697,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-[#282a2c] border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-gray-800 dark:text-gray-200"
-                    placeholder="Nhập lại mật khẩu mới"
+                    placeholder={t('profile.password.confirmPlaceholder')}
                   />
                 </div>
               </div>
@@ -728,7 +736,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                     onClick={fetchSessions}
                     disabled={isLoadingSessions}
                     className="p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl text-gray-600 dark:text-gray-300 transition-colors"
-                    title="Làm mới danh sách"
+                    title={t('profile.sessions.refresh')}
                   >
                     <RefreshCw className={`w-4 h-4 ${isLoadingSessions ? 'animate-spin' : ''}`} />
                   </button>
@@ -752,7 +760,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
 
               {isLoadingSessions ? (
                 <div className="space-y-2.5" aria-busy="true" aria-live="polite">
-                  <span className="sr-only">Đang tải danh sách phiên đăng nhập...</span>
+                  <span className="sr-only">{t('profile.sessions.loading')}</span>
                   {[0, 1, 2].map((i) => (
                     <div
                       key={i}
@@ -783,7 +791,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
               ) : (
                 <div className="space-y-2.5">
                   {sessions.map((sess) => {
-                    const { deviceString, Icon } = parseUserAgent(sess.userAgent);
+                    const { deviceString, Icon } = parseUserAgent(sess.userAgent, t);
                     return (
                       <div
                         key={sess.id}
@@ -826,7 +834,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                               <span>•</span>
                               <span className="flex items-center gap-1">
                                 <Clock className="w-3 h-3 text-gray-400 dark:text-gray-500" />
-                                {formatSessionDate(sess.createdAt)}
+                                {formatSessionDate(sess.createdAt, t, locale)}
                               </span>
                             </div>
                           </div>
@@ -842,7 +850,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                             {revokingSessionId === sess.id ? (
                               <Loader2 className="w-3.5 h-3.5 animate-spin" />
                             ) : (
-                              'Thu hồi'
+                              t('profile.sessions.revoke')
                             )}
                           </button>
                         )}
@@ -899,18 +907,18 @@ export default function UserProfileModal({ isOpen, onClose }) {
                 <AlertTriangle className="w-6 h-6 text-rose-600 dark:text-rose-400" />
               </div>
               <div>
-                <h4 className="text-base font-bold text-gray-900 dark:text-gray-100">Xác nhận xoá tài khoản</h4>
-                <p className="text-xs text-rose-600 dark:text-rose-400 font-medium">Hành động này mang tính vĩnh viễn</p>
+                <h4 className="text-base font-bold text-gray-900 dark:text-gray-100">{t('profile.delete.title')}</h4>
+                <p className="text-xs text-rose-600 dark:text-rose-400 font-medium">{t('profile.delete.subtitle')}</p>
               </div>
             </div>
 
             {/* Warning Description */}
             <div className="p-3.5 bg-rose-50 dark:bg-rose-500/15 rounded-2xl border border-rose-200/80 dark:border-rose-900/50 text-rose-900 dark:text-rose-200 text-xs space-y-1.5 leading-relaxed">
-              <p className="font-bold">⚠️ Cảnh báo quan trọng:</p>
+              <p className="font-bold">{t('profile.delete.warnTitle')}</p>
               <ul className="list-disc list-inside space-y-1 text-rose-800 dark:text-rose-300 text-[11px]">
-                <li>Toàn bộ tệp tin & thư mục cá nhân sẽ bị xoá vĩnh viễn khỏi Cloud.</li>
-                <li>Tất cả liên kết chia sẻ công khai sẽ ngay lập tức bị vô hiệu.</li>
-                <li>Bạn sẽ không thể khôi phục lại tài khoản sau khi hoàn tất.</li>
+                <li>{t('profile.delete.warn1')}</li>
+                <li>{t('profile.delete.warn2')}</li>
+                <li>{t('profile.delete.warn3')}</li>
               </ul>
             </div>
 
@@ -925,7 +933,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                     type="password"
                     value={deletePassword}
                     onChange={(e) => setDeletePassword(e.target.value)}
-                    placeholder="Nhập mật khẩu tài khoản"
+                    placeholder={t('profile.delete.passwordPlaceholder')}
                     className="w-full px-3.5 py-2.5 bg-white dark:bg-[#282a2c] border border-gray-300 dark:border-gray-600 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all"
                   />
                 </div>
@@ -951,7 +959,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                   type="text"
                   value={deleteConfirmText}
                   onChange={(e) => setDeleteConfirmText(e.target.value)}
-                  placeholder="Nhập chữ DELETE"
+                  placeholder={t('profile.delete.keywordPlaceholder')}
                   className="w-full px-3.5 py-2.5 bg-white dark:bg-[#282a2c] border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-mono tracking-wider focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all"
                 />
               </div>

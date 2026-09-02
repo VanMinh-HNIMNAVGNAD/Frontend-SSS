@@ -68,13 +68,22 @@ function detectPlatform() {
 export const PLATFORM = detectPlatform();
 export const IS_MAC = PLATFORM === 'mac';
 
-/** Tên hệ điều hành để hiển thị trong màn hình Cài đặt */
+/**
+ * Tên hệ điều hành để hiển thị trong màn hình Cài đặt.
+ *
+ * Ba tên đầu là danh từ riêng, giữ nguyên ở mọi ngôn ngữ; chỉ nhánh `unknown` cần
+ * dịch nên nó là KHOÁ, còn lại là chuỗi thật. Nơi hiển thị phân biệt hai loại bằng
+ * `PLATFORM_LABEL_KEY`.
+ */
 export const PLATFORM_LABEL = {
   mac: 'macOS',
   windows: 'Windows',
   linux: 'Linux',
-  unknown: 'Không rõ',
+  unknown: null,
 }[PLATFORM];
+
+/** Khoá dịch dùng khi `PLATFORM_LABEL` là null (không nhận ra hệ điều hành). */
+export const PLATFORM_LABEL_KEY = 'platform.unknown';
 
 // Nhãn phím bổ trợ đúng theo cách gọi của từng hệ điều hành
 const MOD_LABELS = {
@@ -149,7 +158,8 @@ const MOD_TESTS = {
 const SHORTCUT_DEFINITIONS = [
   {
     name: 'onNewFolder',
-    label: 'Tạo thư mục mới',
+    id: 'newFolder',
+    labelKey: 'shortcuts.newFolder',
     combos: [
       { mods: 'ctrl+meta', key: 'n', code: 'KeyN' },
       { mods: 'ctrl+alt', key: 'n', code: 'KeyN', not: ['mac'] },
@@ -157,7 +167,8 @@ const SHORTCUT_DEFINITIONS = [
   },
   {
     name: 'onUploadFile',
-    label: 'Tải tệp lên Cloud',
+    id: 'uploadFile',
+    labelKey: 'shortcuts.uploadFile',
     combos: [
       { mods: 'ctrl+meta', key: 'u', code: 'KeyU' },
       { mods: 'ctrl+alt', key: 'u', code: 'KeyU', not: ['mac'] },
@@ -165,7 +176,8 @@ const SHORTCUT_DEFINITIONS = [
   },
   {
     name: 'onFocusSearch',
-    label: 'Nhảy nhanh tới thanh Tìm kiếm',
+    id: 'focusSearch',
+    labelKey: 'shortcuts.focusSearch',
     combos: [
       { mods: 'ctrl+meta', key: 'k', code: 'KeyK' },
       // Ctrl + K (Windows/Linux) và ⌘ + K (macOS)
@@ -176,7 +188,8 @@ const SHORTCUT_DEFINITIONS = [
   },
   {
     name: 'onRename',
-    label: 'Đổi tên tệp (Rename)',
+    id: 'rename',
+    labelKey: 'shortcuts.rename',
     combos: [
       { mods: 'ctrl+meta', key: 'r', code: 'KeyR' },
       { mods: 'ctrl+alt', key: 'r', code: 'KeyR', not: ['mac'] },
@@ -186,7 +199,8 @@ const SHORTCUT_DEFINITIONS = [
   },
   {
     name: 'onToggleStar',
-    label: 'Bật / Tắt đánh dấu sao (Star)',
+    id: 'toggleStar',
+    labelKey: 'shortcuts.toggleStar',
     combos: [
       { mods: 'ctrl+meta', key: 's', code: 'KeyS' },
       { mods: 'ctrl+alt', key: 's', code: 'KeyS', not: ['mac'] },
@@ -194,7 +208,8 @@ const SHORTCUT_DEFINITIONS = [
   },
   {
     name: 'onMoveToTrash',
-    label: 'Chuyển tệp/thư mục được chọn vào Thùng rác',
+    id: 'moveToTrash',
+    labelKey: 'shortcuts.moveToTrash',
     combos: [
       { mods: 'ctrl+meta', key: 'backspace', code: 'Backspace' },
       // macOS: ⌘ + ⌫ đúng thói quen Finder (Mac không có phím Delete-tiến)
@@ -207,7 +222,8 @@ const SHORTCUT_DEFINITIONS = [
   {
     // Do FileContext.jsx xử lý sẵn, liệt kê ở đây để bảng Cài đặt đầy đủ
     name: null,
-    label: 'Sao chép / Cắt / Dán mục đã chọn',
+    id: 'clipboard',
+    labelKey: 'shortcuts.clipboard',
     staticHint: `${PRIMARY_MOD_LABEL} + C / X / V`,
   },
 ];
@@ -262,18 +278,24 @@ function formatCombo(combo) {
  * Bảng phím tắt đã format sẵn theo hệ điều hành hiện tại.
  * SettingsModal.jsx dùng trực tiếp mảng này để hiển thị — không hardcode nữa,
  * nên bảng trong Cài đặt luôn khớp với phím thật sự đang lắng nghe.
+ *
+ * Trả `id` + `labelKey` chứ KHÔNG trả chuỗi đã dịch: module này nằm ngoài React
+ * nên không gọi được `useLanguage()`, và nó được nạp MỘT lần lúc import — chuỗi
+ * chốt ở đây sẽ đóng băng theo ngôn ngữ lúc tải trang, đổi ngôn ngữ không đổi
+ * được nữa. Nơi hiển thị tự gọi `t(hint.labelKey)`.
+ *
+ * `id` cũng là thứ để tra cứu: trước đây ContextMenu.jsx tìm dòng Đổi tên bằng
+ * `hint.label.toLowerCase().includes('đổi tên')` — tra theo chữ hiển thị, nên
+ * chuyển giao diện sang English là mất luôn gợi ý phím tắt trong menu.
  */
-export const SHORTCUT_HINTS = SHORTCUT_DEFINITIONS.map((def) => {
+export const SHORTCUT_HINTS = SHORTCUT_DEFINITIONS.map((def) => ({
+  id: def.id,
+  labelKey: def.labelKey,
   // `keys`: từng tổ hợp là một chip <kbd> riêng để dòng dài tự xuống hàng
-  const keys = def.staticHint
+  keys: def.staticHint
     ? [def.staticHint]
-    : def.combos.filter(isComboForThisPlatform).map(formatCombo);
-  return {
-    label: def.label,
-    keys,
-    key: keys.join('  hoặc  '), // chuỗi gộp, giữ cho nơi nào chỉ cần 1 dòng
-  };
-});
+    : def.combos.filter(isComboForThisPlatform).map(formatCombo),
+}));
 
 // ── 5. Hook ─────────────────────────────────────────────────────────────────
 

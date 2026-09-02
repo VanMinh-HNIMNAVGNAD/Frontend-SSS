@@ -19,6 +19,7 @@ import {
     FolderUp,
     FolderPlus
 } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 import { SHORTCUT_HINTS } from '../../hooks/useGlobalShortcuts';
 
 // Bảng phím tắt lấy thẳng từ hook — đã format sẵn theo hệ điều hành đang chạy,
@@ -28,8 +29,10 @@ import { SHORTCUT_HINTS } from '../../hooks/useGlobalShortcuts';
 //  đang được focus bàn phím, nên bấm từ menu chuột phải thì không có gì xảy ra.)
 // An toàn về kiến trúc: useGlobalShortcuts.js chỉ phụ thuộc 'react', không
 // import ngược lại component nào → không có vòng lặp import.
-const RENAME_SHORTCUT_HINT =
-    SHORTCUT_HINTS.find((hint) => hint.label.toLowerCase().includes('đổi tên'))?.key ?? '';
+// Tra theo `id` ổn định — bản cũ tra `hint.label.includes('đổi tên')`, tức là so
+// khớp với CHỮ HIỂN THỊ, nên đổi giao diện sang English là mất gợi ý phím tắt.
+const RENAME_SHORTCUT_KEYS =
+    SHORTCUT_HINTS.find((hint) => hint.id === 'rename')?.keys ?? [];
 
 export default function ContextMenu({
     isOpen = true,
@@ -67,6 +70,7 @@ export default function ContextMenu({
     isBuildingTree = false,
 }) {
     const menuRef = useRef(null);
+    const { t } = useLanguage();
 
     // Reposition menu to stay inside window bounds
     const [pos, setPos] = useState({ top: y, left: x });
@@ -121,7 +125,7 @@ export default function ContextMenu({
                     className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-900 dark:text-gray-200 font-medium transition-colors"
                 >
                     <FileUp className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
-                    <span>Tải tệp lên</span>
+                    <span>{t('menu.uploadFile')}</span>
                 </button>
 
                 <button
@@ -134,7 +138,7 @@ export default function ContextMenu({
                     ) : (
                         <FolderUp className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
                     )}
-                    <span>{isBuildingTree ? 'Đang xây cây thư mục...' : 'Tải thư mục lên'}</span>
+                    <span>{isBuildingTree ? t('menu.buildingTree') : t('menu.uploadFolder')}</span>
                 </button>
 
                 <div className="h-px bg-gray-200 dark:bg-gray-700/60 my-1"></div>
@@ -144,7 +148,7 @@ export default function ContextMenu({
                     className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-900 dark:text-gray-200 font-medium transition-colors"
                 >
                     <FolderPlus className="w-4 h-4 text-gray-700 dark:text-gray-300 shrink-0" />
-                    <span>Tạo thư mục mới</span>
+                    <span>{t('menu.newFolder')}</span>
                 </button>
             </div>
         );
@@ -187,15 +191,15 @@ export default function ContextMenu({
                         className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-800 dark:text-gray-200 transition-colors"
                     >
                         <Pencil className="w-4 h-4 text-gray-700 dark:text-gray-300 shrink-0" />
-                        <span>Đổi tên &amp; mô tả</span>
+                        <span>{t('menu.renameAndDesc')}</span>
                     </button>
                 ) : (
                     <div className="w-full px-4 py-2 flex items-center justify-between text-gray-400 dark:text-gray-500 cursor-not-allowed">
                         <div className="flex items-center gap-3">
                             <ShieldOff className="w-4 h-4 shrink-0" />
-                            <span className="line-through text-xs">Đổi tên &amp; mô tả</span>
+                            <span className="line-through text-xs">{t('menu.renameAndDesc')}</span>
                         </div>
-                        <span className="text-[10px] text-gray-400 dark:text-gray-500">Cần ADMIN</span>
+                        <span className="text-[10px] text-gray-400 dark:text-gray-500">{t('menu.needAdmin')}</span>
                     </div>
                 )}
 
@@ -206,7 +210,7 @@ export default function ContextMenu({
                     className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-800 dark:text-gray-200 transition-colors"
                 >
                     <Star className={`w-4 h-4 ${item.isStarred ? 'text-amber-600 dark:text-amber-400 fill-amber-400' : 'text-gray-700 dark:text-gray-300'} shrink-0`} />
-                    <span>{item.isStarred ? 'Bỏ khỏi mục gắn sao' : 'Thêm vào mục gắn sao'}</span>
+                    <span>{item.isStarred ? t('menu.star.remove') : t('menu.star.add')}</span>
                 </button>
 
                 {/* Sao chép tên drive — KHÔNG có deep-link tới một drive nên không copy link được */}
@@ -215,7 +219,7 @@ export default function ContextMenu({
                     className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-800 dark:text-gray-200 transition-colors"
                 >
                     <Copy className="w-4 h-4 text-gray-700 dark:text-gray-300 shrink-0" />
-                    <span>Sao chép tên</span>
+                    <span>{t('menu.copyName')}</span>
                 </button>
 
                 <div className="h-px bg-gray-200 dark:bg-gray-700/60 my-1"></div>
@@ -226,7 +230,7 @@ export default function ContextMenu({
                     className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-800 dark:text-gray-200 transition-colors"
                 >
                     <UserPlus className="w-4 h-4 text-gray-700 dark:text-gray-300 shrink-0" />
-                    <span>Chia sẻ &amp; thành viên</span>
+                    <span>{t('menu.shareAndMembers')}</span>
                 </button>
 
                 <div className="h-px bg-gray-200 dark:bg-gray-700/60 my-1"></div>
@@ -238,15 +242,15 @@ export default function ContextMenu({
                         className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-rose-600 dark:text-rose-300 hover:text-rose-700 dark:hover:text-rose-200 transition-colors"
                     >
                         <Trash2 className="w-4 h-4 shrink-0" />
-                        <span>Xóa bộ nhớ dùng chung</span>
+                        <span>{t('menu.deleteDrive')}</span>
                     </button>
                 ) : (
                     <div className="w-full px-4 py-2 flex items-center justify-between text-gray-400 dark:text-gray-500 cursor-not-allowed">
                         <div className="flex items-center gap-3">
                             <ShieldOff className="w-4 h-4 shrink-0" />
-                            <span className="line-through text-xs">Xóa bộ nhớ dùng chung</span>
+                            <span className="line-through text-xs">{t('menu.deleteDrive')}</span>
                         </div>
-                        <span className="text-[10px] text-gray-400 dark:text-gray-500">Chỉ người tạo</span>
+                        <span className="text-[10px] text-gray-400 dark:text-gray-500">{t('menu.creatorOnly')}</span>
                     </div>
                 )}
             </div>
@@ -292,7 +296,7 @@ export default function ContextMenu({
                             ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300'
                             : 'bg-sky-100 dark:bg-sky-500/20 text-sky-800 dark:text-sky-300'
                     }`}>
-                        {sharedRole === 'EDITOR' ? 'Chỉnh sửa' : 'Xem'}
+                        {sharedRole === 'EDITOR' ? t('menu.roleEditor') : t('menu.roleViewer')}
                     </span>
                 )}
             </div>
@@ -305,7 +309,7 @@ export default function ContextMenu({
                         className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-800 dark:text-gray-200 transition-colors"
                     >
                         <RotateCcw className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
-                        <span>Khôi phục</span>
+                        <span>{t('common.restore')}</span>
                     </button>
 
                     <button
@@ -313,7 +317,7 @@ export default function ContextMenu({
                         className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-rose-600 dark:text-rose-300 hover:text-rose-700 dark:hover:text-rose-200 transition-colors"
                     >
                         <Trash2 className="w-4 h-4 shrink-0" />
-                        <span>Xóa vĩnh viễn</span>
+                        <span>{t('common.deleteForever')}</span>
                     </button>
                 </>
             ) : (
@@ -325,7 +329,7 @@ export default function ContextMenu({
                             className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-800 dark:text-gray-200 transition-colors font-medium"
                         >
                             <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
-                            <span>Xem trước</span>
+                            <span>{t('menu.preview')}</span>
                         </button>
                     )}
 
@@ -335,7 +339,7 @@ export default function ContextMenu({
                         className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-800 dark:text-gray-200 transition-colors"
                     >
                         <Download className="w-4 h-4 text-gray-700 dark:text-gray-300 shrink-0" />
-                        <span>Tải xuống</span>
+                        <span>{t('common.download')}</span>
                     </button>
 
                     {/* 2. Đổi tên — ẩn nếu VIEWER trong shared-with-me */}
@@ -346,18 +350,18 @@ export default function ContextMenu({
                         >
                             <div className="flex items-center gap-3">
                                 <Pencil className="w-4 h-4 text-gray-700 dark:text-gray-300 shrink-0" />
-                                <span>Đổi tên</span>
+                                <span>{t('menu.rename')}</span>
                             </div>
-                            <span className="text-[11px] text-gray-500 dark:text-gray-400 font-mono text-right leading-snug">{RENAME_SHORTCUT_HINT}</span>
+                            <span className="text-[11px] text-gray-500 dark:text-gray-400 font-mono text-right leading-snug">{RENAME_SHORTCUT_KEYS.join(`  ${t('shortcuts.or')}  `)}</span>
                         </button>
                     ) : (
                         // Hiển thị disabled hint khi VIEWER
                         <div className="w-full px-4 py-2 flex items-center justify-between text-gray-400 dark:text-gray-500 cursor-not-allowed">
                             <div className="flex items-center gap-3">
                                 <ShieldOff className="w-4 h-4 shrink-0" />
-                                <span className="line-through text-xs">Đổi tên</span>
+                                <span className="line-through text-xs">{t('menu.rename')}</span>
                             </div>
-                            <span className="text-[10px] text-gray-400 dark:text-gray-500">Chỉ xem</span>
+                            <span className="text-[10px] text-gray-400 dark:text-gray-500">{t('menu.viewerOnly')}</span>
                         </div>
                     )}
 
@@ -369,7 +373,7 @@ export default function ContextMenu({
                         >
                             <div className="flex items-center gap-3">
                                 <Star className={`w-4 h-4 ${item.isStarred ? 'text-amber-600 dark:text-amber-400 fill-amber-400' : 'text-gray-700 dark:text-gray-300'} shrink-0`} />
-                                <span>{item.isStarred ? 'Bỏ khỏi mục gắn sao' : 'Thêm vào mục gắn sao'}</span>
+                                <span>{item.isStarred ? t('menu.star.remove') : t('menu.star.add')}</span>
                             </div>
                         </button>
                     )}
@@ -385,7 +389,7 @@ export default function ContextMenu({
                         >
                             <div className="flex items-center gap-3">
                                 <Scissors className="w-4 h-4 text-gray-700 dark:text-gray-300 shrink-0" />
-                                <span>Cắt</span>
+                                <span>{t('common.cut')}</span>
                             </div>
                             <span className="text-[11px] text-gray-500 dark:text-gray-400 font-mono">Ctrl+X</span>
                         </button>
@@ -398,7 +402,7 @@ export default function ContextMenu({
                     >
                         <div className="flex items-center gap-3">
                             <Copy className="w-4 h-4 text-gray-700 dark:text-gray-300 shrink-0" />
-                            <span>Sao chép</span>
+                            <span>{t('common.copy')}</span>
                         </div>
                         <span className="text-[11px] text-gray-500 dark:text-gray-400 font-mono">Ctrl+C</span>
                     </button>
@@ -419,7 +423,7 @@ export default function ContextMenu({
                                 ) : (
                                     <FolderInput className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
                                 )}
-                                <span>{isFolder ? 'Dán vào thư mục này' : 'Dán'}</span>
+                                <span>{isFolder ? t('menu.pasteIntoFolder') : t('menu.paste')}</span>
                             </div>
                             <span className="text-[11px] text-gray-500 dark:text-gray-400 font-mono">Ctrl+V</span>
                         </button>
@@ -434,7 +438,7 @@ export default function ContextMenu({
                         className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-900 dark:text-gray-100 font-medium transition-colors"
                     >
                         <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0 animate-pulse" />
-                        <span>Hỏi Gemini</span>
+                        <span>{t('menu.askGemini')}</span>
                     </button>
 
                     {/* Separator 2 */}
@@ -448,7 +452,7 @@ export default function ContextMenu({
                         >
                             <div className="flex items-center gap-3">
                                 <UserPlus className="w-4 h-4 text-gray-700 dark:text-gray-300 shrink-0" />
-                                <span>Chia sẻ</span>
+                                <span>{t('menu.share')}</span>
                             </div>
                         </button>
                     )}
@@ -459,7 +463,7 @@ export default function ContextMenu({
                         className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-800 dark:text-gray-200 transition-colors"
                     >
                         <Info className="w-4 h-4 text-gray-700 dark:text-gray-300 shrink-0" />
-                        <span>Xem chi tiết & hoạt động</span>
+                        <span>{t('menu.details')}</span>
                     </button>
 
                     {/* Separator 3 */}
@@ -473,7 +477,7 @@ export default function ContextMenu({
                         >
                             <div className="flex items-center gap-3">
                                 <Trash2 className="w-4 h-4 text-gray-700 dark:text-gray-300 shrink-0" />
-                                <span>Chuyển vào thùng rác</span>
+                                <span>{t('menu.moveToTrash')}</span>
                             </div>
                             <span className="text-[11px] text-gray-500 dark:text-gray-400 font-mono">Delete</span>
                         </button>
@@ -482,9 +486,9 @@ export default function ContextMenu({
                         <div className="w-full px-4 py-2 flex items-center justify-between text-gray-400 dark:text-gray-500 cursor-not-allowed">
                             <div className="flex items-center gap-3">
                                 <ShieldOff className="w-4 h-4 shrink-0" />
-                                <span className="line-through text-xs">Chuyển vào thùng rác</span>
+                                <span className="line-through text-xs">{t('menu.moveToTrash')}</span>
                             </div>
-                            <span className="text-[10px] text-gray-400 dark:text-gray-500">Chỉ xem</span>
+                            <span className="text-[10px] text-gray-400 dark:text-gray-500">{t('menu.viewerOnly')}</span>
                         </div>
                     )}
 
@@ -495,7 +499,7 @@ export default function ContextMenu({
                             className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:text-gray-100 transition-colors"
                         >
                             <ThumbsDown className="w-4 h-4 text-gray-500 dark:text-gray-400 shrink-0" />
-                            <span>Không phải mục đề xuất hữu ích</span>
+                            <span>{t('menu.notSpam')}</span>
                         </button>
                     )}
                 </>

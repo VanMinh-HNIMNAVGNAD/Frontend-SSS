@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { flushSync } from 'react-dom';
 import { useFiles } from '../../context/FileContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { filesApi } from '../../services/api';
 import { formatBytes } from '../../utils/formatFileSize';
+import { localeTagOf } from '../../utils/locale';
 import { 
     X, 
     FileText, 
@@ -44,6 +46,8 @@ import {
 
 export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', onClose, onOpenShare, onOpenRename }) {
     const { openPreview } = useFiles();
+    const { t, language } = useLanguage();
+    const locale = localeTagOf(language);
     const [currentTab, setCurrentTab] = useState(activeTab);
     const [description, setDescription] = useState(item?.description || '');
     const [isSavingDesc, setIsSavingDesc] = useState(false);
@@ -75,7 +79,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
             })
             .catch((err) => {
                 console.error('[Activity Logs Error]', err);
-                setActivityError(err.message || 'Không thể tải lịch sử hoạt động. Vui lòng thử lại.');
+                setActivityError(err.message || t('activity.loadFailed'));
             })
             .finally(() => {
                 setLoadingTab(false);
@@ -133,7 +137,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
         const act = (action || '').toUpperCase();
         if (act.includes('UPLOAD')) {
             return {
-                label: 'Tải lên tệp',
+                label: t('activity.action.uploadFile'),
                 icon: Upload,
                 colorClass: 'text-emerald-600 dark:text-emerald-400',
                 bgClass: 'bg-emerald-100 dark:bg-emerald-900/40',
@@ -141,7 +145,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
         }
         if (act.includes('RENAME')) {
             return {
-                label: 'Đổi tên',
+                label: t('activity.action.rename'),
                 icon: Pencil,
                 colorClass: 'text-amber-600 dark:text-amber-400',
                 bgClass: 'bg-amber-100 dark:bg-amber-900/40',
@@ -149,7 +153,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
         }
         if (act.includes('SHARE')) {
             return {
-                label: 'Chia sẻ liên kết',
+                label: t('info.action.shareLink'),
                 icon: Share2,
                 colorClass: 'text-blue-600 dark:text-blue-400',
                 bgClass: 'bg-blue-100 dark:bg-blue-900/40',
@@ -157,7 +161,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
         }
         if (act.includes('RESTORE')) {
             return {
-                label: 'Khôi phục tệp',
+                label: t('activity.action.restore'),
                 icon: RotateCcw,
                 colorClass: 'text-emerald-600 dark:text-emerald-400',
                 bgClass: 'bg-emerald-100 dark:bg-emerald-900/40',
@@ -165,7 +169,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
         }
         if (act.includes('TRASH') || act.includes('DELETE')) {
             return {
-                label: act.includes('PERMANENT') ? 'Xóa vĩnh viễn' : 'Chuyển vào thùng rác',
+                label: act.includes('PERMANENT') ? t('activity.action.deleteForever') : t('activity.action.trash'),
                 icon: Trash2,
                 colorClass: 'text-rose-600 dark:text-rose-400',
                 bgClass: 'bg-rose-100 dark:bg-rose-900/40',
@@ -173,7 +177,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
         }
         if (act.includes('STAR')) {
             return {
-                label: 'Đánh dấu sao',
+                label: t('info.action.star'),
                 icon: Star,
                 colorClass: 'text-amber-500 dark:text-amber-400',
                 bgClass: 'bg-amber-100 dark:bg-amber-900/40',
@@ -181,7 +185,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
         }
         if (act.includes('COPY')) {
             return {
-                label: 'Tạo bản sao',
+                label: t('activity.action.copy'),
                 icon: Copy,
                 colorClass: 'text-indigo-600 dark:text-indigo-400',
                 bgClass: 'bg-indigo-100 dark:bg-indigo-900/40',
@@ -189,7 +193,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
         }
         if (act.includes('VERSION')) {
             return {
-                label: 'Phiên bản mới',
+                label: t('info.action.newVersion'),
                 icon: History,
                 colorClass: 'text-purple-600 dark:text-purple-400',
                 bgClass: 'bg-purple-100 dark:bg-purple-900/40',
@@ -197,7 +201,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
         }
         if (act.includes('DOWNLOAD')) {
             return {
-                label: 'Tải xuống',
+                label: t('common.download'),
                 icon: Download,
                 colorClass: 'text-sky-600 dark:text-sky-400',
                 bgClass: 'bg-sky-100 dark:bg-sky-900/40',
@@ -205,7 +209,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
         }
         const formatted = action
             ? action.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())
-            : 'Hoạt động';
+            : t('activity.action.other');
         return {
             label: formatted,
             icon: ActivityIcon,
@@ -223,18 +227,18 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
 
         if (action.includes('RENAME')) {
             if (d.oldName && d.newName) {
-                return `Đổi tên từ "${d.oldName}" thành "${d.newName}"`;
+                return t('info.desc.renameFromTo', { old: d.oldName, new: d.newName });
             }
             if (d.newName) {
-                return `Đổi tên thành "${d.newName}"`;
+                return t('info.desc.renameTo', { new: d.newName });
             }
         }
 
         if (action.includes('UPLOAD')) {
             const parts = [];
-            if (d.fileName || d.name) parts.push(`Tệp: "${d.fileName || d.name}"`);
-            if (d.sizeBytes || d.size) parts.push(`Dung lượng: ${formatBytes(d.sizeBytes || d.size)}`);
-            if (d.storageProvider || d.provider) parts.push(`Nơi lưu: ${d.storageProvider || d.provider}`);
+            if (d.fileName || d.name) parts.push(t('info.desc.file', { name: d.fileName || d.name }));
+            if (d.sizeBytes || d.size) parts.push(t('info.desc.size', { size: formatBytes(d.sizeBytes || d.size) }));
+            if (d.storageProvider || d.provider) parts.push(t('info.desc.provider', { provider: d.storageProvider || d.provider }));
             return parts.length > 0 ? parts.join(' • ') : null;
         }
 
@@ -242,37 +246,37 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
             const parts = [];
             if (d.accessLevel) {
                 const accessMap = {
-                    ANYONE_WITH_LINK: 'Bất kỳ ai có link',
-                    RESTRICTED: 'Chỉ định người nhận',
+                    ANYONE_WITH_LINK: t('info.access.anyoneWithLink'),
+                    RESTRICTED: t('info.access.restricted'),
                 };
-                parts.push(`Quyền: ${accessMap[d.accessLevel] || d.accessLevel}`);
+                parts.push(t('info.desc.access', { access: accessMap[d.accessLevel] || d.accessLevel }));
             }
             if (d.role) {
                 const roleMap = {
-                    VIEWER: 'Xem',
-                    EDITOR: 'Chỉnh sửa',
-                    COMMENTER: 'Nhận xét',
+                    VIEWER: t('list.role.viewer'),
+                    EDITOR: t('menu.roleEditor'),
+                    COMMENTER: t('info.role.commenter'),
                 };
-                parts.push(`Vai trò: ${roleMap[d.role] || d.role}`);
+                parts.push(t('info.desc.role', { role: roleMap[d.role] || d.role }));
             }
             if (d.expiresAt) {
-                parts.push(`Hạn: ${new Date(d.expiresAt).toLocaleDateString('vi-VN')}`);
+                parts.push(t('info.desc.expiry', { date: new Date(d.expiresAt).toLocaleDateString(locale) }));
             } else if (d.accessLevel || d.role) {
-                parts.push('Không hết hạn');
+                parts.push(t('info.desc.noExpiry'));
             }
-            return parts.length > 0 ? parts.join(' • ') : 'Tạo liên kết chia sẻ';
+            return parts.length > 0 ? parts.join(' • ') : t('activity.action.shareLink');
         }
 
         if (action.includes('VERSION')) {
             const parts = [];
-            if (d.versionNumber) parts.push(`Phiên bản: v${d.versionNumber}`);
-            if (d.sizeBytes || d.size) parts.push(`Dung lượng: ${formatBytes(d.sizeBytes || d.size)}`);
+            if (d.versionNumber) parts.push(t('info.desc.version', { number: d.versionNumber }));
+            if (d.sizeBytes || d.size) parts.push(t('info.desc.size', { size: formatBytes(d.sizeBytes || d.size) }));
             return parts.length > 0 ? parts.join(' • ') : null;
         }
 
         if (action.includes('COPY')) {
             if (d.newName || d.name) {
-                return `Tạo bản sao mới "${d.newName || d.name}"`;
+                return t('info.desc.copyMade', { name: d.newName || d.name });
             }
         }
 
@@ -317,14 +321,14 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                             {item.name}
                         </h3>
                         <p className="text-[11px] text-gray-600 dark:text-gray-400 font-medium truncate">
-                            {isFolder ? 'Thư mục' : item.mimeType || 'Tệp dữ liệu'}
+                            {isFolder ? t('fileType.folder') : item.mimeType || t('info.type.dataFile')}
                         </p>
                     </div>
                 </div>
                 <button
                     onClick={onClose}
                     className="p-1.5 rounded-full text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors shrink-0 cursor-pointer"
-                    title="Đóng"
+                    title={t('common.close')}
                 >
                     <X className="w-5 h-5" />
                 </button>
@@ -341,7 +345,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                     }`}
                 >
                     <InfoIcon className="w-3.5 h-3.5" />
-                    <span>Chi tiết</span>
+                    <span>{t('info.tab.details')}</span>
                 </button>
 
                 <button
@@ -353,7 +357,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                     }`}
                 >
                     <ActivityIcon className="w-3.5 h-3.5" />
-                    <span>Hoạt động</span>
+                    <span>{t('info.tab.activity')}</span>
                 </button>
 
                 {!isFolder && (
@@ -366,7 +370,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                         }`}
                     >
                         <History className="w-3.5 h-3.5" />
-                        <span>Phiên bản</span>
+                        <span>{t('info.tab.versions')}</span>
                     </button>
                 )}
             </div>
@@ -386,7 +390,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                                         {(item.owner || 'T').charAt(0).toUpperCase()}
                                     </div>
                                     <div>
-                                        <p className="font-semibold text-gray-800 dark:text-gray-200">{item.owner || 'Tôi'}</p>
+                                        <p className="font-semibold text-gray-800 dark:text-gray-200">{item.owner || t('list.owner.me')}</p>
                                         <p className="text-[10px] text-gray-400">Group: {item.group || 'dev-team'}</p>
                                     </div>
                                 </div>
@@ -422,21 +426,21 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                         {/* File Details Properties List */}
                         <div className="space-y-3 pt-2">
                             <h4 className="font-bold text-gray-900 dark:text-gray-100 text-xs uppercase tracking-wider text-[11px] mb-3">
-                                Chi tiết {isFolder ? 'thư mục' : 'tệp'}
+                                {isFolder ? t('info.detailsOfFolder') : t('info.detailsOfFile')}
                             </h4>
 
                             {/* Property item: Loại tệp */}
                             <div className="flex justify-between py-1.5 border-b border-gray-200 dark:border-gray-800">
-                                <span className="text-gray-600 dark:text-gray-400 font-semibold">Loại tệp</span>
+                                <span className="text-gray-600 dark:text-gray-400 font-semibold">{t('info.field.type')}</span>
                                 <span className="font-semibold text-gray-900 dark:text-gray-100">
-                                    {isFolder ? 'Thư mục' : item.mimeType || 'Tệp dữ liệu'}
+                                    {isFolder ? t('fileType.folder') : item.mimeType || t('info.type.dataFile')}
                                 </span>
                             </div>
 
                             {/* Property item: Kích thước */}
                             {!isFolder && (
                                 <div className="flex justify-between py-1.5 border-b border-gray-200 dark:border-gray-800">
-                                    <span className="text-gray-600 dark:text-gray-400 font-semibold">Kích thước</span>
+                                    <span className="text-gray-600 dark:text-gray-400 font-semibold">{t('info.field.size')}</span>
                                     <span className="font-semibold text-gray-900 dark:text-gray-100 font-mono">
                                         {formatBytes(item.size)}
                                     </span>
@@ -445,10 +449,10 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
 
                             {/* Property item: Vị trí */}
                             <div className="flex justify-between py-1.5 border-b border-gray-200 dark:border-gray-800">
-                                <span className="text-gray-600 dark:text-gray-400 font-semibold">Vị trí</span>
+                                <span className="text-gray-600 dark:text-gray-400 font-semibold">{t('info.field.location')}</span>
                                 <span className="font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-1">
                                     <FolderTree className="w-3.5 h-3.5" />
-                                    {item.parentId ? 'Thư mục con' : 'Driver riêng của tôi'}
+                                    {item.parentId ? t('info.location.subfolder') : t('breadcrumb.myDriveRoot')}
                                 </span>
                             </div>
 
@@ -456,7 +460,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                             <div className="flex justify-between py-1.5 border-b border-gray-200 dark:border-gray-800">
                                 <span className="text-gray-600 dark:text-gray-400 font-semibold">Owner</span>
                                 <span className="font-semibold text-gray-900 dark:text-gray-100">
-                                    {item.owner || 'Tôi'}
+                                    {item.owner || t('list.owner.me')}
                                 </span>
                             </div>
 
@@ -478,15 +482,15 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
 
                             {/* Property item: Sửa đổi lần cuối */}
                             <div className="flex justify-between py-1.5 border-b border-gray-200 dark:border-gray-800">
-                                <span className="text-gray-600 dark:text-gray-400 font-semibold">Sửa đổi (Modified)</span>
+                                <span className="text-gray-600 dark:text-gray-400 font-semibold">{t('info.field.modified')}</span>
                                 <span className="font-semibold text-gray-900 dark:text-gray-100 font-mono">
-                                    {item.updatedAt || 'Vừa xong'}
+                                    {item.updatedAt || t('activity.time.justNow')}
                                 </span>
                             </div>
 
                             {/* Property item: Ngày tạo (Created) */}
                             <div className="flex justify-between py-1.5 border-b border-gray-200 dark:border-gray-800">
-                                <span className="text-gray-600 dark:text-gray-400 font-semibold">Ngày tạo (Created)</span>
+                                <span className="text-gray-600 dark:text-gray-400 font-semibold">{t('info.field.created')}</span>
                                 <span className="font-semibold text-gray-900 dark:text-gray-100 font-mono">
                                     {item.createdAt || '2026-07-01 09:15'}
                                 </span>
@@ -508,7 +512,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                             <textarea
                                 value={description}
                                 onChange={(e) => setDescription(e.target.value)}
-                                placeholder="Thêm mô tả cho mục này..."
+                                placeholder={t('info.desc.placeholder')}
                                 rows={3}
                                 className="w-full p-3 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-[#282a2c] text-gray-900 dark:text-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-xs leading-relaxed"
                             />
@@ -518,7 +522,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                                     disabled={isSavingDesc}
                                     className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-200 font-bold border border-gray-300 dark:border-transparent rounded-lg text-xs transition-colors cursor-pointer"
                                 >
-                                    {isSavingDesc ? 'Đang lưu...' : 'Lưu mô tả'}
+                                    {isSavingDesc ? t('info.desc.saving') : t('info.desc.save')}
                                 </button>
                             </div>
                         </div>
@@ -533,7 +537,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                                 <button
                                     onClick={fetchActivityLogs}
                                     className="p-1 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
-                                    title="Làm mới"
+                                    title={t('info.refresh')}
                                 >
                                     <RefreshCw className="w-3.5 h-3.5" />
                                 </button>
@@ -543,7 +547,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                         {loadingTab ? (
                             <div className="flex flex-col items-center justify-center py-10 text-gray-400 space-y-2.5">
                                 <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
-                                <p className="text-xs text-gray-400 font-medium">Đang tải lịch sử hoạt động...</p>
+                                <p className="text-xs text-gray-400 font-medium">{t('info.activity.loading')}</p>
                             </div>
                         ) : activityError ? (
                             <div className="p-4 rounded-2xl bg-rose-50/60 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30 text-center space-y-2">
@@ -617,7 +621,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                                 <div className="w-10 h-10 rounded-2xl bg-gray-100 dark:bg-gray-800/80 flex items-center justify-center mx-auto mb-2 text-gray-400">
                                     <ActivityIcon className="w-5 h-5 opacity-60" />
                                 </div>
-                                <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">Chưa có hoạt động nào</p>
+                                <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">{t('info.activity.empty')}</p>
                                 <p className="text-[11px] text-gray-400 mt-1">
                                     Chưa có ghi nhận thay đổi nào cho tệp này.
                                 </p>
@@ -630,13 +634,13 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                             Lịch sử phiên bản tệp (File Versioning)
                         </h4>
                         {loadingTab ? (
-                            <p className="text-xs text-gray-400">Đang nạp danh sách phiên bản...</p>
+                            <p className="text-xs text-gray-400">{t('info.versions.loading')}</p>
                         ) : versions ? (
                             <div className="space-y-3">
                                 {/* Current Version */}
                                 <div className="p-3 rounded-2xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
                                     <div className="flex items-center justify-between mb-1">
-                                        <span className="font-extrabold text-blue-700 dark:text-blue-400 text-xs">Phiên bản hiện tại (Mới nhất)</span>
+                                        <span className="font-extrabold text-blue-700 dark:text-blue-400 text-xs">{t('info.versions.current')}</span>
                                         <span className="text-[10px] font-mono text-blue-600">{formatBytes(versions.currentVersion.sizeBytes)}</span>
                                     </div>
                                     <p className="text-[11px] text-blue-900 dark:text-blue-200 font-medium">{versions.currentVersion.name}</p>
@@ -657,11 +661,11 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                                         </div>
                                     ))
                                 ) : (
-                                    <p className="text-xs text-gray-400 py-2 text-center">Chưa có phiên bản cũ nào</p>
+                                    <p className="text-xs text-gray-400 py-2 text-center">{t('info.versions.noOld')}</p>
                                 )}
                             </div>
                         ) : (
-                            <p className="text-xs text-gray-400 py-4 text-center">Không tìm thấy thông tin phiên bản</p>
+                            <p className="text-xs text-gray-400 py-4 text-center">{t('info.versions.none')}</p>
                         )}
                     </div>
                 )}

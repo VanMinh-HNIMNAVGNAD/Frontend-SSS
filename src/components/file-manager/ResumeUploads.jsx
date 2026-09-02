@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { useFiles } from '../../context/FileContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { RotateCcw, X, FileUp, AlertTriangle } from 'lucide-react';
 import { formatBytes } from '../../utils/formatFileSize';
 
@@ -19,6 +20,7 @@ import { formatBytes } from '../../utils/formatFileSize';
  */
 export default function ResumeUploads() {
   const { listResumableSessions, resumeUpload, discardResumableSession } = useFiles();
+  const { t } = useLanguage();
 
   // Danh sách đọc thẳng từ localStorage (thuần đọc, không đổi gì) — tính lại khi
   // đổi tài khoản. Những phiên người dùng vừa xử lý thì lọc ra bằng `handled`,
@@ -53,19 +55,19 @@ export default function ResumeUploads() {
         // Nối nhầm tệp vào một phiên đang dở sẽ tạo ra tệp hỏng mà không báo lỗi
         // ở đâu cả — nên thà từ chối và nói rõ vì sao.
         const reasons = {
-          name: `Tên tệp không khớp — cần đúng tệp "${session.fileName}".`,
-          size: 'Kích thước tệp không khớp với phiên đang dở.',
-          modified: 'Tệp đã bị sửa kể từ lần tải trước, không nối tiếp được.',
-          missing: 'Không đọc được tệp vừa chọn.',
+          name: t('resume.reason.name', { name: session.fileName }),
+          size: t('resume.reason.size'),
+          modified: t('resume.reason.modified'),
+          missing: t('resume.reason.missing'),
         };
-        setError(reasons[result.reason] || 'Không tiếp tục được phiên tải lên này.');
+        setError(reasons[result.reason] || t('resume.reason.generic'));
         return;
       }
 
       setError(null);
       setHandled((prev) => new Set(prev).add(session.jobId));
     },
-    [resumeUpload],
+    [resumeUpload, t],
   );
 
   const handleDiscard = useCallback(
@@ -80,10 +82,10 @@ export default function ResumeUploads() {
       if (result && result.cloudCleaned === false) {
         // Dùng toast chứ không phải ô lỗi trong bảng: bỏ phiên cuối cùng là bảng
         // biến mất luôn, thông báo đặt trong đó sẽ không ai đọc được.
-        toast.error('Đã bỏ khỏi danh sách, nhưng chưa dọn được phần đã tải trên cloud.');
+        toast.error(t('resume.cleanupFailed'));
       }
     },
-    [discardResumableSession],
+    [discardResumableSession, t],
   );
 
   if (dismissed || sessions.length === 0) return null;
@@ -95,7 +97,7 @@ export default function ResumeUploads() {
         ref={fileInputRef}
         onChange={handlePicked}
         className="hidden"
-        aria-label="Chọn lại tệp để tải tiếp"
+        aria-label={t('resume.pickAgainAria')}
       />
 
       <div className="flex items-center justify-between px-4 py-3 bg-amber-500/95 text-white">
@@ -106,7 +108,7 @@ export default function ResumeUploads() {
         <button
           onClick={() => setDismissed(true)}
           className="p-1 hover:bg-white/20 rounded transition-colors cursor-pointer"
-          title="Ẩn bảng này (không xoá phiên nào)"
+          title={t('resume.hidePanel')}
         >
           <X className="w-4 h-4" />
         </button>
@@ -157,7 +159,7 @@ export default function ResumeUploads() {
                 <button
                   onClick={() => handleDiscard(session)}
                   className="px-2 py-1 rounded-full text-[11px] font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
-                  title="Bỏ phiên này và xoá phần đã tải trên cloud"
+                  title={t('resume.dropSession')}
                 >
                   Bỏ
                 </button>

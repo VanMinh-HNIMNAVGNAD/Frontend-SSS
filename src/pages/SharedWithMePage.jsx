@@ -2,9 +2,11 @@ import FileListView from '../components/file-manager/FileListView';
 import FileGridView from '../components/file-manager/FileGridView';
 import FileFilterBar from '../components/common/FileFilterBar';
 import { useFiles } from '../context/FileContext';
+import { useLanguage } from '../context/LanguageContext';
 import { Users, List, LayoutGrid, Share2, ChevronRight } from 'lucide-react';
 
 export default function SharedWithMePage() {
+    const { t } = useLanguage();
     const {
         viewMode,
         setViewMode,
@@ -36,7 +38,7 @@ export default function SharedWithMePage() {
                                 onClick={() => openFolder({ id: null })}
                                 className="hover:text-blue-700 dark:hover:text-blue-400 transition-colors shrink-0 text-xl font-bold text-gray-900 dark:text-gray-100 cursor-pointer"
                             >
-                                Được chia sẻ với tôi
+                                {t('page.sharedWithMe.title')}
                             </button>
                             {breadcrumb
                                 .filter((b) => b.id !== null)
@@ -57,7 +59,7 @@ export default function SharedWithMePage() {
                                 ))}
                         </nav>
                     ) : (
-                        <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Được chia sẻ với tôi</h1>
+                        <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">{t('page.sharedWithMe.title')}</h1>
                     )}
                 </div>
 
@@ -65,7 +67,7 @@ export default function SharedWithMePage() {
                 <div className="flex items-center bg-gray-200/90 dark:bg-gray-700 rounded-full p-0.5 border border-gray-300 dark:border-gray-700 shrink-0">
                     <button
                         onClick={() => setViewMode('list')}
-                        title="Xem dạng danh sách"
+                        title={t('view.list')}
                         className={`p-1.5 rounded-full transition-colors ${
                             viewMode === 'list'
                                 ? 'bg-white dark:bg-[#282a2c] shadow-xs text-blue-700 dark:text-blue-400 font-bold'
@@ -76,7 +78,7 @@ export default function SharedWithMePage() {
                     </button>
                     <button
                         onClick={() => setViewMode('grid')}
-                        title="Xem dạng lưới"
+                        title={t('view.grid')}
                         className={`p-1.5 rounded-full transition-colors ${
                             viewMode === 'grid'
                                 ? 'bg-white dark:bg-[#282a2c] shadow-xs text-blue-700 dark:text-blue-400 font-bold'
@@ -115,12 +117,12 @@ export default function SharedWithMePage() {
                     </div>
                     <div className="text-center">
                         <p className="text-base font-semibold text-gray-700 dark:text-gray-300">
-                            {currentFolderId ? 'Thư mục này trống' : 'Chưa có mục nào được chia sẻ với bạn'}
+                            {currentFolderId ? t('sharedWithMe.empty.folderTitle') : t('sharedWithMe.empty.title')}
                         </p>
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                             {currentFolderId
-                                ? 'Không có tệp hoặc thư mục nào bên trong thư mục này.'
-                                : 'Khi ai đó chia sẻ tệp hoặc thư mục với bạn, chúng sẽ xuất hiện ở đây.'}
+                                ? t('sharedWithMe.empty.folderBody')
+                                : t('sharedWithMe.empty.body')}
                         </p>
                     </div>
                 </div>

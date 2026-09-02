@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { UserPlus, X, Copy, Check, Lock, Shield, Eye, Edit3, Loader2, AlertCircle, HelpCircle } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 import { sharingApi } from '../../services/api';
 import { readDefaultShareRole } from '../../constants/privacy';
 
@@ -13,18 +14,18 @@ import { readDefaultShareRole } from '../../constants/privacy';
 // cứu xem địa chỉ nào có tài khoản driveR, thậm chí biết ai đã chủ động ẩn mình
 // (user enumeration). Vì vậy phía client cũng không được đoán: chỉ nêu ĐỦ CẢ HAI
 // khả năng để người chia sẻ không kết luận sai rằng email không tồn tại.
-const EMAIL_LOOKUP_HINT =
-    'Một số người dùng có thể không tìm thấy qua email nếu họ tắt "Hiển thị thông tin cá nhân" trong Cài đặt.';
+// Khoá dịch, không phải câu: hằng số module không gọi được useLanguage().
+const EMAIL_LOOKUP_HINT_KEY = 'share.emailHint';
 
 const ROLE_CONFIG = {
     VIEWER: {
-        label: 'Người xem',
+        labelKey: 'share.role.viewer',
         icon: Eye,
         color: 'text-sky-400',
         bg: 'bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-500/30',
     },
     EDITOR: {
-        label: 'Người chỉnh sửa',
+        labelKey: 'share.role.editor',
         icon: Edit3,
         color: 'text-emerald-400',
         bg: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30',
@@ -50,6 +51,7 @@ function Avatar({ name, avatarUrl, size = 9 }) {
 }
 
 export default function ShareModal({ isOpen, item, onClose }) {
+    const { t } = useLanguage();
     const [email, setEmail] = useState('');
     // Quyền mặc định cho người SẮP được thêm — đọc từ "Quyền chia sẻ mặc định"
     // trong Cài đặt. Truyền THAM CHIẾU hàm (không phải readDefaultShareRole())
@@ -151,8 +153,8 @@ export default function ShareModal({ isOpen, item, onClose }) {
             // biết khả năng thứ hai thay vì tin chắc là mình gõ sai email. Các lỗi khác
             // (403 không có quyền, 400 dữ liệu sai, mất mạng…) giữ nguyên câu của server
             // — dán câu về quyền riêng tư vào đó chỉ làm người dùng đi sai hướng.
-            const message = err.message || 'Không tìm thấy người dùng với email này.';
-            setErrorMsg(err.status === 404 ? `${message} ${EMAIL_LOOKUP_HINT}` : message);
+            const message = err.message || t('share.userNotFound');
+            setErrorMsg(err.status === 404 ? `${message} ${t(EMAIL_LOOKUP_HINT_KEY)}` : message);
         } finally {
             setIsSubmitting(false);
         }
@@ -164,7 +166,7 @@ export default function ShareModal({ isOpen, item, onClose }) {
             await sharingApi.removeShareAccess(item.id, userId);
             await loadMembers();
         } catch (err) {
-            setErrorMsg('Lỗi xóa người dùng: ' + (err.message || err));
+            setErrorMsg(t('share.removeFailed', { reason: err.message || err }));
         } finally {
             setRemovingId(null);
         }
@@ -178,7 +180,7 @@ export default function ShareModal({ isOpen, item, onClose }) {
             await sharingApi.addShareAccess(item.id, { email: member.email, role: newRole });
             await loadMembers();
         } catch (err) {
-            setErrorMsg('Lỗi cập nhật quyền: ' + (err.message || err));
+            setErrorMsg(t('share.roleUpdateFailed', { reason: err.message || err }));
         }
     };
 
@@ -186,7 +188,7 @@ export default function ShareModal({ isOpen, item, onClose }) {
         const expiresInDays = calculateExpiresInDays(expireDate);
 
         if (expireDate && expiresInDays === undefined) {
-            setErrorMsg('Ngày hết hạn phải là một ngày trong tương lai.');
+            setErrorMsg(t('share.expiryInPast'));
             return;
         }
 
@@ -209,7 +211,7 @@ export default function ShareModal({ isOpen, item, onClose }) {
             setCopied(true);
             setTimeout(() => setCopied(false), 2500);
         } catch (err) {
-            setErrorMsg('Lỗi tạo liên kết chia sẻ: ' + (err.message || err));
+            setErrorMsg(t('share.linkFailed', { reason: err.message || err }));
         }
     };
 
@@ -253,7 +255,7 @@ export default function ShareModal({ isOpen, item, onClose }) {
                     {/* Add people form */}
                     <form onSubmit={handleAddMember} className="space-y-2">
                         <div className="flex items-center gap-1.5">
-                            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Thêm người có quyền truy cập</label>
+                            <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t('share.addPeople')}</label>
                             {/* Tooltip gốc của trình duyệt (thuộc tính title) thay vì popover tự
                                 dựng: chỉ là một câu tĩnh, không cần state/định vị, và vẫn đọc
                                 được bằng trình đọc màn hình qua aria-label. tabIndex={0} để tới
@@ -261,8 +263,8 @@ export default function ShareModal({ isOpen, item, onClose }) {
                                 chuột không bao giờ thấy câu này. */}
                             <span
                                 role="img"
-                                title={EMAIL_LOOKUP_HINT}
-                                aria-label={EMAIL_LOOKUP_HINT}
+                                title={t(EMAIL_LOOKUP_HINT_KEY)}
+                                aria-label={t(EMAIL_LOOKUP_HINT_KEY)}
                                 tabIndex={0}
                                 className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 rounded-full cursor-help transition-colors"
                             >
@@ -274,8 +276,8 @@ export default function ShareModal({ isOpen, item, onClose }) {
                                 type="email"
                                 value={email}
                                 onChange={(e) => { setEmail(e.target.value); setErrorMsg(''); }}
-                                placeholder="Email người dùng..."
-                                title={EMAIL_LOOKUP_HINT}
+                                placeholder={t('share.email.placeholder')}
+                                title={t(EMAIL_LOOKUP_HINT_KEY)}
                                 className="flex-1 px-3.5 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-white/5 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 outline-none transition"
                             />
                             <select
@@ -283,15 +285,15 @@ export default function ShareModal({ isOpen, item, onClose }) {
                                 onChange={(e) => setRole(e.target.value)}
                                 className="px-3 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-white/5 text-gray-700 dark:text-gray-300 font-medium outline-none focus:ring-2 focus:ring-blue-500/50 cursor-pointer"
                             >
-                                <option value="VIEWER">Người xem</option>
-                                <option value="EDITOR">Người chỉnh sửa</option>
+                                <option value="VIEWER">{t('share.role.viewer')}</option>
+                                <option value="EDITOR">{t('share.role.editor')}</option>
                             </select>
                             <button
                                 type="submit"
                                 disabled={!email.trim() || isSubmitting}
                                 className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center gap-1.5"
                             >
-                                {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>Gửi</span>}
+                                {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>{t('share.send')}</span>}
                             </button>
                         </div>
                     </form>
@@ -305,12 +307,12 @@ export default function ShareModal({ isOpen, item, onClose }) {
                             {isLoadingMembers ? (
                                 <div className="flex items-center justify-center gap-2 py-6 text-gray-500 dark:text-gray-400 text-xs">
                                     <Loader2 className="w-4 h-4 animate-spin" />
-                                    <span>Đang tải danh sách...</span>
+                                    <span>{t('share.loadingList')}</span>
                                 </div>
                             ) : members.length === 0 ? (
                                 <div className="text-center py-6 text-gray-500 dark:text-gray-400 text-xs">
                                     <Shield className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                                    <p>Chưa chia sẻ với ai</p>
+                                    <p>{t('share.noOne')}</p>
                                 </div>
                             ) : members.map((member) => {
                                 const roleInfo = ROLE_CONFIG[member.role] || ROLE_CONFIG.VIEWER;
@@ -333,17 +335,17 @@ export default function ShareModal({ isOpen, item, onClose }) {
                                                 value={member.role}
                                                 onChange={(e) => handleChangeRole(member.id, e.target.value)}
                                                 className={`text-xs px-2 py-1 rounded-lg border cursor-pointer outline-none bg-transparent ${roleInfo.bg} hover:opacity-80 transition`}
-                                                title="Thay đổi quyền"
+                                                title={t('share.changeRole')}
                                             >
-                                                <option value="VIEWER" className="bg-white dark:bg-[#282a2c] text-gray-900 dark:text-gray-100">Người xem</option>
-                                                <option value="EDITOR" className="bg-white dark:bg-[#282a2c] text-gray-900 dark:text-gray-100">Người chỉnh sửa</option>
+                                                <option value="VIEWER" className="bg-white dark:bg-[#282a2c] text-gray-900 dark:text-gray-100">{t('share.role.viewer')}</option>
+                                                <option value="EDITOR" className="bg-white dark:bg-[#282a2c] text-gray-900 dark:text-gray-100">{t('share.role.editor')}</option>
                                             </select>
                                             {/* Remove Button */}
                                             <button
                                                 onClick={() => handleRemoveMember(member.id)}
                                                 disabled={removingId === member.id}
                                                 className="p-1 rounded-lg text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors disabled:opacity-50 opacity-0 group-hover:opacity-100"
-                                                title="Thu hồi quyền truy cập"
+                                                title={t('share.revoke')}
                                             >
                                                 {removingId === member.id
                                                     ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -359,7 +361,7 @@ export default function ShareModal({ isOpen, item, onClose }) {
                     {/* Advanced Share Link Options */}
                     <div className="pt-4 border-t border-gray-200 dark:border-gray-700 space-y-3">
                         <h4 className="font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-[11px]">
-                            Tùy chọn Bảo mật Liên kết Công khai
+                            {t('share.linkSecurity')}
                         </h4>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -369,7 +371,7 @@ export default function ShareModal({ isOpen, item, onClose }) {
                                     type="password"
                                     value={sharePassword}
                                     onChange={(e) => setSharePassword(e.target.value)}
-                                    placeholder="Mật khẩu (tùy chọn)..."
+                                    placeholder={t('share.password.placeholder')}
                                     className="w-full bg-transparent text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 outline-none text-xs"
                                 />
                             </div>
@@ -394,7 +396,7 @@ export default function ShareModal({ isOpen, item, onClose }) {
                                     onChange={(e) => setAllowDownload(e.target.checked)}
                                     className="rounded text-blue-500 focus:ring-blue-500 cursor-pointer accent-blue-500"
                                 />
-                                <span>Cho phép tải tệp về máy</span>
+                                <span>{t('share.allowDownload')}</span>
                             </label>
 
                             <label className="flex items-center gap-2 cursor-pointer text-gray-700 dark:text-gray-300 text-xs">
@@ -404,7 +406,7 @@ export default function ShareModal({ isOpen, item, onClose }) {
                                     onChange={(e) => setPreviewOnly(e.target.checked)}
                                     className="rounded text-blue-500 focus:ring-blue-500 cursor-pointer accent-blue-500"
                                 />
-                                <span>Chỉ cho phép xem trước</span>
+                                <span>{t('share.previewOnly')}</span>
                             </label>
                         </div>
                     </div>
@@ -416,7 +418,7 @@ export default function ShareModal({ isOpen, item, onClose }) {
                             className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors font-medium text-sm cursor-pointer"
                         >
                             {copied ? <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> : <Copy className="w-4 h-4" />}
-                            <span>{copied ? 'Đã sao chép!' : 'Sao chép đường liên kết'}</span>
+                            <span>{copied ? t('share.copied') : t('share.copyLink')}</span>
                         </button>
 
                         <button

@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useFiles } from '../context/FileContext';
+import { useLanguage } from '../context/LanguageContext';
 import FileSkeleton from '../components/common/FileSkeleton';
 import FileThumbnail from '../components/file-manager/FileThumbnail';
 import StarButton from '../components/common/StarButton';
@@ -31,9 +32,10 @@ const safeFileIcon = (item) => {
 };
 
 // Compact Section Table Component (List Mode)
-const SectionTable = ({ itemList, emptyMessage = "Không có mục nào", onItemOpen, onToggleStar, onContextMenu }) => {
+const SectionTable = ({ itemList, emptyMessage, onItemOpen, onToggleStar, onContextMenu }) => {
+    const { t } = useLanguage();
     if (itemList.length === 0) {
-        return <p className="text-xs text-gray-500 dark:text-gray-400 py-3 italic">{emptyMessage}</p>;
+        return <p className="text-xs text-gray-500 dark:text-gray-400 py-3 italic">{emptyMessage ?? t('home.empty')}</p>;
     }
 
     return (
@@ -43,7 +45,7 @@ const SectionTable = ({ itemList, emptyMessage = "Không có mục nào", onItem
                     key={item.id}
                     onDoubleClick={() => onItemOpen && onItemOpen(item)}
                     onContextMenu={(e) => onContextMenu && onContextMenu(e, item)}
-                    title="Bấm đúp để mở"
+                    title={t('home.doubleClickToOpen')}
                     className="flex items-center justify-between py-2.5 px-3 hover:bg-gray-100/70 dark:hover:bg-white/5 transition-colors cursor-pointer rounded-lg select-none"
                 >
                     {/* Name & mini thumbnail (ảnh / video / trang đầu PDF, còn lại là icon) */}
@@ -60,7 +62,7 @@ const SectionTable = ({ itemList, emptyMessage = "Không có mục nào", onItem
 
                     {/* Owner */}
                     <div className="text-xs text-gray-700 dark:text-gray-300 font-medium w-32 hidden sm:block truncate">
-                        {item.owner || 'Tôi'}
+                        {item.owner || t('list.owner.me')}
                     </div>
 
                     {/* Updated Date */}
@@ -84,7 +86,7 @@ const SectionTable = ({ itemList, emptyMessage = "Không có mục nào", onItem
                             }}
                             onDoubleClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
                             className="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 p-1 rounded-full hover:bg-gray-200/60 dark:hover:bg-white/10"
-                            title="Thao tác khác"
+                            title={t('home.moreActions')}
                         >
                             <MoreVertical className="w-4 h-4" />
                         </button>
@@ -96,9 +98,10 @@ const SectionTable = ({ itemList, emptyMessage = "Không có mục nào", onItem
 };
 
 // Compact Section Grid Component (Grid Mode)
-const SectionGrid = ({ itemList, emptyMessage = "Không có mục nào", onItemOpen, onToggleStar, onContextMenu }) => {
+const SectionGrid = ({ itemList, emptyMessage, onItemOpen, onToggleStar, onContextMenu }) => {
+    const { t } = useLanguage();
     if (itemList.length === 0) {
-        return <p className="text-xs text-gray-500 dark:text-gray-400 py-3 italic">{emptyMessage}</p>;
+        return <p className="text-xs text-gray-500 dark:text-gray-400 py-3 italic">{emptyMessage ?? t('home.empty')}</p>;
     }
 
     return (
@@ -108,7 +111,7 @@ const SectionGrid = ({ itemList, emptyMessage = "Không có mục nào", onItemO
                     key={item.id}
                     onDoubleClick={() => onItemOpen && onItemOpen(item)}
                     onContextMenu={(e) => onContextMenu && onContextMenu(e, item)}
-                    title="Bấm đúp để mở"
+                    title={t('home.doubleClickToOpen')}
                     className="bg-white dark:bg-[#282a2c] border border-gray-300/80 dark:border-gray-700/60 rounded-xl p-2.5 hover:shadow-md hover:border-blue-400 transition-all cursor-pointer flex flex-col group h-44 select-none shadow-2xs"
                 >
                     <div className="flex items-center justify-between gap-1 mb-1.5">
@@ -128,7 +131,7 @@ const SectionGrid = ({ itemList, emptyMessage = "Không có mục nào", onItemO
                                 }}
                                 onDoubleClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
                                 className="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity"
-                                title="Thao tác khác"
+                                title={t('home.moreActions')}
                             >
                                 <MoreVertical className="w-3.5 h-3.5" />
                             </button>
@@ -147,7 +150,7 @@ const SectionGrid = ({ itemList, emptyMessage = "Không có mục nào", onItemO
                             {item.name}
                         </p>
                         <p className="text-[10px] text-gray-600 dark:text-gray-400 font-medium mt-0.5 truncate">
-                            {item.owner || 'Tôi'} • {item.updatedAt ? item.updatedAt.split(',')[0] : ''}
+                            {item.owner || t('list.owner.me')} • {item.updatedAt ? item.updatedAt.split(',')[0] : ''}
                         </p>
                     </div>
                 </div>
@@ -157,6 +160,7 @@ const SectionGrid = ({ itemList, emptyMessage = "Không có mục nào", onItemO
 };
 
 export default function HomePage() {
+    const { t } = useLanguage();
     const {
         items,
         setActiveTab,
@@ -206,7 +210,7 @@ export default function HomePage() {
     const handleDownloadItem = useCallback(async (item) => {
         try {
             if (item.type === 'folder') {
-                alert('Đang tạo liên kết tải xuống thư mục dạng ZIP...');
+                alert(t('list.zip.creating'));
                 return;
             }
             const url = await getDownloadUrl(item.id);
@@ -221,7 +225,7 @@ export default function HomePage() {
         } catch (error) {
             console.error('Lỗi khi tải xuống:', error);
         }
-    }, [getDownloadUrl]);
+    }, [getDownloadUrl, t]);
 
     // Mở bằng BẤM ĐÚP (giống MyDrive/FileListView) — trước đây một cú click đã mở
     // luôn nên rất dễ mở nhầm tệp khi chỉ muốn bấm ngôi sao hay quét chọn.
@@ -272,13 +276,13 @@ export default function HomePage() {
             <div className="flex items-center justify-between pb-2 border-b border-gray-200 dark:border-gray-700">
                 <div className="flex items-center gap-2">
                     <Home className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                    <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Trang chủ</h1>
+                    <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">{t('home.title')}</h1>
                 </div>
 
                 <div className="flex items-center bg-gray-200/90 dark:bg-gray-700 rounded-full p-0.5 border border-gray-300 dark:border-gray-700">
                     <button
                         onClick={() => setViewMode('list')}
-                        title="Xem dạng danh sách"
+                        title={t('view.list')}
                         className={`p-1.5 rounded-full transition-colors ${viewMode === 'list'
                                 ? 'bg-white dark:bg-[#282a2c] shadow-xs text-blue-700 dark:text-blue-400 font-bold'
                                 : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
@@ -288,7 +292,7 @@ export default function HomePage() {
                     </button>
                     <button
                         onClick={() => setViewMode('grid')}
-                        title="Xem dạng lưới"
+                        title={t('view.grid')}
                         className={`p-1.5 rounded-full transition-colors ${viewMode === 'grid'
                                 ? 'bg-white dark:bg-[#282a2c] shadow-xs text-blue-700 dark:text-blue-400 font-bold'
                                 : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
@@ -304,20 +308,20 @@ export default function HomePage() {
                 <div className="flex items-center justify-between pb-1 border-b border-gray-200 dark:border-gray-700">
                     <div className="flex items-center gap-2">
                         <HardDrive className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                        <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Driver riêng của tôi</h2>
-                        <span className="text-xs text-gray-400 dark:text-gray-500 font-normal">({myDriveItems.length} mục hay mở nhất)</span>
+                        <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{t('home.myDrive')}</h2>
+                        <span className="text-xs text-gray-400 dark:text-gray-500 font-normal">{t('home.myDrive.count', { count: myDriveItems.length })}</span>
                     </div>
                     <button
                         onClick={() => setActiveTab('my-drive')}
                         className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 flex items-center gap-1 hover:underline transition-all"
                     >
-                        Xem tất cả <ArrowRight className="w-3.5 h-3.5" />
+                        {t('home.viewAll')} <ArrowRight className="w-3.5 h-3.5" />
                     </button>
                 </div>
                 {viewMode === 'grid' ? (
                     <SectionGrid
                         itemList={myDriveItems}
-                        emptyMessage="Chưa có tệp nào trong Driver riêng của tôi."
+                        emptyMessage={t('home.empty.myDrive')}
                         onItemOpen={handleItemOpen}
                         onToggleStar={toggleStar}
                         onContextMenu={openContextMenu}
@@ -325,7 +329,7 @@ export default function HomePage() {
                 ) : (
                     <SectionTable
                         itemList={myDriveItems}
-                        emptyMessage="Chưa có tệp nào trong Driver riêng của tôi."
+                        emptyMessage={t('home.empty.myDrive')}
                         onItemOpen={handleItemOpen}
                         onToggleStar={toggleStar}
                         onContextMenu={openContextMenu}
@@ -338,8 +342,8 @@ export default function HomePage() {
                 <div className="flex items-center justify-between pb-1 border-b border-gray-200 dark:border-gray-700">
                     <div className="flex items-center gap-2">
                         <Clock className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                        <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Đã mở gần đây</h2>
-                        <span className="text-xs text-gray-400 dark:text-gray-500 font-normal">(Chỉnh sửa gần đây)</span>
+                        <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{t('page.recent.title')}</h2>
+                        <span className="text-xs text-gray-400 dark:text-gray-500 font-normal">{t('home.recent.subtitle')}</span>
                     </div>
                     <button
                         onClick={() => setActiveTab('recent')}
@@ -351,7 +355,7 @@ export default function HomePage() {
                 {viewMode === 'grid' ? (
                     <SectionGrid
                         itemList={recentItems}
-                        emptyMessage="Chưa có tệp nào mở gần đây."
+                        emptyMessage={t('home.empty.recent')}
                         onItemOpen={handleItemOpen}
                         onToggleStar={toggleStar}
                         onContextMenu={openContextMenu}
@@ -359,7 +363,7 @@ export default function HomePage() {
                 ) : (
                     <SectionTable
                         itemList={recentItems}
-                        emptyMessage="Chưa có tệp nào mở gần đây."
+                        emptyMessage={t('home.empty.recent')}
                         onItemOpen={handleItemOpen}
                         onToggleStar={toggleStar}
                         onContextMenu={openContextMenu}
@@ -372,7 +376,7 @@ export default function HomePage() {
                 <div className="flex items-center justify-between pb-1 border-b border-gray-200 dark:border-gray-700">
                     <div className="flex items-center gap-2">
                         <Users className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-                        <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Được chia sẻ với tôi</h2>
+                        <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{t('page.sharedWithMe.title')}</h2>
                         <span className="text-xs text-gray-400 dark:text-gray-500 font-normal">({sharedItems.length} mục)</span>
                     </div>
                     <button
@@ -385,7 +389,7 @@ export default function HomePage() {
                 {viewMode === 'grid' ? (
                     <SectionGrid
                         itemList={sharedItems}
-                        emptyMessage="Chưa có tệp nào được chia sẻ với bạn."
+                        emptyMessage={t('home.empty.shared')}
                         onItemOpen={handleItemOpen}
                         onToggleStar={toggleStar}
                         onContextMenu={openContextMenu}
@@ -393,7 +397,7 @@ export default function HomePage() {
                 ) : (
                     <SectionTable
                         itemList={sharedItems}
-                        emptyMessage="Chưa có tệp nào được chia sẻ với bạn."
+                        emptyMessage={t('home.empty.shared')}
                         onItemOpen={handleItemOpen}
                         onToggleStar={toggleStar}
                         onContextMenu={openContextMenu}

@@ -1,9 +1,10 @@
 import { useCallback, useRef, useState } from 'react';
+import { useLanguage } from '../context/LanguageContext';
 import {
   CAPTCHA_TOKEN_FIELD,
   IS_TURNSTILE_ENABLED,
-  TURNSTILE_EXPIRED_MESSAGE,
-  getTurnstileErrorMessage,
+  TURNSTILE_EXPIRED_KEY,
+  describeTurnstileError,
 } from '../constants/turnstile';
 
 /**
@@ -39,10 +40,25 @@ import {
  *   TURNSTILE_ACTIONS trong constants/turnstile.js
  */
 export default function useTurnstile({ action } = {}) {
+  const { t } = useLanguage();
+
   /** Tay cầm tới widget để gọi .reset() — do <TurnstileWidget /> gắn vào */
   const widgetRef = useRef(null);
   const [token, setToken] = useState(null);
   const [error, setError] = useState('');
+
+  /**
+   * Dựng câu lỗi từ mô tả `{ key, params }` mà `describeTurnstileError` trả về.
+   * `params.suffix` lại là một mô tả lồng (khoá + mã) nên phải dịch trước rồi
+   * mới nhúng vào câu ngoài.
+   */
+  const messageOf = useCallback(
+    ({ key, params }) => {
+      const suffix = params?.suffix ? t(params.suffix.key, { code: params.suffix.code }) : '';
+      return t(key, { suffix });
+    },
+    [t],
+  );
 
   const handleSuccess = useCallback((newToken) => {
     setToken(newToken);
@@ -54,13 +70,16 @@ export default function useTurnstile({ action } = {}) {
   // gửi lên một chuỗi đã chết.
   const handleExpire = useCallback(() => {
     setToken(null);
-    setError(TURNSTILE_EXPIRED_MESSAGE);
-  }, []);
+    setError(t(TURNSTILE_EXPIRED_KEY));
+  }, [t]);
 
-  const handleError = useCallback((code) => {
-    setToken(null);
-    setError(getTurnstileErrorMessage(code));
-  }, []);
+  const handleError = useCallback(
+    (code) => {
+      setToken(null);
+      setError(messageOf(describeTurnstileError(code)));
+    },
+    [messageOf],
+  );
 
   /**
    * Xoá token hiện tại và yêu cầu widget lấy token mới.

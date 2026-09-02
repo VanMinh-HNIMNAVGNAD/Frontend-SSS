@@ -1,6 +1,9 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useLanguage } from '../../context/LanguageContext';
 import { filesApi } from '../../services/api';
 import { formatBytes } from '../../utils/formatFileSize';
+import { localeTagOf } from '../../utils/locale';
+import tRich from '../../utils/tRich';
 import {
     X,
     RefreshCw,
@@ -31,37 +34,42 @@ import {
 const ACTION_GROUPS = {
     all: {
         id: 'all',
-        label: 'Tất cả',
+        labelKey: 'activity.group.all',
         filter: () => true,
     },
     upload: {
         id: 'upload',
-        label: 'Tải lên & Tạo mới',
+        labelKey: 'activity.group.upload',
         filter: (act) => ['UPLOAD_FILE', 'CREATE_FOLDER', 'COPY_FILE', 'COPY_FOLDER'].includes(act),
     },
     share: {
         id: 'share',
-        label: 'Chia sẻ',
+        labelKey: 'activity.group.share',
         filter: (act) => ['SHARE_LINK_CREATED', 'SHARE_ACCESS_ADDED', 'SHARE_ACCESS_REMOVED'].includes(act),
     },
     rename_move: {
         id: 'rename_move',
-        label: 'Đổi tên & Di chuyển',
+        labelKey: 'activity.group.renameMove',
         filter: (act) => ['RENAME_ITEM', 'MOVE_ITEM'].includes(act),
     },
     trash_delete: {
         id: 'trash_delete',
-        label: 'Xóa & Thùng rác',
+        labelKey: 'activity.group.trashDelete',
         filter: (act) => ['TRASH_ITEM', 'RESTORE_ITEM', 'DELETE_PERMANENTLY', 'EMPTY_TRASH'].includes(act),
     },
     star: {
         id: 'star',
-        label: 'Dấu sao',
+        labelKey: 'activity.group.star',
         filter: (act) => ['TOGGLE_STAR'].includes(act),
     },
 };
 
-function formatRelativeTime(dateInput) {
+/**
+ * Hàm ngoài component nên phải NHẬN `t` và `locale` qua tham số — bản cũ ghi cứng
+ * cả câu tiếng Việt lẫn 'vi-VN', nên "3 phút trước" và định dạng ngày không bao
+ * giờ đổi theo giao diện.
+ */
+function formatRelativeTime(dateInput, t, locale) {
     if (!dateInput) return '';
     const date = new Date(dateInput);
     if (isNaN(date.getTime())) return '';
@@ -73,16 +81,16 @@ function formatRelativeTime(dateInput) {
     const diffHour = Math.floor(diffMin / 60);
     const diffDay = Math.floor(diffHour / 24);
 
-    if (diffSec < 45) return 'Vừa xong';
-    if (diffMin < 60) return `${diffMin} phút trước`;
-    if (diffHour < 24) return `${diffHour} giờ trước`;
+    if (diffSec < 45) return t('activity.time.justNow');
+    if (diffMin < 60) return t('activity.time.minutes', { count: diffMin });
+    if (diffHour < 24) return t('activity.time.hours', { count: diffHour });
     if (diffDay === 1) {
-        const timeStr = date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-        return `Hôm qua lúc ${timeStr}`;
+        const timeStr = date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+        return t('activity.time.yesterday', { time: timeStr });
     }
-    if (diffDay < 7) return `${diffDay} ngày trước`;
+    if (diffDay < 7) return t('activity.time.days', { count: diffDay });
 
-    return date.toLocaleDateString('vi-VN', {
+    return date.toLocaleDateString(locale, {
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
@@ -108,6 +116,8 @@ function formatExactDateTime(dateInput) {
 }
 
 export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, fileName = null }) {
+    const { t, language } = useLanguage();
+    const locale = localeTagOf(language);
     const [logs, setLogs] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -121,11 +131,11 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
             setLogs(Array.isArray(data) ? data : []);
         } catch (err) {
             console.error('[ActivityLogDrawer] Fetch logs error:', err);
-            setError(err.message || 'Không thể tải lịch sử hoạt động. Vui lòng thử lại.');
+            setError(err.message || t('activity.loadFailed'));
         } finally {
             setIsLoading(false);
         }
-    }, [fileId]);
+    }, [fileId, t]);
 
     useEffect(() => {
         if (isOpen) {
@@ -170,7 +180,7 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
         switch (act) {
             case 'UPLOAD_FILE':
                 return {
-                    label: 'Tải lên tệp',
+                    label: t('activity.action.uploadFile'),
                     icon: Upload,
                     iconColor: 'text-emerald-600 dark:text-emerald-400',
                     bgBadge: 'bg-emerald-50 dark:bg-emerald-950/50 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300',
@@ -178,7 +188,7 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                 };
             case 'CREATE_FOLDER':
                 return {
-                    label: 'Tạo thư mục',
+                    label: t('activity.action.createFolder'),
                     icon: FolderPlus,
                     iconColor: 'text-cyan-600 dark:text-cyan-400',
                     bgBadge: 'bg-cyan-50 dark:bg-cyan-950/50 border-cyan-200 dark:border-cyan-800 text-cyan-700 dark:text-cyan-300',
@@ -186,7 +196,7 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                 };
             case 'RENAME_ITEM':
                 return {
-                    label: 'Đổi tên',
+                    label: t('activity.action.rename'),
                     icon: Pencil,
                     iconColor: 'text-amber-600 dark:text-amber-400',
                     bgBadge: 'bg-amber-50 dark:bg-amber-950/50 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300',
@@ -194,7 +204,7 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                 };
             case 'MOVE_ITEM':
                 return {
-                    label: 'Di chuyển',
+                    label: t('activity.action.move'),
                     icon: Move,
                     iconColor: 'text-violet-600 dark:text-violet-400',
                     bgBadge: 'bg-violet-50 dark:bg-violet-950/50 border-violet-200 dark:border-violet-800 text-violet-700 dark:text-violet-300',
@@ -202,7 +212,7 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                 };
             case 'TOGGLE_STAR':
                 return {
-                    label: details.isStarred ? 'Gắn dấu sao' : 'Bỏ gắn sao',
+                    label: details.isStarred ? t('activity.action.star') : t('activity.action.unstar'),
                     icon: Star,
                     iconColor: 'text-amber-500 dark:text-amber-400',
                     bgBadge: 'bg-amber-50 dark:bg-amber-950/50 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300',
@@ -210,7 +220,7 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                 };
             case 'TRASH_ITEM':
                 return {
-                    label: 'Chuyển vào thùng rác',
+                    label: t('activity.action.trash'),
                     icon: Trash2,
                     iconColor: 'text-rose-600 dark:text-rose-400',
                     bgBadge: 'bg-rose-50 dark:bg-rose-950/50 border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300',
@@ -218,7 +228,7 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                 };
             case 'RESTORE_ITEM':
                 return {
-                    label: 'Khôi phục tệp',
+                    label: t('activity.action.restore'),
                     icon: RotateCcw,
                     iconColor: 'text-teal-600 dark:text-teal-400',
                     bgBadge: 'bg-teal-50 dark:bg-teal-950/50 border-teal-200 dark:border-teal-800 text-teal-700 dark:text-teal-300',
@@ -226,7 +236,7 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                 };
             case 'DELETE_PERMANENTLY':
                 return {
-                    label: 'Xóa vĩnh viễn',
+                    label: t('activity.action.deleteForever'),
                     icon: AlertTriangle,
                     iconColor: 'text-red-600 dark:text-red-400',
                     bgBadge: 'bg-red-50 dark:bg-red-950/50 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300',
@@ -234,7 +244,7 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                 };
             case 'EMPTY_TRASH':
                 return {
-                    label: 'Dọn sạch thùng rác',
+                    label: t('activity.action.emptyTrash'),
                     icon: Trash2,
                     iconColor: 'text-red-600 dark:text-red-400',
                     bgBadge: 'bg-red-50 dark:bg-red-950/50 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300',
@@ -243,7 +253,7 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
             case 'COPY_FILE':
             case 'COPY_FOLDER':
                 return {
-                    label: 'Tạo bản sao',
+                    label: t('activity.action.copy'),
                     icon: Copy,
                     iconColor: 'text-indigo-600 dark:text-indigo-400',
                     bgBadge: 'bg-indigo-50 dark:bg-indigo-950/50 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300',
@@ -251,7 +261,7 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                 };
             case 'SHARE_LINK_CREATED':
                 return {
-                    label: 'Tạo liên kết chia sẻ',
+                    label: t('activity.action.shareLink'),
                     icon: Share2,
                     iconColor: 'text-blue-600 dark:text-blue-400',
                     bgBadge: 'bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300',
@@ -259,7 +269,7 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                 };
             case 'SHARE_ACCESS_ADDED':
                 return {
-                    label: 'Thêm quyền chia sẻ',
+                    label: t('activity.action.shareAdd'),
                     icon: UserPlus,
                     iconColor: 'text-blue-600 dark:text-blue-400',
                     bgBadge: 'bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300',
@@ -267,7 +277,7 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                 };
             case 'SHARE_ACCESS_REMOVED':
                 return {
-                    label: 'Thu hồi chia sẻ',
+                    label: t('activity.action.shareRemove'),
                     icon: UserMinus,
                     iconColor: 'text-purple-600 dark:text-purple-400',
                     bgBadge: 'bg-purple-50 dark:bg-purple-950/50 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300',
@@ -275,7 +285,7 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                 };
             default:
                 return {
-                    label: action ? action.replace(/_/g, ' ') : 'Hoạt động',
+                    label: action ? action.replace(/_/g, ' ') : t('activity.action.other'),
                     icon: Activity,
                     iconColor: 'text-gray-600 dark:text-gray-400',
                     bgBadge: 'bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300',
@@ -290,7 +300,7 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
 
         switch (act) {
             case 'UPLOAD_FILE': {
-                const name = d.fileName || d.name || 'Tệp không tên';
+                const name = d.fileName || d.name || t('activity.fallback.untitledFile');
                 const size = d.sizeBytes !== undefined ? formatBytes(d.sizeBytes) : null;
                 const provider = d.storageProvider ? (
                     d.storageProvider === 'cloudflare_r2' ? 'Cloudflare R2' :
@@ -310,7 +320,7 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                 );
             }
             case 'CREATE_FOLDER': {
-                const name = d.folderName || d.name || 'Thư mục mới';
+                const name = d.folderName || d.name || t('activity.fallback.newFolder');
                 return (
                     <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
                         Tạo thư mục mới <span className="font-semibold text-gray-900 dark:text-gray-100">{name}</span>
@@ -320,27 +330,35 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
             case 'RENAME_ITEM': {
                 return (
                     <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                        {d.oldName && d.newName ? (
-                            <>
-                                Đổi tên từ <del className="text-gray-400 font-medium">{d.oldName}</del> thành{' '}
-                                <span className="font-semibold text-gray-900 dark:text-gray-100">{d.newName}</span>
-                            </>
-                        ) : (
-                            <>
-                                Đổi tên thành <span className="font-semibold text-gray-900 dark:text-gray-100">{d.newName || d.name || 'Tên mới'}</span>
-                            </>
-                        )}
+                        {d.oldName && d.newName
+                            ? tRich(t('activity.desc.renameFromTo'), {
+                                  old: <del className="text-gray-400 font-medium">{d.oldName}</del>,
+                                  new: (
+                                      <span className="font-semibold text-gray-900 dark:text-gray-100">
+                                          {d.newName}
+                                      </span>
+                                  ),
+                              })
+                            : tRich(t('activity.desc.renameTo'), {
+                                  new: (
+                                      <span className="font-semibold text-gray-900 dark:text-gray-100">
+                                          {d.newName || d.name || t('activity.fallback.newName')}
+                                      </span>
+                                  ),
+                              })}
                     </div>
                 );
             }
             case 'MOVE_ITEM': {
-                const name = d.fileName || 'Mục';
+                const name = d.fileName || t('activity.fallback.item');
                 const from = d.fromPath || '/';
                 const to = d.toPath || '/';
                 return (
                     <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed space-y-1">
                         <div>
-                            Di chuyển <span className="font-semibold text-gray-900 dark:text-gray-100">{name}</span>
+                            {tRich(t('activity.desc.move'), {
+                                name: <span className="font-semibold text-gray-900 dark:text-gray-100">{name}</span>,
+                            })}
                         </div>
                         <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5 flex-wrap">
                             <span className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 font-mono text-xs">{from}</span>
@@ -351,7 +369,7 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                 );
             }
             case 'TOGGLE_STAR': {
-                const name = d.fileName || 'Tệp';
+                const name = d.fileName || t('activity.fallback.file');
                 const isStarred = d.isStarred;
                 return (
                     <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
@@ -368,7 +386,7 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                 );
             }
             case 'TRASH_ITEM': {
-                const name = d.fileName || 'Tệp';
+                const name = d.fileName || t('activity.fallback.file');
                 return (
                     <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
                         Chuyển <span className="font-semibold text-gray-900 dark:text-gray-100">{name}</span> vào thùng rác
@@ -376,7 +394,7 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                 );
             }
             case 'RESTORE_ITEM': {
-                const name = d.fileName || 'Tệp';
+                const name = d.fileName || t('activity.fallback.file');
                 return (
                     <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
                         Khôi phục <span className="font-semibold text-gray-900 dark:text-gray-100">{name}</span> từ thùng rác
@@ -384,7 +402,7 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                 );
             }
             case 'DELETE_PERMANENTLY': {
-                const name = d.fileName || 'Tệp';
+                const name = d.fileName || t('activity.fallback.file');
                 const freed = d.freedBytes ? formatBytes(d.freedBytes) : null;
                 return (
                     <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
@@ -405,7 +423,7 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
             }
             case 'COPY_FILE':
             case 'COPY_FOLDER': {
-                const name = d.fileName || d.folderName || 'Bản sao';
+                const name = d.fileName || d.folderName || t('activity.fallback.copy');
                 const size = d.sizeBytes ? formatBytes(d.sizeBytes) : null;
                 return (
                     <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
@@ -415,14 +433,16 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                 );
             }
             case 'SHARE_ACCESS_ADDED': {
-                const name = d.fileName || 'Tệp';
-                const email = d.targetEmail || 'Người dùng';
-                const roleText = d.role === 'EDITOR' ? 'Chỉnh sửa (Editor)' : 'Xem (Viewer)';
+                const name = d.fileName || t('activity.fallback.file');
+                const email = d.targetEmail || t('activity.fallback.user');
+                const roleText = d.role === 'EDITOR' ? t('activity.role.editorLong') : t('activity.role.viewerLong');
                 return (
                     <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed space-y-1">
                         <div>
-                            Chia sẻ quyền <span className="font-semibold text-gray-900 dark:text-gray-100">{name}</span> tới{' '}
-                            <span className="font-medium text-blue-600 dark:text-blue-400">{email}</span>
+                            {tRich(t('activity.desc.shareAdded'), {
+                                name: <span className="font-semibold text-gray-900 dark:text-gray-100">{name}</span>,
+                                email: <span className="font-medium text-blue-600 dark:text-blue-400">{email}</span>,
+                            })}
                         </div>
                         <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
                             <Shield className="w-3 h-3" />
@@ -432,27 +452,32 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                 );
             }
             case 'SHARE_ACCESS_REMOVED': {
-                const name = d.fileName || 'Tệp';
+                const name = d.fileName || t('activity.fallback.file');
                 return (
                     <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                        Thu hồi quyền truy cập trên tệp <span className="font-semibold text-gray-900 dark:text-gray-100">{name}</span>
+                        {tRich(t('activity.desc.shareRemoved'), {
+                            name: <span className="font-semibold text-gray-900 dark:text-gray-100">{name}</span>,
+                        })}
                     </div>
                 );
             }
             case 'SHARE_LINK_CREATED': {
                 const accessMap = {
-                    ANYONE_WITH_LINK: 'Bất kỳ ai có liên kết',
-                    RESTRICTED: 'Chỉ người được mời',
+                    ANYONE_WITH_LINK: t('activity.access.anyoneWithLink'),
+                    RESTRICTED: t('activity.access.restricted'),
                 };
                 const roleMap = {
-                    VIEWER: 'Người xem',
-                    EDITOR: 'Người chỉnh sửa',
+                    VIEWER: t('share.role.viewer'),
+                    EDITOR: t('share.role.editor'),
                 };
-                const access = accessMap[d.accessLevel] || d.accessLevel || 'Công khai';
-                const role = roleMap[d.role] || d.role || 'Xem';
+                const access = accessMap[d.accessLevel] || d.accessLevel || t('activity.access.public');
+                const role = roleMap[d.role] || d.role || t('list.role.viewer');
                 return (
                     <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                        Tạo liên kết chia sẻ: quyền <span className="font-semibold text-gray-900 dark:text-gray-100">{role}</span> ({access})
+                        {tRich(t('activity.desc.shareLink'), {
+                            role: <span className="font-semibold text-gray-900 dark:text-gray-100">{role}</span>,
+                            access,
+                        })}
                     </div>
                 );
             }
@@ -495,12 +520,12 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                                     {fileId ? (
                                         <>
                                             <FileText className="w-3 h-3 text-blue-500 shrink-0" />
-                                            <span className="truncate">{fileName || 'Tệp được chọn'}</span>
+                                            <span className="truncate">{fileName || t('activity.scope.selectedFile')}</span>
                                         </>
                                     ) : (
                                         <>
                                             <HardDrive className="w-3 h-3 text-emerald-500 shrink-0" />
-                                            <span>Toàn bộ tài khoản</span>
+                                            <span>{t('activity.scope.wholeAccount')}</span>
                                         </>
                                     )}
                                 </p>
@@ -513,14 +538,14 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                                 onClick={fetchLogs}
                                 disabled={isLoading}
                                 className="p-2 rounded-full text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-50"
-                                title="Làm mới lịch sử"
+                                title={t('activity.refresh')}
                             >
                                 <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-blue-600' : ''}`} />
                             </button>
                             <button
                                 onClick={onClose}
                                 className="p-2 rounded-full text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
-                                title="Đóng (Esc)"
+                                title={t('preview.close')}
                             >
                                 <X className="w-5 h-5" />
                             </button>
@@ -543,7 +568,7 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                                             : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700'
                                     }`}
                                 >
-                                    <span>{group.label}</span>
+                                    <span>{t(group.labelKey)}</span>
                                     {count > 0 && (
                                         <span
                                             className={`px-1.5 py-0.5 rounded-full text-[11px] font-bold leading-none ${
@@ -588,7 +613,7 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                                 className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer inline-flex items-center gap-1.5"
                             >
                                 <RefreshCw className="w-3.5 h-3.5" />
-                                <span>Thử lại</span>
+                                <span>{t('upload.retry')}</span>
                             </button>
                         </div>
                     )}
@@ -663,7 +688,7 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                                                     title={formatExactDateTime(log.createdAt)}
                                                 >
                                                     <Clock className="w-3.5 h-3.5" />
-                                                    <span>{formatRelativeTime(log.createdAt)}</span>
+                                                    <span>{formatRelativeTime(log.createdAt, t, locale)}</span>
                                                 </div>
                                             </div>
 
@@ -683,11 +708,16 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                 <div className="px-5 py-3 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-[#1a1a1a] flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 shrink-0">
                     <div className="flex items-center gap-1.5">
                         <Activity className="w-3.5 h-3.5 text-blue-500" />
-                        <span>Tổng số: <strong className="text-gray-900 dark:text-gray-200 font-bold">{filteredLogs.length}</strong> / {logs.length} hoạt động</span>
+                        <span>{tRich(t('activity.total'), {
+                            shown: <strong className="text-gray-900 dark:text-gray-200 font-bold">{filteredLogs.length}</strong>,
+                            total: logs.length,
+                        })}</span>
                     </div>
 
                     <span className="text-xs text-gray-500 dark:text-gray-500">
-                        {logs[0] ? `Mới nhất: ${formatRelativeTime(logs[0].createdAt)}` : ''}
+                        {logs[0]
+                            ? t('activity.latest', { time: formatRelativeTime(logs[0].createdAt, t, locale) })
+                            : ''}
                     </span>
                 </div>
             </aside>

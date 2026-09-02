@@ -2,6 +2,7 @@ import { useState, useRef, useCallback } from 'react';
 import { Outlet } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useFiles } from '../../context/FileContext';
+import { useLanguage } from '../../context/LanguageContext';
 import useGlobalShortcuts from '../../hooks/useGlobalShortcuts';
 import Sidebar from './SideBar';
 import RightSidebar from './RightSideBar';
@@ -19,6 +20,7 @@ import ResumeUploads from '../file-manager/ResumeUploads';
 export const SEARCH_INPUT_ID = 'global-search-input';
 
 export default function MainLayout() {
+    const { t } = useLanguage();
     const {
         isInfoDrawerOpen,
         infoDrawerItem,
@@ -54,11 +56,11 @@ export default function MainLayout() {
      */
     const blockedBySharedDrive = useCallback(() => {
         if (activeTab === 'shared-drives' && !currentSharedDriveId && !currentFolderId) {
-            toast.error('Vui lòng mở một Bộ nhớ dùng chung trước.');
+            toast.error(t('shortcutToast.needDrive'));
             return true;
         }
         return false;
-    }, [activeTab, currentSharedDriveId, currentFolderId]);
+    }, [activeTab, currentSharedDriveId, currentFolderId, t]);
 
     /** Danh sách mục đang được chọn ở khung nội dung hiện tại */
     const getSelection = useCallback(
@@ -70,11 +72,11 @@ export default function MainLayout() {
 
     const handleNewFolder = useCallback(() => {
         if (blockedBySharedDrive()) return;
-        const name = prompt('Nhập tên thư mục mới:', 'Thư mục chưa đặt tên');
+        const name = prompt(t('newBtn.prompt.folderName'), t('newBtn.defaultFolderName'));
         if (name && name.trim()) {
             createFolder(name.trim());
         }
-    }, [blockedBySharedDrive, createFolder]);
+    }, [blockedBySharedDrive, createFolder, t]);
 
     const handleUploadFile = useCallback(() => {
         if (blockedBySharedDrive()) return;
@@ -97,20 +99,20 @@ export default function MainLayout() {
     const handleRename = useCallback(() => {
         const selected = getSelection();
         if (selected.length === 0) {
-            toast('Hãy chọn một tệp hoặc thư mục trước khi đổi tên.', { icon: '✏️' });
+            toast(t('shortcutToast.pickForRename'), { icon: '✏️' });
             return;
         }
         if (selected.length > 1) {
-            toast.error('Chỉ có thể đổi tên từng mục một.');
+            toast.error(t('shortcutToast.renameOneOnly'));
             return;
         }
         setRenameTargetItem(selected[0]);
-    }, [getSelection]);
+    }, [getSelection, t]);
 
     const handleToggleStar = useCallback(async () => {
         const selected = getSelection();
         if (selected.length === 0) {
-            toast('Hãy chọn mục cần đánh dấu sao.', { icon: '⭐' });
+            toast(t('shortcutToast.pickForStar'), { icon: '⭐' });
             return;
         }
         // `silent` để toggleStar không bắn một toast cho từng mục; gộp lại một câu
@@ -120,24 +122,26 @@ export default function MainLayout() {
         const done = results.filter((r) => r?.ok);
         const failed = results.length - done.length;
         if (done.length === 1) {
-            toast.success(done[0].isStarred === false ? 'Đã bỏ khỏi mục gắn sao' : 'Đã thêm vào mục gắn sao');
+            toast.success(done[0].isStarred === false ? t('file.star.removed') : t('file.star.added'));
         } else if (done.length > 1) {
-            toast.success(`Đã cập nhật dấu sao cho ${done.length} mục`);
+            toast.success(t('shortcutToast.starBatch', { count: done.length }));
         }
         if (failed > 0) {
-            toast.error(`Không cập nhật được dấu sao cho ${failed} mục`);
+            toast.error(t('shortcutToast.starBatchFailed', { count: failed }));
         }
-    }, [getSelection, toggleStar]);
+    }, [getSelection, toggleStar, t]);
 
     const handleMoveToTrash = useCallback(async () => {
         if (activeTab === 'trash') return; // trong thùng rác thì không "xoá" thêm được
         const selected = getSelection();
         if (selected.length === 0) {
-            toast('Hãy chọn mục cần chuyển vào thùng rác.', { icon: '🗑️' });
+            toast(t('shortcutToast.pickForTrash'), { icon: '🗑️' });
             return;
         }
-        const label = selected.length === 1 ? `"${selected[0].name}"` : `${selected.length} mục đã chọn`;
-        if (!window.confirm(`Chuyển ${label} vào thùng rác?`)) return;
+        const label = selected.length === 1
+            ? `"${selected[0].name}"`
+            : t('shortcutToast.selectionCount', { count: selected.length });
+        if (!window.confirm(t('shortcutToast.confirmTrash', { label }))) return;
 
         // `silent` như ở handleToggleStar: gộp N kết quả thành một câu thay vì để
         // moveToTrash bắn một toast cho từng mục. Trước đây forEach không await
@@ -148,15 +152,15 @@ export default function MainLayout() {
         const failed = [];
         results.forEach((res, idx) => {
             if (!res?.ok) {
-                failed.push({ name: selected[idx].name, reason: res?.error?.message || 'lỗi không xác định' });
+                failed.push({ name: selected[idx].name, reason: res?.error?.message || t('common.unknownError') });
             }
         });
 
         if (failed.length === 0) {
             toast.success(
                 selected.length === 1
-                    ? `Đã chuyển ${label} vào thùng rác`
-                    : `Đã chuyển ${selected.length} mục vào thùng rác`,
+                    ? t('shortcutToast.trashedOne', { label })
+                    : t('shortcutToast.trashedMany', { count: selected.length }),
             );
         } else {
             // Chi tiết ra console, toast chỉ nêu số lượng + một mục làm ví dụ
@@ -166,14 +170,18 @@ export default function MainLayout() {
             );
             toast.error(
                 failed.length === 1
-                    ? `Không chuyển được "${failed[0].name}" vào thùng rác: ${failed[0].reason}`
-                    : `Có ${failed.length}/${selected.length} mục không chuyển được vào thùng rác (vd. "${failed[0].name}")`,
+                    ? t('header.error.delete', { name: failed[0].name, reason: failed[0].reason })
+                    : t('header.error.deletePartial', {
+                          failed: failed.length,
+                          total: selected.length,
+                          name: failed[0].name,
+                      }),
             );
         }
 
         // Một lượt làm mới dung lượng cho cả lô, thay vì một lượt mỗi mục
         if (failed.length < selected.length) refreshStorageInfo();
-    }, [activeTab, getSelection, moveToTrash, refreshStorageInfo]);
+    }, [activeTab, getSelection, moveToTrash, refreshStorageInfo, t]);
 
     // ── Đăng ký phím tắt toàn cục ───────────────────────────────────────────
     // Tạm tắt khi đang mở modal chặn thao tác để phím không "xuyên" qua lớp phủ
@@ -198,7 +206,7 @@ export default function MainLayout() {
                 onChange={handleUploadInputChange}
                 multiple
                 className="hidden"
-                aria-label="Chọn tệp để tải lên bằng phím tắt"
+                aria-label={t('shortcut.aria.pickFile')}
             />
 
             {/* Sidebar bên trái */}

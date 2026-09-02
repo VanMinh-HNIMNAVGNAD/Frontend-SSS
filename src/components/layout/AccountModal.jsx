@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { User as UserIcon, LogOut, ShieldCheck } from 'lucide-react';
 import UserProfileModal from '../modals/UserProfileModal';
 
 export default function AccountModal({ isOpen, onClose }) {
     const { user, logout } = useAuth();
+    const { t } = useLanguage();
     const navigate = useNavigate();
     const modalRef = useRef(null);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -66,7 +68,7 @@ export default function AccountModal({ isOpen, onClose }) {
                     </div>
                 )}
                 <div className="flex-1 min-w-0">
-                    <h4 className="font-semibold text-gray-900 dark:text-gray-100 truncate">{user?.fullName || 'Người dùng driveR'}</h4>
+                    <h4 className="font-semibold text-gray-900 dark:text-gray-100 truncate">{user?.fullName || t('profile.defaultName')}</h4>
                     <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.email || 'user@driver.com'}</p>
                     <span className="inline-flex items-center gap-1 mt-1 text-[11px] font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-500/15 px-2 py-0.5 rounded-full">
                         <ShieldCheck className="w-3 h-3" /> Tài khoản {getProviderBadge(user?.provider)}

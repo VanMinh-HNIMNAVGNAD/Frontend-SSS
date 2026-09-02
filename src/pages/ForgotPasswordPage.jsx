@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ArrowRight, Lock, Mail, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import AuthBackground from '../components/ui/AuthBackground';
 import TurnstileWidget from '../components/security/TurnstileWidget';
 import OtpForm from '../components/security/OtpForm';
@@ -25,6 +26,7 @@ import { TURNSTILE_ACTIONS } from '../constants/turnstile';
  * của việc backend giấu.
  */
 export default function ForgotPasswordPage() {
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const { forgotPassword, verifyResetOtp, resetPassword, isLoading } = useAuth();
 
@@ -41,7 +43,7 @@ export default function ForgotPasswordPage() {
   const validateEmail = (val) =>
     /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(val)
       ? ''
-      : 'Email không hợp lệ. Vui lòng nhập đúng định dạng (Ví dụ: name@gmail.com)';
+      : t('auth.email.invalid');
 
   // ── BƯỚC 1: xin mã ───────────────────────────────────────────────────────────
   const handleRequestOtp = async (e) => {
@@ -54,7 +56,7 @@ export default function ForgotPasswordPage() {
       return;
     }
     if (!captcha.isVerified) {
-      setError('Vui lòng hoàn tất xác minh CAPTCHA bên dưới.');
+      setError(t('auth.captcha.required'));
       return;
     }
 
@@ -64,7 +66,7 @@ export default function ForgotPasswordPage() {
     } catch (err) {
       // Chỉ tới đây khi CAPTCHA trượt hoặc hạ tầng hỏng (503) — hai ca đó KHÔNG tiết lộ
       // email có tồn tại hay không, nên hiện lỗi ra là an toàn.
-      setError(err.message || 'Không gửi được mã xác minh');
+      setError(err.message || t('otp.sendFailed'));
     } finally {
       captcha.reset();
     }
@@ -77,7 +79,7 @@ export default function ForgotPasswordPage() {
     const res = await verifyResetOtp(email, otp);
     const token = res?.resetToken ?? res?.data?.resetToken;
     if (!token) {
-      throw new Error('Không nhận được token đặt lại mật khẩu');
+      throw new Error(t('forgot.noResetToken'));
     }
     setResetToken(token);
   };
@@ -89,13 +91,13 @@ export default function ForgotPasswordPage() {
     // ("Vui lòng hoàn tất xác minh CAPTCHA") — chặn tại đây để người dùng đọc được câu
     // đúng việc họ cần làm. <OtpForm captcha={captcha}> là nơi hiện ô CAPTCHA để lấy token.
     if (!captcha.isVerified) {
-      setError('Vui lòng hoàn tất xác minh CAPTCHA bên dưới rồi bấm gửi lại.');
+      setError(t('auth.captcha.requiredResend'));
       return;
     }
     try {
       await forgotPassword(email, captcha.payload());
     } catch (err) {
-      setError(err.message || 'Gửi lại mã thất bại');
+      setError(err.message || t('forgot.resendFailed'));
     } finally {
       captcha.reset();
     }
@@ -107,11 +109,11 @@ export default function ForgotPasswordPage() {
     setError('');
 
     if (newPassword.length < 6) {
-      setError('Mật khẩu phải chứa ít nhất 6 ký tự.');
+      setError(t('auth.password.tooShort'));
       return;
     }
     if (newPassword !== confirmPassword) {
-      setError('Hai mật khẩu không khớp nhau.');
+      setError(t('auth.password.mismatch'));
       return;
     }
 
@@ -121,14 +123,14 @@ export default function ForgotPasswordPage() {
       // Backend đã thu hồi mọi phiên đang mở, nên bắt buộc phải đăng nhập lại.
       setTimeout(() => navigate('/login'), 1800);
     } catch (err) {
-      setError(err.message || 'Đặt lại mật khẩu thất bại');
+      setError(err.message || t('forgot.resetFailed'));
     }
   };
 
   const heading = {
-    email: 'Quên mật khẩu',
-    otp: 'Xác minh email',
-    password: 'Đặt mật khẩu mới',
+    email: t('forgot.title.email'),
+    otp: t('forgot.title.otp'),
+    password: t('forgot.title.password'),
     done: 'Xong!',
   }[step];
 
@@ -181,7 +183,7 @@ export default function ForgotPasswordPage() {
               disabled={isLoading || !captcha.isVerified}
               className="w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-base font-bold tracking-wide transition flex items-center justify-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-600/25 cursor-pointer"
             >
-              <span>{isLoading ? 'Đang gửi...' : 'Gửi mã xác minh'}</span>
+              <span>{isLoading ? t('forgot.sending') : t('forgot.sendCode')}</span>
               <ArrowRight className="w-5 h-5" />
             </button>
 
@@ -209,8 +211,8 @@ export default function ForgotPasswordPage() {
             onSuccess={() => setStep('password')}
             isLoading={isLoading}
             error={error}
-            submitLabel="Xác nhận mã"
-            successMessage="Xác minh thành công!"
+            submitLabel={t('otp.confirmCode')}
+            successMessage={t('otp.success')}
           />
         )}
 
@@ -227,7 +229,7 @@ export default function ForgotPasswordPage() {
             </div>
 
             <div>
-              <label className="text-sm text-slate-300 block mb-2 font-bold">Mật khẩu mới</label>
+              <label className="text-sm text-slate-300 block mb-2 font-bold">{t('auth.password.newLabel')}</label>
               <div className="relative">
                 <Lock className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                 <input
@@ -268,7 +270,7 @@ export default function ForgotPasswordPage() {
               disabled={isLoading}
               className="w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-base font-bold tracking-wide transition flex items-center justify-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-600/25 cursor-pointer"
             >
-              <span>{isLoading ? 'Đang lưu...' : 'Đặt lại mật khẩu'}</span>
+              <span>{isLoading ? t('forgot.saving') : t('forgot.submit')}</span>
               <ArrowRight className="w-5 h-5" />
             </button>
           </form>
@@ -280,7 +282,7 @@ export default function ForgotPasswordPage() {
             <div className="w-16 h-16 rounded-full bg-emerald-500/15 border border-emerald-500/40 flex items-center justify-center animate-[otpPop_0.35s_ease-out]">
               <ShieldCheck className="w-8 h-8 text-emerald-400" strokeWidth={2.5} />
             </div>
-            <p className="text-base font-bold text-emerald-300">Đổi mật khẩu thành công!</p>
+            <p className="text-base font-bold text-emerald-300">{t('forgot.done')}</p>
             <p className="text-sm font-medium text-slate-400">
               Đang chuyển sang trang đăng nhập...
             </p>

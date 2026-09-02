@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useFiles } from '../../context/FileContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { filesApi } from '../../services/api';
 import { Trash2, HardDrive, X, Sparkles, Check, AlertTriangle, FileText } from 'lucide-react';
 
 export default function QuickCleanupModal({ isOpen, onClose }) {
   const { items, emptyTrash, moveToTrash, storageInfo } = useFiles();
+  const { t } = useLanguage();
   const [isCleaningTrash, setIsCleaningTrash] = useState(false);
   const [largeFiles, setLargeFiles] = useState(null);
 
@@ -34,9 +36,9 @@ export default function QuickCleanupModal({ isOpen, onClose }) {
     try {
       setIsCleaningTrash(true);
       await emptyTrash();
-      alert('Đã dọn dẹp sạch Thùng rác! Thu hồi bộ nhớ thành công.');
+      alert(t('cleanup.done'));
     } catch (err) {
-      alert('Lỗi dọn thùng rác: ' + err.message);
+      alert(t('cleanup.failed', { reason: err.message }));
     } finally {
       setIsCleaningTrash(false);
     }
@@ -68,8 +70,8 @@ export default function QuickCleanupModal({ isOpen, onClose }) {
             <Sparkles className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">Dọn dẹp bộ nhớ thông minh</h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Gợi ý thu hồi bộ nhớ tức thì để giải phóng dung lượng</p>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">{t('cleanup.title')}</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{t('cleanup.subtitle')}</p>
           </div>
         </div>
 
@@ -88,7 +90,7 @@ export default function QuickCleanupModal({ isOpen, onClose }) {
               disabled={isCleaningTrash || trashItems.length === 0}
               className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl transition-colors disabled:opacity-50"
             >
-              {isCleaningTrash ? 'Đang dọn...' : 'Dọn ngay'}
+              {isCleaningTrash ? t('cleanup.trashing') : t('cleanup.trashNow')}
             </button>
           </div>
         </div>
@@ -126,7 +128,7 @@ export default function QuickCleanupModal({ isOpen, onClose }) {
                       <button
                         onClick={() => handleDeleteLargeFile(file.id)}
                         className="text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 p-1 rounded-md transition-colors"
-                        title="Chuyển vào Thùng rác"
+                        title={t('cleanup.moveToTrash')}
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>

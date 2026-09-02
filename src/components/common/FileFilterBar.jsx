@@ -14,6 +14,7 @@ import {
     ArrowUpDown
 } from 'lucide-react';
 import { useFiles } from '../../context/FileContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 /**
  * Reusable File Filter Bar Component (Common Component used across MyDrivePage, SharedWithMePage, StarredPage, SpamPage, TrashPage)
@@ -27,39 +28,43 @@ export default function FileFilterBar({
     onReset
 }) {
     const { sortField, setSortField, sortDirection, setSortDirection } = useFiles();
+    const { t } = useLanguage();
 
     // Extended File Type Options
     const typeOptions = [
-        { value: 'all', label: 'Tất cả loại tệp' },
-        { value: 'folder', label: 'Thư mục', icon: Folder },
-        { value: 'pdf', label: 'Tài liệu & PDF', icon: FileText },
-        { value: 'image', label: 'Hình ảnh & Thiết kế', icon: ImageIcon },
-        { value: 'spreadsheet', label: 'Bảng tính & Database', icon: FileSpreadsheet },
-        { value: 'presentation', label: 'Trình chiếu (PPT)', icon: Presentation },
-        { value: 'media', label: 'Video & Audio', icon: Video },
-        { value: 'code', label: 'Mã nguồn Script', icon: FileCode },
-        { value: 'archive', label: 'Tệp nén & Khác', icon: Archive },
+        { value: 'all', label: t('filter.type.all') },
+        { value: 'folder', label: t('filter.type.folder'), icon: Folder },
+        { value: 'pdf', label: t('filter.type.pdf'), icon: FileText },
+        { value: 'image', label: t('filter.type.image'), icon: ImageIcon },
+        { value: 'spreadsheet', label: t('filter.type.spreadsheet'), icon: FileSpreadsheet },
+        { value: 'presentation', label: t('filter.type.presentation'), icon: Presentation },
+        { value: 'media', label: t('filter.type.media'), icon: Video },
+        { value: 'code', label: t('filter.type.code'), icon: FileCode },
+        { value: 'archive', label: t('filter.type.archive'), icon: Archive },
     ];
 
     // Date Modified Options
+    // Năm lấy từ đồng hồ máy, không ghi cứng: nhãn cũ là 'Năm nay (2026)' nên
+    // sang 2027 nó vẫn khoe 2026 trong khi bộ lọc thật đã tính theo năm mới
+    // (backend dùng `new Date().getFullYear()` — xem FilesService, nhánh 'this-year').
     const dateOptions = [
-        { value: 'all', label: 'Mọi thời điểm' },
-        { value: 'today', label: 'Hôm nay' },
-        { value: '7days', label: '7 ngày qua' },
-        { value: '30days', label: '30 ngày qua' },
-        { value: 'this-year', label: 'Năm nay (2026)' },
+        { value: 'all', label: t('filter.date.all') },
+        { value: 'today', label: t('filter.date.today') },
+        { value: '7days', label: t('filter.date.7days') },
+        { value: '30days', label: t('filter.date.30days') },
+        { value: 'this-year', label: t('filter.date.thisYear', { year: new Date().getFullYear() }) },
     ];
 
     const hasActiveFilters = filterType !== 'all' || filterDate !== 'all' || filterOwner !== 'all';
 
     const sortOptions = [
-        { value: 'name-asc', label: 'Tên (A-Z)' },
-        { value: 'name-desc', label: 'Tên (Z-A)' },
-        { value: 'size-desc', label: 'Kích thước (Lớn-Nhỏ)' },
-        { value: 'size-asc', label: 'Kích thước (Nhỏ-Lớn)' },
-        { value: 'updatedAt-desc', label: 'Sửa đổi mới nhất' },
-        { value: 'updatedAt-asc', label: 'Sửa đổi cũ nhất' },
-        { value: 'type-asc', label: 'Loại tệp' },
+        { value: 'name-asc', label: t('filter.sort.nameAsc') },
+        { value: 'name-desc', label: t('filter.sort.nameDesc') },
+        { value: 'size-desc', label: t('filter.sort.sizeDesc') },
+        { value: 'size-asc', label: t('filter.sort.sizeAsc') },
+        { value: 'updatedAt-desc', label: t('filter.sort.newest') },
+        { value: 'updatedAt-asc', label: t('filter.sort.oldest') },
+        { value: 'type-asc', label: t('filter.sort.type') },
     ];
     
     const handleSortChange = (val) => {
@@ -71,7 +76,7 @@ export default function FileFilterBar({
     return (
         <div className="flex flex-wrap items-center gap-2 py-2 mb-3 border-b border-gray-200 dark:border-gray-700 select-none">
             <SelectDropdown
-                label="Sắp xếp"
+                label={t('filter.sort.label')}
                 icon={ArrowUpDown}
                 options={sortOptions}
                 value={`${sortField}-${sortDirection}`}
@@ -83,7 +88,7 @@ export default function FileFilterBar({
 
             {/* Filter by File Type */}
             <SelectDropdown
-                label="Loại tệp"
+                label={t('filter.type.label')}
                 icon={FileType}
                 options={typeOptions}
                 value={filterType}
@@ -93,7 +98,7 @@ export default function FileFilterBar({
 
             {/* Filter by Date */}
             <SelectDropdown
-                label="Ngày sửa đổi"
+                label={t('filter.date.label')}
                 icon={Calendar}
                 options={dateOptions}
                 value={filterDate}
@@ -107,10 +112,10 @@ export default function FileFilterBar({
                     type="button"
                     onClick={onReset}
                     className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-500/15 border border-rose-200 dark:border-rose-800 hover:bg-rose-100 dark:hover:bg-rose-500/25 transition-colors shadow-2xs cursor-pointer"
-                    title="Xóa tất cả bộ lọc"
+                    title={t('filter.resetTitle')}
                 >
                     <XCircle className="w-3.5 h-3.5" />
-                    <span>Xóa bộ lọc</span>
+                    <span>{t('filter.reset')}</span>
                 </button>
             )}
         </div>

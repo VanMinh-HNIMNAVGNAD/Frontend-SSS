@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { Lock, Mail, User, ArrowRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import AuthBackground from '../components/ui/AuthBackground';
 import TurnstileWidget from '../components/security/TurnstileWidget';
 import useTurnstile from '../hooks/useTurnstile';
@@ -10,6 +11,7 @@ import { API_BASE_URL } from '../constants/api';
 import OtpForm from '../components/security/OtpForm';
 
 export default function RegisterPage() {
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const { sendRegisterOtp, verifyRegisterOtp, isLoading, error: authError } = useAuth();
   const [email, setEmail] = useState('');
@@ -27,14 +29,14 @@ export default function RegisterPage() {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     if (params.get('error') === 'oauth_failed') {
-      setLocalError('Đăng ký OAuth thất bại. Vui lòng thử lại hoặc sử dụng Email để tạo tài khoản.');
+      setLocalError(t('register.oauthFailed'));
     }
-  }, [location.search]);
+  }, [location.search, t]);
 
   const validateEmail = (val) => {
     const regex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     if (!regex.test(val)) {
-      return 'Email không hợp lệ. Vui lòng nhập đúng định dạng (Ví dụ: name@gmail.com)';
+      return t('auth.email.invalid');
     }
     return '';
   };
@@ -50,12 +52,12 @@ export default function RegisterPage() {
     }
 
     if (password.length < 6) {
-      setLocalError('Mật khẩu phải chứa ít nhất 6 ký tự.');
+      setLocalError(t('auth.password.tooShort'));
       return;
     }
 
     if (!captcha.isVerified) {
-      setLocalError('Vui lòng hoàn tất xác minh CAPTCHA bên dưới.');
+      setLocalError(t('auth.captcha.required'));
       return;
     }
 
@@ -91,7 +93,7 @@ export default function RegisterPage() {
     // ("Vui lòng hoàn tất xác minh CAPTCHA") — chặn tại đây để người dùng đọc được câu
     // đúng việc họ cần làm. <OtpForm captcha={captcha}> là nơi hiện ô CAPTCHA để lấy token.
     if (!captcha.isVerified) {
-      setLocalError('Vui lòng hoàn tất xác minh CAPTCHA bên dưới rồi bấm gửi lại.');
+      setLocalError(t('auth.captcha.requiredResend'));
       return;
     }
     try {
@@ -117,7 +119,7 @@ export default function RegisterPage() {
     } else if (providerName === 'Facebook') {
       window.location.href = `${API_BASE_URL}/auth/facebook`;
     } else {
-      setLocalError(`Đăng nhập bằng ${providerName} sắp ra mắt. Vui lòng sử dụng Google, GitHub, Facebook hoặc Email!`);
+      setLocalError(t('login.oauth.comingSoon', { provider: providerName }));
     }
   };
 
@@ -128,7 +130,7 @@ export default function RegisterPage() {
       {/* Auth Card */}
       <div className="w-full bg-[#111726]/95 backdrop-blur-xl border border-white/[0.12] rounded-2xl p-8 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.8)] ring-1 ring-white/5 relative z-10">
         <h1 className="text-2xl font-bold text-center text-white tracking-tight mb-6">
-          {step === 'otp' ? 'Xác minh email' : 'Đăng ký driveR'}
+          {step === 'otp' ? t('register.otpTitle') : t('register.title')}
         </h1>
 
         {step === 'otp' ? (
@@ -141,8 +143,8 @@ export default function RegisterPage() {
             onSuccess={() => navigate('/login')}
             isLoading={isLoading}
             error={displayError}
-            submitLabel="Tạo Tài Khoản"
-            successMessage="Đăng ký thành công!"
+            submitLabel={t('register.submit')}
+            successMessage={t('register.success')}
           />
         ) : (
         <>
@@ -153,7 +155,7 @@ export default function RegisterPage() {
             type="button"
             onClick={() => handleSocialRegister('Google')}
             className="group flex-1 h-12 rounded-xl text-white bg-white/[0.03] border border-white/10 hover:border-white/25 hover:bg-white/[0.08] transition-all duration-200 flex items-center justify-center cursor-pointer shadow-sm"
-            title="Đăng ký bằng Google"
+            title={t('register.oauth.google')}
           >
             <svg className="w-6 h-6 grayscale opacity-75 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-200" viewBox="0 0 24 24">
               <path
@@ -180,7 +182,7 @@ export default function RegisterPage() {
             type="button"
             onClick={() => handleSocialRegister('Facebook')}
             className="group flex-1 h-12 rounded-xl text-white bg-white/[0.03] border border-white/10 hover:border-white/25 hover:bg-white/[0.08] transition-all duration-200 flex items-center justify-center cursor-pointer shadow-sm"
-            title="Đăng ký bằng Facebook"
+            title={t('register.oauth.facebook')}
           >
             <svg className="w-6 h-6 text-slate-400 group-hover:text-[#1877F2] transition-colors duration-200 fill-current" viewBox="0 0 24 24">
               <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
@@ -192,7 +194,7 @@ export default function RegisterPage() {
             type="button"
             onClick={() => handleSocialRegister('GitHub')}
             className="group flex-1 h-12 rounded-xl text-white bg-white/[0.03] border border-white/10 hover:border-white/25 hover:bg-white/[0.08] transition-all duration-200 flex items-center justify-center cursor-pointer shadow-sm"
-            title="Đăng ký bằng GitHub"
+            title={t('register.oauth.github')}
           >
             <svg className="w-6 h-6 text-slate-400 group-hover:text-white transition-colors duration-200 fill-current" viewBox="0 0 24 24">
               <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
@@ -227,7 +229,7 @@ export default function RegisterPage() {
                 type="text"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                placeholder="Nhập nickname của bạn"
+                placeholder={t('auth.nickname.placeholder')}
                 required
                 className="w-full h-12 pl-12 pr-4 rounded-xl text-base font-semibold text-white bg-transparent border border-white/10 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 outline-none transition placeholder-slate-500"
               />
@@ -235,14 +237,14 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label className="text-sm text-slate-300 block mb-2 font-bold">Email</label>
+            <label className="text-sm text-slate-300 block mb-2 font-bold">{t('auth.email.label')}</label>
             <div className="relative">
               <Mail className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="name@gmail.com"
+                placeholder={t('auth.email.placeholder')}
                 required
                 className="w-full h-12 pl-12 pr-4 rounded-xl text-base font-semibold text-white bg-transparent border border-white/10 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 outline-none transition placeholder-slate-500"
               />
@@ -250,7 +252,7 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label className="text-sm text-slate-300 block mb-2 font-bold">Mật khẩu</label>
+            <label className="text-sm text-slate-300 block mb-2 font-bold">{t('auth.password.label')}</label>
             <div className="relative">
               <Lock className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
               <input
@@ -276,14 +278,14 @@ export default function RegisterPage() {
             disabled={isLoading || !captcha.isVerified}
             className="w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-base font-bold tracking-wide transition flex items-center justify-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-600/25 cursor-pointer"
           >
-            <span>{isLoading ? 'Đang tạo tài khoản...' : 'Tạo Tài Khoản'}</span>
+            <span>{isLoading ? t('register.submitting') : t('register.submit')}</span>
             <ArrowRight className="w-5 h-5" />
           </button>
 
           <div className="text-center text-sm font-medium text-slate-400 pt-2">
-            Đã có tài khoản?{' '}
+            {t('register.hasAccount')}{' '}
             <Link to="/login" className="text-blue-400 hover:underline font-bold">
-              Đăng nhập ngay
+              {t('register.loginNow')}
             </Link>
           </div>
         </form>

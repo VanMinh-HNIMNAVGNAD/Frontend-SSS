@@ -1,6 +1,8 @@
 import { memo } from 'react';
 import { Star } from 'lucide-react';
 
+import { useLanguage } from '../../context/LanguageContext';
+
 /**
  * Nút gắn sao dùng chung cho MỌI chỗ có dấu sao: thẻ tệp / thư mục, hàng trong
  * bảng danh sách, thẻ Bộ nhớ dùng chung, trang chủ...
@@ -29,8 +31,11 @@ function StarButton({
     readOnly = false,
     size = 'md',
     className = '',
-    readOnlyTitle = 'Chỉ chủ sở hữu mới gắn sao được',
+    // Mặc định để undefined rồi ngã về t(...) trong thân: giá trị mặc định của
+    // tham số được tính lúc gọi, chưa có `t`, nên chuỗi cứng ở đây không dịch được.
+    readOnlyTitle,
 }) {
+    const { t } = useLanguage();
     const s = SIZES[size] || SIZES.md;
 
     const icon = (
@@ -45,7 +50,7 @@ function StarButton({
         return (
             <span
                 className={`inline-flex ${s.pad} text-gray-300 dark:text-gray-600 ${className}`}
-                title={readOnlyTitle}
+                title={readOnlyTitle ?? t('star.readOnly')}
             >
                 {icon}
             </span>
@@ -65,8 +70,8 @@ function StarButton({
                 e.stopPropagation();
                 e.preventDefault();
             }}
-            title={isStarred ? 'Bỏ khỏi mục gắn sao' : 'Thêm vào mục gắn sao'}
-            aria-label={isStarred ? 'Bỏ khỏi mục gắn sao' : 'Thêm vào mục gắn sao'}
+            title={isStarred ? t('menu.star.remove') : t('menu.star.add')}
+            aria-label={isStarred ? t('menu.star.remove') : t('menu.star.add')}
             aria-pressed={isStarred}
             className={`inline-flex items-center justify-center ${s.pad} rounded-full transition-colors active:scale-90 ${
                 isStarred

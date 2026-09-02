@@ -22,6 +22,78 @@ api.interceptors.request.use(
   (error) => Promise.reject(error),
 );
 
+// ─────────────────────── Làm mới access token (lỗi #10) ───────────────────────
+//
+// Access token sống 15 phút (JWT_EXPIRATION ở backend/src/config/configuration.ts).
+// Trước đây interceptor gặp 401 là xoá token rồi `location.href = '/login'` NGAY —
+// tức cứ 15 phút dùng app là bị đá ra một lần, dù backend đã có sẵn refresh token
+// 7 ngày trong cookie HttpOnly và endpoint POST /auth/refresh. Frontend chưa từng
+// gọi endpoint đó (grep 'auth/refresh' toàn src/ ra 0 kết quả).
+//
+// Nay: 401 → thử refresh MỘT lần → phát lại đúng request vừa lỗi. Chỉ khi refresh
+// cũng thất bại (refresh token hết hạn / phiên bị thu hồi) thì mới đăng xuất.
+
+/**
+ * Đường dẫn mà 401 KHÔNG có nghĩa là "token hết hạn":
+ *   • /auth/refresh — chính nó 401 thì refresh đã chết, thử lại là vòng lặp vô tận.
+ *   • login / OTP / quên mật khẩu — 401 ở đây là sai mật khẩu hoặc sai mã, người
+ *     dùng cần thấy thông báo lỗi chứ không phải bị điều hướng.
+ *   • /shares/ — khách vãng lai xem link chia sẻ, chưa từng có phiên nào để làm mới.
+ */
+const NO_REFRESH_PATHS = [
+  '/auth/refresh',
+  '/auth/login',
+  '/auth/verify-login-otp',
+  '/auth/send-register-otp',
+  '/auth/verify-register-otp',
+  '/auth/forgot-password',
+  '/auth/verify-reset-otp',
+  '/auth/reset-password',
+  '/shares/',
+];
+
+/**
+ * Promise của lượt refresh ĐANG chạy, hoặc null.
+ *
+ * Cần một biến chung vì màn hình nào cũng phát nhiều request song song: mở trang
+ * là `/files` + `/files/analytics` + `/auth/me` cùng bay đi. Token hết hạn thì cả
+ * ba nhận 401 gần như cùng lúc; không có chốt này thì có ba lượt POST /auth/refresh
+ * chạy chồng nhau, và nếu sau này bật rotation ở backend thì hai lượt sau sẽ dùng
+ * refresh token đã bị thay → phiên bị đăng xuất oan.
+ */
+let refreshPromise = null;
+
+/** Gọi /auth/refresh bằng axios GỐC để không đi qua interceptor này lần nữa. */
+function refreshAccessToken() {
+  if (!refreshPromise) {
+    refreshPromise = axios
+      .post(`${API_BASE_URL}/auth/refresh`, null, { withCredentials: true })
+      // Backend bọc response ({ statusCode, data }) nên phải bóc hai lớp.
+      .then((res) => {
+        const token = res.data?.data?.accessToken ?? res.data?.accessToken;
+        if (!token) throw new Error('Refresh không trả về accessToken');
+        localStorage.setItem('accessToken', token);
+        return token;
+      })
+      .finally(() => {
+        // Trả về null NGAY khi xong (kể cả lỗi) để lần 401 sau còn thử lại được
+        refreshPromise = null;
+      });
+  }
+  return refreshPromise;
+}
+
+/** Xoá phiên cục bộ + đưa về /login, trừ các trang không cần đăng nhập. */
+function forceLogout() {
+  localStorage.removeItem('accessToken');
+  const path = window.location.pathname;
+  // Khách vãng lai trên trang chia sẻ KHÔNG bao giờ bị redirect về /login
+  const isPublicSharePage = path.startsWith('/share');
+  if (!isPublicSharePage && path !== '/login' && path !== '/register' && path !== '/') {
+    window.location.href = '/login';
+  }
+}
+
 // Response Interceptor: Handle 401 Unauthorized token expiration
 api.interceptors.response.use(
   (response) => {
@@ -32,14 +104,30 @@ api.interceptors.response.use(
     return response.data;
   },
   async (error) => {
-    if (error.response && error.response.status === 401) {
-      localStorage.removeItem('accessToken');
-      const path = window.location.pathname;
-      // Khách vãng lai trên trang chia sẻ KHÔNG bao giờ bị redirect về /login
-      const isPublicSharePage = path.startsWith('/share');
-      if (!isPublicSharePage && path !== '/login' && path !== '/register' && path !== '/') {
-        window.location.href = '/login';
+    const original = error.config;
+    const url = original?.url || '';
+    const canRefresh =
+      error.response?.status === 401 &&
+      original &&
+      // `_retried`: mỗi request chỉ được phát lại ĐÚNG một lần. Nếu lần phát lại
+      // (đã mang token mới) vẫn 401 thì vấn đề không phải hết hạn token.
+      !original._retried &&
+      !NO_REFRESH_PATHS.some((p) => url.includes(p));
+
+    if (canRefresh) {
+      try {
+        await refreshAccessToken();
+        original._retried = true;
+        // Header Authorization cũ mang token đã hết hạn; xoá đi để request
+        // interceptor gắn lại token mới vừa lưu.
+        if (original.headers) delete original.headers.Authorization;
+        return api(original);
+      } catch {
+        // Refresh token hết hạn, hoặc phiên đã bị thu hồi từ thiết bị khác
+        forceLogout();
       }
+    } else if (error.response?.status === 401) {
+      forceLogout();
     }
 
     // Với `responseType: 'blob'` (vd. filesApi.downloadZip) axios trả body lỗi
@@ -97,14 +185,15 @@ export const authApi = {
   verifyResetOtp: (data) => api.post('/auth/verify-reset-otp', data),
   resetPassword: (data) => api.post('/auth/reset-password', data),
   getProfile: () => api.get('/auth/me'),
-  updateProfile: (data) => api.patch('/users/me', data),
-  updatePassword: (data) => api.patch('/users/me/password', data),
 };
 
 // User Profile APIs
 export const userApi = {
   getMe: () => api.get('/users/me'),
   updateMe: (data) => api.patch('/users/me', data),
+  // Phải nằm ở userApi (không phải authApi): endpoint thuộc /users/me và
+  // UserProfileModal chỉ import userApi.
+  updatePassword: (data) => api.patch('/users/me/password', data),
   updateAvatar: (formData) => api.post('/users/me/avatar', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',

@@ -13,9 +13,11 @@ import {
   RefreshCw,
   X,
 } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 import { billingApi } from '../../services/api';
+import { localeTagOf } from '../../utils/locale';
 import {
-  CYCLE_LABEL,
+  CYCLE_LABEL_KEY,
   PAYMENT_METHOD_LABEL,
   PENDING_STATUSES,
   formatVnd,
@@ -46,6 +48,8 @@ import {
  * @param {() => (void|Promise<void>)} onCancelled Gọi sau khi huỷ thành công.
  */
 export default function TransactionDetailModal({ transaction, onClose, onCancelled }) {
+  const { t, language } = useLanguage();
+  const locale = localeTagOf(language);
   const [isCancelling, setIsCancelling] = useState(false);
   const [confirmingCancel, setConfirmingCancel] = useState(false);
 
@@ -73,14 +77,14 @@ export default function TransactionDetailModal({ transaction, onClose, onCancell
 
   const handleCancelInvoice = async () => {
     if (!transaction.orderCode) {
-      toast.error('Giao dịch này thiếu mã đơn nên không huỷ được');
+      toast.error(t('tx.noOrderCode'));
       return;
     }
 
     try {
       setIsCancelling(true);
       await billingApi.cancelTransaction(transaction.orderCode);
-      toast.success(`Đã huỷ hoá đơn ${transaction.orderCode}`);
+      toast.success(t('tx.cancelled', { code: transaction.orderCode }));
       // Tải lại danh sách TRƯỚC khi đóng: bảng phía sau phải hiện "Đã huỷ" ngay khi
       // modal biến mất, chứ không để người dùng nhìn thấy dòng "Đang chờ" cũ.
       await onCancelled?.();
@@ -88,7 +92,7 @@ export default function TransactionDetailModal({ transaction, onClose, onCancell
     } catch (err) {
       // 400/404 = trạng thái đã đổi (vừa được trả tiền / đã huỷ / hết hạn). Thông điệp của
       // backend đã là câu tiếng Việt nên hiển thị thẳng.
-      toast.error(err?.message || 'Không huỷ được hoá đơn', { duration: 6000 });
+      toast.error(err?.message || t('tx.cancelFailed'), { duration: 6000 });
 
       if (err?.status === 400 || err?.status === 404) {
         // Tải lại danh sách RỒI ĐÓNG. `transaction` trong tay modal là bản chụp lúc mở, giờ
@@ -109,32 +113,34 @@ export default function TransactionDetailModal({ transaction, onClose, onCancell
     {
       key: 'orderCode',
       Icon: Hash,
-      label: 'Mã giao dịch',
+      label: t('tx.field.code'),
       value: <span className="font-mono font-bold">{transaction.orderCode || '—'}</span>,
     },
     {
       key: 'plan',
       Icon: Package,
-      label: 'Gói dịch vụ',
-      value: transaction.planName || 'Gói đã bị xoá',
+      label: t('tx.field.plan'),
+      value: transaction.planName || t('billing.tx.deletedPlan'),
     },
     {
       key: 'cycle',
       Icon: RefreshCw,
-      label: 'Chu kỳ thanh toán',
-      value: CYCLE_LABEL[transaction.billingCycle] || transaction.billingCycle || '—',
+      label: t('tx.field.cycle'),
+      value: CYCLE_LABEL_KEY[transaction.billingCycle]
+        ? t(CYCLE_LABEL_KEY[transaction.billingCycle])
+        : transaction.billingCycle || '—',
     },
     {
       key: 'method',
       Icon: CreditCard,
-      label: 'Phương thức',
+      label: t('tx.field.method'),
       value: PAYMENT_METHOD_LABEL[transaction.paymentMethod] || transaction.paymentMethod || '—',
     },
     {
       key: 'createdAt',
       Icon: Receipt,
-      label: 'Thời gian tạo',
-      value: transaction.createdAt ? new Date(transaction.createdAt).toLocaleString('vi-VN') : '—',
+      label: t('tx.field.createdAt'),
+      value: transaction.createdAt ? new Date(transaction.createdAt).toLocaleString(locale) : '—',
     },
   ];
 
@@ -149,13 +155,13 @@ export default function TransactionDetailModal({ transaction, onClose, onCancell
         onClick={(event) => event.stopPropagation()}
         role="dialog"
         aria-modal="true"
-        aria-label={`Chi tiết giao dịch ${transaction.orderCode || ''}`}
+        aria-label={t('tx.ariaTitle', { code: transaction.orderCode || '' })}
       >
         <button
           onClick={onClose}
           disabled={isCancelling}
           className="absolute right-5 top-5 text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 p-2 rounded-full transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-          aria-label="Đóng"
+          aria-label={t('common.close')}
         >
           <X className="w-5 h-5" />
         </button>
@@ -177,9 +183,9 @@ export default function TransactionDetailModal({ transaction, onClose, onCancell
 
         {/* Số tiền */}
         <div className="rounded-2xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-white/5 px-5 py-4 mb-4">
-          <div className="text-[13px] font-semibold text-gray-500 dark:text-gray-400">Tổng tiền</div>
+          <div className="text-[13px] font-semibold text-gray-500 dark:text-gray-400">{t('tx.amount')}</div>
           <div className="text-3xl font-black text-gray-900 dark:text-gray-100 tracking-tight mt-0.5">
-            {formatVnd(transaction.amount)}
+            {formatVnd(transaction.amount, locale)}
           </div>
         </div>
 
@@ -204,7 +210,7 @@ export default function TransactionDetailModal({ transaction, onClose, onCancell
               to={`/billing/success?orderCode=${transaction.orderCode}`}
               className="w-full py-3 rounded-xl bg-gray-900 hover:bg-black dark:bg-blue-600 dark:hover:bg-blue-500 text-white font-bold text-[14px] transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
-              <ExternalLink className="w-4 h-4" /> Kiểm tra lại trạng thái thanh toán
+              <ExternalLink className="w-4 h-4" /> {t('tx.recheck')}
             </Link>
 
             {/* PROCESSING: nói rõ vì sao KHÔNG có nút huỷ, thay vì im lặng giấu nút đi. */}
@@ -212,8 +218,7 @@ export default function TransactionDetailModal({ transaction, onClose, onCancell
               <div className="flex items-start gap-2.5 rounded-2xl border border-amber-200 dark:border-amber-500/30 bg-amber-50/60 dark:bg-amber-950/30 p-4">
                 <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                 <p className="text-[13.5px] text-amber-800 dark:text-amber-200 leading-snug">
-                  Cổng thanh toán đang ghi nhận khoản chuyển khoản của giao dịch này nên chưa thể huỷ.
-                  Hãy bấm “Kiểm tra lại” sau ít phút.
+                  {t('tx.processingNote')}
                 </p>
               </div>
             )}
@@ -223,8 +228,7 @@ export default function TransactionDetailModal({ transaction, onClose, onCancell
                 <div className="flex items-start gap-2.5">
                   <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
                   <p className="text-[13.5px] text-rose-800 dark:text-rose-200 leading-snug">
-                    Huỷ hoá đơn sẽ vô hiệu hoá luôn mã VietQR của đơn này. Nếu bạn đã chuyển khoản,
-                    hãy bấm “Kiểm tra lại” thay vì huỷ.
+                    {t('tx.cancelWarn')}
                   </p>
                 </div>
                 <div className="flex gap-2">
@@ -242,10 +246,10 @@ export default function TransactionDetailModal({ transaction, onClose, onCancell
                   >
                     {isCancelling ? (
                       <>
-                        <Loader2 className="w-4 h-4 animate-spin" /> Đang huỷ…
+                        <Loader2 className="w-4 h-4 animate-spin" /> {t('tx.cancelling')}
                       </>
                     ) : (
-                      'Xác nhận huỷ'
+                      t('tx.confirmCancel')
                     )}
                   </button>
                 </div>
@@ -255,7 +259,7 @@ export default function TransactionDetailModal({ transaction, onClose, onCancell
                 onClick={() => setConfirmingCancel(true)}
                 className="w-full py-3 rounded-xl bg-white dark:bg-[#282a2c] border border-rose-200 dark:border-rose-500/30 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 font-bold text-[14px] transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
-                <Ban className="w-4 h-4" /> Huỷ hoá đơn
+                <Ban className="w-4 h-4" /> {t('tx.cancelInvoice')}
               </button>
             )}
           </div>

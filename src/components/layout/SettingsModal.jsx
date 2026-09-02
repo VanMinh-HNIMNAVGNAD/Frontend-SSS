@@ -3,6 +3,7 @@ import { X, Settings, Keyboard, Sun, Moon, Laptop, ShieldCheck } from 'lucide-re
 import {
   SHORTCUT_HINTS,
   PLATFORM_LABEL,
+  PLATFORM_LABEL_KEY,
   SHORTCUTS_ENABLED_KEY,
   areShortcutsEnabled,
 } from '../../hooks/useGlobalShortcuts';
@@ -466,9 +467,9 @@ export default function SettingsModal({ isOpen, onClose }) {
                       shortcutsEnabled ? '' : 'opacity-50'
                     }`}
                   >
-                    {shortcutsList.map((item, idx) => (
-                      <div key={idx} className="flex items-center justify-between gap-2 px-3 py-2 text-xs bg-white dark:bg-transparent hover:bg-gray-100/70 dark:hover:bg-white/5 transition-colors">
-                        <span className="text-gray-900 dark:text-gray-200 font-semibold text-xs truncate">{item.label}</span>
+                    {shortcutsList.map((item) => (
+                      <div key={item.id} className="flex items-center justify-between gap-2 px-3 py-2 text-xs bg-white dark:bg-transparent hover:bg-gray-100/70 dark:hover:bg-white/5 transition-colors">
+                        <span className="text-gray-900 dark:text-gray-200 font-semibold text-xs truncate">{t(item.labelKey)}</span>
                         {/* Mỗi tổ hợp là một chip riêng — dòng dài tự xuống hàng thay vì tràn */}
                         <div className="flex flex-wrap justify-end gap-1 shrink-0 max-w-[55%]">
                           {item.keys.map((combo, i) => (
@@ -488,7 +489,7 @@ export default function SettingsModal({ isOpen, onClose }) {
                 {/* Vì sao bảng phím trên máy bạn có thể khác máy đồng nghiệp */}
                 <p className="text-[11px] text-gray-400 dark:text-gray-500 leading-relaxed px-0.5">
                   {t('settings.shortcuts.platform.label')}{' '}
-                  <span className="font-semibold text-gray-600 dark:text-gray-300">{PLATFORM_LABEL}</span>.{' '}
+                  <span className="font-semibold text-gray-600 dark:text-gray-300">{PLATFORM_LABEL ?? t(PLATFORM_LABEL_KEY)}</span>.{' '}
                   {t('settings.shortcuts.platform.hint')}
                 </p>
               </div>

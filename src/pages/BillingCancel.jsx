@@ -2,6 +2,8 @@ import { useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, XCircle, LifeBuoy } from 'lucide-react';
 import { billingApi } from '../services/api';
+import { useLanguage } from '../context/LanguageContext';
+import tRich from '../utils/tRich';
 
 /**
  * cancelUrl mà backend gửi cho payOS (config/configuration.ts → payos.cancelUrl):
@@ -16,6 +18,7 @@ import { billingApi } from '../services/api';
  * ta chỉ đọc `orderCode` — đó là khoá đối soát duy nhất thuộc quyền mình.
  */
 export default function BillingCancel() {
+  const { t } = useLanguage();
   const [searchParams] = useSearchParams();
   const orderCode = searchParams.get('orderCode');
 
@@ -42,17 +45,22 @@ export default function BillingCancel() {
         </div>
 
         <h1 className="text-2xl font-black tracking-tight text-gray-900 dark:text-gray-100 mb-2">
-          Đã huỷ thanh toán
+          {t('payCancel.title')}
         </h1>
         <p className="text-[15px] text-gray-500 dark:text-gray-400 leading-relaxed">
-          Giao dịch chưa được thực hiện và bạn <span className="font-semibold text-gray-700 dark:text-gray-300">không bị trừ tiền</span>.
-          Gói lưu trữ hiện tại của bạn giữ nguyên.
+          {tRich(t('payCancel.body'), {
+            bold: (
+              <span className="font-semibold text-gray-700 dark:text-gray-300">
+                {t('payCancel.bold')}
+              </span>
+            ),
+          })}
         </p>
 
         {orderCode && (
           <div className="mt-6 px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-gray-700 text-left">
             <div className="text-[11px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">
-              Mã giao dịch
+              {t('payResult.field.orderCode')}
             </div>
             <div className="font-mono text-[15px] font-semibold text-gray-800 dark:text-gray-200 break-all mt-0.5">
               {orderCode}

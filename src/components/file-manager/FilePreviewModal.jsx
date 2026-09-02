@@ -16,6 +16,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { useFiles } from '../../context/FileContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { storageApi } from '../../services/api';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
@@ -31,6 +32,15 @@ if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
   ).toString();
 }
 
+// Ngưỡng xem trước chung: dưới mức này thì MỞ, trên thì mời tải về.
+// Khai một chỗ để backend (`getFileTextContent`) và ba nhánh preview không lệch nhau
+// như trước (5MB cho text, 8MB cho docx, câu thông báo lại ghi 8MB).
+const PREVIEW_MAX_BYTES = 10 * 1024 * 1024;
+
+// Trên mức này thì KHÔNG chạy Prism nữa: highlight một tệp vài MB làm treo tab
+// (Prism tokenize đồng bộ trên main thread). Vẫn xem được, chỉ mất màu.
+const SYNTAX_HIGHLIGHT_MAX_CHARS = 400 * 1024;
+
 const isMarkdownFile = (fileName = '') => {
   const lower = fileName.toLowerCase();
   return lower.endsWith('.md') || lower.endsWith('.markdown');
@@ -44,7 +54,8 @@ const isTextLikeFile = (fileName = '', mimeType = '') => {
     isMarkdownFile(fileName) ||
     mime === 'text/markdown' ||
     mime.startsWith('text/') ||
-    /\.(txt|md|markdown|log|env|conf|ini|csv|json|xml|yaml|yml|js|jsx|ts|tsx|py|html|css|sql|sh|c|cpp|h|hpp|java|go|rs|kt|php|vue|svelte|cs)$/i.test(lower)
+    // Giữ khớp với `resolvePreviewContentType` ở backend/src/storage/storage.service.ts
+    /\.(txt|text|md|markdown|rst|adoc|log|env|conf|cfg|ini|toml|properties|csv|tsv|json|jsonc|json5|xml|yaml|yml|js|mjs|cjs|jsx|ts|mts|cts|tsx|py|pyi|rb|pl|pm|lua|r|swift|dart|scala|groovy|kt|kts|go|rs|c|h|cc|cxx|cpp|hpp|hh|hxx|m|mm|java|cs|vb|fs|php|html|htm|css|scss|sass|less|styl|vue|svelte|astro|sql|sh|bash|zsh|fish|ps1|bat|cmd|dockerfile|dockerignore|gitignore|editorconfig|makefile|mk|cmake|gradle|tf|tfvars|hcl|graphql|gql|proto|tex|bib|diff|patch|srt|vtt|ipynb)$/i.test(lower)
   );
 };
 
@@ -52,6 +63,7 @@ const isTextLikeFile = (fileName = '', mimeType = '') => {
  * Component Canvas chuyên dụng xem PDF nhiều trang, hỗ trợ High-DPI
  */
 function PdfCanvasViewer({ url, zoom = 1, rotation = 0 }) {
+  const { t } = useLanguage();
   const [pdfDoc, setPdfDoc] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [numPages, setNumPages] = useState(0);
@@ -73,7 +85,7 @@ function PdfCanvasViewer({ url, zoom = 1, rotation = 0 }) {
       try {
         const response = await fetch(url);
         if (!response.ok) {
-          throw new Error(`Máy chủ lưu trữ phản hồi mã lỗi: ${response.status}`);
+          throw new Error(t('preview.pdf.httpError', { status: response.status }));
         }
         const pdfData = await response.arrayBuffer();
         if (!isMounted) return;
@@ -87,7 +99,7 @@ function PdfCanvasViewer({ url, zoom = 1, rotation = 0 }) {
       } catch (err) {
         if (isMounted) {
           console.error('[PDF Preview Error]', err);
-          setError('Không thể đọc dữ liệu PDF từ Cloud. Vui lòng tải xuống để xem.');
+          setError(t('preview.pdf.readFailed'));
         }
       } finally {
         if (isMounted) setLoading(false);
@@ -97,7 +109,7 @@ function PdfCanvasViewer({ url, zoom = 1, rotation = 0 }) {
     return () => {
       isMounted = false;
     };
-  }, [url]);
+  }, [url, t]);
 
   // 2. Vẽ trang PDF lên Canvas
   useEffect(() => {
@@ -117,12 +129,21 @@ function PdfCanvasViewer({ url, zoom = 1, rotation = 0 }) {
         if (!canvas) return;
         const context = canvas.getContext('2d');
 
-        // Scale 1.5x cơ sở để chữ sắc nét
-        const scale = 1.5 * zoom;
-        const viewport = page.getViewport({ scale, rotation });
+        // `zoom` phải đi vào KÍCH THƯỚC CSS của canvas, không chỉ vào độ phân giải:
+        // trước đây canvas có `max-w-full/max-h-full` + `height:auto` nên trình duyệt
+        // co ảnh về vừa khung, zoom chỉ làm nét hơn chứ KHÔNG to ra — người dùng thấy
+        // như nút zoom không hoạt động.
+        //   • cssScale (1.5 * zoom) = kích thước hiển thị.
+        //   • dpr thêm vào chỉ để bù màn hình HiDPI, không đổi kích thước hiển thị.
+        const cssScale = 1.5 * zoom;
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const cssViewport = page.getViewport({ scale: cssScale, rotation });
+        const viewport = page.getViewport({ scale: cssScale * dpr, rotation });
 
         canvas.height = viewport.height;
         canvas.width = viewport.width;
+        canvas.style.width = `${cssViewport.width}px`;
+        canvas.style.height = `${cssViewport.height}px`;
 
         const renderContext = {
           canvasContext: context,
@@ -152,7 +173,7 @@ function PdfCanvasViewer({ url, zoom = 1, rotation = 0 }) {
     return (
       <div className="flex flex-col items-center justify-center gap-3 text-slate-400 py-20">
         <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-        <p className="text-sm font-medium">Đang giải mã và kết xuất trang PDF...</p>
+        <p className="text-sm font-medium">{t('preview.pdf.rendering')}</p>
       </div>
     );
   }
@@ -168,11 +189,12 @@ function PdfCanvasViewer({ url, zoom = 1, rotation = 0 }) {
   return (
     <div className="w-full h-full flex flex-col items-center overflow-hidden">
       {/* Vùng Canvas hiển thị PDF */}
-      <div className="flex-1 w-full overflow-auto flex items-center justify-center p-4">
+      {/* `items-start` + `m-auto` trên canvas: khi zoom < khung thì canvas vẫn giữa,
+          khi zoom vượt khung thì nó không bị cắt mất phần trên mà cuộn được. */}
+      <div className="flex-1 w-full overflow-auto flex items-start justify-center p-4">
         <canvas
           ref={canvasRef}
-          className="max-w-full max-h-full object-contain rounded-lg shadow-2xl bg-white transition-all duration-100"
-          style={{ maxWidth: '100%', height: 'auto' }}
+          className="m-auto rounded-lg shadow-2xl bg-white"
         />
       </div>
 
@@ -183,20 +205,20 @@ function PdfCanvasViewer({ url, zoom = 1, rotation = 0 }) {
             onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
             disabled={currentPage <= 1}
             className="p-1.5 rounded-full hover:bg-white/10 text-white disabled:opacity-30 transition-colors cursor-pointer"
-            title="Trang trước"
+            title={t('preview.page.prev')}
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
 
           <span className="text-xs font-mono text-slate-300 font-semibold">
-            Trang {currentPage} / {numPages}
+            {t('preview.page.counter', { current: currentPage, total: numPages })}
           </span>
 
           <button
             onClick={() => setCurrentPage((p) => Math.min(numPages, p + 1))}
             disabled={currentPage >= numPages}
             className="p-1.5 rounded-full hover:bg-white/10 text-white disabled:opacity-30 transition-colors cursor-pointer"
-            title="Trang sau"
+            title={t('preview.page.next')}
           >
             <ChevronRight className="w-4 h-4" />
           </button>
@@ -207,6 +229,7 @@ function PdfCanvasViewer({ url, zoom = 1, rotation = 0 }) {
 }
 
 export default function FilePreviewModal({ item, onClose }) {
+  const { t } = useLanguage();
   const { getPreviewUrl, getFileTextContent } = useFiles();
   const [url, setUrl] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -241,12 +264,12 @@ export default function FilePreviewModal({ item, onClose }) {
           if (validUrl) {
             setUrl(validUrl);
           } else {
-            setError('Không thể lấy được liên kết xem trước từ Cloud.');
+            setError(t('preview.noUrl'));
           }
         }
       } catch (err) {
         if (isMounted) {
-          setError(err.message || 'Lỗi khi tải bản xem trước tệp');
+          setError(err.message || t('preview.loadFailed'));
         }
       } finally {
         if (isMounted) setLoading(false);
@@ -258,7 +281,7 @@ export default function FilePreviewModal({ item, onClose }) {
     return () => {
       isMounted = false;
     };
-  }, [item]);
+  }, [item, t]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -317,11 +340,11 @@ export default function FilePreviewModal({ item, onClose }) {
   const isAudio = mime.startsWith('audio/') || /\.(mp3|wav|ogg|m4a)$/i.test(name);
   const isPdf = mime.includes('pdf') || /\.pdf$/i.test(name);
   const isMd = isMarkdownFile(name) || mime === 'text/markdown';
-  const isCodeOrText = item ? isTextLikeFile(name, item.mimeType) && Number(item.sizeBytes) <= 5 * 1024 * 1024 : false;
+  const isCodeOrText = item ? isTextLikeFile(name, item.mimeType) && Number(item.sizeBytes) <= PREVIEW_MAX_BYTES : false;
   const isDocx = item ? (
     (mime === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
       mime === 'application/msword' ||
-      /\.docx$/i.test(name)) && Number(item.sizeBytes) <= 8 * 1024 * 1024
+      /\.docx$/i.test(name)) && Number(item.sizeBytes) <= PREVIEW_MAX_BYTES
   ) : false;
 
   const [copied, setCopied] = useState(false);
@@ -351,11 +374,11 @@ export default function FilePreviewModal({ item, onClose }) {
           if (content && !content.startsWith('// Không thể tải trực tiếp') && !content.startsWith('// Lỗi khi đọc')) {
             setTextContent(content);
           } else {
-            setTextContent(content || 'Không thể tải nội dung tệp');
+            setTextContent(content || t('preview.text.loadFailed'));
           }
         })
         .catch(() => {
-          if (isMounted) setTextContent('Không thể tải nội dung tệp văn bản / mã nguồn');
+          if (isMounted) setTextContent(t('preview.text.loadFailedCode'));
         })
         .finally(() => {
           if (isMounted) setIsLoadingText(false);
@@ -365,7 +388,7 @@ export default function FilePreviewModal({ item, onClose }) {
         isMounted = false;
       };
     }
-  }, [isCodeOrText, item]);
+  }, [isCodeOrText, item, t]);
 
   const [docxHtml, setDocxHtml] = useState(null);
   const [docxLoading, setDocxLoading] = useState(false);
@@ -382,16 +405,18 @@ export default function FilePreviewModal({ item, onClose }) {
     const loadDocx = async () => {
       try {
         const response = await fetch(url);
-        if (!response.ok) throw new Error('Không thể tải tệp Word từ đám mây.');
+        if (!response.ok) throw new Error(t('preview.docx.fetchFailed'));
         const arrayBuffer = await response.arrayBuffer();
         const result = await mammoth.convertToHtml({ arrayBuffer });
         if (isMounted) {
-          setDocxHtml(result.value || '<p class="text-slate-400 italic">Tài liệu không có nội dung văn bản.</p>');
+          setDocxHtml(
+            result.value || `<p class="text-slate-400 italic">${t('preview.docx.empty')}</p>`,
+          );
         }
       } catch (err) {
         if (isMounted) {
           console.error('[DOCX Preview Error]', err);
-          setDocxError(err.message || 'Lỗi khi chuyển đổi tệp Word (.docx)');
+          setDocxError(err.message || t('preview.docx.convertFailed'));
         }
       } finally {
         if (isMounted) setDocxLoading(false);
@@ -403,7 +428,7 @@ export default function FilePreviewModal({ item, onClose }) {
     return () => {
       isMounted = false;
     };
-  }, [isDocx, url]);
+  }, [isDocx, url, t]);
 
   if (!item) return null;
 
@@ -435,7 +460,7 @@ export default function FilePreviewModal({ item, onClose }) {
                 onClick={handleZoomOut}
                 disabled={zoom <= 0.5}
                 className="p-2 rounded-xl bg-white/10 hover:bg-white/20 disabled:opacity-30 text-white transition-all cursor-pointer"
-                title="Thu nhỏ (-)"
+                title={t('preview.zoomOut')}
               >
                 <ZoomOut className="w-4 h-4" />
               </button>
@@ -446,21 +471,21 @@ export default function FilePreviewModal({ item, onClose }) {
                 onClick={handleZoomIn}
                 disabled={zoom >= 3}
                 className="p-2 rounded-xl bg-white/10 hover:bg-white/20 disabled:opacity-30 text-white transition-all cursor-pointer"
-                title="Phóng to (+)"
+                title={t('preview.zoomIn')}
               >
                 <ZoomIn className="w-4 h-4" />
               </button>
               <button
                 onClick={handleRotate}
                 className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all cursor-pointer"
-                title="Xoay 90 độ (R)"
+                title={t('preview.rotate')}
               >
                 <RotateCw className="w-4 h-4" />
               </button>
               <button
                 onClick={handleReset}
                 className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all cursor-pointer"
-                title="Về kích thước gốc"
+                title={t('preview.resetZoom')}
               >
                 <Maximize2 className="w-4 h-4" />
               </button>
@@ -473,13 +498,13 @@ export default function FilePreviewModal({ item, onClose }) {
             className="flex items-center gap-2 px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-lg shadow-blue-500/20 transition-all cursor-pointer"
           >
             <Download className="w-4 h-4" />
-            <span>Tải xuống</span>
+            <span>{t('common.download')}</span>
           </button>
 
           <button
             onClick={onClose}
             className="p-2 rounded-xl bg-white/10 hover:bg-rose-500/80 text-white transition-all ml-2 cursor-pointer"
-            title="Đóng (Esc)"
+            title={t('preview.close')}
           >
             <X className="w-5 h-5" />
           </button>
@@ -491,7 +516,7 @@ export default function FilePreviewModal({ item, onClose }) {
         {loading && (
           <div className="flex flex-col items-center gap-3 text-slate-400">
             <Loader2 className="w-10 h-10 animate-spin text-blue-500" />
-            <p className="text-sm font-medium">Đang nạp dữ liệu bản xem trước...</p>
+            <p className="text-sm font-medium">{t('preview.loading')}</p>
           </div>
         )}
 
@@ -502,7 +527,7 @@ export default function FilePreviewModal({ item, onClose }) {
               onClick={handleDownload}
               className="px-4 py-2 bg-white/10 hover:bg-white/20 text-xs font-semibold rounded-xl text-white transition-all"
             >
-              Tải tệp về máy để xem
+              {t('preview.downloadToView')}
             </button>
           </div>
         )}
@@ -529,7 +554,7 @@ export default function FilePreviewModal({ item, onClose }) {
                   <div className="flex items-center gap-2.5 min-w-0">
                     <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
                     <span className="leading-relaxed">
-                      <strong>Lưu ý về âm thanh:</strong> Nếu video mất tiếng, tệp có thể dùng codec AC3/DTS. Vui lòng tải về mở bằng VLC.
+                      <strong>{t('preview.audio.noticeTitle')}</strong> {t('preview.audio.notice')}
                     </span>
                   </div>
                   <button 
@@ -537,7 +562,7 @@ export default function FilePreviewModal({ item, onClose }) {
                     className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors font-semibold shadow-sm text-xs shrink-0 flex items-center gap-1.5"
                   >
                     <Download className="w-3.5 h-3.5" />
-                    <span>Tải file gốc</span>
+                    <span>{t('preview.downloadOriginal')}</span>
                   </button>
                 </div>
 
@@ -575,7 +600,7 @@ export default function FilePreviewModal({ item, onClose }) {
                   className="flex items-center justify-center gap-2 w-full py-2.5 bg-white/10 hover:bg-white/20 text-xs font-semibold rounded-xl text-white transition-all cursor-pointer"
                 >
                   <Download className="w-4 h-4" />
-                  <span>Tải xuống tệp âm thanh gốc</span>
+                  <span>{t('preview.audio.download')}</span>
                 </button>
               </div>
             )}
@@ -600,7 +625,7 @@ export default function FilePreviewModal({ item, onClose }) {
                   {docxLoading ? (
                     <div className="flex flex-col items-center justify-center gap-3 text-slate-400 py-16">
                       <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-                      <p className="text-sm font-medium">Đang chuyển đổi tài liệu Word...</p>
+                      <p className="text-sm font-medium">{t('preview.docx.converting')}</p>
                     </div>
                   ) : docxError ? (
                     <div className="flex flex-col items-center justify-center gap-3 p-6 text-center max-w-md my-auto">
@@ -659,7 +684,7 @@ export default function FilePreviewModal({ item, onClose }) {
                       onClick={handleCopyText}
                       className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-[11px] font-sans font-semibold text-slate-200 transition-colors cursor-pointer"
                     >
-                      {copied ? '✓ Đã sao chép' : 'Sao chép'}
+                      {copied ? t('preview.copied') : t('preview.copy')}
                     </button>
                     <span className="hidden sm:inline">UTF-8 • {formatBytes(item.sizeBytes)}</span>
                   </div>
@@ -668,7 +693,7 @@ export default function FilePreviewModal({ item, onClose }) {
                   {isLoadingText ? (
                     <div className="flex flex-col items-center justify-center gap-3 text-slate-400 py-20">
                       <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-                      <p className="text-sm font-medium">Đang tải nội dung...</p>
+                      <p className="text-sm font-medium">{t('preview.text.loading')}</p>
                     </div>
                   ) : textContent ? (
                     isMd && mdViewMode === 'preview' ? (
@@ -678,17 +703,45 @@ export default function FilePreviewModal({ item, onClose }) {
                           __html: marked.parse(textContent, { breaks: true, gfm: true })
                         }}
                       />
+                    ) : textContent.length > SYNTAX_HIGHLIGHT_MAX_CHARS ? (
+                      // Ngưỡng preview nay là 10MB, nhưng Prism tokenize đồng bộ:
+                      // đưa cho nó vài MB là treo tab. Tệp lớn hiển thị thô, đọc
+                      // được và cuộn được, chỉ không có màu cú pháp.
+                      <div className="flex flex-col h-full">
+                        <div className="px-4 py-2 text-[11px] text-amber-300 bg-amber-500/10 border-b border-amber-500/20 shrink-0">
+                          {t('preview.highlightOff', { size: formatBytes(item.sizeBytes) })}
+                        </div>
+                        <pre className="flex-1 overflow-auto p-4 m-0 text-xs font-mono text-slate-200 whitespace-pre">
+                          {textContent}
+                        </pre>
+                      </div>
                     ) : (
                       <SyntaxHighlighter
                         language={(() => {
                           const ext = item?.name?.split('.').pop()?.toLowerCase();
                           const map = {
-                            js: 'javascript', jsx: 'jsx', ts: 'typescript', tsx: 'tsx',
-                            py: 'python', json: 'json', html: 'html', css: 'css',
-                            sql: 'sql', md: 'markdown', markdown: 'markdown', sh: 'bash', bash: 'bash',
-                            java: 'java', go: 'go', rs: 'rust', c: 'c', cpp: 'cpp',
-                            cs: 'csharp', php: 'php', xml: 'xml', yaml: 'yaml', yml: 'yaml',
-                            env: 'bash', txt: 'text'
+                            js: 'javascript', mjs: 'javascript', cjs: 'javascript',
+                            jsx: 'jsx', ts: 'typescript', mts: 'typescript', cts: 'typescript', tsx: 'tsx',
+                            py: 'python', pyi: 'python', json: 'json', jsonc: 'json', json5: 'json',
+                            html: 'html', htm: 'html', css: 'css', scss: 'scss', sass: 'sass', less: 'less',
+                            sql: 'sql', md: 'markdown', markdown: 'markdown',
+                            sh: 'bash', bash: 'bash', zsh: 'bash', fish: 'bash', env: 'bash',
+                            ps1: 'powershell', bat: 'batch', cmd: 'batch',
+                            java: 'java', kt: 'kotlin', kts: 'kotlin', go: 'go', rs: 'rust',
+                            c: 'c', h: 'c', cpp: 'cpp', cc: 'cpp', cxx: 'cpp', hpp: 'cpp', hh: 'cpp', hxx: 'cpp',
+                            cs: 'csharp', vb: 'vbnet', fs: 'fsharp',
+                            php: 'php', rb: 'ruby', pl: 'perl', pm: 'perl', lua: 'lua',
+                            r: 'r', swift: 'swift', dart: 'dart', scala: 'scala', groovy: 'groovy',
+                            m: 'objectivec', mm: 'objectivec',
+                            xml: 'xml', yaml: 'yaml', yml: 'yaml', toml: 'toml', ini: 'ini',
+                            cfg: 'ini', conf: 'ini', properties: 'ini',
+                            vue: 'markup', svelte: 'markup', astro: 'markup',
+                            graphql: 'graphql', gql: 'graphql', proto: 'protobuf',
+                            tf: 'hcl', tfvars: 'hcl', hcl: 'hcl',
+                            dockerfile: 'docker', makefile: 'makefile', mk: 'makefile',
+                            cmake: 'cmake', gradle: 'gradle',
+                            diff: 'diff', patch: 'diff', tex: 'latex',
+                            csv: 'text', tsv: 'text', log: 'text', txt: 'text',
                           };
                           return map[ext] || 'text';
                         })()}
@@ -701,7 +754,7 @@ export default function FilePreviewModal({ item, onClose }) {
                       </SyntaxHighlighter>
                     )
                   ) : (
-                    <div className="text-slate-400 p-6 font-mono text-center">Không có nội dung văn bản</div>
+                    <div className="text-slate-400 p-6 font-mono text-center">{t('preview.text.empty')}</div>
                   )}
                 </div>
               </div>
@@ -712,9 +765,9 @@ export default function FilePreviewModal({ item, onClose }) {
                 <FileText className="w-16 h-16 text-blue-400" />
                 <h4 className="font-bold text-white text-sm">{item.name}</h4>
                 <p className="text-xs text-slate-400">
-                  {Number(item.sizeBytes) > 8 * 1024 * 1024
-                    ? 'Dung lượng tệp lớn (>8MB), vui lòng tải về để xem.'
-                    : 'Định dạng tệp không hỗ trợ xem trước trực tiếp.'}
+                  {Number(item.sizeBytes) > PREVIEW_MAX_BYTES
+                    ? t('preview.tooBig')
+                    : t('preview.unsupported')}
                 </p>
                 <button
                   onClick={handleDownload}
@@ -731,7 +784,7 @@ export default function FilePreviewModal({ item, onClose }) {
       {/* Bottom Info Bar */}
       <div className="px-6 py-3 bg-slate-900/60 border-t border-white/10 flex items-center justify-end text-xs text-slate-400">
         <div className="flex items-center gap-4">
-          <span>Phím tắt: ESC (Đóng), +/- (Thu phóng), R (Xoay)</span>
+          <span>{t('preview.shortcuts')}</span>
         </div>
       </div>
     </div>

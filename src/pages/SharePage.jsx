@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useLanguage } from '../context/LanguageContext';
 import { sharingApi } from '../services/api';
 import { API_BASE_URL } from '../constants/api';
 import { formatBytes } from '../utils/formatFileSize';
@@ -69,6 +70,7 @@ function SharePageSkeleton() {
 
 // ─── Error State ─────────────────────────────────────────────────────────────
 function SharePageError({ message, onGoHome }) {
+  const { t } = useLanguage();
   return (
     <div className="min-h-screen bg-[#0f1117] text-white flex flex-col items-center justify-center px-4">
       <a href="/" className="mb-10 text-2xl font-bold tracking-tight select-none">
@@ -79,9 +81,9 @@ function SharePageError({ message, onGoHome }) {
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
         </svg>
       </div>
-      <h1 className="text-2xl font-semibold mb-3 text-center">Không thể truy cập liên kết</h1>
+      <h1 className="text-2xl font-semibold mb-3 text-center">{t('sharePage.error.title')}</h1>
       <p className="text-white/50 text-center max-w-sm mb-8">
-        {message || 'Liên kết này không tồn tại, đã hết hạn hoặc đã bị thu hồi.'}
+        {message || t('sharePage.error.body')}
       </p>
       <button
         onClick={onGoHome}
@@ -95,6 +97,7 @@ function SharePageError({ message, onGoHome }) {
 
 // ─── PDF Canvas Viewer (dùng pdfjs-dist, không dùng iframe) ──────────────────
 function PdfCanvasViewer({ url, zoom: externalZoom, rotation: externalRotation }) {
+  const { t } = useLanguage();
   const [pdfDoc, setPdfDoc]       = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [numPages, setNumPages]   = useState(0);
@@ -129,7 +132,7 @@ function PdfCanvasViewer({ url, zoom: externalZoom, rotation: externalRotation }
       } catch (err) {
         if (mounted) {
           console.error('[PDF]', err);
-          setError('Không thể giải mã PDF. Vui lòng tải xuống để xem.');
+          setError(t('sharePage.pdf.failed'));
         }
       } finally {
         if (mounted) setLoading(false);
@@ -137,7 +140,7 @@ function PdfCanvasViewer({ url, zoom: externalZoom, rotation: externalRotation }
     })();
 
     return () => { mounted = false; };
-  }, [url]);
+  }, [url, t]);
 
   // 2. Vẽ trang lên canvas khi page/zoom thay đổi
   useEffect(() => {
@@ -182,7 +185,7 @@ function PdfCanvasViewer({ url, zoom: externalZoom, rotation: externalRotation }
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4Z" />
         </svg>
-        <span className="text-sm">Đang giải mã PDF…</span>
+        <span className="text-sm">{t('sharePage.pdf.decoding')}</span>
       </div>
     );
   }
@@ -212,7 +215,7 @@ function PdfCanvasViewer({ url, zoom: externalZoom, rotation: externalRotation }
           <>
             <button
               onClick={() => setZoom((z) => Math.max(0.5, z - 0.25))}
-              title="Thu nhỏ"
+              title={t('sharePage.zoomOut')}
               className="p-1.5 rounded-full hover:bg-white/10 text-white/60 hover:text-white transition-colors cursor-pointer"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -224,7 +227,7 @@ function PdfCanvasViewer({ url, zoom: externalZoom, rotation: externalRotation }
             </span>
             <button
               onClick={() => setZoom((z) => Math.min(3, z + 0.25))}
-              title="Phóng to"
+              title={t('sharePage.zoomIn')}
               className="p-1.5 rounded-full hover:bg-white/10 text-white/60 hover:text-white transition-colors cursor-pointer"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -241,7 +244,7 @@ function PdfCanvasViewer({ url, zoom: externalZoom, rotation: externalRotation }
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage <= 1}
               className="p-1.5 rounded-full hover:bg-white/10 text-white disabled:opacity-30 transition-colors cursor-pointer"
-              title="Trang trước"
+              title={t('preview.page.prev')}
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
@@ -269,6 +272,7 @@ function PdfCanvasViewer({ url, zoom: externalZoom, rotation: externalRotation }
 
 // ─── Word DOCX Preview ──────────────────────────────────────────────────────
 function DocxPreview({ url }) {
+  const { t } = useLanguage();
   const [html, setHtml] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -283,16 +287,16 @@ function DocxPreview({ url }) {
     (async () => {
       try {
         const res = await fetch(url);
-        if (!res.ok) throw new Error('Không thể tải tệp Word từ đám mây.');
+        if (!res.ok) throw new Error(t('preview.docx.fetchFailed'));
         const arrayBuffer = await res.arrayBuffer();
         const result = await mammoth.convertToHtml({ arrayBuffer });
         if (mounted) {
-          setHtml(result.value || '<p class="text-slate-400 italic">Tài liệu không có nội dung văn bản.</p>');
+          setHtml(result.value || `<p class="text-slate-400 italic">${t('preview.docx.empty')}</p>`);
         }
       } catch (err) {
         if (mounted) {
           console.error('[DOCX Preview Error]', err);
-          setError(err?.message || 'Lỗi khi chuyển đổi tệp Word (.docx)');
+          setError(err?.message || t('preview.docx.convertFailed'));
         }
       } finally {
         if (mounted) setLoading(false);
@@ -300,7 +304,7 @@ function DocxPreview({ url }) {
     })();
 
     return () => { mounted = false; };
-  }, [url]);
+  }, [url, t]);
 
   if (loading) {
     return (
@@ -309,7 +313,7 @@ function DocxPreview({ url }) {
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4Z" />
         </svg>
-        <span className="text-sm font-medium">Đang chuyển đổi tài liệu Word…</span>
+        <span className="text-sm font-medium">{t('sharePage.docx.converting')}</span>
       </div>
     );
   }
@@ -332,6 +336,7 @@ function DocxPreview({ url }) {
 
 // ─── Code / Text Preview ────────────────────────────────────────────────────
 function CodeTextPreview({ url, name }) {
+  const { t } = useLanguage();
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(false);
@@ -351,7 +356,7 @@ function CodeTextPreview({ url, name }) {
         });
         if (!res.ok) throw new Error('fetch failed');
         let text = await res.text();
-        if (text.length > 150_000) text = text.slice(0, 150_000) + '\n\n[... nội dung bị cắt bớt do quá dài]';
+        if (text.length > 150_000) text = text.slice(0, 150_000) + t('sharePage.text.truncated');
         if (!cancelled) setContent(text);
       } catch {
         if (!cancelled) setError(true);
@@ -360,7 +365,7 @@ function CodeTextPreview({ url, name }) {
       }
     })();
     return () => { cancelled = true; };
-  }, [url]);
+  }, [url, t]);
 
   const handleCopy = () => {
     if (content) {
@@ -377,7 +382,7 @@ function CodeTextPreview({ url, name }) {
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4Z" />
         </svg>
-        <span className="text-sm font-medium">Đang tải nội dung văn bản / mã nguồn…</span>
+        <span className="text-sm font-medium">{t('sharePage.text.loading')}</span>
       </div>
     );
   }
@@ -437,7 +442,7 @@ function CodeTextPreview({ url, name }) {
             onClick={handleCopy}
             className="px-2.5 py-1 rounded-md bg-white/10 hover:bg-white/20 text-xs text-white transition-colors cursor-pointer"
           >
-            {copied ? '✓ Đã sao chép' : 'Sao chép mã'}
+            {copied ? t('preview.copied') : t('sharePage.copyCode')}
           </button>
         </div>
       </div>
@@ -466,6 +471,7 @@ function CodeTextPreview({ url, name }) {
 }
 
 function RestrictedPreviewNotice({ file, message }) {
+  const { t } = useLanguage();
   return (
     <div className="flex flex-col items-center justify-center gap-4 py-16 text-white/30 text-center">
       <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
@@ -473,7 +479,7 @@ function RestrictedPreviewNotice({ file, message }) {
       </div>
       <div className="space-y-1 max-w-md">
         <p className="text-sm text-white/80 font-medium">{message}</p>
-        <p className="text-xs text-white/25">Tệp này chỉ cho phép tải xuống từ liên kết chia sẻ.</p>
+        <p className="text-xs text-white/25">{t('sharePage.downloadOnly')}</p>
       </div>
     </div>
   );
@@ -481,6 +487,7 @@ function RestrictedPreviewNotice({ file, message }) {
 
 // ─── Preview Area (dispatch theo MIME cho file đơn gốc) ───────────────────────
 function PreviewArea({ file, previewUrl, loadingPreview, previewBlocked }) {
+  const { t } = useLanguage();
   const { mimeType, name } = file;
 
   if (loadingPreview) {
@@ -490,13 +497,13 @@ function PreviewArea({ file, previewUrl, loadingPreview, previewBlocked }) {
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4Z" />
         </svg>
-        <span className="text-sm">Đang tải bản xem trước…</span>
+        <span className="text-sm">{t('sharePage.preview.loading')}</span>
       </div>
     );
   }
 
   if (previewBlocked) {
-    return <RestrictedPreviewNotice file={file} message="Tệp này không cho phép xem trước, vui lòng tải xuống" />;
+    return <RestrictedPreviewNotice file={file} message={t('sharePage.preview.blocked')} />;
   }
 
   if (!previewUrl) {
@@ -505,8 +512,8 @@ function PreviewArea({ file, previewUrl, loadingPreview, previewBlocked }) {
         <svg className="w-14 h-14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25M9 16.5v.75m3-3v3M15 12v5.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
         </svg>
-        <span className="text-sm">Không hỗ trợ xem trước định dạng này</span>
-        <span className="text-xs text-white/20">Vui lòng tải xuống để xem nội dung</span>
+        <span className="text-sm">{t('sharePage.preview.unsupported')}</span>
+        <span className="text-xs text-white/20">{t('sharePage.preview.downloadToRead')}</span>
       </div>
     );
   }
@@ -543,7 +550,7 @@ function PreviewArea({ file, previewUrl, loadingPreview, previewBlocked }) {
       <svg className="w-14 h-14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25M9 16.5v.75m3-3v3M15 12v5.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
       </svg>
-      <span className="text-sm">Không hỗ trợ xem trước định dạng này</span>
+      <span className="text-sm">{t('sharePage.preview.unsupported')}</span>
     </div>
   );
 }
@@ -560,6 +567,7 @@ function ChildFilePreviewModal({
   onDownload,
   onClose,
 }) {
+  const { t } = useLanguage();
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
   const [downloading, setDownloading] = useState(false);
@@ -642,7 +650,7 @@ function ChildFilePreviewModal({
                 onClick={() => setZoom((z) => Math.max(0.5, z - 0.25))}
                 disabled={zoom <= 0.5}
                 className="p-2 rounded-xl bg-white/10 hover:bg-white/20 disabled:opacity-30 text-white transition-all cursor-pointer"
-                title="Thu nhỏ (-)"
+                title={t('preview.zoomOut')}
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607ZM13.5 10.5h-6" />
@@ -655,7 +663,7 @@ function ChildFilePreviewModal({
                 onClick={() => setZoom((z) => Math.min(3, z + 0.25))}
                 disabled={zoom >= 3}
                 className="p-2 rounded-xl bg-white/10 hover:bg-white/20 disabled:opacity-30 text-white transition-all cursor-pointer"
-                title="Phóng to (+)"
+                title={t('preview.zoomIn')}
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607ZM10.5 7.5v6m3-3h-6" />
@@ -664,7 +672,7 @@ function ChildFilePreviewModal({
               <button
                 onClick={() => setRotation((r) => (r + 90) % 360)}
                 className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all cursor-pointer"
-                title="Xoay 90 độ (R)"
+                title={t('preview.rotate')}
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
@@ -690,14 +698,14 @@ function ChildFilePreviewModal({
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
                 </svg>
               )}
-              <span>{downloading ? 'Đang tải…' : 'Tải xuống'}</span>
+              <span>{downloading ? t('sharePage.downloading') : t('common.download')}</span>
             </button>
           )}
 
           <button
             onClick={onClose}
             className="p-2 rounded-xl bg-white/10 hover:bg-rose-500/80 text-white transition-all ml-2 cursor-pointer"
-            title="Đóng (Esc)"
+            title={t('preview.close')}
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
@@ -714,7 +722,7 @@ function ChildFilePreviewModal({
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4Z" />
             </svg>
-            <p className="text-sm font-medium">Đang tải bản xem trước...</p>
+            <p className="text-sm font-medium">{t('preview.loading')}</p>
           </div>
         )}
 
@@ -722,8 +730,8 @@ function ChildFilePreviewModal({
           <RestrictedPreviewNotice
             file={file}
             message={previewDisabledByOwner
-              ? "Chủ sở hữu đã tắt tính năng xem trước tệp này. Vui lòng bấm 'Tải về' để xem nội dung."
-              : 'Tệp này không cho phép xem trước, vui lòng tải xuống'}
+              ? t('sharePage.preview.ownerDisabled')
+              : t('sharePage.preview.blocked')}
           />
         )}
 
@@ -802,7 +810,7 @@ function ChildFilePreviewModal({
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25M9 16.5v.75m3-3v3M15 12v5.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
                 </svg>
                 <h4 className="font-bold text-white text-sm">{file.name}</h4>
-                <p className="text-xs text-slate-400">Định dạng tệp này không hỗ trợ xem trước trực tiếp.</p>
+                <p className="text-xs text-slate-400">{t('sharePage.preview.unsupportedDirect')}</p>
                 {isDownloadAllowed && (
                   <button
                     onClick={handleDownloadClick}
@@ -822,7 +830,7 @@ function ChildFilePreviewModal({
               <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25M9 16.5v.75m3-3v3M15 12v5.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
             </svg>
             <h4 className="font-bold text-white text-sm">{file.name}</h4>
-            <p className="text-xs text-slate-400">Không thể xem trước tệp này.</p>
+            <p className="text-xs text-slate-400">{t('sharePage.preview.cannot')}</p>
             {isDownloadAllowed && (
               <button
                 onClick={handleDownloadClick}
@@ -843,7 +851,7 @@ function ChildFilePreviewModal({
           <span>{formatBytes(file.sizeBytes)}</span>
         </div>
         <div className="flex items-center gap-4">
-          <span>Phím tắt: ESC (Đóng), +/- (Thu phóng), R (Xoay)</span>
+          <span>{t('preview.shortcuts')}</span>
         </div>
       </div>
     </div>
@@ -852,6 +860,7 @@ function ChildFilePreviewModal({
 
 // ─── Folder Browser — bảng danh sách file con ────────────────────────────────
 function FolderBrowser({ token, rootFolderName, isDownloadAllowed, onOpenFile, shareAuthToken }) {
+  const { t } = useLanguage();
   const [stack, setStack]         = useState([{ id: null, name: rootFolderName }]); // breadcrumb stack
   const [children, setChildren]   = useState([]);
   const [loading, setLoading]     = useState(true);
@@ -871,14 +880,14 @@ function FolderBrowser({ token, rootFolderName, isDownloadAllowed, onOpenFile, s
         if (!cancelled) setChildren(data.items || []);
       })
       .catch((err) => {
-        if (!cancelled) setError(err?.message || 'Không thể tải nội dung thư mục');
+        if (!cancelled) setError(err?.message || t('sharePage.folder.loadFailed'));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
 
     return () => { cancelled = true; };
-  }, [token, currentFolderId, shareAuthToken]);
+  }, [token, currentFolderId, shareAuthToken, t]);
 
   // Mở subfolder
   function handleOpenFolder(item) {
@@ -899,7 +908,7 @@ function FolderBrowser({ token, rootFolderName, isDownloadAllowed, onOpenFile, s
       const res = await fetch(`${API_BASE_URL}/shares/${token}/download-url`, { headers });
 
       if (!res.ok) {
-        let message = 'Không thể tải xuống thư mục lúc này.';
+        let message = t('sharePage.folder.zipFailed');
         try {
           const errJson = await res.json();
           message = errJson?.message || message;
@@ -920,7 +929,7 @@ function FolderBrowser({ token, rootFolderName, isDownloadAllowed, onOpenFile, s
       document.body.removeChild(a);
       window.URL.revokeObjectURL(blobUrl);
     } catch (err) {
-      alert(err?.message || 'Không thể tải xuống thư mục lúc này.');
+      alert(err?.message || t('sharePage.folder.zipFailed'));
     } finally {
       setZipLoading(false);
     }
@@ -956,7 +965,7 @@ function FolderBrowser({ token, rootFolderName, isDownloadAllowed, onOpenFile, s
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
             </svg>
-            {zipLoading ? 'Đang xử lý…' : 'Tải xuống (.zip)'}
+            {zipLoading ? t('sharePage.folder.zipping') : t('sharePage.folder.downloadZip')}
           </button>
         )}
       </div>
@@ -975,16 +984,16 @@ function FolderBrowser({ token, rootFolderName, isDownloadAllowed, onOpenFile, s
           <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-8.69-6.44-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z" />
           </svg>
-          <span className="text-sm">Thư mục đang trống</span>
+          <span className="text-sm">{t('sharePage.folder.empty')}</span>
         </div>
       ) : (
         <div className="divide-y divide-white/[0.04]">
           {/* Header hàng */}
           <div className="grid grid-cols-[auto_1fr_auto_auto] gap-x-4 px-5 py-2 text-xs text-white/25 uppercase tracking-widest font-medium">
             <span />
-            <span>Tên</span>
-            <span className="text-right hidden sm:block">Dung lượng</span>
-            <span className="text-right hidden sm:block">Ngày sửa</span>
+            <span>{t('sharePage.col.name')}</span>
+            <span className="text-right hidden sm:block">{t('sharePage.col.size')}</span>
+            <span className="text-right hidden sm:block">{t('sharePage.col.modified')}</span>
           </div>
 
           {children.map((item) => (
@@ -1005,7 +1014,9 @@ function FolderBrowser({ token, rootFolderName, isDownloadAllowed, onOpenFile, s
                   onOpenFile(item);
                 }
               }}
-              title={item.type === 'folder' ? `Mở thư mục ${item.name}` : `Xem trước ${item.name}`}
+              title={item.type === 'folder'
+                ? t('sharePage.openFolder', { name: item.name })
+                : t('sharePage.previewItem', { name: item.name })}
             >
               {/* Icon */}
               <span className={`shrink-0 ${mimeColor(item.mimeType, item.type, item.name)}`}>
@@ -1063,6 +1074,7 @@ function FileTypeIcon({ mimeType, type, name }) {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function SharePage() {
+  const { t } = useLanguage();
   const { token }  = useParams();
   const navigate   = useNavigate();
 
@@ -1087,23 +1099,23 @@ export default function SharePage() {
 
   // ── Bước 1: Lấy metadata share link ──────────────────────────────────────
   useEffect(() => {
-    if (!token) { setError('Token không hợp lệ.'); setLoadingPage(false); return; }
+    if (!token) { setError(t('sharePage.badToken')); setLoadingPage(false); return; }
     let cancelled = false;
 
     sharingApi.getSharedItem(token)
       .then((data) => {
         if (!cancelled) {
           setShareData(data);
-          document.title = `${data.file?.name ?? 'Tệp được chia sẻ'} — driveR`;
+          document.title = `${data.file?.name ?? t('sharePage.sharedFile')} — driveR`;
         }
       })
       .catch((err) => {
-        if (!cancelled) setError(err?.message || 'Liên kết không tồn tại hoặc đã hết hạn.');
+        if (!cancelled) setError(err?.message || t('sharePage.linkGone'));
       })
       .finally(() => { if (!cancelled) setLoadingPage(false); });
 
     return () => { cancelled = true; };
-  }, [token]);
+  }, [token, t]);
 
   // ── Bước 2: Tự động tải preview URL cho FILE ──────────────────────────────
   useEffect(() => {
@@ -1157,11 +1169,11 @@ export default function SharePage() {
         document.body.removeChild(a);
       }
     } catch (err) {
-      alert(err?.message || 'Không thể tải xuống tệp lúc này.');
+      alert(err?.message || t('sharePage.file.downloadFailed'));
     } finally {
       setDownloadLoading(false);
     }
-  }, [downloadLoading, token, shareData, shareAuthToken]);
+  }, [downloadLoading, token, shareData, shareAuthToken, t]);
 
   // ── Handler: Mở preview file con trong folder ─────────────────────────────
   const handleOpenChildFile = useCallback(async (childFile) => {
@@ -1179,18 +1191,18 @@ export default function SharePage() {
       if (url) {
         setChildPreviewUrl(url);
       } else {
-        setChildPreviewError('Không thể tạo liên kết xem trước cho tệp này.');
+        setChildPreviewError(t('sharePage.child.noPreviewUrl'));
       }
     } catch (err) {
       if (err?.response?.status === 403) {
         setChildPreviewBlocked(true);
       } else {
-        setChildPreviewError(err?.message || 'Lỗi khi tải bản xem trước tệp con.');
+        setChildPreviewError(err?.message || t('sharePage.child.previewFailed'));
       }
     } finally {
       setChildPreviewLoading(false);
     }
-  }, [token, shareAuthToken]);
+  }, [token, shareAuthToken, t]);
 
   // ── Handler: Tải xuống riêng file con trong folder ─────────────────────────
   const handleDownloadChild = useCallback(async (childFile) => {
@@ -1208,14 +1220,14 @@ export default function SharePage() {
         document.body.removeChild(a);
       }
     } catch (err) {
-      alert(err?.message || 'Không thể tải xuống tệp tin lúc này.');
+      alert(err?.message || t('sharePage.file.downloadFailed'));
     }
-  }, [token, shareAuthToken]);
+  }, [token, shareAuthToken, t]);
 
   const handleVerifyPassword = useCallback(async (event) => {
     event.preventDefault();
     if (!passwordInput.trim()) {
-      setPasswordError('Vui lòng nhập mật khẩu');
+      setPasswordError(t('sharePage.password.required'));
       return;
     }
 
@@ -1226,17 +1238,17 @@ export default function SharePage() {
       const res = await sharingApi.verifySharePassword(token, passwordInput.trim());
       const nextToken = res?.accessToken || res?.token;
       if (!nextToken) {
-        throw new Error('Không nhận được token xác thực từ máy chủ.');
+        throw new Error(t('sharePage.password.noToken'));
       }
       setShareAuthToken(nextToken);
       sessionStorage.setItem('shareAuthToken', nextToken);
       setPasswordInput('');
     } catch (err) {
-      setPasswordError(err?.message || 'Mật khẩu không đúng');
+      setPasswordError(err?.message || t('sharePage.password.wrong'));
     } finally {
       setPasswordSubmitting(false);
     }
-  }, [passwordInput, token]);
+  }, [passwordInput, token, t]);
 
   // ── Render: Loading ───────────────────────────────────────────────────────
   if (loadingPage) return <SharePageSkeleton />;
@@ -1260,18 +1272,18 @@ export default function SharePage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
             </svg>
           </div>
-          <h1 className="text-2xl font-semibold text-center mb-2">Liên kết có mật khẩu</h1>
+          <h1 className="text-2xl font-semibold text-center mb-2">{t('sharePage.password.title')}</h1>
           <p className="text-sm text-white/60 text-center mb-6">
             Vui lòng nhập mật khẩu để xem trước, tải xuống hoặc duyệt thư mục chia sẻ.
           </p>
           <form onSubmit={handleVerifyPassword} className="space-y-4">
             <div>
-              <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-white/40">Mật khẩu</label>
+              <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-white/40">{t('auth.password.label')}</label>
               <input
                 type="password"
                 value={passwordInput}
                 onChange={(e) => setPasswordInput(e.target.value)}
-                placeholder="Nhập mật khẩu liên kết"
+                placeholder={t('sharePage.password.placeholder')}
                 className="w-full rounded-xl border border-white/10 bg-slate-950/70 px-3 py-2.5 text-sm text-white outline-none ring-0 placeholder:text-white/25 focus:border-indigo-500"
                 autoFocus
               />
@@ -1286,7 +1298,7 @@ export default function SharePage() {
               disabled={passwordSubmitting}
               className="w-full rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-60"
             >
-              {passwordSubmitting ? 'Đang xác thực…' : 'Mở liên kết'}
+              {passwordSubmitting ? t('sharePage.password.submitting') : t('sharePage.password.submit')}
             </button>
           </form>
         </div>
@@ -1316,8 +1328,8 @@ export default function SharePage() {
               </span>
             )}
             <span className="truncate">
-              <span className="text-white/40 mr-1">Chia sẻ bởi</span>
-              <span className="font-medium text-white/80">{owner?.fullName ?? 'Người dùng driveR'}</span>
+              <span className="text-white/40 mr-1">{t('sharePage.sharedBy')}</span>
+              <span className="font-medium text-white/80">{owner?.fullName ?? t('profile.defaultName')}</span>
             </span>
           </div>
 
@@ -1332,7 +1344,7 @@ export default function SharePage() {
                 ? <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4Z" /></svg>
                 : <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
               }
-              <span className="hidden sm:inline">{downloadLoading ? 'Đang tải…' : 'Tải xuống'}</span>
+              <span className="hidden sm:inline">{downloadLoading ? t('sharePage.downloading') : t('common.download')}</span>
             </button>
           )}
         </div>
@@ -1396,9 +1408,9 @@ export default function SharePage() {
           />
         ) : (
           /* ── FILE: Preview Panel ─────────────────────────────────────────── */
-          <section className="rounded-2xl border border-white/8 bg-white/[0.025] overflow-hidden" aria-label="Bản xem trước">
+          <section className="rounded-2xl border border-white/8 bg-white/[0.025] overflow-hidden" aria-label={t('sharePage.previewAria')}>
             <div className="flex items-center justify-between px-5 py-3 border-b border-white/8">
-              <span className="text-xs font-medium text-white/40 uppercase tracking-widest">Xem trước</span>
+              <span className="text-xs font-medium text-white/40 uppercase tracking-widest">{t('sharePage.previewLabel')}</span>
               {isDownloadAllowed && (
                 <button
                   onClick={handleDownload}
@@ -1408,13 +1420,13 @@ export default function SharePage() {
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
                   </svg>
-                  {downloadLoading ? 'Đang tải…' : 'Tải xuống'}
+                  {downloadLoading ? t('sharePage.downloading') : t('common.download')}
                 </button>
               )}
             </div>
             {previewDisabledByOwner && (
               <div className="mx-5 mt-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
-                Chủ sở hữu đã tắt tính năng xem trước tệp này. Vui lòng bấm 'Tải về' để xem nội dung.
+                {t('sharePage.preview.ownerDisabled')}
               </div>
             )}
             <div className="p-4 sm:p-6">

@@ -1,3 +1,6 @@
+import { useLanguage } from '../context/LanguageContext';
+import { localeTagOf } from '../utils/locale';
+import tRich from '../utils/tRich';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -27,9 +30,9 @@ import TransactionDetailModal from '../components/modals/TransactionDetailModal'
 import {
   CYCLES,
   CYCLE_DISCOUNT,
-  CYCLE_LABEL,
+  CYCLE_LABEL_KEY,
   CYCLE_MONTHS,
-  CYCLE_UNIT,
+  CYCLE_UNIT_KEY,
   PAYMENT_METHOD_LABEL,
   PENDING_STATUSES,
   formatPlanDate,
@@ -62,6 +65,8 @@ import {
 export default function BillingAndQuota() {
   const { user, refreshUser } = useAuth();
   const { refreshStorageInfo } = useFiles();
+  const { t, language } = useLanguage();
+  const locale = localeTagOf(language);
 
   const [activeSection, setActiveSection] = useState('pricing'); // 'pricing' | 'history'
   const [billingCycle, setBillingCycle] = useState('monthly'); // 'monthly' | '3_months' | '6_months' | 'yearly'
@@ -119,11 +124,11 @@ export default function BillingAndQuota() {
       setTransactions(Array.isArray(data) ? data : []);
       setTxError(null);
     } catch (err) {
-      setTxError(err.message || 'Không tải được lịch sử giao dịch');
+      setTxError(err.message || t('billing.tx.loadFailed'));
     } finally {
       setTxLoading(false);
     }
-  }, []);
+  }, [t]);
 
   // ───────────────────────────── Nạp dữ liệu ─────────────────────────────
 
@@ -142,7 +147,7 @@ export default function BillingAndQuota() {
       } catch (err) {
         if (cancelled) return;
         setPlans([]);
-        setPlansError(err.message || 'Không tải được bảng giá');
+        setPlansError(err.message || t('billing.plans.loadFailed'));
       } finally {
         if (!cancelled) setPlansLoading(false);
       }
@@ -151,7 +156,7 @@ export default function BillingAndQuota() {
     return () => {
       cancelled = true;
     };
-  }, [plansToken]);
+  }, [plansToken, t]);
 
   useEffect(() => {
     // Bọc trong IIFE async cho khớp effect nạp bảng giá ở trên: gọi thẳng một hàm setState
@@ -267,10 +272,13 @@ export default function BillingAndQuota() {
         isDowngrade: limitBytes > 0 && planBytes < limitBytes,
         isPopular: Boolean(ui.highlight),
         // Gạch đầu dòng dung lượng sinh từ API, phần còn lại lấy ở PLAN_UI_CONFIG.
-        features: [`${storageLabel} lưu trữ Multi-Cloud`, ...ui.features],
+        features: [
+          t('billing.plan.storageFeature', { storage: storageLabel }),
+          ...ui.featureKeys.map((key) => t(key)),
+        ],
       };
     });
-  }, [plans, billingCycle, limitBytes, subscription, buildPriceInfo]);
+  }, [plans, billingCycle, limitBytes, subscription, buildPriceInfo, t]);
 
   // ─────────────────────────────── Thao tác ───────────────────────────────
 
@@ -280,9 +288,9 @@ export default function BillingAndQuota() {
       await userApi.recalculateQuota();
       await refreshUser();
       await refreshStorageInfo?.();
-      toast.success('Đã đồng bộ lại dung lượng');
+      toast.success(t('billing.quota.synced'));
     } catch (err) {
-      toast.error(err.message || 'Lỗi đồng bộ dung lượng');
+      toast.error(err.message || t('billing.quota.syncFailed'));
     } finally {
       setIsSyncing(false);
     }
@@ -307,9 +315,9 @@ export default function BillingAndQuota() {
       // reload). Backend trả 200 nên đây không phải lỗi — nhưng cũng không phải việc vừa làm,
       // nên nói đúng như vậy thay vì chúc mừng lần hai.
       if (result?.alreadyCancelled) {
-        toast(result.message || 'Gói cước này đã được hẹn dừng từ trước.', { icon: 'ℹ️' });
+        toast(result.message || t('billing.renewal.alreadyCancelled'), { icon: 'ℹ️' });
       } else {
-        toast.success(result?.message || 'Đã tắt tự động gia hạn cho gói hiện tại.', { duration: 6000 });
+        toast.success(result?.message || t('billing.renewal.cancelled'), { duration: 6000 });
       }
 
       // Nạp lại từ server chứ không tự sửa state: dải thông tin và nút trên thẻ gói đều đọc
@@ -319,7 +327,7 @@ export default function BillingAndQuota() {
     } catch (err) {
       // 404 (không có gói ACTIVE) và 400 (gói đã qua hạn) đều nghĩa là state ở client đã cũ —
       // nạp lại để dải thông tin biến mất thay vì mời khách bấm tiếp một nút chắc chắn hỏng.
-      toast.error(err?.message || 'Không tắt được tự động gia hạn');
+      toast.error(err?.message || t('billing.renewal.cancelFailed'));
       if (err?.status === 404 || err?.status === 400) {
         setConfirmCancelRenewal(false);
         await fetchSubscription();
@@ -340,7 +348,7 @@ export default function BillingAndQuota() {
       });
 
       if (!link?.checkoutUrl) {
-        throw new Error('Cổng thanh toán không trả về link thanh toán');
+        throw new Error(t('billing.pay.noLink'));
       }
 
       window.location.href = link.checkoutUrl;
@@ -352,8 +360,8 @@ export default function BillingAndQuota() {
       const message =
         err?.message ||
         (err?.status === 400
-          ? 'Không thể thanh toán gói này với chu kỳ đã chọn'
-          : 'Không tạo được link thanh toán');
+          ? t('billing.pay.badCycle')
+          : t('billing.pay.linkFailed'));
 
       toast.error(message, { duration: err?.status === 400 ? 6000 : 4000 });
 
@@ -434,7 +442,7 @@ export default function BillingAndQuota() {
           <div className="flex items-center gap-4 min-w-0">
             <div className="min-w-0 flex flex-col justify-center">
               <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-gray-100 truncate tracking-tight">
-                Quản lý dung lượng & Gói cước
+                {t('billing.page.title')}
               </h1>
             </div>
           </div>
@@ -449,7 +457,7 @@ export default function BillingAndQuota() {
                   : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-white/5'
               }`}
             >
-              <Sparkles className="w-4 h-4" /> Bảng Giá Gói Cước
+              <Sparkles className="w-4 h-4" /> {t('billing.tab.pricing')}
             </button>
             <button
               onClick={() => setActiveSection('history')}
@@ -459,7 +467,7 @@ export default function BillingAndQuota() {
                   : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-white/5'
               }`}
             >
-              <History className="w-4 h-4" /> Lịch Sử Giao Dịch
+              <History className="w-4 h-4" /> {t('billing.tab.history')}
             </button>
           </div>
         </div>
@@ -477,7 +485,7 @@ export default function BillingAndQuota() {
               <button
                 onClick={handleRecalculateQuota}
                 disabled={isSyncing}
-                title="Đồng bộ lại dung lượng"
+                title={t('billing.quota.syncTitle')}
                 className={`p-1.5 rounded-lg bg-white/10 dark:bg-white/5 text-blue-200 hover:bg-white/20 transition-all border border-white/10 backdrop-blur-md cursor-pointer ${
                   isSyncing ? 'animate-spin opacity-50 cursor-not-allowed' : ''
                 }`}
@@ -536,13 +544,17 @@ export default function BillingAndQuota() {
 
                 <div className="min-w-0">
                   <p className="text-[15px] font-bold text-gray-900 dark:text-gray-100">
-                    {subscription.planName || 'Gói đang sử dụng'}
+                    {subscription.planName || t('billing.current.planName')}
                     {subscription.billingCycle && (
                       <span className="ml-2 text-[13px] font-semibold text-gray-500 dark:text-gray-400">
                         {/* CYCLE_UNIT, không phải CYCLE_LABEL: nhãn kia mang sẵn phần
                             chiết khấu ("3 tháng (-5%)") — đúng cho thanh chọn chu kỳ lúc mua,
                             nhưng ở đây là gói ĐÃ mua nên một con số giảm giá không còn nghĩa. */}
-                        · chu kỳ {CYCLE_UNIT[subscription.billingCycle] || subscription.billingCycle}
+                        {t('billing.current.cyclePrefix', {
+                    cycle: CYCLE_UNIT_KEY[subscription.billingCycle]
+                      ? t(CYCLE_UNIT_KEY[subscription.billingCycle])
+                      : subscription.billingCycle,
+                  })}
                       </span>
                     )}
                   </p>
@@ -552,8 +564,8 @@ export default function BillingAndQuota() {
                       chung kiểu "hiệu lực đến". */}
                   <p className="text-[14px] text-gray-600 dark:text-gray-400 mt-0.5">
                     {subscription.cancelAtPeriodEnd
-                      ? `Sẽ không tự động gia hạn. Gói kết thúc vào ngày ${formatPlanDate(subscription.endDate)}`
-                      : `Tự động gia hạn vào ngày ${formatPlanDate(subscription.endDate)}`}
+                      ? t('billing.current.willEnd', { date: formatPlanDate(subscription.endDate, locale) })
+                      : t('billing.current.willRenew', { date: formatPlanDate(subscription.endDate, locale) })}
                     {subscription.remainingDays > 0 && (
                       <span className="text-gray-400 dark:text-gray-500"> (còn {subscription.remainingDays} ngày)</span>
                     )}
@@ -588,9 +600,13 @@ export default function BillingAndQuota() {
                 <p className="text-[14px] text-gray-600 dark:text-gray-400 flex items-start gap-2 min-w-0">
                   <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-amber-500" />
                   <span>
-                    Bạn vẫn dùng đủ dung lượng đến hết ngày{' '}
-                    <strong className="text-gray-900 dark:text-gray-100">{formatPlanDate(subscription.endDate)}</strong>.
-                    Sau đó hạn mức trở về mức mặc định. Để dùng tiếp, bạn cần mua lại gói.
+                    {tRich(t('billing.renewal.warn'), {
+                      date: (
+                        <strong className="text-gray-900 dark:text-gray-100">
+                          {formatPlanDate(subscription.endDate, locale)}
+                        </strong>
+                      ),
+                    })}
                   </span>
                 </p>
 
@@ -600,7 +616,7 @@ export default function BillingAndQuota() {
                     disabled={isCancellingRenewal}
                     className="px-4 py-2.5 rounded-xl text-[14px] font-bold text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-white/5 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Giữ lại
+                    {t('billing.renewal.keep')}
                   </button>
                   <button
                     onClick={handleCancelRenewal}
@@ -609,10 +625,10 @@ export default function BillingAndQuota() {
                   >
                     {isCancellingRenewal ? (
                       <>
-                        <Loader2 className="w-4 h-4 animate-spin" /> Đang hủy…
+                        <Loader2 className="w-4 h-4 animate-spin" /> {t('billing.renewal.cancelling')}
                       </>
                     ) : (
-                      'Xác nhận hủy gia hạn'
+                      t('billing.renewal.confirm')
                     )}
                   </button>
                 </div>
@@ -649,7 +665,7 @@ export default function BillingAndQuota() {
                           : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-white/5'
                       }`}
                     >
-                      <span>{cycle.label}</span>
+                      <span>{t(cycle.labelKey)}</span>
                       {cycle.badge && (
                         <span
                           className={`px-1.5 py-0.5 text-[11px] rounded-md font-extrabold ${
@@ -670,12 +686,12 @@ export default function BillingAndQuota() {
             {plansLoading ? (
               <div className="flex flex-col items-center justify-center gap-3 py-20 text-gray-400 dark:text-gray-500">
                 <Loader2 className="w-7 h-7 animate-spin" />
-                <span className="text-[15px] font-semibold">Đang tải bảng giá…</span>
+                <span className="text-[15px] font-semibold">{t('billing.plans.loading')}</span>
               </div>
             ) : plansError ? (
               <div className="bg-white dark:bg-[#282a2c] border border-rose-100 dark:border-rose-500/30 rounded-2xl p-8 text-center shadow-sm">
                 <XCircle className="w-8 h-8 mx-auto mb-3 text-rose-500" />
-                <p className="text-[15px] font-semibold text-gray-900 dark:text-gray-100 mb-1">Không tải được bảng giá</p>
+                <p className="text-[15px] font-semibold text-gray-900 dark:text-gray-100 mb-1">{t('billing.plans.loadFailed')}</p>
                 <p className="text-[14px] text-gray-500 dark:text-gray-400 mb-5">{plansError}</p>
                 <button
                   onClick={() => setPlansToken((n) => n + 1)}
@@ -687,7 +703,7 @@ export default function BillingAndQuota() {
             ) : decoratedPlans.length === 0 ? (
               <div className="bg-white dark:bg-[#282a2c] border border-gray-200 dark:border-gray-700 rounded-2xl p-8 text-center shadow-sm">
                 <Sparkles className="w-8 h-8 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
-                <p className="text-[15px] font-semibold text-gray-900 dark:text-gray-100">Chưa có gói cước nào đang mở bán</p>
+                <p className="text-[15px] font-semibold text-gray-900 dark:text-gray-100">{t('billing.plans.none')}</p>
                 <p className="text-[14px] text-gray-500 dark:text-gray-400 mt-1">
                   Vui lòng quay lại sau hoặc liên hệ quản trị viên.
                 </p>
@@ -719,7 +735,7 @@ export default function BillingAndQuota() {
                             className={`inline-flex items-center gap-1.5 px-3 py-1 text-[11px] font-extrabold rounded-lg tracking-wider uppercase ${badge.tone}`}
                           >
                             {BadgeIcon && <BadgeIcon className="w-3.5 h-3.5 fill-current" />}
-                            {badge.label}
+                            {t(badge.labelKey)}
                           </span>
                         )}
                       </div>
@@ -736,22 +752,26 @@ export default function BillingAndQuota() {
                       <div className="h-24 flex flex-col justify-start mb-5">
                         <div className="flex items-baseline gap-1">
                           <span className="text-2xl lg:text-[26px] xl:text-3xl font-black text-gray-900 dark:text-gray-100 tracking-tight whitespace-nowrap">
-                            {formatVnd(calculateDisplayPrice(plan, billingCycle))}
+                            {formatVnd(calculateDisplayPrice(plan, billingCycle), locale)}
                           </span>
                         </div>
                         <div className="text-[13px] font-medium text-gray-500 dark:text-gray-400 mt-1">
-                          / {plan.isFree ? 'vĩnh viễn' : CYCLE_UNIT[billingCycle]}
+                          / {plan.isFree ? t('billing.plan.forever') : t(CYCLE_UNIT_KEY[billingCycle])}
                         </div>
 
                         {/* Chi tiết tương đương & tiết kiệm */}
                         {!plan.isFree && billingCycle !== 'monthly' ? (
                           <div className="mt-2 flex items-center gap-2 flex-wrap">
                             <span className="text-[12px] font-bold text-blue-600 dark:text-blue-400">
-                              ~{formatVnd(plan.priceInfo.monthlyEquivalent)}/tháng
+                              {t('billing.plan.perMonthEq', {
+                                amount: formatVnd(plan.priceInfo.monthlyEquivalent, locale),
+                              })}
                             </span>
                             {plan.priceInfo.savings > 0 && (
                               <span className="inline-flex items-center text-[10.5px] font-extrabold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded">
-                                Tiết kiệm {formatVnd(plan.priceInfo.savings)}
+                                {t('billing.plan.savings', {
+                                  amount: formatVnd(plan.priceInfo.savings, locale),
+                                })}
                               </span>
                             )}
                           </div>
@@ -788,9 +808,9 @@ export default function BillingAndQuota() {
                         disabled={(plan.isCurrent && !plan.isResumable) || plan.isFree || plan.isDowngrade}
                         title={
                           plan.isDowngrade
-                            ? 'Không thể hạ cấp khi gói hiện tại còn hiệu lực — dữ liệu đang lưu trữ có thể vượt hạn mức gói nhỏ hơn.'
+                            ? t('billing.plan.cannotDowngradeHint')
                             : plan.isResumable
-                            ? 'Thanh toán để bật lại tự động gia hạn. Số ngày còn lại của gói hiện tại được cộng dồn, không mất ngày nào.'
+                            ? t('billing.plan.reenableHint')
                             : undefined
                         }
                         className={`mt-auto w-full h-12 rounded-2xl text-[14px] font-bold transition-all shrink-0 flex items-center justify-center gap-2 ${
@@ -805,18 +825,18 @@ export default function BillingAndQuota() {
                       >
                         {plan.isResumable ? (
                           <>
-                            <RotateCcw className="w-4 h-4" /> Bật lại gia hạn
+                            <RotateCcw className="w-4 h-4" /> {t('billing.plan.resumeRenewal')}
                           </>
                         ) : plan.isCurrent ? (
-                          'Đang sử dụng'
+                          t('billing.plan.inUse')
                         ) : plan.isFree ? (
-                          'Gói miễn phí'
+                          t('billing.plan.free')
                         ) : plan.isDowngrade ? (
-                          'Không thể hạ cấp'
+                          t('billing.plan.cannotDowngrade')
                         ) : plan.planBytes > limitBytes ? (
-                          `Nâng cấp ${plan.storageLabel}`
+                          t('billing.plan.upgradeTo', { storage: plan.storageLabel })
                         ) : (
-                          'Chọn gói này'
+                          t('billing.plan.choose')
                         )}
                       </button>
                     </div>
@@ -847,12 +867,12 @@ export default function BillingAndQuota() {
               {txLoading ? (
                 <div className="flex flex-col items-center justify-center gap-3 py-20 text-gray-400 dark:text-gray-500">
                   <Loader2 className="w-7 h-7 animate-spin" />
-                  <span className="text-[15px] font-semibold">Đang tải lịch sử giao dịch…</span>
+                  <span className="text-[15px] font-semibold">{t('billing.tx.loading')}</span>
                 </div>
               ) : txError ? (
                 <div className="py-16 px-8 text-center">
                   <XCircle className="w-8 h-8 mx-auto mb-3 text-rose-500" />
-                  <p className="text-[15px] font-semibold text-gray-900 dark:text-gray-100 mb-1">Không tải được lịch sử giao dịch</p>
+                  <p className="text-[15px] font-semibold text-gray-900 dark:text-gray-100 mb-1">{t('billing.tx.loadFailed')}</p>
                   <p className="text-[14px] text-gray-500 dark:text-gray-400 mb-5">{txError}</p>
                   <button
                     onClick={fetchTransactions}
@@ -864,7 +884,7 @@ export default function BillingAndQuota() {
               ) : transactions.length === 0 ? (
                 <div className="py-16 px-8 text-center">
                   <History className="w-8 h-8 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
-                  <p className="text-[15px] font-semibold text-gray-900 dark:text-gray-100">Chưa có giao dịch nào</p>
+                  <p className="text-[15px] font-semibold text-gray-900 dark:text-gray-100">{t('billing.tx.none')}</p>
                   <p className="text-[14px] text-gray-500 dark:text-gray-400 mt-1">
                     Các lần nâng cấp gói của bạn sẽ xuất hiện ở đây.
                   </p>
@@ -874,12 +894,12 @@ export default function BillingAndQuota() {
                   <table className="w-full text-left border-collapse min-w-[600px]">
                     <thead>
                       <tr className="bg-gray-50 dark:bg-white/5 border-b border-gray-100 dark:border-gray-700 text-[13px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                        <th className="py-4 px-6 whitespace-nowrap">Mã giao dịch</th>
-                        <th className="py-4 px-6 whitespace-nowrap">Chi tiết gói</th>
-                        <th className="py-4 px-6 whitespace-nowrap">Tổng tiền</th>
-                        <th className="py-4 px-6 whitespace-nowrap">Phương thức</th>
-                        <th className="py-4 px-6 whitespace-nowrap">Trạng thái</th>
-                        <th className="py-4 px-6 w-px" aria-label="Chi tiết" />
+                        <th className="py-4 px-6 whitespace-nowrap">{t('billing.tx.col.code')}</th>
+                        <th className="py-4 px-6 whitespace-nowrap">{t('billing.tx.col.plan')}</th>
+                        <th className="py-4 px-6 whitespace-nowrap">{t('billing.tx.col.amount')}</th>
+                        <th className="py-4 px-6 whitespace-nowrap">{t('billing.tx.col.method')}</th>
+                        <th className="py-4 px-6 whitespace-nowrap">{t('billing.tx.col.status')}</th>
+                        <th className="py-4 px-6 w-px" aria-label={t('billing.tx.col.details')} />
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 dark:divide-gray-700 text-[15px]">
@@ -901,7 +921,7 @@ export default function BillingAndQuota() {
                                 setSelectedTransaction(row);
                               }
                             }}
-                            aria-label={`Xem chi tiết giao dịch ${row.orderCode}`}
+                            aria-label={t('billing.tx.viewDetails', { code: row.orderCode })}
                             className="hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500"
                           >
                             <td className="py-4 px-6">
@@ -911,12 +931,12 @@ export default function BillingAndQuota() {
                               </div>
                             </td>
                             <td className="py-4 px-6">
-                              <div className="font-semibold text-gray-800 dark:text-gray-200">{row.planName || 'Gói đã bị xoá'}</div>
+                              <div className="font-semibold text-gray-800 dark:text-gray-200">{row.planName || t('billing.tx.deletedPlan')}</div>
                               <div className="text-sm text-gray-400 dark:text-gray-500 mt-0.5">
-                                {CYCLE_LABEL[row.billingCycle] || '—'}
+                                {CYCLE_LABEL_KEY[row.billingCycle] ? t(CYCLE_LABEL_KEY[row.billingCycle]) : '—'}
                               </div>
                             </td>
-                            <td className="py-4 px-6 font-bold text-gray-900 dark:text-gray-100 whitespace-nowrap">{formatVnd(row.amount)}</td>
+                            <td className="py-4 px-6 font-bold text-gray-900 dark:text-gray-100 whitespace-nowrap">{formatVnd(row.amount, locale)}</td>
                             <td className="py-4 px-6">
                               <span className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-[13px] font-semibold whitespace-nowrap">
                                 <span className="w-2 h-2 rounded-full bg-blue-500" />
@@ -926,7 +946,7 @@ export default function BillingAndQuota() {
                             <td className="py-4 px-6">
                               <div className="flex flex-col items-start gap-1.5">
                                 <span className={`inline-flex items-center gap-1.5 px-3 py-1 text-[13px] font-bold rounded-full border whitespace-nowrap ${status.tone}`}>
-                                  <StatusIcon className="w-3.5 h-3.5" /> {status.label}
+                                  <StatusIcon className="w-3.5 h-3.5" /> {status.labelKey ? t(status.labelKey) : status.label}
                                 </span>
                                 {PENDING_STATUSES.includes(row.status) && (
                                   <Link
@@ -982,12 +1002,19 @@ export default function BillingAndQuota() {
                   <CreditCard className="w-6 h-6" />
                 </div>
                 <h3 className="text-2xl font-black text-gray-900 dark:text-gray-100 mb-2 tracking-tight">
-                  {quote?.isRenewal ? 'Xác nhận gia hạn' : 'Xác nhận nâng cấp'}
+                  {quote?.isRenewal ? t('billing.confirm.renew') : t('billing.confirm.upgrade')}
                 </h3>
                 <p className="text-gray-500 dark:text-gray-400 text-[14px]">
-                  Gói <span className="font-bold text-gray-900 dark:text-gray-100">{selectedPlan.name}</span> — {selectedPlan.storageLabel},
-                  chu kỳ <span className="font-semibold text-gray-800 dark:text-gray-200">{CYCLE_LABEL[billingCycle]}</span>.
-                  {quote?.isRenewal && ' Chu kỳ mới được cộng tiếp vào ngày hết hạn hiện tại.'}
+                  {tRich(t('billing.confirm.planLine'), {
+                    plan: <span className="font-bold text-gray-900 dark:text-gray-100">{selectedPlan.name}</span>,
+                    storage: selectedPlan.storageLabel,
+                    cycle: (
+                      <span className="font-semibold text-gray-800 dark:text-gray-200">
+                        {t(CYCLE_LABEL_KEY[billingCycle])}
+                      </span>
+                    ),
+                  })}
+                  {quote?.isRenewal && t('billing.confirm.renewNote')}
                 </p>
 
                 {/* `resumesAutoRenew` = khách đang hẹn dừng CHÍNH gói này, nên lần thanh toán
@@ -998,8 +1025,10 @@ export default function BillingAndQuota() {
                   <div className="mt-4 flex items-start gap-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/25 border border-amber-200 dark:border-amber-500/30 px-4 py-3">
                     <RotateCcw className="w-4 h-4 mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />
                     <p className="text-[13.5px] text-amber-800 dark:text-amber-200 leading-snug">
-                      Bạn đang hẹn dừng gói này. Thanh toán thành công sẽ <strong>bật lại tự động gia hạn</strong>
-                      {' '}và cộng chu kỳ mới vào ngày hết hạn hiện tại.
+                      {tRich(t('billing.confirm.reenableNote'), {
+                        bold: <strong>{t('billing.confirm.reenableBold')}</strong>,
+                      })}
+                      {t('billing.confirm.reenableTail')}
                     </p>
                   </div>
                 )}
@@ -1012,41 +1041,46 @@ export default function BillingAndQuota() {
                   {creditAmount > 0 && (
                     <>
                       <div className="flex items-baseline justify-between gap-4 text-[14px]">
-                        <span className="font-semibold text-gray-500 dark:text-gray-400">Giá gói {CYCLE_LABEL[billingCycle]}</span>
-                        <span className="font-bold text-gray-700 dark:text-gray-300">{formatVnd(listAmount)}</span>
+                        <span className="font-semibold text-gray-500 dark:text-gray-400">{t('billing.confirm.planPrice', { cycle: t(CYCLE_LABEL_KEY[billingCycle]) })}</span>
+                        <span className="font-bold text-gray-700 dark:text-gray-300">{formatVnd(listAmount, locale)}</span>
                       </div>
                       <div className="flex items-baseline justify-between gap-4 text-[14px] text-emerald-600 dark:text-emerald-400">
                         <span className="font-semibold min-w-0">
-                          Bù trừ {quote?.previousPlanName ? `gói ${quote.previousPlanName}` : 'gói cũ'}
-                          {quote?.creditedDays ? ` (còn ${quote.creditedDays} ngày)` : ''}
+                          {quote?.previousPlanName
+                            ? t('billing.confirm.creditNamed', { name: quote.previousPlanName })
+                            : t('billing.confirm.creditOld')}
+                          {quote?.creditedDays
+                            ? t('billing.confirm.creditDays', { days: quote.creditedDays })
+                            : ''}
                         </span>
-                        <span className="font-bold whitespace-nowrap">− {formatVnd(creditAmount)}</span>
+                        <span className="font-bold whitespace-nowrap">− {formatVnd(creditAmount, locale)}</span>
                       </div>
                     </>
                   )}
 
                   <div className="flex items-baseline justify-between gap-4">
-                    <span className="text-[14px] font-semibold text-gray-500 dark:text-gray-400">Số tiền thanh toán</span>
+                    <span className="text-[14px] font-semibold text-gray-500 dark:text-gray-400">{t('billing.confirm.payable')}</span>
                     <span className="text-2xl font-black text-gray-900 dark:text-gray-100">
                       {quoteLoading ? (
                         <Loader2 className="w-6 h-6 animate-spin text-gray-400 dark:text-gray-500" />
                       ) : (
-                        formatVnd(payableAmount)
+                        formatVnd(payableAmount, locale)
                       )}
                     </span>
                   </div>
 
                   {selectedPriceInfo.savings > 0 && (
                     <div className="flex items-center justify-between text-xs text-emerald-600 dark:text-emerald-400 font-semibold pt-1">
-                      <span>Đã áp dụng giảm {selectedPriceInfo.discountPercent}%</span>
-                      <span>Tiết kiệm {formatVnd(selectedPriceInfo.savings)}</span>
+                      <span>{t('billing.confirm.discountApplied', { percent: selectedPriceInfo.discountPercent })}</span>
+                      <span>{t('billing.plan.savings', { amount: formatVnd(selectedPriceInfo.savings, locale) })}</span>
                     </div>
                   )}
 
                   {quote?.flooredToMinimum && (
                     <p className="text-[12.5px] text-amber-600 dark:text-amber-400 font-semibold pt-1 leading-snug">
-                      Phần chưa dùng của gói cũ lớn hơn giá gói mới nên hoá đơn được thu ở mức tối thiểu{' '}
-                      {formatVnd(quote.minimumAmount)} của cổng thanh toán.
+                      {t('billing.confirm.flooredNote', {
+                        amount: formatVnd(quote.minimumAmount, locale),
+                      })}
                     </p>
                   )}
 
@@ -1060,7 +1094,7 @@ export default function BillingAndQuota() {
                 <div className="flex items-center gap-3 px-5 py-4">
                   <QrCode className="w-8 h-8 text-gray-900 dark:text-gray-100 shrink-0" />
                   <div className="min-w-0">
-                    <div className="text-[14px] font-bold text-gray-900 dark:text-gray-100">Chuyển khoản / quét VietQR qua payOS</div>
+                    <div className="text-[14px] font-bold text-gray-900 dark:text-gray-100">{t('billing.confirm.method')}</div>
                     <div className="text-[13px] text-gray-500 dark:text-gray-400">
                       Mở được bằng app của mọi ngân hàng Việt Nam. Link thanh toán có hiệu lực 15 phút.
                     </div>

@@ -3,9 +3,11 @@ import FileListView from '../components/file-manager/FileListView';
 import FileGridView from '../components/file-manager/FileGridView';
 import FileFilterBar from '../components/common/FileFilterBar';
 import { useFiles } from '../context/FileContext';
+import { useLanguage } from '../context/LanguageContext';
 import { ShieldAlert, AlertTriangle, List, LayoutGrid } from 'lucide-react';
 
 export default function SpamPage() {
+    const { t } = useLanguage();
     const {
         viewMode,
         setViewMode,
@@ -27,14 +29,14 @@ export default function SpamPage() {
                 <div className="flex items-center justify-between mb-2 pb-2 border-b border-gray-200 dark:border-gray-700">
                     <div className="flex items-center gap-2">
                         <ShieldAlert className="w-6 h-6 text-amber-600 dark:text-amber-400" />
-                        <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Nội dung rác</h1>
+                        <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">{t('page.spam.title')}</h1>
                     </div>
 
                     {/* View Switcher */}
                     <div className="flex items-center bg-gray-200/90 dark:bg-gray-700 rounded-full p-0.5 border border-gray-300 dark:border-gray-700">
                         <button
                             onClick={() => setViewMode('list')}
-                            title="Xem dạng danh sách"
+                            title={t('view.list')}
                             className={`p-1.5 rounded-full transition-colors ${viewMode === 'list'
                                     ? 'bg-white dark:bg-[#282a2c] shadow-xs text-blue-700 dark:text-blue-400 font-bold'
                                     : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
@@ -44,7 +46,7 @@ export default function SpamPage() {
                         </button>
                         <button
                             onClick={() => setViewMode('grid')}
-                            title="Xem dạng lưới"
+                            title={t('view.grid')}
                             className={`p-1.5 rounded-full transition-colors ${viewMode === 'grid'
                                     ? 'bg-white dark:bg-[#282a2c] shadow-xs text-blue-700 dark:text-blue-400 font-bold'
                                     : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
@@ -59,9 +61,9 @@ export default function SpamPage() {
                 <div className="bg-amber-50/80 dark:bg-amber-500/15 border border-amber-300 dark:border-amber-900/50 rounded-2xl p-4 flex items-start gap-3 text-amber-950 dark:text-amber-200 text-sm shadow-2xs">
                     <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                     <div>
-                        <p className="font-bold mb-0.5">Cảnh báo an toàn tệp nghi ngờ:</p>
+                        <p className="font-bold mb-0.5">{t('spam.banner.title')}</p>
                         <p className="text-xs text-amber-900 dark:text-amber-300 font-medium">
-                            Các tệp bị gắn cờ chứa nội dung spam, tin nhắn lừa đảo hoặc dấu hiệu nhiễm virus sẽ tự động bị xóa vĩnh viễn sau 30 ngày. Không mở tệp nếu không rõ nguồn gốc.
+                            {t('spam.banner.body')}
                         </p>
                     </div>
                 </div>

@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Pencil, X } from 'lucide-react';
 
+import { useLanguage } from '../../context/LanguageContext';
+
 export default function RenameModal({ isOpen, item, onClose, onRename }) {
+    const { t } = useLanguage();
     const [name, setName] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -77,7 +80,7 @@ export default function RenameModal({ isOpen, item, onClose, onRename }) {
                 <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700">
                     <div className="flex items-center gap-2.5 font-semibold text-lg text-gray-800 dark:text-gray-100">
                         <Pencil className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                        <span>Đổi tên {item.type === 'folder' ? 'thư mục' : 'tệp'}</span>
+                        <span>{item.type === 'folder' ? t('rename.titleFolder') : t('rename.titleFile')}</span>
                     </div>
                     <button 
                         onClick={onClose}
@@ -101,7 +104,7 @@ export default function RenameModal({ isOpen, item, onClose, onRename }) {
                             disabled={isSubmitting}
                             autoFocus
                             className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#1e1e1e] text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm transition-all"
-                            placeholder="Nhập tên mới..."
+                            placeholder={t('rename.placeholder')}
                         />
                     </div>
 
@@ -119,7 +122,7 @@ export default function RenameModal({ isOpen, item, onClose, onRename }) {
                             disabled={isSubmitting || !name.trim() || name.trim() === item.name}
                             className="px-5 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer"
                         >
-                            {isSubmitting ? 'Đang lưu...' : 'Đồng ý'}
+                            {isSubmitting ? t('rename.saving') : t('rename.submit')}
                         </button>
                     </div>
                 </form>

@@ -11,6 +11,12 @@ import {
 } from 'lucide-react';
 import { billingApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
+import { localeTagOf } from '../utils/locale';
+import tRich from '../utils/tRich';
+// Dùng chung với trang Gói cước thay vì giữ bản copy cục bộ: bản copy cũ ghi mức
+// giảm của chu kỳ năm là -20%, còn giá thật trong DB (và constants/billing.js) là -17%.
+import { CYCLE_LABEL_KEY, formatVnd } from '../constants/billing';
 
 /**
  * returnUrl mà backend gửi cho payOS (config/configuration.ts → payos.returnUrl):
@@ -39,16 +45,12 @@ const MAX_POLLS = 6;
 /** Còn xử lý dở -> đáng để hỏi lại. Mọi status khác đều là trạng thái CUỐI. */
 const PENDING_STATUSES = ['PENDING', 'PROCESSING'];
 
-const formatVnd = (amount) => `${new Intl.NumberFormat('vi-VN').format(Number(amount) || 0)} đ`;
+// formatVnd / CYCLE_LABEL_KEY nay import từ constants/billing.js — xem chú thích
+// ở khối import phía trên.
 
-const CYCLE_LABEL = {
-  monthly: '1 tháng',
-  '3_months': '3 tháng (-5%)',
-  '6_months': '6 tháng (-15%)',
-  yearly: '1 năm (-20%)',
-};
 
 export default function BillingSuccess() {
+  const { t } = useLanguage();
   const [searchParams] = useSearchParams();
   const orderCode = searchParams.get('orderCode');
   const { refreshUser } = useAuth();
@@ -111,7 +113,7 @@ export default function BillingSuccess() {
         timer = setTimeout(poll, POLL_INTERVAL_MS);
       } catch (err) {
         if (cancelled) return;
-        setError(err.message || 'Không kiểm tra được trạng thái giao dịch');
+        setError(err.message || t('payResult.checkFailed'));
         setIsChecking(false);
       }
     };
@@ -122,7 +124,7 @@ export default function BillingSuccess() {
       cancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, [orderCode, retryToken]);
+  }, [orderCode, retryToken, t]);
 
   const checkAgain = useCallback(() => {
     setIsChecking(true);
@@ -170,22 +172,30 @@ function Shell({ tone, icon, title, children }) {
 }
 
 function Checking() {
+  const { t } = useLanguage();
   return (
-    <Shell tone="neutral" icon={<Loader2 className="w-8 h-8 animate-spin" />} title="Đang xác nhận thanh toán">
+    <Shell tone="neutral" icon={<Loader2 className="w-8 h-8 animate-spin" />} title={t('payResult.checking.title')}>
       <p className="text-[15px] text-gray-500 dark:text-gray-400 leading-relaxed">
-        Đang đối soát với cổng thanh toán payOS. Việc này thường mất vài giây —
-        <span className="font-semibold text-gray-700 dark:text-gray-300"> vui lòng không đóng trang này</span>.
+        {tRich(t('payResult.checking.body'), {
+          bold: (
+            <span className="font-semibold text-gray-700 dark:text-gray-300">
+              {t('payResult.checking.bold')}
+            </span>
+          ),
+        })}
       </p>
     </Shell>
   );
 }
 
 function MissingOrderCode() {
+  const { t } = useLanguage();
   return (
-    <Shell tone="danger" icon={<XCircle className="w-8 h-8" />} title="Thiếu mã giao dịch">
+    <Shell tone="danger" icon={<XCircle className="w-8 h-8" />} title={t('payResult.missing.title')}>
       <p className="text-[15px] text-gray-500 dark:text-gray-400 leading-relaxed">
-        Đường dẫn không có tham số <code className="font-mono text-[13px]">orderCode</code> nên không biết cần kiểm tra
-        giao dịch nào. Hãy mở lại trang Gói dịch vụ và xem Lịch Sử Giao Dịch.
+        {tRich(t('payResult.missing.body'), {
+          code: <code className="font-mono text-[13px]">orderCode</code>,
+        })}
       </p>
       <BackLinks />
     </Shell>
@@ -193,12 +203,12 @@ function MissingOrderCode() {
 }
 
 function RequestFailed({ message, onRetry }) {
+  const { t } = useLanguage();
   return (
-    <Shell tone="danger" icon={<XCircle className="w-8 h-8" />} title="Không kiểm tra được giao dịch">
+    <Shell tone="danger" icon={<XCircle className="w-8 h-8" />} title={t('payResult.failed.title')}>
       <p className="text-[15px] text-gray-500 dark:text-gray-400 leading-relaxed">{message}</p>
       <p className="mt-3 text-[13px] text-gray-400 dark:text-gray-500">
-        Nếu bạn đã chuyển khoản thành công, tiền KHÔNG mất: hệ thống vẫn nhận được thông báo từ payOS và sẽ cộng dung
-        lượng cho bạn.
+        {t('payResult.failed.note')}
       </p>
       <RetryButton onClick={onRetry} />
       <BackLinks />
@@ -207,28 +217,38 @@ function RequestFailed({ message, onRetry }) {
 }
 
 function Result({ transaction, timedOut, onRetry }) {
+  const { t } = useLanguage();
   const status = transaction?.status;
 
   if (status === 'PAID') {
     return (
-      <Shell tone="success" icon={<CheckCircle2 className="w-8 h-8" />} title="Thanh toán thành công">
+      <Shell tone="success" icon={<CheckCircle2 className="w-8 h-8" />} title={t('payResult.paid.title')}>
         <p className="text-[15px] text-gray-500 dark:text-gray-400 leading-relaxed">
-          Gói <span className="font-bold text-gray-900 dark:text-gray-100">{transaction.planName || 'lưu trữ'}</span> đã
-          được kích hoạt và dung lượng mới có hiệu lực ngay.
+          {tRich(t('payResult.paid.body'), {
+            plan: (
+              <span className="font-bold text-gray-900 dark:text-gray-100">
+                {transaction.planName || t('payResult.paid.planFallback')}
+              </span>
+            ),
+          })}
         </p>
         <TransactionDetails transaction={transaction} />
-        <BackLinks primaryLabel="Xem gói dịch vụ của tôi" />
+        <BackLinks primaryLabel={t('payResult.paid.cta')} />
       </Shell>
     );
   }
 
   if (status === 'UNDERPAID') {
     return (
-      <Shell tone="warning" icon={<AlertTriangle className="w-8 h-8" />} title="Số tiền chuyển bị thiếu">
+      <Shell tone="warning" icon={<AlertTriangle className="w-8 h-8" />} title={t('payResult.underpaid.title')}>
         <p className="text-[15px] text-gray-500 dark:text-gray-400 leading-relaxed">
-          Cổng thanh toán ghi nhận số tiền nhỏ hơn giá gói, nên gói{' '}
-          <span className="font-semibold text-gray-700 dark:text-gray-300">chưa được kích hoạt</span>. Vui lòng liên hệ
-          hỗ trợ kèm mã giao dịch bên dưới để được đối soát.
+          {tRich(t('payResult.underpaid.body'), {
+            bold: (
+              <span className="font-semibold text-gray-700 dark:text-gray-300">
+                {t('payResult.underpaid.bold')}
+              </span>
+            ),
+          })}
         </p>
         <TransactionDetails transaction={transaction} />
         <BackLinks />
@@ -239,10 +259,9 @@ function Result({ transaction, timedOut, onRetry }) {
   // Vẫn PENDING/PROCESSING sau MAX_POLLS lượt hỏi.
   if (timedOut || PENDING_STATUSES.includes(status)) {
     return (
-      <Shell tone="warning" icon={<Clock className="w-8 h-8" />} title="Chưa nhận được xác nhận">
+      <Shell tone="warning" icon={<Clock className="w-8 h-8" />} title={t('payResult.pending.title')}>
         <p className="text-[15px] text-gray-500 dark:text-gray-400 leading-relaxed">
-          Cổng thanh toán chưa báo tiền về. Nếu bạn vừa chuyển khoản, hãy đợi thêm một lát rồi bấm kiểm tra lại — dung
-          lượng sẽ được cộng ngay khi payOS xác nhận.
+          {t('payResult.pending.body')}
         </p>
         <TransactionDetails transaction={transaction} />
         <RetryButton onClick={onRetry} />
@@ -252,19 +271,23 @@ function Result({ transaction, timedOut, onRetry }) {
   }
 
   // CANCELLED / EXPIRED / FAILED
-  const titles = {
-    CANCELLED: 'Giao dịch đã bị huỷ',
-    EXPIRED: 'Link thanh toán đã hết hạn',
-    FAILED: 'Thanh toán thất bại',
+  const titleKeys = {
+    CANCELLED: 'payResult.cancelled.title',
+    EXPIRED: 'payResult.expired.title',
+    FAILED: 'payResult.failedTx.title',
   };
 
   return (
-    <Shell tone="danger" icon={<XCircle className="w-8 h-8" />} title={titles[status] || 'Thanh toán không thành công'}>
+    <Shell
+      tone="danger"
+      icon={<XCircle className="w-8 h-8" />}
+      title={t(titleKeys[status] || 'payResult.generic.title')}
+    >
       <p className="text-[15px] text-gray-500 dark:text-gray-400 leading-relaxed">
-        Gói lưu trữ của bạn giữ nguyên và bạn không bị trừ tiền. Hãy tạo lại một giao dịch mới nếu vẫn muốn nâng cấp.
+        {t('payResult.generic.body')}
       </p>
       <TransactionDetails transaction={transaction} />
-      <BackLinks primaryLabel="Thử nâng cấp lại" />
+      <BackLinks primaryLabel={t('payResult.retryUpgrade')} />
     </Shell>
   );
 }
@@ -272,14 +295,22 @@ function Result({ transaction, timedOut, onRetry }) {
 // ──────────────────────────────── Mảnh dùng lại ────────────────────────────────
 
 function TransactionDetails({ transaction }) {
+  const { t, language } = useLanguage();
+  const locale = localeTagOf(language);
   if (!transaction) return null;
 
   const rows = [
-    ['Mã giao dịch', transaction.orderCode],
-    ['Gói', transaction.planName],
-    ['Kỳ thanh toán', CYCLE_LABEL[transaction.billingCycle]],
-    ['Số tiền', transaction.amount != null ? formatVnd(transaction.amount) : null],
-    ['Thời gian', transaction.createdAt ? new Date(transaction.createdAt).toLocaleString('vi-VN') : null],
+    [t('payResult.field.orderCode'), transaction.orderCode],
+    [t('payResult.field.plan'), transaction.planName],
+    [
+      t('payResult.field.cycle'),
+      CYCLE_LABEL_KEY[transaction.billingCycle] ? t(CYCLE_LABEL_KEY[transaction.billingCycle]) : null,
+    ],
+    [t('payResult.field.amount'), transaction.amount != null ? formatVnd(transaction.amount, locale) : null],
+    [
+      t('payResult.field.time'),
+      transaction.createdAt ? new Date(transaction.createdAt).toLocaleString(locale) : null,
+    ],
   ].filter(([, value]) => value);
 
   return (
@@ -295,30 +326,32 @@ function TransactionDetails({ transaction }) {
 }
 
 function RetryButton({ onClick }) {
+  const { t } = useLanguage();
   return (
     <button
       onClick={onClick}
       className="mt-6 w-full py-3 px-4 rounded-xl bg-white dark:bg-transparent text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-white/5 font-bold text-[15px] transition-all flex items-center justify-center gap-2 cursor-pointer"
     >
-      <RefreshCw className="w-4 h-4" /> Kiểm tra lại
+      <RefreshCw className="w-4 h-4" /> {t('payResult.recheck')}
     </button>
   );
 }
 
-function BackLinks({ primaryLabel = 'Quay lại trang Gói dịch vụ' }) {
+function BackLinks({ primaryLabel }) {
+  const { t } = useLanguage();
   return (
     <div className="mt-4 space-y-3">
       <Link
         to="/app/billing"
         className="w-full py-3.5 px-4 rounded-xl bg-gray-900 dark:bg-blue-600 hover:bg-black dark:hover:bg-blue-500 text-white font-bold text-[15px] shadow-lg transition-all flex items-center justify-center gap-2"
       >
-        <ArrowLeft className="w-4 h-4" /> {primaryLabel}
+        <ArrowLeft className="w-4 h-4" /> {primaryLabel ?? t('payResult.backToBilling')}
       </Link>
       <Link
         to="/app"
         className="block w-full py-3 px-4 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 font-bold text-[15px] transition-colors"
       >
-        Về driveR
+        {t('payResult.backToApp')}
       </Link>
     </div>
   );

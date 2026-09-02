@@ -88,36 +88,44 @@ export const TURNSTILE_SIZE = 'flexible';
  * Mã gốc luôn được ghép vào cuối câu để còn tra được khi người dùng chụp màn
  * hình gửi lên.
  *
+ * Trả về KHOÁ DỊCH + tham số, không trả câu đã dựng: file này là module hằng số
+ * ngoài React nên không gọi được `useLanguage()`. Bản cũ trả thẳng câu tiếng Việt
+ * nên lỗi CAPTCHA luôn hiện tiếng Việt kể cả khi giao diện đã sang English.
+ * `useTurnstile` (là hook, có `t`) dựng câu cuối cùng.
+ *
  * @param {string|undefined} code Mã lỗi từ Turnstile
- * @returns {string} Câu thông báo tiếng Việt
+ * @returns {{ key: string, params: { suffix: string } }}
  */
-export function getTurnstileErrorMessage(code) {
+export function describeTurnstileError(code) {
   const raw = code == null ? '' : String(code);
-  const suffix = raw ? ` (mã ${raw})` : '';
+  // Mã gốc chỉ là dữ liệu, không cần dịch — nhưng phần bọc " (mã ...)" thì cần,
+  // nên nó đi qua một khoá riêng và được nhúng vào câu chính qua {suffix}.
+  const suffix = raw ? { key: 'turnstile.codeSuffix', code: raw } : null;
+  const of = (key) => ({ key, params: { suffix } });
 
   // Cấu hình sai — người dùng bấm bao nhiêu lần cũng không qua được
   if (raw.startsWith('1101') || raw.startsWith('1102') || raw.startsWith('400')) {
-    return `Cấu hình xác minh chưa đúng cho tên miền này. Vui lòng báo quản trị viên${suffix}`;
+    return of('turnstile.misconfigured');
   }
   if (raw.startsWith('11042') || raw.startsWith('11043') || raw.startsWith('105')) {
-    return `Tham số xác minh không hợp lệ. Vui lòng báo quản trị viên${suffix}`;
+    return of('turnstile.badParams');
   }
 
   // Trình duyệt / môi trường của người dùng
   if (raw.startsWith('1105')) {
-    return `Trình duyệt của bạn chưa được hỗ trợ. Hãy thử trình duyệt khác hoặc tắt tiện ích chặn quảng cáo${suffix}`;
+    return of('turnstile.badBrowser');
   }
   if (raw.startsWith('2001')) {
-    return `Đồng hồ máy bạn có vẻ sai giờ. Hãy chỉnh lại ngày giờ hệ thống rồi tải lại trang${suffix}`;
+    return of('turnstile.clockSkew');
   }
 
   // Hết hạn / quá thời gian — thử lại là qua
   if (raw.startsWith('1106')) {
-    return `Phiên xác minh đã quá hạn. Vui lòng xác minh lại${suffix}`;
+    return of('turnstile.timeout');
   }
 
-  return `Xác minh không thành công. Vui lòng thử lại${suffix}`;
+  return of('turnstile.generic');
 }
 
-/** Câu hiển thị khi token hết hạn (widget tự làm mới, người dùng không cần làm gì) */
-export const TURNSTILE_EXPIRED_MESSAGE = 'Mã xác minh đã hết hạn, đang làm mới...';
+/** Khoá dịch cho lúc token hết hạn (widget tự làm mới, người dùng không cần làm gì) */
+export const TURNSTILE_EXPIRED_KEY = 'turnstile.expired';

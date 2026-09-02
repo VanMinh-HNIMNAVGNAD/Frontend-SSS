@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useFiles } from '../context/FileContext';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
+import tRich from '../utils/tRich';
 import FileListView from '../components/file-manager/FileListView';
 import FileGridView from '../components/file-manager/FileGridView';
 import ContextMenu from '../components/file-manager/ContextMenu';
@@ -24,6 +26,7 @@ import {
 import { sharedDrivesApi } from '../services/api';
 
 export default function SharedDrivesPage() {
+    const { t } = useLanguage();
     const { 
         viewMode, 
         setViewMode, 
@@ -78,7 +81,7 @@ export default function SharedDrivesPage() {
                 setError(null);
             } catch (err) {
                 if (cancelled) return;
-                setError(err.message || 'Lỗi khi tải danh sách bộ nhớ dùng chung');
+                setError(err.message || t('drives.loadFailed'));
             } finally {
                 // `loading` khởi tạo `true` nên chỉ lần tải đầu có spinner toàn trang;
                 // các lần nạp lại sau thay dữ liệu tại chỗ, mỗi thao tác đã có cờ bận
@@ -88,7 +91,7 @@ export default function SharedDrivesPage() {
         })();
 
         return () => { cancelled = true; };
-    }, [currentSharedDriveId, currentFolderId, reloadToken]);
+    }, [currentSharedDriveId, currentFolderId, reloadToken, t]);
 
     const handleCreateDrive = async (e) => {
         e.preventDefault();
@@ -101,7 +104,7 @@ export default function SharedDrivesPage() {
             setNewDriveDesc('');
             reloadDrives();
         } catch (err) {
-            alert('Lỗi tạo bộ nhớ chung: ' + err.message);
+            alert(t('drives.createFailed', { reason: err.message }));
         } finally {
             setIsCreating(false);
         }
@@ -141,11 +144,11 @@ export default function SharedDrivesPage() {
             setDrives((prev) => prev.map((d) => (
                 d.id === drive.id ? { ...d, isStarred: res.isStarred } : d
             )));
-            toast.success(res.isStarred ? 'Đã thêm vào mục gắn sao' : 'Đã bỏ khỏi mục gắn sao');
+            toast.success(res.isStarred ? t('file.star.added') : t('file.star.removed'));
         } catch (err) {
-            toast.error(err.message || 'Không cập nhật được dấu sao');
+            toast.error(err.message || t('file.star.failed'));
         }
-    }, []);
+    }, [t]);
 
     // Không copy được LINK vì router không có deep-link tới từng drive
     // (`/app/shared-drives` mở danh sách, drive đang chọn nằm trong context state).
@@ -153,11 +156,11 @@ export default function SharedDrivesPage() {
     const handleCopyName = useCallback(async (drive) => {
         try {
             await navigator.clipboard.writeText(drive.name);
-            toast.success('Đã sao chép tên bộ nhớ dùng chung');
+            toast.success(t('drives.nameCopied'));
         } catch {
-            toast.error('Trình duyệt không cho phép truy cập clipboard');
+            toast.error(t('drives.clipboardBlocked'));
         }
-    }, []);
+    }, [t]);
 
     const openRenameModal = useCallback((drive) => {
         setRenameTarget(drive);
@@ -175,10 +178,10 @@ export default function SharedDrivesPage() {
                 description: renameDesc,
             });
             setRenameTarget(null);
-            toast.success('Đã cập nhật bộ nhớ dùng chung');
+            toast.success(t('drives.updated'));
             reloadDrives();
         } catch (err) {
-            toast.error(err.message || 'Không cập nhật được bộ nhớ dùng chung');
+            toast.error(err.message || t('drives.updateFailed'));
         } finally {
             setIsSavingRename(false);
         }
@@ -192,12 +195,12 @@ export default function SharedDrivesPage() {
             setDeleteTarget(null);
             toast.success(
                 res?.deletedItems
-                    ? `Đã xóa bộ nhớ dùng chung và ${res.deletedItems} mục bên trong`
-                    : 'Đã xóa bộ nhớ dùng chung',
+                    ? t('drives.deletedWithItems', { count: res.deletedItems })
+                    : t('drives.deleted'),
             );
             reloadDrives();
         } catch (err) {
-            toast.error(err.message || 'Không xóa được bộ nhớ dùng chung');
+            toast.error(err.message || t('drives.deleteFailed'));
         } finally {
             setIsDeleting(false);
         }
@@ -215,7 +218,7 @@ export default function SharedDrivesPage() {
                                 setCurrentFolderId(null);
                                 setCurrentSharedDriveId(null);
                             }}
-                            title="Quay lại danh sách"
+                            title={t('drives.back')}
                             className="p-1.5 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg text-gray-500 dark:text-gray-400 transition-colors"
                         >
                             <ArrowLeft className="w-5 h-5" />
@@ -226,7 +229,7 @@ export default function SharedDrivesPage() {
                         <div>
                             <div className="flex items-center gap-2">
                                 <h1 className="text-xl font-bold text-gray-800 dark:text-gray-200">
-                                    {currentDrive?.name || 'Nội dung bộ nhớ dùng chung'}
+                                    {currentDrive?.name || t('drives.contentTitle')}
                                 </h1>
                                 <span className="px-2 py-0.5 text-[10px] font-bold bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 rounded-md border border-indigo-100 dark:border-indigo-800/60">
                                     Không gian nhóm
@@ -235,7 +238,7 @@ export default function SharedDrivesPage() {
                             {currentDrive?.description ? (
                                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{currentDrive.description}</p>
                             ) : (
-                                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">Tài liệu lưu trữ thuộc quyền sở hữu chung của các thành viên</p>
+                                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{t('drives.contentHint')}</p>
                             )}
                         </div>
                     </div>
@@ -243,7 +246,7 @@ export default function SharedDrivesPage() {
                     <div className="flex items-center bg-gray-200/90 dark:bg-gray-700 rounded-full p-0.5 border border-gray-300 dark:border-gray-700">
                         <button
                             onClick={() => setViewMode('list')}
-                            title="Xem dạng danh sách"
+                            title={t('view.list')}
                             className={`p-1.5 rounded-full transition-colors ${
                                 viewMode === 'list'
                                     ? 'bg-white dark:bg-[#282a2c] shadow-xs text-blue-700 dark:text-blue-400 font-bold'
@@ -254,7 +257,7 @@ export default function SharedDrivesPage() {
                         </button>
                         <button
                             onClick={() => setViewMode('grid')}
-                            title="Xem dạng lưới"
+                            title={t('view.grid')}
                             className={`p-1.5 rounded-full transition-colors ${
                                 viewMode === 'grid'
                                     ? 'bg-white dark:bg-[#282a2c] shadow-xs text-blue-700 dark:text-blue-400 font-bold'
@@ -283,7 +286,7 @@ export default function SharedDrivesPage() {
                     </div>
                     <div>
                         <div className="flex items-center gap-2 flex-wrap">
-                            <h1 className="text-2xl font-black text-gray-900 dark:text-gray-100 tracking-tight">Bộ nhớ dùng chung</h1>
+                            <h1 className="text-2xl font-black text-gray-900 dark:text-gray-100 tracking-tight">{t('drives.title')}</h1>
                             <span className="px-2 py-0.5 text-[11px] font-bold bg-indigo-100 dark:bg-indigo-500/15 text-indigo-800 dark:text-indigo-300 rounded-md border border-indigo-200 dark:border-indigo-800/60">
                                 Không gian nhóm
                             </span>
@@ -314,7 +317,7 @@ export default function SharedDrivesPage() {
                     <div className="w-16 h-16 bg-white dark:bg-[#282a2c] rounded-full flex items-center justify-center mb-4 shadow-sm border border-gray-200 dark:border-gray-700 text-indigo-600 dark:text-indigo-400">
                         <FolderGit2 className="w-8 h-8 text-indigo-600" />
                     </div>
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1.5">Chưa có bộ nhớ dùng chung nào</h3>
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1.5">{t('drives.empty')}</h3>
                     <p className="text-sm text-gray-600 dark:text-gray-400 max-w-md mb-6 leading-relaxed">
                         Bộ nhớ dùng chung giúp phòng ban hoặc nhóm dự án của bạn lưu trữ và quản lý tài liệu tại một nơi tập trung. Tài liệu thuộc sở hữu của cả nhóm và không bị mất khi có thành viên rời đi.
                     </p>
@@ -351,7 +354,7 @@ export default function SharedDrivesPage() {
                                     {/* Gắn sao — hiện luôn để thấy được trạng thái, không cần mở menu */}
                                     <button
                                         onClick={(e) => { e.stopPropagation(); handleToggleStar(drive); }}
-                                        title={drive.isStarred ? 'Bỏ khỏi mục gắn sao' : 'Thêm vào mục gắn sao'}
+                                        title={drive.isStarred ? t('menu.star.remove') : t('menu.star.add')}
                                         className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-amber-500 rounded-full hover:bg-amber-50 transition-colors"
                                     >
                                         <Star className={`w-4 h-4 ${drive.isStarred ? 'fill-amber-400 text-amber-500' : ''}`} />
@@ -360,7 +363,7 @@ export default function SharedDrivesPage() {
                                     {/* Share nhanh — mở thẳng modal quản lý thành viên */}
                                     <button
                                         onClick={(e) => { e.stopPropagation(); setShareTarget(drive); }}
-                                        title="Chia sẻ & quản lý thành viên"
+                                        title={t('drives.manageMembers')}
                                         className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-indigo-600 rounded-full hover:bg-indigo-50 transition-colors"
                                     >
                                         <Share2 className="w-4 h-4" />
@@ -369,7 +372,7 @@ export default function SharedDrivesPage() {
                                     {/* 3 chấm — cùng menu với right-click */}
                                     <button
                                         onClick={(e) => openDriveMenu(e, drive)}
-                                        title="Tùy chọn khác"
+                                        title={t('drives.moreOptions')}
                                         className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 rounded-full hover:bg-gray-100 dark:hover:bg-white/5 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
                                     >
                                         <MoreVertical className="w-4 h-4" />
@@ -378,11 +381,11 @@ export default function SharedDrivesPage() {
                             </div>
                             <h3 className="font-bold text-gray-900 dark:text-gray-100 text-[15px] mb-1.5 truncate group-hover:text-indigo-700 dark:group-hover:text-indigo-400 transition-colors">{drive.name}</h3>
                             <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2 flex-1 mb-4 leading-relaxed font-medium">
-                                {drive.description || 'Không có mô tả'}
+                                {drive.description || t('drives.noDescription')}
                             </p>
                             <div className="flex items-center gap-2 text-[11px] font-bold text-indigo-700 dark:text-indigo-400 mt-auto pt-3 border-t border-gray-100 dark:border-gray-700/60">
                                 <Users className="w-3.5 h-3.5" />
-                                <span className="uppercase tracking-wider">Không gian nhóm / Dự án</span>
+                                <span className="uppercase tracking-wider">{t('drives.groupSpace')}</span>
                             </div>
                         </div>
                     ))}
@@ -410,8 +413,8 @@ export default function SharedDrivesPage() {
                     <div className="bg-white dark:bg-[#282a2c] rounded-3xl w-full max-w-md shadow-2xl overflow-hidden transform transition-all">
                         <div className="px-6 py-4 border-b border-slate-100 dark:border-gray-700 flex items-center justify-between bg-slate-50/50 dark:bg-white/5">
                             <div>
-                                <h2 className="text-[15px] font-black text-slate-800 dark:text-gray-200 tracking-tight">Tạo Bộ nhớ dùng chung</h2>
-                                <p className="text-xs text-slate-500 dark:text-gray-400 mt-0.5">Tất cả thành viên sẽ cùng sở hữu và quản lý tài liệu của nhóm</p>
+                                <h2 className="text-[15px] font-black text-slate-800 dark:text-gray-200 tracking-tight">{t('drives.create.title')}</h2>
+                                <p className="text-xs text-slate-500 dark:text-gray-400 mt-0.5">{t('drives.create.subtitle')}</p>
                             </div>
                             <button 
                                 onClick={() => setIsCreateModalOpen(false)}
@@ -431,7 +434,7 @@ export default function SharedDrivesPage() {
                                         required
                                         value={newDriveName}
                                         onChange={e => setNewDriveName(e.target.value)}
-                                        placeholder="Ví dụ: Phòng Marketing, Dự án Alpha..."
+                                        placeholder={t('drives.name.placeholder')}
                                         className="w-full px-4 py-2.5 bg-white dark:bg-[#282a2c] border border-slate-200 dark:border-gray-700 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium placeholder:font-normal"
                                     />
                                 </div>
@@ -442,7 +445,7 @@ export default function SharedDrivesPage() {
                                     <textarea
                                         value={newDriveDesc}
                                         onChange={e => setNewDriveDesc(e.target.value)}
-                                        placeholder="Mô tả mục đích sử dụng hoặc phòng ban quản lý bộ nhớ này..."
+                                        placeholder={t('drives.description.placeholder')}
                                         rows={3}
                                         className="w-full px-4 py-2.5 bg-white dark:bg-[#282a2c] border border-slate-200 dark:border-gray-700 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all resize-none font-medium placeholder:font-normal"
                                     />
@@ -454,7 +457,7 @@ export default function SharedDrivesPage() {
                                     onClick={() => setIsCreateModalOpen(false)}
                                     className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl transition-colors"
                                 >
-                                    Hủy
+                                    {t('common.cancel')}
                                 </button>
                                 <button
                                     type="submit"
@@ -476,7 +479,7 @@ export default function SharedDrivesPage() {
             <Modal
                 isOpen
                 onClose={() => setRenameTarget(null)}
-                title="Đổi tên Bộ nhớ dùng chung"
+                title={t('drives.rename.title')}
                 maxWidth="max-w-md"
             >
                 <form onSubmit={handleRenameSubmit} className="space-y-4">
@@ -501,7 +504,7 @@ export default function SharedDrivesPage() {
                             value={renameDesc}
                             onChange={(e) => setRenameDesc(e.target.value)}
                             rows={3}
-                            placeholder="Mô tả mục đích sử dụng hoặc phòng ban quản lý bộ nhớ này..."
+                            placeholder={t('drives.description.placeholder')}
                             className="w-full px-4 py-2.5 bg-white dark:bg-[#282a2c] border border-slate-200 dark:border-gray-700 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all resize-none font-medium placeholder:font-normal"
                         />
                     </div>
@@ -531,24 +534,29 @@ export default function SharedDrivesPage() {
             <Modal
                 isOpen
                 onClose={() => setDeleteTarget(null)}
-                title="Xóa Bộ nhớ dùng chung?"
+                title={t('drives.delete.title')}
                 maxWidth="max-w-md"
             >
                 <div className="space-y-4">
                     <div className="flex gap-3 p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-500/15 border border-rose-200 dark:border-rose-900/50">
                         <AlertTriangle className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
                         <div className="text-[13px] text-rose-900 dark:text-rose-200 leading-relaxed">
-                            <p className="font-bold mb-1">Hành động này không thể hoàn tác.</p>
+                            <p className="font-bold mb-1">{t('drives.delete.warnTitle')}</p>
                             <p>
-                                Toàn bộ <strong>{deleteTarget?.itemCount ?? 0} tệp/thư mục</strong> bên trong
-                                {' '}<strong>&quot;{deleteTarget?.name}&quot;</strong> sẽ bị xóa vĩnh viễn, kể cả
-                                tệp do các thành viên khác tải lên. Chúng KHÔNG vào thùng rác.
+                                {tRich(t('drives.delete.warnBody'), {
+                                    items: (
+                                        <strong>
+                                            {t('drives.delete.itemCount', { count: deleteTarget?.itemCount ?? 0 })}
+                                        </strong>
+                                    ),
+                                    name: <strong>&quot;{deleteTarget?.name}&quot;</strong>,
+                                })}
                             </p>
                         </div>
                     </div>
 
                     <p className="text-xs text-slate-500 dark:text-gray-400 leading-relaxed">
-                        Mọi thành viên cũng sẽ mất quyền truy cập ngay lập tức.
+                        {t('drives.delete.membersLose')}
                     </p>
 
                     <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-100 dark:border-gray-700">
@@ -566,7 +574,7 @@ export default function SharedDrivesPage() {
                             className="px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-all shadow-sm flex items-center gap-2 cursor-pointer"
                         >
                             {isDeleting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                            Xóa vĩnh viễn
+                            {t('common.deleteForever')}
                         </button>
                     </div>
                 </div>

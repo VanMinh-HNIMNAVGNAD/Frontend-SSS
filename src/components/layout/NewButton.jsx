@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useFiles } from '../../context/FileContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { Plus, FolderPlus, FileUp, FolderUp, Loader2 } from 'lucide-react';
 import { collectInputEntries } from '../../utils/uploadTree';
 
@@ -15,6 +16,7 @@ export default function NewButton({ isCollapsed }) {
     currentSharedDriveId,
     activeTab,
   } = useFiles();
+  const { t } = useLanguage();
 
   const dropdownRef   = useRef(null);
   const fileInputRef  = useRef(null); // upload nhiều file
@@ -43,10 +45,10 @@ export default function NewButton({ isCollapsed }) {
   const handleCreateFolderPrompt = () => {
     setIsOpen(false);
     if (activeTab === 'shared-drives' && !currentSharedDriveId && !currentFolderId) {
-      alert('Vui lòng mở một Bộ nhớ dùng chung trước khi tạo thư mục mới.');
+      alert(t('newBtn.needDrive.folder'));
       return;
     }
-    const name = prompt('Nhập tên thư mục mới:', 'Thư mục chưa đặt tên');
+    const name = prompt(t('newBtn.prompt.folderName'), t('newBtn.defaultFolderName'));
     if (name) {
       createFolder(name);
     }
@@ -57,7 +59,7 @@ export default function NewButton({ isCollapsed }) {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
     if (activeTab === 'shared-drives' && !currentSharedDriveId && !currentFolderId) {
-      alert('Vui lòng mở một Bộ nhớ dùng chung trước khi tải tệp lên.');
+      alert(t('newBtn.needDrive.file'));
       e.target.value = '';
       setIsOpen(false);
       return;
@@ -85,7 +87,7 @@ export default function NewButton({ isCollapsed }) {
     if (tree.entries.length === 0) return;
 
     if (activeTab === 'shared-drives' && !currentSharedDriveId && !currentFolderId) {
-      alert('Vui lòng mở một Bộ nhớ dùng chung trước khi tải thư mục lên.');
+      alert(t('newBtn.needDrive.uploadFolder'));
       setIsOpen(false);
       return;
     }
@@ -108,7 +110,7 @@ export default function NewButton({ isCollapsed }) {
         onChange={handleFileChange}
         multiple
         className="hidden"
-        aria-label="Chọn nhiều tệp để tải lên"
+        aria-label={t('newBtn.aria.pickFiles')}
       />
 
       {/* Hidden input: chọn folder (webkitdirectory) */}
@@ -118,7 +120,7 @@ export default function NewButton({ isCollapsed }) {
         onChange={handleFolderChange}
         multiple
         className="hidden"
-        aria-label="Chọn thư mục để tải lên"
+        aria-label={t('newBtn.aria.pickFolder')}
       />
 
       {/* Nút + Mới */}
@@ -127,10 +129,10 @@ export default function NewButton({ isCollapsed }) {
         className={`flex items-center justify-center gap-3 bg-white dark:bg-[#282a2c] text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-xs hover:shadow-md hover:bg-gray-50 dark:hover:bg-white/5 active:bg-gray-100 font-medium text-sm transition-all duration-200 ${
           isCollapsed ? 'w-12 h-12 p-0 rounded-full' : 'px-5 py-3'
         }`}
-        title="Tạo mới tệp hoặc thư mục"
+        title={t('newBtn.title')}
       >
         <Plus className="w-6 h-6 text-blue-600 dark:text-blue-400 shrink-0 stroke-[2.5]" />
-        {!isCollapsed && <span className="font-semibold tracking-wide text-[15px]">Mới</span>}
+        {!isCollapsed && <span className="font-semibold tracking-wide text-[15px]">{t('newBtn.label')}</span>}
       </button>
 
       {/* Dropdown Menu */}
@@ -142,7 +144,7 @@ export default function NewButton({ isCollapsed }) {
             className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors text-left"
           >
             <FolderPlus className="w-5 h-5 text-gray-600 dark:text-gray-300" />
-            <span>Thư mục mới</span>
+            <span>{t('newBtn.newFolder')}</span>
           </button>
 
           <div className="my-1 border-t border-gray-100 dark:border-gray-700" />
@@ -157,7 +159,7 @@ export default function NewButton({ isCollapsed }) {
           >
             <FileUp className="w-5 h-5 text-blue-500" />
             <div className="flex flex-col items-start">
-              <span className="font-medium">Tải tệp lên</span>
+              <span className="font-medium">{t('newBtn.uploadFile')}</span>
             </div>
           </button>
 
@@ -176,7 +178,7 @@ export default function NewButton({ isCollapsed }) {
             }
             <div className="flex flex-col items-start">
               <span className="font-medium">
-                {isBuildingTree ? 'Đang xây cây thư mục...' : 'Tải thư mục lên'}
+                {isBuildingTree ? t('menu.buildingTree') : t('newBtn.uploadFolder')}
               </span>
             </div>
           </button>

@@ -1,10 +1,12 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { authApi, userApi } from '../services/api';
 import { writeDiscoverableByEmail } from '../constants/privacy';
+import { useLanguage } from './LanguageContext';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
+  const { t } = useLanguage();
   const [user, setUser] = useState(null);
   const [accessToken, setAccessToken] = useState(() => localStorage.getItem('accessToken'));
   const [isLoading, setIsLoading] = useState(true);
@@ -114,7 +116,7 @@ export function AuthProvider({ children }) {
 
       return { requiresOtp: false, user: applySession(data) };
     } catch (err) {
-      setError(err.message || 'Đăng nhập thất bại');
+      setError(err.message || t('login.failed'));
       throw err;
     } finally {
       setIsLoading(false);
@@ -128,7 +130,7 @@ export function AuthProvider({ children }) {
       setError(null);
       return applySession(await authApi.verifyLoginOtp({ email, otp }));
     } catch (err) {
-      setError(err.message || 'Xác minh thất bại');
+      setError(err.message || t('otp.verifyFailed'));
       throw err;
     } finally {
       setIsLoading(false);
@@ -147,7 +149,7 @@ export function AuthProvider({ children }) {
       setError(null);
       return await authApi.sendRegisterOtp({ email, password, fullName, ...extraPayload });
     } catch (err) {
-      setError(err.message || 'Không gửi được mã xác minh');
+      setError(err.message || t('otp.sendFailed'));
       throw err;
     } finally {
       setIsLoading(false);
@@ -161,7 +163,7 @@ export function AuthProvider({ children }) {
       setError(null);
       return await authApi.verifyRegisterOtp({ email, otp });
     } catch (err) {
-      setError(err.message || 'Đăng ký thất bại');
+      setError(err.message || t('register.failed'));
       throw err;
     } finally {
       setIsLoading(false);
@@ -218,7 +220,7 @@ export function AuthProvider({ children }) {
       logout();
       return res;
     } catch (err) {
-      setError(err.message || 'Xoá tài khoản thất bại');
+      setError(err.message || t('account.deleteFailed'));
       throw err;
     } finally {
       setIsLoading(false);

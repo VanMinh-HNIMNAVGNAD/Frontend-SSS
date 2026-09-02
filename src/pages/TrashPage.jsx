@@ -3,9 +3,11 @@ import FileListView from '../components/file-manager/FileListView';
 import FileGridView from '../components/file-manager/FileGridView';
 import FileFilterBar from '../components/common/FileFilterBar';
 import { useFiles } from '../context/FileContext';
+import { useLanguage } from '../context/LanguageContext';
 import { Trash2, Info, List, LayoutGrid } from 'lucide-react';
 
 export default function TrashPage() {
+    const { t } = useLanguage();
     const { 
         viewMode,
         setViewMode,
@@ -27,7 +29,7 @@ export default function TrashPage() {
     const trashItems = items.filter(i => i.isTrash);
 
     const handleEmptyTrash = () => {
-        if (confirm('Bạn có chắc chắn muốn dọn sạch thùng rác? Tất cả các tệp sẽ bị xóa vĩnh viễn.')) {
+        if (confirm(t('trash.empty.confirm'))) {
             emptyTrash();
         }
     };
@@ -38,14 +40,14 @@ export default function TrashPage() {
             <div className="flex items-center justify-between mb-2 pb-2 border-b border-gray-200 dark:border-gray-700">
                 <div className="flex items-center gap-2">
                     <Trash2 className="w-6 h-6 text-gray-800 dark:text-gray-200" />
-                    <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Thùng rác</h1>
+                    <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">{t('page.trash.title')}</h1>
                 </div>
 
                 <div className="flex items-center gap-3">
                     <div className="flex items-center bg-gray-200/90 dark:bg-gray-700 rounded-full p-0.5 border border-gray-300 dark:border-gray-700">
                         <button
                             onClick={() => setViewMode('list')}
-                            title="Xem dạng danh sách"
+                            title={t('view.list')}
                             className={`p-1.5 rounded-full transition-colors ${
                                 viewMode === 'list' ? 'bg-white dark:bg-[#282a2c] shadow-xs text-blue-700 dark:text-blue-400 font-bold' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
                             }`}
@@ -54,7 +56,7 @@ export default function TrashPage() {
                         </button>
                         <button
                             onClick={() => setViewMode('grid')}
-                            title="Xem dạng lưới"
+                            title={t('view.grid')}
                             className={`p-1.5 rounded-full transition-colors ${
                                 viewMode === 'grid' ? 'bg-white dark:bg-[#282a2c] shadow-xs text-blue-700 dark:text-blue-400 font-bold' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
                             }`}
@@ -69,7 +71,7 @@ export default function TrashPage() {
                             className="px-4 py-2 bg-rose-50 dark:bg-rose-500/15 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-500/25 rounded-full text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
                         >
                             <Trash2 className="w-4 h-4" />
-                            Dọn sạch thùng rác
+                            {t('trash.empty.button')}
                         </button>
                     )}
                 </div>
@@ -79,9 +81,9 @@ export default function TrashPage() {
             <div className="bg-blue-50/80 dark:bg-blue-500/15 border border-blue-300 dark:border-blue-900/50 rounded-2xl p-3.5 mb-2 flex items-start gap-3 text-blue-950 dark:text-blue-200 text-sm shadow-2xs">
                 <Info className="w-5 h-5 text-blue-700 dark:text-blue-400 shrink-0 mt-0.5" />
                 <div>
-                    <p className="font-bold mb-0.5">Trạng thái lưu trữ Thùng rác:</p>
+                    <p className="font-bold mb-0.5">{t('trash.banner.title')}</p>
                     <p className="text-xs text-blue-900 dark:text-blue-300 font-medium">
-                        Các tệp trong thùng rác sẽ tự động bị xóa vĩnh viễn sau 30 ngày.
+                        {t('trash.banner.body')}
                     </p>
                 </div>
             </div>

@@ -24,7 +24,6 @@ import {
     AlertCircle,
     History
 } from 'lucide-react';
-import rocketLogo from '../../assets/icon/rocket-12-svgrepo-com.svg';
 
 export default function Header({ toggleRightSidebar }) {
     const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
@@ -359,14 +358,9 @@ export default function Header({ toggleRightSidebar }) {
                 {/* Tên web "driveR" (Clicking resets to My Drive) */}
                 <div 
                     onClick={handleLogoClick}
-                    className="flex items-center gap-2 cursor-pointer select-none pr-2 group"
+                    className="flex items-center cursor-pointer select-none pr-2 group"
                     title={t('header.logo.title')}
                 >
-                    <img 
-                        src={rocketLogo} 
-                        alt="driveR logo" 
-                        className="w-7 h-7 object-contain select-none dark:invert transition-transform duration-200 group-hover:scale-105" 
-                    />
                     <span className="text-xl font-extrabold tracking-tight text-gray-900 dark:text-gray-100 font-sans">
                         drive<span className="text-blue-600 dark:text-blue-400 font-black text-2xl">R</span>
                     </span>

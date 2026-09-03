@@ -9,7 +9,6 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { marked } from 'marked';
 import mammoth from 'mammoth';
-import rocketLogo from '../assets/icon/rocket-12-svgrepo-com.svg';
 
 // ─── Khởi tạo PDF.js Worker (an toàn, không trùng lặp) ───────────────────────
 if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
@@ -1315,9 +1314,8 @@ export default function SharePage() {
       <header className="sticky top-0 z-20 border-b border-white/8 bg-[#0f1117]/90 backdrop-blur-md px-4 sm:px-6 py-3">
         <div className="max-w-5xl mx-auto flex items-center justify-between gap-3">
           {/* Logo */}
-          <a href="/" className="flex items-center gap-2 text-lg font-bold tracking-tight shrink-0 select-none hover:opacity-80 transition-opacity">
-            <img src={rocketLogo} alt="driveR logo" className="w-6 h-6 object-contain invert" />
-            <span>drive<span className="text-indigo-400">R</span></span>
+          <a href="/" className="text-lg font-bold tracking-tight shrink-0 select-none hover:opacity-80 transition-opacity">
+            drive<span className="text-indigo-400">R</span>
           </a>
 
           {/* Người chia sẻ */}

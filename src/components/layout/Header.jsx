@@ -24,7 +24,7 @@ import {
     AlertCircle,
     History
 } from 'lucide-react';
-import infinityLogo from '../../assets/icon/infinity.png';
+import rocketLogo from '../../assets/icon/rocket-12-svgrepo-com.svg';
 
 export default function Header({ toggleRightSidebar }) {
     const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
@@ -363,7 +363,7 @@ export default function Header({ toggleRightSidebar }) {
                     title={t('header.logo.title')}
                 >
                     <img 
-                        src={infinityLogo} 
+                        src={rocketLogo} 
                         alt="driveR logo" 
                         className="w-7 h-7 object-contain select-none dark:invert transition-transform duration-200 group-hover:scale-105" 
                     />

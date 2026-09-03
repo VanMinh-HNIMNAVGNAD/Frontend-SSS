@@ -104,6 +104,14 @@ export default function UserProfileModal({ isOpen, onClose }) {
   const fileInputRef = useRef(null);
   // Cờ theo dõi component còn mounted hay không, tránh setState sau khi unmount
   const isMountedRef = useRef(true);
+  // `t` đổi theo ngôn ngữ và `onClose` thường là arrow inline ở component cha —
+  // cho cả hai vào dependency của effect nạp hồ sơ nghĩa là mỗi lần cha render lại
+  // là gọi lại GET /users/me. Giữ bản mới nhất trong ref: effect chỉ phụ thuộc
+  // `isOpen`/`user` như cũ mà vẫn dùng đúng hàm hiện hành.
+  const latestRef = useRef({ t, onClose });
+  useEffect(() => {
+    latestRef.current = { t, onClose };
+  });
 
   // Modal Tabs State
   const [activeTab, setActiveTab] = useState('profile'); // 'profile' | 'password' | 'sessions'
@@ -164,6 +172,19 @@ export default function UserProfileModal({ isOpen, onClose }) {
       userApi
         .getMe()
         .then((profileData) => {
+          // CHỐT CHẶN ĐỔI CHỦ: chỉ nhận hồ sơ của ĐÚNG người đang mở modal.
+          // /users/me trả về hồ sơ của chủ nhân token trong localStorage, mà
+          // localStorage dùng chung cho mọi tab cùng origin — tab khác đăng nhập
+          // tài khoản khác là request này về hồ sơ người lạ, và trước đây nó được
+          // đổ thẳng vào ô "Tên hiển thị". Bấm Lưu sau đó là ghi tên đó lên tài
+          // khoản người lạ, còn refreshUser() thì kéo cả app sang tài khoản đó.
+          if (profileData?.id && user?.id && profileData.id !== user.id) {
+            console.error('[UserProfileModal] /users/me trả hồ sơ của tài khoản khác — bỏ qua.');
+            toast.error(latestRef.current.t('profile.sessionMismatch'));
+            latestRef.current.onClose?.();
+            return;
+          }
+
           if (profileData?.fullName) {
             setFullName(profileData.fullName);
           }
@@ -532,9 +553,17 @@ export default function UserProfileModal({ isOpen, onClose }) {
                   </label>
                   <div className="relative">
                     <UserIcon className="w-4 h-4 text-gray-400 dark:text-gray-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    {/*
+                      `name` + autoComplete="off": ô text trần trong một <form> bị
+                      Chrome đoán là ô "tên/tài khoản" và bật gợi ý autofill — bấm
+                      vào ô là hiện tên đã lưu của tài khoản KHÁC, chọn nhầm một
+                      cái là đổi tên hiển thị của mình lúc nào không hay.
+                    */}
                     <input
                       type="text"
                       required
+                      name="fullName"
+                      autoComplete="off"
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                       className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-[#282a2c] border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-gray-800 dark:text-gray-200"

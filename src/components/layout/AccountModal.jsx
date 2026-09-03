@@ -39,8 +39,12 @@ export default function AccountModal({ isOpen, onClose }) {
 
     if (!isOpen) return null;
 
-    const handleLogout = () => {
-        logout();
+    // `await`: logout() nay còn gọi POST /auth/logout để server xoá cookie
+    // refreshToken (HttpOnly, JS không đụng được) và thu hồi phiên trong DB. Rời
+    // trang trước khi lượt gọi đó xong là cookie có thể sống sót — máy dùng chung
+    // sẽ refresh lại được đúng phiên vừa đăng xuất.
+    const handleLogout = async () => {
+        await logout();
         onClose && onClose();
         navigate('/login');
     };

@@ -1,6 +1,7 @@
 import axios from 'axios';
 
 import { API_BASE_URL } from '../constants/api';
+import { subjectOf } from '../utils/jwt';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -63,15 +64,38 @@ const NO_REFRESH_PATHS = [
  */
 let refreshPromise = null;
 
-/** Gọi /auth/refresh bằng axios GỐC để không đi qua interceptor này lần nữa. */
+/**
+ * Gọi /auth/refresh bằng axios GỐC để không đi qua interceptor này lần nữa.
+ *
+ * CHỐT CHẶN ĐỔI CHỦ: danh tính của lượt refresh do COOKIE quyết định, không phải
+ * do access token vừa hết hạn. Trình duyệt chỉ giữ MỘT cookie `refreshToken` cho
+ * cả origin, nên nếu cookie đang là của tài khoản khác (đăng nhập tài khoản khác
+ * ở tab/lần trước, cookie cũ chưa bị xoá vì đăng xuất chỉ xoá localStorage) thì
+ * backend trả về access token HỢP LỆ của NGƯỜI KHÁC. Ghi thẳng token đó vào
+ * localStorage nghĩa là người dùng đột nhiên đang đăng nhập bằng tài khoản lạ mà
+ * không hề bấm gì — đúng triệu chứng "mở hồ sơ thì tên đổi sang người khác".
+ *
+ * Nên: so `sub` của token cũ với token mới, khác nhau thì VỨT token mới và đăng
+ * xuất sạch, không bao giờ âm thầm đổi phiên.
+ */
 function refreshAccessToken() {
   if (!refreshPromise) {
+    const previousSubject = subjectOf(localStorage.getItem('accessToken'));
     refreshPromise = axios
       .post(`${API_BASE_URL}/auth/refresh`, null, { withCredentials: true })
       // Backend bọc response ({ statusCode, data }) nên phải bóc hai lớp.
       .then((res) => {
         const token = res.data?.data?.accessToken ?? res.data?.accessToken;
         if (!token) throw new Error('Refresh không trả về accessToken');
+
+        const nextSubject = subjectOf(token);
+        // Chỉ chặn khi ĐỌC ĐƯỢC cả hai và chúng KHÁC nhau: không đọc được thì coi
+        // như không có gì để đối chiếu, chặn ở đó chỉ đăng xuất oan.
+        if (previousSubject && nextSubject && previousSubject !== nextSubject) {
+          console.error('[API] /auth/refresh trả token của tài khoản khác — huỷ phiên.');
+          throw new Error('Phiên đăng nhập không khớp tài khoản');
+        }
+
         localStorage.setItem('accessToken', token);
         return token;
       })
@@ -185,6 +209,13 @@ export const authApi = {
   verifyResetOtp: (data) => api.post('/auth/verify-reset-otp', data),
   resetPassword: (data) => api.post('/auth/reset-password', data),
   getProfile: () => api.get('/auth/me'),
+
+  // Đăng xuất PHẢI đi qua server: cookie `refreshToken` là HttpOnly nên JS không
+  // xoá được, và bản thân phiên còn nằm trong bảng user_sessions. Trước đây
+  // AuthContext.logout() chỉ xoá localStorage → cookie sống tiếp 7 ngày, và lần
+  // 401 kế tiếp của BẤT KỲ ai dùng máy này đều refresh ra được phiên của người đã
+  // "đăng xuất" trước đó.
+  logout: () => api.post('/auth/logout'),
 };
 
 // User Profile APIs

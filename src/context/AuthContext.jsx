@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { authApi, userApi } from '../services/api';
 import { writeDiscoverableByEmail } from '../constants/privacy';
+import { subjectOf } from '../utils/jwt';
 import { useLanguage } from './LanguageContext';
 
 const AuthContext = createContext(null);
@@ -18,7 +19,20 @@ export function AuthProvider({ children }) {
       const profile = await authApi.getProfile();
       // getProfile() trả { user: {...} } (wrapped bởi transform.interceptor)
       // login() đã xử lý đúng: data.user || data — áp dụng nhất quán ở đây
-      setUser(profile.user ?? profile);
+      const nextUser = profile.user ?? profile;
+
+      // Hồ sơ trả về PHẢI đúng chủ của token đang nằm trong localStorage. Hai thứ
+      // này lệch nhau được là vì localStorage dùng chung cho mọi tab cùng origin:
+      // đăng nhập tài khoản khác ở tab B là tab A lập tức gửi request bằng token
+      // của B trong khi vẫn đang vẽ hồ sơ của A. Trước đây chỗ này setUser() thẳng
+      // → tab A âm thầm biến thành tài khoản B.
+      const tokenSubject = subjectOf(localStorage.getItem('accessToken'));
+      if (tokenSubject && nextUser?.id && nextUser.id !== tokenSubject) {
+        console.error('[Auth] Hồ sơ trả về không khớp token đang giữ — huỷ phiên.');
+        throw new Error('Phiên đăng nhập không khớp tài khoản');
+      }
+
+      setUser(nextUser);
       setError(null);
     } catch (err) {
       console.error('Failed to fetch user profile:', err);
@@ -47,6 +61,35 @@ export function AuthProvider({ children }) {
       setIsLoading(false);
     }
   }, [accessToken]);
+
+  // Token trong localStorage bị TAB KHÁC ghi đè (đăng nhập tài khoản khác, hoặc
+  // đăng xuất). Sự kiện 'storage' chỉ bắn sang các tab KHÁC tab vừa ghi — đúng
+  // thứ cần: tab này đang giữ hồ sơ cũ trong React state, còn mọi request từ đây
+  // đã đi bằng token mới (interceptor đọc lại localStorage ở từng request), nên
+  // im lặng là biến thành người khác lúc nào không hay.
+  useEffect(() => {
+    const onStorage = (e) => {
+      if (e.key !== 'accessToken') return;
+
+      const nextToken = e.newValue;
+      if (!nextToken) {
+        // Tab khác đăng xuất → tab này cũng phải rời phiên.
+        setAccessToken(null);
+        setUser(null);
+        return;
+      }
+
+      // Cùng một chủ (chỉ là token vừa được làm mới) thì không đụng gì tới UI.
+      if (subjectOf(nextToken) === subjectOf(e.oldValue)) return;
+
+      // Đổi chủ: nạp lại từ đầu thay vì vá state từng mảnh — FileContext,
+      // UploadContext... đều đang giữ dữ liệu của tài khoản cũ.
+      window.location.reload();
+    };
+
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
 
   // Nạp cache hiển thị của công tắc "Hiển thị thông tin cá nhân" từ hồ sơ server.
   //
@@ -206,10 +249,25 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('accessToken');
-    setAccessToken(null);
-    setUser(null);
+  /**
+   * Đăng xuất. `await` lượt gọi server TRƯỚC khi xoá state cục bộ, nhưng không để
+   * lỗi mạng chặn việc đăng xuất tại chỗ: cái người dùng thấy phải luôn là "đã ra".
+   *
+   * Bắt buộc phải gọi POST /auth/logout: cookie `refreshToken` là HttpOnly (JS
+   * không xoá được) và phiên vẫn còn trong DB. Bỏ qua bước này thì máy dùng chung
+   * giữ nguyên cookie 7 ngày, và lần refresh sau đó dựng lại đúng phiên vừa "đăng
+   * xuất" — cho tài khoản khác đang ngồi trên chính trình duyệt đó.
+   */
+  const logout = async () => {
+    try {
+      await authApi.logout();
+    } catch (err) {
+      console.error('[Auth] Gọi /auth/logout thất bại (vẫn xoá phiên cục bộ):', err);
+    } finally {
+      localStorage.removeItem('accessToken');
+      setAccessToken(null);
+      setUser(null);
+    }
   };
 
   const deleteAccount = async (password) => {
@@ -217,7 +275,7 @@ export function AuthProvider({ children }) {
       setIsLoading(true);
       setError(null);
       const res = await userApi.deleteMyAccount(password);
-      logout();
+      await logout();
       return res;
     } catch (err) {
       setError(err.message || t('account.deleteFailed'));

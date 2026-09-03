@@ -661,6 +661,7 @@ const en = {
   'profile.discoverable.off': 'You can no longer be found by email',
   'profile.updated': 'Your details have been updated',
   'profile.updateFailed': 'Could not update your details',
+  'profile.sessionMismatch': 'This session now belongs to a different account. Please sign in again.',
   'profile.password.needCurrent': 'Enter your current password',
   'profile.password.tooShort': 'The new password must be at least 6 characters',
   'profile.password.mismatch': 'The confirmation does not match the new password',

@@ -664,6 +664,7 @@ const vi = {
   'profile.discoverable.off': 'Đã tắt hiển thị thông tin cá nhân qua email',
   'profile.updated': 'Cập nhật thông tin thành công!',
   'profile.updateFailed': 'Lỗi khi cập nhật thông tin',
+  'profile.sessionMismatch': 'Phiên đăng nhập đã đổi sang tài khoản khác. Vui lòng đăng nhập lại.',
   'profile.password.needCurrent': 'Vui lòng nhập mật khẩu hiện tại',
   'profile.password.tooShort': 'Mật khẩu mới phải có ít nhất 6 ký tự',
   'profile.password.mismatch': 'Mật khẩu xác nhận không khớp với mật khẩu mới',

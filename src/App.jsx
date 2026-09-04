@@ -5,6 +5,7 @@ import { LanguageProvider } from './context/LanguageContext';
 import { UploadProvider } from './context/UploadContext';
 import { FileProvider } from './context/FileContext';
 import AppRouter from './routes/AppRouter';
+import GlobalProgressBar from './components/common/GlobalProgressBar';
 
 export default function App() {
     return (
@@ -40,6 +41,9 @@ export default function App() {
                                     },
                                 }}
                             />
+                            {/* Thanh "đang xử lý" ở đỉnh trang — đặt trong LanguageProvider
+                                vì nó dùng t(), và ngoài AppRouter để mọi route đều có. */}
+                            <GlobalProgressBar />
                             <AppRouter />
                         </FileProvider>
                     </UploadProvider>

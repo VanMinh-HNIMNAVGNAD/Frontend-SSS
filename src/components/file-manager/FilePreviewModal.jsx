@@ -13,10 +13,14 @@ import {
   FileText, 
   Loader2, 
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  AlertTriangle,
+  VolumeX,
+  EyeOff
 } from 'lucide-react';
 import { useFiles } from '../../context/FileContext';
 import { useLanguage } from '../../context/LanguageContext';
+import useMediaSupport from '../../hooks/useMediaSupport';
 import { storageApi } from '../../services/api';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
@@ -228,6 +232,62 @@ function PdfCanvasViewer({ url, zoom = 1, rotation = 0 }) {
   );
 }
 
+/**
+ * Khối cảnh báo codec cho trình phát — hiển thị kết luận của `useMediaSupport`.
+ *
+ * Cố ý LUÔN hiện (không phải chỉ khi rê chuột như lời nhắc chung): khi người xem
+ * đang ngồi trước một video im lặng hoặc một khung đen, đó chính là lúc họ cần câu
+ * trả lời, và họ không có lý do gì để rê chuột lên đúng đỉnh khung hình để tìm nó.
+ *
+ * `inline` = xếp vào luồng bố cục (dùng cho tệp âm thanh, vốn không có khung hình
+ * để phủ lên); mặc định là phủ lên đỉnh trình phát video.
+ */
+function MediaSupportNotice({ diagnosis, fileName, onDownload, t, inline = false }) {
+  if (!diagnosis) return null;
+
+  const VISUALS = {
+    'no-video-track': { Icon: EyeOff, tone: 'amber' },
+    'no-audio-track': { Icon: VolumeX, tone: 'amber' },
+    'decode-error': { Icon: AlertTriangle, tone: 'rose' },
+    'src-unsupported': { Icon: AlertTriangle, tone: 'rose' },
+  };
+  const { Icon, tone } = VISUALS[diagnosis] || VISUALS['src-unsupported'];
+
+  const TONES = {
+    amber: 'bg-amber-950/85 border-amber-500/40 text-amber-100',
+    rose: 'bg-rose-950/85 border-rose-500/40 text-rose-100',
+  };
+
+  const ext = (fileName || '').includes('.')
+    ? fileName.slice(fileName.lastIndexOf('.') + 1).toUpperCase()
+    : '';
+
+  return (
+    <div
+      className={`${inline ? 'w-full' : 'absolute top-4 left-4 right-4 z-20'} ${TONES[tone]} backdrop-blur-md text-xs p-3.5 rounded-xl border shadow-xl flex flex-wrap items-start justify-between gap-3`}
+      role="status"
+    >
+      <div className="flex items-start gap-2.5 min-w-0 flex-1">
+        <Icon className="w-4 h-4 mt-0.5 shrink-0" />
+        <div className="min-w-0 space-y-1 leading-relaxed">
+          <p className="font-bold">
+            {t(`preview.media.${diagnosis}.title`)}
+            {ext ? ` (${ext})` : ''}
+          </p>
+          <p className="opacity-90">{t(`preview.media.${diagnosis}.body`)}</p>
+        </div>
+      </div>
+      <button
+        onClick={onDownload}
+        className="px-3 py-1.5 bg-white/15 hover:bg-white/25 text-white rounded-lg transition-colors font-semibold text-xs shrink-0 flex items-center gap-1.5 cursor-pointer"
+      >
+        <Download className="w-3.5 h-3.5" />
+        <span>{t('preview.media.downloadAndOpenLocally')}</span>
+      </button>
+    </div>
+  );
+}
+
 export default function FilePreviewModal({ item, onClose }) {
   const { t } = useLanguage();
   const { getPreviewUrl, getFileTextContent } = useFiles();
@@ -346,6 +406,14 @@ export default function FilePreviewModal({ item, onClose }) {
       mime === 'application/msword' ||
       /\.docx$/i.test(name)) && Number(item.sizeBytes) <= PREVIEW_MAX_BYTES
   ) : false;
+
+  // Chẩn đoán codec cho thẻ <video>/<audio> — xem `hooks/useMediaSupport.js` để biết
+  // vì sao "mất tiếng"/"mất hình" không sửa được ở phía web mà chỉ nói ra được.
+  const {
+    mediaRef,
+    diagnosis: mediaDiagnosis,
+    handlers: mediaHandlers,
+  } = useMediaSupport({ kind: isVideo ? 'video' : 'audio', resetKey: item?.id });
 
   const [copied, setCopied] = useState(false);
   const [textContent, setTextContent] = useState(null);
@@ -550,27 +618,44 @@ export default function FilePreviewModal({ item, onClose }) {
 
             {isVideo && (
               <div className="max-w-4xl max-h-full w-full rounded-2xl overflow-hidden bg-black shadow-2xl border border-white/10 relative group flex flex-col items-center justify-center">
-                <div className="absolute top-4 left-4 right-4 bg-slate-900/90 backdrop-blur-md text-xs text-slate-300 p-3 rounded-xl border border-white/15 opacity-0 group-hover:opacity-100 transition-all duration-200 z-10 flex flex-wrap items-center justify-between gap-2 shadow-xl">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
-                    <span className="leading-relaxed">
-                      <strong>{t('preview.audio.noticeTitle')}</strong> {t('preview.audio.notice')}
-                    </span>
+                {/* Lời nhắc chung: chỉ hiện khi RÊ CHUỘT và chỉ khi chưa phát hiện vấn đề
+                    gì cụ thể. Đã có kết luận thật thì khối cảnh báo bên dưới nói rõ hơn,
+                    hai khối cùng lúc chỉ chèn lên nhau. */}
+                {!mediaDiagnosis && (
+                  <div className="absolute top-4 left-4 right-4 bg-slate-900/90 backdrop-blur-md text-xs text-slate-300 p-3 rounded-xl border border-white/15 opacity-0 group-hover:opacity-100 transition-all duration-200 z-10 flex flex-wrap items-center justify-between gap-2 shadow-xl">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
+                      <span className="leading-relaxed">
+                        <strong>{t('preview.audio.noticeTitle')}</strong> {t('preview.audio.notice')}
+                      </span>
+                    </div>
+                    <button
+                      onClick={handleDownload}
+                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors font-semibold shadow-sm text-xs shrink-0 flex items-center gap-1.5"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>{t('preview.downloadOriginal')}</span>
+                    </button>
                   </div>
-                  <button 
-                    onClick={handleDownload} 
-                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors font-semibold shadow-sm text-xs shrink-0 flex items-center gap-1.5"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    <span>{t('preview.downloadOriginal')}</span>
-                  </button>
-                </div>
+                )}
+
+                <MediaSupportNotice
+                  diagnosis={mediaDiagnosis}
+                  fileName={item?.name}
+                  onDownload={handleDownload}
+                  t={t}
+                />
 
                 <video
+                  ref={mediaRef}
                   src={url}
                   controls
                   playsInline
+                  // `metadata` để `loadedmetadata` chắc chắn bắn ra — phép thử "có dựng
+                  // được hình không" dựa vào chính sự kiện đó.
+                  preload="metadata"
                   className="w-full max-h-[75vh] object-contain"
+                  {...mediaHandlers}
                 />
               </div>
             )}
@@ -590,11 +675,24 @@ export default function FilePreviewModal({ item, onClose }) {
                 </div>
                 <div className="w-full bg-slate-950/60 p-3 rounded-2xl border border-white/5">
                   <audio
+                    ref={mediaRef}
                     src={url}
                     controls
+                    preload="metadata"
                     className="w-full"
+                    {...mediaHandlers}
                   />
                 </div>
+
+                {/* Tệp âm thanh thì 'no-video-track' vô nghĩa — hook chỉ kết luận điều đó
+                    khi kind === 'video', nên ở đây chỉ còn lỗi giải mã / không nhận nguồn. */}
+                <MediaSupportNotice
+                  diagnosis={mediaDiagnosis}
+                  fileName={item?.name}
+                  onDownload={handleDownload}
+                  t={t}
+                  inline
+                />
                 <button
                   onClick={handleDownload}
                   className="flex items-center justify-center gap-2 w-full py-2.5 bg-white/10 hover:bg-white/20 text-xs font-semibold rounded-xl text-white transition-all cursor-pointer"

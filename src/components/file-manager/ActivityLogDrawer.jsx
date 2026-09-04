@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
+import { useAuth } from '../../context/AuthContext';
 import { filesApi } from '../../services/api';
 import { formatBytes } from '../../utils/formatFileSize';
 import { localeTagOf } from '../../utils/locale';
@@ -117,13 +118,29 @@ function formatExactDateTime(dateInput) {
 
 export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, fileName = null }) {
     const { t, language } = useLanguage();
+    const { isAuthenticated } = useAuth();
     const locale = localeTagOf(language);
     const [logs, setLogs] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
     const [selectedGroup, setSelectedGroup] = useState('all');
 
+    /**
+     * Chốt chặn thứ hai cho lỗi #7 (chốt thứ nhất ở nút mở trong `Header.jsx`).
+     *
+     * Drawer này còn được mở từ `FileInfoDrawer`, nên không thể trông cậy hoàn toàn
+     * vào chỗ bấm ở Header. Chưa có phiên thì KHÔNG gọi API và KHÔNG giữ lại danh
+     * sách của lần tải trước: `setLogs([])` là phần quan trọng — không có nó, phiên
+     * hết hạn giữa lúc drawer đang mở sẽ để nguyên lịch sử cũ trên màn hình.
+     */
     const fetchLogs = useCallback(async () => {
+        if (!isAuthenticated) {
+            setLogs([]);
+            setError(t('activity.needLogin'));
+            setIsLoading(false);
+            return;
+        }
+
         setIsLoading(true);
         setError(null);
         try {
@@ -131,11 +148,12 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
             setLogs(Array.isArray(data) ? data : []);
         } catch (err) {
             console.error('[ActivityLogDrawer] Fetch logs error:', err);
+            setLogs([]);
             setError(err.message || t('activity.loadFailed'));
         } finally {
             setIsLoading(false);
         }
-    }, [fileId, t]);
+    }, [fileId, isAuthenticated, t]);
 
     useEffect(() => {
         if (isOpen) {

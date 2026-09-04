@@ -481,6 +481,11 @@ export default function FileListView() {
     }, [openFolder, openPreview]);
 
     const handleQuickCopyLink = useCallback(async (item) => {
+        // Toast chờ là bắt buộc ở đây, không chỉ để cho đẹp: "sao chép liên kết" tạo một
+        // share link ở backend trước khi có gì để chép, mà thao tác chép vào clipboard
+        // thì vốn không có phản hồi nhìn thấy được. Không có toast này thì cả giây chờ
+        // là hoàn toàn im lặng và người dùng bấm lại lần nữa, tạo thêm một link nữa.
+        const toastId = toast.loading(t('list.share.copying'));
         try {
             const res = await sharingApi.createShareLink(item.id, {
                 // Sao chép nhanh không có giao diện chọn quyền — lấy "Quyền chia sẻ
@@ -492,10 +497,10 @@ export default function FileListView() {
             });
             const fullShareUrl = `${window.location.origin}/share/${res.shareToken}`;
             await navigator.clipboard.writeText(fullShareUrl);
-            toast.success(t('list.share.copied'));
+            toast.success(t('list.share.copied'), { id: toastId });
         } catch (error) {
             console.error('Lỗi khi sao chép nhanh liên kết chia sẻ:', error);
-            toast.error(error?.message || t('list.share.copyFailed'));
+            toast.error(error?.message || t('list.share.copyFailed'), { id: toastId });
         }
     }, [t]);
 

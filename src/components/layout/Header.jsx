@@ -404,11 +404,26 @@ export default function Header({ toggleRightSidebar }) {
                 
 
 
-                {/* Nút Lịch sử hoạt động */}
+                {/* Nút Lịch sử hoạt động
+                  *
+                  * Khách chưa đăng nhập KHÔNG được mở drawer: lịch sử hoạt động là dữ
+                  * liệu riêng của một tài khoản. Trước đây nút này bấm được ở mọi trạng
+                  * thái — phiên vừa hết hạn là drawer vẫn mở ra, gọi API rồi mới bị 401
+                  * và bị interceptor đá về /login, tức người dùng thấy panel lịch sử
+                  * bật lên rồi trang mới nhảy đi. Nay chặn ngay tại chỗ bấm.
+                  */}
                 <button
-                    onClick={() => setIsActivityLogOpen(true)}
-                    title={t('header.activityLog')}
-                    className="p-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors cursor-pointer"
+                    onClick={() => {
+                        if (!isAuthenticated) {
+                            toast.error(t('header.activityLog.needLogin'));
+                            navigate('/login');
+                            return;
+                        }
+                        setIsActivityLogOpen(true);
+                    }}
+                    disabled={isAuthLoading}
+                    title={isAuthenticated ? t('header.activityLog') : t('header.activityLog.needLogin')}
+                    className="p-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                     <History className="w-5 h-5" />
                 </button>
@@ -466,9 +481,11 @@ export default function Header({ toggleRightSidebar }) {
                 onClose={() => setIsSettingsOpen(false)}
             />
 
-            {/* Drawer Lịch sử hoạt động */}
+            {/* Drawer Lịch sử hoạt động — chỉ dựng khi còn phiên. Nếu phiên bị thu hồi
+                từ thiết bị khác trong lúc drawer đang mở thì `isAuthenticated` đổi về
+                false và drawer đóng lại ngay, không giữ lại danh sách đã tải trên màn hình. */}
             <ActivityLogDrawer
-                isOpen={isActivityLogOpen}
+                isOpen={isActivityLogOpen && isAuthenticated}
                 onClose={() => setIsActivityLogOpen(false)}
                 fileId={null}
                 fileName={null}

@@ -891,7 +891,15 @@ export default function UserProfileModal({ isOpen, onClose }) {
             </div>
           )}
 
-          {/* DANGER ZONE (VÙNG NGUY HIỂM) */}
+          {/* DANGER ZONE (VÙNG NGUY HIỂM)
+             *
+             * CHỈ ở tab "Thông tin". Trước đây khối này nằm NGOÀI mọi nhánh
+             * `activeTab === ...` nên nó hiện lại ở cả tab "Mật khẩu" và tab
+             * "Phiên đăng nhập" — kéo xuống cuối danh sách thiết bị lại thấy nút
+             * "Xoá tài khoản" y hệt cái ở tab đầu, đúng chỗ người dùng báo trùng.
+             * Xoá tài khoản là thao tác thuộc hồ sơ, không thuộc quản lý phiên.
+             */}
+          {activeTab === 'profile' && (
           <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
             <div className="p-4 rounded-2xl border border-rose-200 dark:border-rose-900/50 bg-rose-50/50 dark:bg-rose-950/20 space-y-3">
               <div className="flex items-start gap-3">
@@ -916,6 +924,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
               </div>
             </div>
           </div>
+          )}
         </div>
       </div>
 

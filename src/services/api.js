@@ -11,12 +11,69 @@ const api = axios.create({
   },
 });
 
+// ───────────────── Thanh tiến trình toàn cục (thao tác chậm mà im lặng) ─────────────────
+//
+// Vì sao đếm ở TẦNG API chứ không thêm cờ loading cho từng nút: các thao tác bị
+// người dùng phàn nàn là "bấm rồi không biết web có chạy hay không" (đánh dấu sao,
+// sao chép liên kết, xoá, dán, chia sẻ...) nằm rải ở hàng chục component, và mỗi
+// lượt gọi Heroku (US) → Supabase (ap-southeast-1) tốn ~1s. Đếm request đang bay ở
+// một chỗ thì MỌI thao tác đi qua axios đều có tín hiệu, kể cả thao tác thêm sau này.
+//
+// Không lẫn với `UploadProgress`: tải tệp lên đã có bảng tiến trình riêng theo phần
+// trăm, kéo dài hàng phút — để nó cắm thanh này ở đỉnh trang suốt thời gian đó là
+// biến chỉ báo "đang xử lý" thành đồ trang trí luôn bật.
+let inFlightCount = 0;
+const busyListeners = new Set();
+
+function notifyBusy() {
+  for (const listener of busyListeners) listener(inFlightCount);
+}
+
+/** Đăng ký nhận số request đang bay. Trả về hàm huỷ đăng ký. */
+export function subscribeApiBusy(listener) {
+  busyListeners.add(listener);
+  listener(inFlightCount);
+  return () => busyListeners.delete(listener);
+}
+
+/** Các đường đã có chỉ báo tiến trình riêng — đếm thêm ở đây chỉ gây nhiễu. */
+const NO_PROGRESS_BAR_PATHS = [
+  '/files/upload-proxy',
+  '/files/upload-chunk/',
+  '/files/upload-url',
+  '/files/confirm-upload',
+];
+
+function tracksProgress(config) {
+  if (config?.meta?.noProgressBar) return false;
+  const url = config?.url || '';
+  return !NO_PROGRESS_BAR_PATHS.some((p) => url.includes(p));
+}
+
+/**
+ * Giảm bộ đếm ĐÚNG MỘT LẦN cho mỗi lượt tăng.
+ * `__progressTracked` là cần thiết vì một request 401 được phát lại (`api(original)`)
+ * sẽ đi qua request interceptor lần nữa: không có cờ này thì lượt phát lại làm bộ đếm
+ * lệch và thanh tiến trình mắc cạn ở trạng thái "đang chạy" mãi.
+ */
+function releaseProgress(config) {
+  if (!config?.__progressTracked) return;
+  config.__progressTracked = false;
+  inFlightCount = Math.max(0, inFlightCount - 1);
+  notifyBusy();
+}
+
 // Request Interceptor: Inject JWT Bearer Token if available
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('accessToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    if (tracksProgress(config)) {
+      config.__progressTracked = true;
+      inFlightCount += 1;
+      notifyBusy();
     }
     return config;
   },
@@ -121,6 +178,7 @@ function forceLogout() {
 // Response Interceptor: Handle 401 Unauthorized token expiration
 api.interceptors.response.use(
   (response) => {
+    releaseProgress(response.config);
     // Standardize backend wrapped response ({ statusCode, data, message })
     if (response.data && response.data.data !== undefined) {
       return response.data.data;
@@ -129,6 +187,7 @@ api.interceptors.response.use(
   },
   async (error) => {
     const original = error.config;
+    releaseProgress(original);
     const url = original?.url || '';
     const canRefresh =
       error.response?.status === 401 &&

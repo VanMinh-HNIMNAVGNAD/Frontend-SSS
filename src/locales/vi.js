@@ -546,7 +546,7 @@ const vi = {
   'preview.media.src-unsupported.title': 'Trình duyệt không hỗ trợ định dạng này',
   'preview.media.src-unsupported.body': 'Định dạng chứa hoặc codec của tệp không nằm trong danh sách trình duyệt phát được (.mkv, .avi, .flv, .wmv thường vào nhóm này). Tải về mở bằng VLC.',
   'preview.audio.noticeTitle': 'Lưu ý về âm thanh:',
-  'preview.audio.notice': 'Nếu video mất tiếng, tệp có thể dùng codec AC3/DTS. Vui lòng tải về mở bằng VLC.',
+  'preview.audio.notice': 'Nếu video gặp sự cố. Vui lòng tải về mở bằng VLC.',
   'preview.downloadOriginal': 'Tải file gốc',
   'preview.audio.download': 'Tải xuống tệp âm thanh gốc',
   'preview.text.loading': 'Đang tải nội dung...',

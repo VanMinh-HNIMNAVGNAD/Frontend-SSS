@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { authApi, userApi } from '../services/api';
+import { authApi, userApi, startSessionKeeper } from '../services/api';
 import { writeDiscoverableByEmail } from '../constants/privacy';
 import { subjectOf } from '../utils/jwt';
 import { useLanguage } from './LanguageContext';
@@ -60,6 +60,18 @@ export function AuthProvider({ children }) {
     } else {
       setIsLoading(false);
     }
+  }, [accessToken]);
+
+  // Giữ phiên sống trong lúc người dùng đang làm việc (lỗi #10): làm mới access token
+  // TRƯỚC khi nó hết hạn, thay vì đợi một request nào đó lĩnh 401 rồi mới chữa.
+  //
+  // Không phụ thuộc vào `accessToken` để chạy lại mỗi lần token đổi: bản thân
+  // `startSessionKeeper` đọc token trực tiếp từ localStorage ở mỗi nhịp, và các lượt
+  // refresh chỉ ghi vào localStorage (không đi qua state này). Chỉ cần bật khi có phiên
+  // và tắt khi đăng xuất.
+  useEffect(() => {
+    if (!accessToken) return undefined;
+    return startSessionKeeper();
   }, [accessToken]);
 
   // Token trong localStorage bị TAB KHÁC ghi đè (đăng nhập tài khoản khác, hoặc

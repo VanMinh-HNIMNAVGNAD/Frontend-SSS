@@ -701,6 +701,8 @@ const vi = {
   'profile.plan.free': 'Gói cước: Miễn phí (Mặc định)',
   'profile.password.minHint': 'Tối thiểu 6 ký tự',
   'profile.password.confirmPlaceholder': 'Nhập lại mật khẩu mới',
+  'profile.session.lastUsed': 'Dùng gần nhất',
+  'profile.session.signedInAt': 'Đăng nhập',
   'profile.sessions.refresh': 'Làm mới danh sách',
   'profile.sessions.loading': 'Đang tải danh sách phiên đăng nhập...',
   'profile.sessions.revoke': 'Thu hồi',

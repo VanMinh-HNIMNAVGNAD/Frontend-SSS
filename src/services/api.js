@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 import { API_BASE_URL } from '../constants/api';
-import { subjectOf } from '../utils/jwt';
+import { decodeJwt, subjectOf } from '../utils/jwt';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -135,6 +135,28 @@ let refreshPromise = null;
  * Nên: so `sub` của token cũ với token mới, khác nhau thì VỨT token mới và đăng
  * xuất sạch, không bao giờ âm thầm đổi phiên.
  */
+/**
+ * Lỗi của một lượt refresh, kèm câu trả lời cho đúng một câu hỏi: **có nên đăng xuất
+ * người dùng không?**
+ *
+ * Phân biệt này là phần còn thiếu của lỗi #10. Trước đây MỌI lỗi refresh đều dẫn tới
+ * `forceLogout()`, kể cả khi nguyên nhân chỉ là mất Wi-Fi một giây, dyno Heroku free
+ * đang ngủ dậy (lượt gọi đầu tiên hay timeout), hay backend trả 502. Người dùng đang
+ * làm việc bị ném về `/login` bằng một lần `location.href` — mất sạch việc đang dở, và
+ * đúng như phàn nàn "đang dùng web mà tự nhiên bị dis ra ngoài".
+ *
+ * Chỉ 401/403 từ chính `/auth/refresh` mới là bằng chứng phiên đã chết (hết hạn do
+ * không dùng, bị thu hồi từ thiết bị khác, hoặc cookie bị trình duyệt chặn). Mọi thứ
+ * khác là sự cố tạm thời: giữ nguyên phiên, để lượt sau thử lại.
+ */
+class RefreshFailure extends Error {
+  constructor(message, { isAuthFailure }) {
+    super(message);
+    this.name = 'RefreshFailure';
+    this.isAuthFailure = isAuthFailure;
+  }
+}
+
 function refreshAccessToken() {
   if (!refreshPromise) {
     const previousSubject = subjectOf(localStorage.getItem('accessToken'));
@@ -143,18 +165,42 @@ function refreshAccessToken() {
       // Backend bọc response ({ statusCode, data }) nên phải bóc hai lớp.
       .then((res) => {
         const token = res.data?.data?.accessToken ?? res.data?.accessToken;
-        if (!token) throw new Error('Refresh không trả về accessToken');
+        if (!token) {
+          // Backend trả 2xx mà không có token là hỏng hợp đồng API, không phải phiên
+          // chết — đăng xuất ở đây chỉ che mất một lỗi cần được sửa.
+          throw new RefreshFailure('Refresh không trả về accessToken', {
+            isAuthFailure: false,
+          });
+        }
 
         const nextSubject = subjectOf(token);
         // Chỉ chặn khi ĐỌC ĐƯỢC cả hai và chúng KHÁC nhau: không đọc được thì coi
         // như không có gì để đối chiếu, chặn ở đó chỉ đăng xuất oan.
         if (previousSubject && nextSubject && previousSubject !== nextSubject) {
           console.error('[API] /auth/refresh trả token của tài khoản khác — huỷ phiên.');
-          throw new Error('Phiên đăng nhập không khớp tài khoản');
+          // Đây thì PHẢI đăng xuất: giữ lại một phiên không rõ của ai còn tệ hơn.
+          throw new RefreshFailure('Phiên đăng nhập không khớp tài khoản', {
+            isAuthFailure: true,
+          });
         }
 
         localStorage.setItem('accessToken', token);
         return token;
+      })
+      .catch((err) => {
+        if (err instanceof RefreshFailure) throw err;
+
+        const status = err?.response?.status;
+        const isAuthFailure = status === 401 || status === 403;
+        if (!isAuthFailure) {
+          // Ghi log để lần sau lỗi #10 tái diễn thì biết ngay là mạng hay là phiên.
+          console.warn(
+            `[API] /auth/refresh thất bại tạm thời (${status ?? 'không có phản hồi'}) — GIỮ phiên, sẽ thử lại.`,
+          );
+        }
+        throw new RefreshFailure(err?.message || 'Làm mới phiên thất bại', {
+          isAuthFailure,
+        });
       })
       .finally(() => {
         // Trả về null NGAY khi xong (kể cả lỗi) để lần 401 sau còn thử lại được
@@ -173,6 +219,70 @@ function forceLogout() {
   if (!isPublicSharePage && path !== '/login' && path !== '/register' && path !== '/') {
     window.location.href = '/login';
   }
+}
+
+// ───────────── Làm mới CHỦ ĐỘNG trước khi token hết hạn (lỗi #10) ─────────────
+//
+// Cơ chế 401-rồi-refresh-rồi-phát-lại ở dưới là lưới an toàn, không phải giải pháp:
+// nó sửa được hậu quả nhưng vẫn để người dùng nếm mùi. Cứ 15 phút, request đầu tiên
+// sau khi token hết hạn phải đi hai lượt mạng (401 → refresh → phát lại) qua dyno
+// Heroku ở Mỹ; và nếu ĐÚNG lúc đó mạng chớp một nhịp thì lượt refresh thất bại.
+//
+// Làm mới trước khi hết hạn thì người đang dùng web không bao giờ gặp một cái 401 nào.
+//
+// Vì sao là interval 60 giây chứ không phải một setTimeout hẹn đúng mốc `exp`:
+// setTimeout không chạy khi máy ngủ (đóng nắp laptop, điện thoại tắt màn hình) — mở lại
+// là timer bắn muộn hàng giờ, sau khi token đã chết từ lâu. Interval + đối chiếu `exp`
+// thật thì lần tích tắc đầu tiên sau khi máy thức đã tự nhận ra và làm mới.
+const KEEPER_TICK_MS = 60 * 1000;
+// Làm mới khi token còn dưới 2 phút: đủ rộng để một lần refresh chậm (dyno ngủ dậy có
+// thể mất hơn 10 giây) vẫn xong trước khi token thật sự hết hạn.
+const REFRESH_BEFORE_EXPIRY_MS = 2 * 60 * 1000;
+
+/** Token trong localStorage có sắp hết hạn (hoặc đã hết) không? */
+function accessTokenNeedsRefresh() {
+  const token = localStorage.getItem('accessToken');
+  if (!token) return false; // chưa đăng nhập — không có gì để làm mới
+
+  const exp = decodeJwt(token)?.exp;
+  // Không đọc được `exp` thì KHÔNG tự ý refresh: token có thể do một backend khác phát
+  // ra theo định dạng khác, và refresh mù mỗi 60 giây là tự spam chính mình.
+  if (!exp) return false;
+
+  return exp * 1000 - Date.now() <= REFRESH_BEFORE_EXPIRY_MS;
+}
+
+function refreshIfNeeded() {
+  if (!accessTokenNeedsRefresh()) return;
+  // Lỗi đã được `refreshAccessToken` log và xử lý (giữ hay huỷ phiên); ở đây chỉ cần
+  // không để một promise bị reject nổi lên thành "unhandled rejection".
+  refreshAccessToken().catch(() => {});
+}
+
+/**
+ * Bật cơ chế giữ phiên. Trả về hàm tắt.
+ *
+ * Ba nguồn kích hoạt, mỗi nguồn bắt một tình huống khác nhau:
+ *   • interval — người dùng ngồi làm việc liên tục;
+ *   • `visibilitychange` — quay lại tab bỏ đó vài giờ (kiểm NGAY, không đợi hết một
+ *     nhịp 60 giây, vì cú bấm đầu tiên của người dùng thường tới trước nhịp đó);
+ *   • `online` — vừa có mạng lại sau khi mất kết nối.
+ */
+export function startSessionKeeper() {
+  const timer = setInterval(refreshIfNeeded, KEEPER_TICK_MS);
+  const onVisible = () => {
+    if (document.visibilityState === 'visible') refreshIfNeeded();
+  };
+
+  document.addEventListener('visibilitychange', onVisible);
+  window.addEventListener('online', refreshIfNeeded);
+  refreshIfNeeded();
+
+  return () => {
+    clearInterval(timer);
+    document.removeEventListener('visibilitychange', onVisible);
+    window.removeEventListener('online', refreshIfNeeded);
+  };
 }
 
 // Response Interceptor: Handle 401 Unauthorized token expiration
@@ -205,9 +315,11 @@ api.interceptors.response.use(
         // interceptor gắn lại token mới vừa lưu.
         if (original.headers) delete original.headers.Authorization;
         return api(original);
-      } catch {
-        // Refresh token hết hạn, hoặc phiên đã bị thu hồi từ thiết bị khác
-        forceLogout();
+      } catch (refreshError) {
+        // Phiên chết thật (hết hạn do không dùng / bị thu hồi / cookie bị chặn) thì mới
+        // đăng xuất. Lỗi mạng hay 5xx thì giữ phiên và để request này báo lỗi như một
+        // lỗi bình thường — người dùng thử lại là xong, không mất việc đang làm.
+        if (refreshError?.isAuthFailure) forceLogout();
       }
     } else if (error.response?.status === 401) {
       forceLogout();

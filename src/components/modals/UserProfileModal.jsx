@@ -858,12 +858,23 @@ export default function UserProfileModal({ isOpen, onClose }) {
                                 </span>
                               )}
                             </div>
-                            <div className="flex items-center gap-2 text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
+                            <div className="flex flex-wrap items-center gap-2 text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
                               <span>IP: {sess.ipAddress}</span>
                               <span>•</span>
-                              <span className="flex items-center gap-1">
+                              {/* Hai mốc thời gian KHÁC nhau, và trước đây chỗ này chỉ có
+                                  một: mục "Thiết bị đang đăng nhập" ghi nhãn hoạt động
+                                  nhưng in `createdAt` — thời điểm ĐĂNG NHẬP. Một phiên mở
+                                  suốt hai tuần vẫn hiện "2 tuần trước" dù vừa dùng xong,
+                                  nên không có cách nào nhìn ra thiết bị nào còn dùng thật.
+                                  Hạn phiên nay tính theo thời gian không dùng nên
+                                  `lastUsedAt` chính là mốc quyết định phiên còn sống. */}
+                              <span className="flex items-center gap-1" title={t('profile.session.lastUsed')}>
                                 <Clock className="w-3 h-3 text-gray-400 dark:text-gray-500" />
-                                {formatSessionDate(sess.createdAt, t, locale)}
+                                {t('profile.session.lastUsed')}: {formatSessionDate(sess.lastUsedAt ?? sess.createdAt, t, locale)}
+                              </span>
+                              <span>•</span>
+                              <span title={t('profile.session.signedInAt')}>
+                                {t('profile.session.signedInAt')}: {formatSessionDate(sess.createdAt, t, locale)}
                               </span>
                             </div>
                           </div>

@@ -698,6 +698,8 @@ const en = {
   'profile.plan.free': 'Plan: Free (default)',
   'profile.password.minHint': 'At least 6 characters',
   'profile.password.confirmPlaceholder': 'Re-enter the new password',
+  'profile.session.lastUsed': 'Last used',
+  'profile.session.signedInAt': 'Signed in',
   'profile.sessions.refresh': 'Refresh the list',
   'profile.sessions.loading': 'Loading your sessions...',
   'profile.sessions.revoke': 'Revoke',

@@ -108,7 +108,7 @@ const FolderTableRow = memo(function FolderTableRow({
         >
             {/* Checkbox Column – only this triggers selection */}
             <td
-                className="py-2.5 px-3 text-center"
+                className="py-3.5 px-3 text-center"
                 onClick={(e) => {
                     e.stopPropagation();
                     if (e.shiftKey) {
@@ -128,7 +128,7 @@ const FolderTableRow = memo(function FolderTableRow({
             {/* Star Column – moved after checkbox */}
             {/* Tệp người khác chia sẻ: cột is_starred thuộc chủ sở hữu nên chỉ hiển
                 thị trạng thái, không cho bấm (backend chặn non-owner) */}
-            <td className="py-2.5 px-3 text-center">
+            <td className="py-3.5 px-3 text-center">
                 <StarButton
                     size="sm"
                     isStarred={folder.isStarred}
@@ -138,7 +138,7 @@ const FolderTableRow = memo(function FolderTableRow({
             </td>
 
             {/* Name Column */}
-            <td className="py-2.5 px-3">
+            <td className="py-3.5 px-3">
                 <div className="flex items-center gap-2.5">
                     <div className="p-1.5 rounded-lg bg-amber-100 dark:bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-200/80 dark:border-transparent shrink-0">
                         <Folder className="w-4 h-4 fill-amber-400" />
@@ -150,17 +150,17 @@ const FolderTableRow = memo(function FolderTableRow({
             </td>
 
             {/* Size Column */}
-            <td className="py-2.5 px-3 text-gray-600 dark:text-gray-400 font-mono text-[11px] font-medium">--</td>
+            <td className="py-3.5 px-3 text-gray-600 dark:text-gray-400 font-mono text-[11px] font-medium">--</td>
 
             {/* Type Column */}
-            <td className="py-2.5 px-3 hidden lg:table-cell">
+            <td className="py-3.5 px-3 hidden lg:table-cell">
                 <span className="px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-500/15 text-amber-800 dark:text-amber-300 font-semibold text-[11px] border border-amber-200 dark:border-amber-800/60">
                     Thư mục
                 </span>
             </td>
 
             {/* Owner Column */}
-            <td className="py-2.5 px-3 text-gray-700 dark:text-gray-300 font-medium truncate max-w-[140px] hidden lg:table-cell">
+            <td className="py-3.5 px-3 text-gray-700 dark:text-gray-300 font-medium truncate max-w-[140px] hidden lg:table-cell">
                 {activeTab === 'shared-with-me' && folder.sharedOwner ? (
                     <div className="flex items-center gap-2">
                         {folder.sharedOwner.avatarUrl ? (
@@ -185,14 +185,14 @@ const FolderTableRow = memo(function FolderTableRow({
             </td>
 
             {/* Modified Column */}
-            <td className="py-2.5 px-3 text-gray-600 dark:text-gray-400 font-mono text-[11px] font-medium whitespace-nowrap hidden sm:table-cell">
+            <td className="py-3.5 px-3 text-gray-600 dark:text-gray-400 font-mono text-[11px] font-medium whitespace-nowrap hidden sm:table-cell">
                 {activeTab === 'shared-with-me' && folder.sharedAt 
                     ? folder.sharedAt 
                     : folder.updatedAt}
             </td>
 
             {/* Action Options */}
-            <td className="py-2.5 px-3 text-center">
+            <td className="py-3.5 px-3 text-center">
                 <button
                     onClick={(e) => onContextMenu(e, folder)}
                     className="p-1 rounded-full text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
@@ -229,7 +229,7 @@ const FileTableRow = memo(function FileTableRow({
         >
             {/* Checkbox Column – only this triggers selection */}
             <td
-                className="py-2.5 px-3 text-center"
+                className="py-3.5 px-3 text-center"
                 onClick={(e) => {
                     e.stopPropagation();
                     if (e.shiftKey) {
@@ -247,7 +247,7 @@ const FileTableRow = memo(function FileTableRow({
             </td>
 
             {/* Star Column — xem ghi chú ở hàng thư mục */}
-            <td className="py-2.5 px-3 text-center">
+            <td className="py-3.5 px-3 text-center">
                 <StarButton
                     size="sm"
                     isStarred={file.isStarred}
@@ -257,7 +257,7 @@ const FileTableRow = memo(function FileTableRow({
             </td>
 
             {/* Name Column */}
-            <td className="py-2.5 px-3">
+            <td className="py-3.5 px-3">
                 <div className="flex items-center gap-2.5">
                     {/* Mini thumbnail (ảnh / video / trang đầu PDF), loại còn lại rơi về
                         icon theo đuôi tệp — giống hàng ở Trang chủ. Hàng THƯ MỤC không
@@ -283,19 +283,19 @@ const FileTableRow = memo(function FileTableRow({
             </td>
 
             {/* Size Column */}
-            <td className="py-2.5 px-3 text-gray-800 dark:text-gray-300 font-mono font-semibold text-[11px]">
+            <td className="py-3.5 px-3 text-gray-800 dark:text-gray-300 font-mono font-semibold text-[11px]">
                 {formatBytes(file.size)}
             </td>
 
             {/* Type Column */}
-            <td className="py-2.5 px-3 hidden lg:table-cell">
+            <td className="py-3.5 px-3 hidden lg:table-cell">
                 <span className="px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-500/15 text-blue-800 dark:text-blue-300 font-semibold text-[11px] border border-blue-200 dark:border-blue-800/60 whitespace-nowrap">
                     {t(getFileTypeKey(file))}
                 </span>
             </td>
 
             {/* Owner Column */}
-            <td className="py-2.5 px-3 text-gray-700 dark:text-gray-300 font-medium truncate max-w-[140px] hidden lg:table-cell">
+            <td className="py-3.5 px-3 text-gray-700 dark:text-gray-300 font-medium truncate max-w-[140px] hidden lg:table-cell">
                 {activeTab === 'shared-with-me' && file.sharedOwner ? (
                     <div className="flex items-center gap-2">
                         {file.sharedOwner.avatarUrl ? (
@@ -320,14 +320,14 @@ const FileTableRow = memo(function FileTableRow({
             </td>
 
             {/* Modified Column */}
-            <td className="py-2.5 px-3 text-gray-600 dark:text-gray-400 font-mono text-[11px] font-medium whitespace-nowrap hidden sm:table-cell">
+            <td className="py-3.5 px-3 text-gray-600 dark:text-gray-400 font-mono text-[11px] font-medium whitespace-nowrap hidden sm:table-cell">
                 {activeTab === 'shared-with-me' && file.sharedAt 
                     ? file.sharedAt 
                     : file.updatedAt}
             </td>
 
             {/* Action Options */}
-            <td className="py-2.5 px-3 text-center">
+            <td className="py-3.5 px-3 text-center">
                 <button
                     onClick={(e) => onContextMenu(e, file)}
                     className="p-1 rounded-full text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
@@ -585,7 +585,7 @@ export default function FileListView() {
             <input type="file" ref={setFolderInputRef} onChange={handleFolderInputChange} multiple className="hidden" aria-label={t('newBtn.aria.pickFolder')} />
 
             {/* Extended Metadata Table View */}
-            <div className="w-full overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700 shadow-xs bg-white dark:bg-[#282a2c]">
+            <div className="w-full flex-1 overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700 shadow-xs bg-white dark:bg-[#282a2c]">
                 <table className="w-full text-left border-collapse min-w-[560px] lg:min-w-[850px]">
                     <thead>
                         <tr className="border-b border-gray-200 dark:border-gray-700 text-[11px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider bg-gray-100/90 dark:bg-white/5 select-none">
@@ -719,10 +719,11 @@ export default function FileListView() {
 
             {/*
               Vùng nền trống bên dưới bảng — right-click vào đây để tải lên / tạo thư mục mới.
-              Cần thiết vì khi danh sách dài, các hàng <tr> chiếm hết chiều cao và không còn
-              chỗ nào để right-click ra menu vùng trống.
+              Cao cố định (h-24) chứ không flex-1 nữa: khung bảng ở trên đã lấy flex-1 để kéo
+              dài hết vùng nhìn thấy, nên phần chừa cho right-click phải giữ chiều cao riêng,
+              nếu không nó bị bóp về 0 và mất chỗ mở menu vùng trống.
             */}
-            <div className="flex-1 min-h-[120px] shrink-0" aria-hidden="true" />
+            <div className="h-24 shrink-0" aria-hidden="true" />
 
             {/* Pagination Controls */}
             {totalPages > 1 && (

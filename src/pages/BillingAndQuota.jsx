@@ -587,8 +587,7 @@ export default function BillingAndQuota() {
 
               {subscription.cancelAtPeriodEnd && (
                 <p className="shrink-0 text-[13px] font-semibold text-amber-700 dark:text-amber-400 sm:text-right max-w-xs">
-                  Muốn dùng tiếp? Mua lại chính gói này — số ngày còn lại được cộng dồn, không
-                  mất ngày nào.
+                  Mua lại gói hoặc nâng cấp gói sẽ cộng dồn chu kỳ !! 
                 </p>
               )}
             </div>

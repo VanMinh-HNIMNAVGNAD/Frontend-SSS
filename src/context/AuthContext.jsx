@@ -1,7 +1,8 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { authApi, userApi, startSessionKeeper } from '../services/api';
 import { writeDiscoverableByEmail } from '../constants/privacy';
 import { subjectOf } from '../utils/jwt';
+import { resetSharedCaches } from '../utils/ttlCache';
 import { useLanguage } from './LanguageContext';
 
 const AuthContext = createContext(null);
@@ -13,7 +14,7 @@ export function AuthProvider({ children }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const fetchProfile = async () => {
+  const fetchProfile = useCallback(async () => {
     try {
       setIsLoading(true);
       const profile = await authApi.getProfile();
@@ -39,10 +40,11 @@ export function AuthProvider({ children }) {
       setUser(null);
       setAccessToken(null);
       localStorage.removeItem('accessToken');
+      resetSharedCaches();
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -60,7 +62,7 @@ export function AuthProvider({ children }) {
     } else {
       setIsLoading(false);
     }
-  }, [accessToken]);
+  }, [accessToken, fetchProfile]);
 
   // Giữ phiên sống trong lúc người dùng đang làm việc (lỗi #10): làm mới access token
   // TRƯỚC khi nó hết hạn, thay vì đợi một request nào đó lĩnh 401 rồi mới chữa.
@@ -139,7 +141,7 @@ export function AuthProvider({ children }) {
    * Lưu phiên vừa nhận được. Dùng chung cho bước 2 của đăng nhập (`verifyLoginOtp`) —
    * tách ra để chỗ nào phát sinh phiên cũng ghi localStorage + state theo đúng một cách.
    */
-  const applySession = (data) => {
+  const applySession = useCallback((data) => {
     const token = data.accessToken || data.token;
     if (token) {
       localStorage.setItem('accessToken', token);
@@ -148,7 +150,7 @@ export function AuthProvider({ children }) {
     const userProfile = data.user || data;
     setUser(userProfile);
     return userProfile;
-  };
+  }, []);
 
   /**
    * BƯỚC 1 của đăng nhập: gửi email + mật khẩu + captchaToken.
@@ -159,7 +161,7 @@ export function AuthProvider({ children }) {
    * Vẫn xử lý nhánh `accessToken` để phòng trường hợp gọi tới một backend bản cũ chưa bật
    * OTP — khi đó đăng nhập xong ngay ở bước này.
    */
-  const login = async (email, password, extraPayload = {}) => {
+  const login = useCallback(async (email, password, extraPayload = {}) => {
     try {
       setIsLoading(true);
       setError(null);
@@ -176,10 +178,10 @@ export function AuthProvider({ children }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [applySession, t]);
 
   /** BƯỚC 2 của đăng nhập: đổi mã OTP lấy phiên thật. */
-  const verifyLoginOtp = async (email, otp) => {
+  const verifyLoginOtp = useCallback(async (email, otp) => {
     try {
       setIsLoading(true);
       setError(null);
@@ -190,7 +192,7 @@ export function AuthProvider({ children }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [applySession, t]);
 
   /**
    * BƯỚC 1 của đăng ký: gửi TOÀN BỘ thông tin tài khoản + captchaToken để xin mã.
@@ -198,7 +200,7 @@ export function AuthProvider({ children }) {
    * Backend băm mật khẩu rồi cất tạm trong Redis 10 phút, nên bước 2 chỉ cần email + mã —
    * màn nhập OTP không phải giữ lại mật khẩu.
    */
-  const sendRegisterOtp = async (email, password, fullName, extraPayload = {}) => {
+  const sendRegisterOtp = useCallback(async (email, password, fullName, extraPayload = {}) => {
     try {
       setIsLoading(true);
       setError(null);
@@ -209,10 +211,10 @@ export function AuthProvider({ children }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [t]);
 
   /** BƯỚC 2 của đăng ký: đổi mã lấy tài khoản thật. */
-  const verifyRegisterOtp = async (email, otp) => {
+  const verifyRegisterOtp = useCallback(async (email, otp) => {
     try {
       setIsLoading(true);
       setError(null);
@@ -223,7 +225,7 @@ export function AuthProvider({ children }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [t]);
 
   // ── QUÊN MẬT KHẨU (3 bước) ──────────────────────────────────────────────────
   //
@@ -232,34 +234,34 @@ export function AuthProvider({ children }) {
   // hỏng trước đó hiện ra ngay khi vừa mở trang.
 
   /** BƯỚC 1: xin mã. `extraPayload` mang `{ captchaToken }`. */
-  const forgotPassword = async (email, extraPayload = {}) => {
+  const forgotPassword = useCallback(async (email, extraPayload = {}) => {
     setIsLoading(true);
     try {
       return await authApi.forgotPassword({ email, ...extraPayload });
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   /** BƯỚC 2: đổi mã lấy `resetToken` sống 15 phút. */
-  const verifyResetOtp = async (email, otp) => {
+  const verifyResetOtp = useCallback(async (email, otp) => {
     setIsLoading(true);
     try {
       return await authApi.verifyResetOtp({ email, otp });
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   /** BƯỚC 3: đổi `resetToken` lấy mật khẩu mới. Backend thu hồi mọi phiên đang mở. */
-  const resetPassword = async (resetToken, newPassword) => {
+  const resetPassword = useCallback(async (resetToken, newPassword) => {
     setIsLoading(true);
     try {
       return await authApi.resetPassword({ resetToken, newPassword });
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   /**
    * Đăng xuất. `await` lượt gọi server TRƯỚC khi xoá state cục bộ, nhưng không để
@@ -270,7 +272,7 @@ export function AuthProvider({ children }) {
    * giữ nguyên cookie 7 ngày, và lần refresh sau đó dựng lại đúng phiên vừa "đăng
    * xuất" — cho tài khoản khác đang ngồi trên chính trình duyệt đó.
    */
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       await authApi.logout();
     } catch (err) {
@@ -279,10 +281,14 @@ export function AuthProvider({ children }) {
       localStorage.removeItem('accessToken');
       setAccessToken(null);
       setUser(null);
+      // Các bộ đệm ở phạm vi module (URL xem trước, nội dung tệp, danh sách
+      // phiên) không chết theo việc unmount cây React — phải đốt bằng tay, nếu
+      // không người đăng nhập tiếp theo trên máy này sẽ đọc trúng dữ liệu cũ.
+      resetSharedCaches();
     }
-  };
+  }, []);
 
-  const deleteAccount = async (password) => {
+  const deleteAccount = useCallback(async (password) => {
     try {
       setIsLoading(true);
       setError(null);
@@ -295,9 +301,14 @@ export function AuthProvider({ children }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [logout, t]);
 
-  const value = {
+  // Bọc trong useMemo: object literal trần ở đây là một reference MỚI sau mỗi
+  // lần AuthProvider render, nên mọi component gọi useAuth() — Sidebar, Header,
+  // FileProvider, từng modal — đều re-render theo, kể cả khi phiên đăng nhập
+  // không đổi gì. Mọi hàm bên dưới đã là useCallback nên chúng không tự làm hỏng
+  // memo này; identity chỉ đổi khi user/token/isLoading/error hoặc ngôn ngữ đổi.
+  const value = useMemo(() => ({
     user,
     accessToken,
     isAuthenticated: !!user && !!accessToken,
@@ -313,7 +324,11 @@ export function AuthProvider({ children }) {
     logout,
     deleteAccount,
     refreshUser: fetchProfile,
-  };
+  }), [
+    user, accessToken, isLoading, error,
+    login, verifyLoginOtp, sendRegisterOtp, verifyRegisterOtp,
+    forgotPassword, verifyResetOtp, resetPassword, logout, deleteAccount, fetchProfile,
+  ]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

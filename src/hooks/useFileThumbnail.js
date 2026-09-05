@@ -1,7 +1,4 @@
 import { useEffect, useState } from 'react';
-import * as XLSX from 'xlsx';
-import mammoth from 'mammoth';
-import * as pdfjsLib from 'pdfjs-dist';
 import { storageApi } from '../services/api';
 
 /**
@@ -15,10 +12,34 @@ import { storageApi } from '../services/api';
  *    kéo cả SheetJS/mammoth chạy cho một ô 32px.
  */
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-    'pdfjs-dist/build/pdf.worker.min.mjs',
-    import.meta.url
-).toString();
+/**
+ * SheetJS, mammoth và pdf.js nạp theo yêu cầu, KHÔNG import tĩnh.
+ *
+ * Ba thư viện này cộng lại là phần lớn nhất của gói JavaScript, mà hook này lại
+ * nằm trên đường đi chính: mỗi FileCard đều gọi nó. Import tĩnh nghĩa là ai mở
+ * app cũng phải tải đủ bộ máy đọc Excel, đọc Word và render PDF trước khi thấy
+ * được danh sách tệp — kể cả người chỉ có mấy tấm ảnh trong Drive.
+ *
+ * `import()` được ghi nhớ trong biến module nên mỗi thư viện chỉ tải một lần cho
+ * cả phiên; lần gặp tệp .xlsx thứ hai không phải chờ lại.
+ */
+let xlsxPromise = null;
+const loadXlsx = () => (xlsxPromise ??= import('xlsx'));
+
+let mammothPromise = null;
+const loadMammoth = () => (mammothPromise ??= import('mammoth').then((m) => m.default ?? m));
+
+let pdfjsPromise = null;
+const loadPdfjs = () =>
+    (pdfjsPromise ??= import('pdfjs-dist').then((pdfjsLib) => {
+        // Worker phải trỏ đúng bản đi kèm phiên bản pdf.js vừa nạp — đặt ngay sau
+        // khi nạp xong thay vì lúc module này được import.
+        pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+            'pdfjs-dist/build/pdf.worker.min.mjs',
+            import.meta.url,
+        ).toString();
+        return pdfjsLib;
+    }));
 
 // Giới hạn dung lượng để tải thumbnail: 10MB
 export const MAX_THUMBNAIL_SIZE = 10 * 1024 * 1024;
@@ -63,6 +84,7 @@ function readCache(key) {
 }
 
 async function renderPdfFirstPage(previewUrl) {
+    const pdfjsLib = await loadPdfjs();
     const pdfData = await fetch(previewUrl).then((r) => r.arrayBuffer());
     const pdf = await pdfjsLib.getDocument({ data: pdfData }).promise;
     const page = await pdf.getPage(1);
@@ -102,6 +124,7 @@ async function loadThumbnail(file, cat, mini) {
         if (!res?.previewUrl) return null;
         const response = await fetch(res.previewUrl);
         if (!response.ok) return null;
+        const XLSX = await loadXlsx();
         const wb = XLSX.read(await response.arrayBuffer(), { type: 'array' });
         const ws = wb.Sheets[wb.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
@@ -115,6 +138,7 @@ async function loadThumbnail(file, cat, mini) {
         if (!res?.previewUrl) return null;
         const response = await fetch(res.previewUrl);
         if (!response.ok) return null;
+        const mammoth = await loadMammoth();
         const result = await mammoth.extractRawText({ arrayBuffer: await response.arrayBuffer() });
         if (!result?.value?.trim()) return null;
         return { thumbType: 'text', textContent: result.value.slice(0, 150) };

@@ -27,6 +27,7 @@ import { useAuth } from '../context/AuthContext';
 import { useFiles } from '../context/FileContext';
 import { formatBytes } from '../utils/formatFileSize';
 import TransactionDetailModal from '../components/modals/TransactionDetailModal';
+import { plansCache } from '../utils/ttlCache';
 import {
   CYCLES,
   CYCLE_DISCOUNT,
@@ -140,6 +141,10 @@ export default function BillingAndQuota() {
     (async () => {
       setPlansLoading(true);
       try {
+        // Bấm "Thử lại" là yêu cầu một lượt tải THẬT, không phải đọc lại bộ đệm.
+        // (Lỗi vốn không được lưu vào đệm, nhưng nói rõ ý định ở đây để lần sau
+        // đổi TTL hay đổi điều kiện lưu vẫn không phá mất nút này.)
+        if (plansToken > 0) plansCache.invalidate('all');
         const data = await billingApi.getPlans();
         if (cancelled) return;
         setPlans(Array.isArray(data) ? data : []);

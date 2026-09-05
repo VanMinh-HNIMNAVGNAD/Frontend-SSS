@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useFiles } from '../context/FileContext';
+import { useFiles, useClipboard } from '../context/FileContext';
 import { useLanguage } from '../context/LanguageContext';
 import FileListView from '../components/file-manager/FileListView';
 import FileGridView from '../components/file-manager/FileGridView';
@@ -26,10 +26,10 @@ export default function MyDrivePage() {
     uploadEntries,
     breadcrumb,
     openFolder,
-    clipboard,
-    isPasting,
-    pasteItems,
   } = useFiles();
+
+  // Bảng tạm đi context riêng — xem chú thích ở FileContext.
+  const { clipboard, isPasting, pasteItems } = useClipboard();
 
 
 

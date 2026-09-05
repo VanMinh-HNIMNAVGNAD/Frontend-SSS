@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, memo } from 'react';
-import { useFiles } from '../../context/FileContext';
+import { useFiles, useFileSelection, useClipboard, useFilePreview } from '../../context/FileContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { sharingApi } from '../../services/api';
 import { readDefaultShareRole } from '../../constants/privacy';
@@ -353,11 +353,10 @@ export default function FileListView() {
         restoreFromTrash,
         deletePermanently,
         renameItem,
-        openInfoDrawer,
-        openPreview,
         getDownloadUrl,
         activeTab,
         isLoading,
+        isRefreshing,
         currentPage,
         setCurrentPage,
         pageSize,
@@ -367,20 +366,6 @@ export default function FileListView() {
         setSortField,
         sortDirection,
         setSortDirection,
-        // Selection
-        selectedIds,
-        selectedCount,
-        isSelected,
-        toggleSelect,
-        selectRange,
-        selectAll,
-        deselectAll,
-        // Clipboard
-        clipboard,
-        isPasting,
-        cutItems,
-        copyItems,
-        pasteItems,
         // Upload / tạo thư mục (right-click vùng nền trống)
         createFolder,
         enqueueUpload,
@@ -388,6 +373,22 @@ export default function FileListView() {
         currentSharedDriveId,
         uploadEntries,
     } = useFiles();
+
+    // Ba nhóm dưới đây đọc từ context riêng thay vì useFiles(): chúng đổi theo
+    // từng cú bấm chuột, gộp chung sẽ kéo cả Sidebar và Header render theo.
+    const {
+        selectedIds,
+        selectedCount,
+        isSelected,
+        toggleSelect,
+        selectRange,
+        selectAll,
+        deselectAll,
+    } = useFileSelection();
+
+    const { clipboard, isPasting, cutItems, copyItems, pasteItems } = useClipboard();
+
+    const { openInfoDrawer, openPreview } = useFilePreview();
 
     // Context menu state
     const [contextMenu, setContextMenu] = useState({ isOpen: false, x: 0, y: 0, item: null });
@@ -585,7 +586,15 @@ export default function FileListView() {
             <input type="file" ref={setFolderInputRef} onChange={handleFolderInputChange} multiple className="hidden" aria-label={t('newBtn.aria.pickFolder')} />
 
             {/* Extended Metadata Table View */}
-            <div className="w-full flex-1 overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700 shadow-xs bg-white dark:bg-[#282a2c]">
+            {/* `isRefreshing` = vẫn đứng nguyên thư mục này, chỉ đang lọc / tìm lại.
+                Làm mờ và khoá tương tác thay vì thay bằng skeleton: xoá cả bảng đi
+                rồi dựng lại sau mỗi 400ms gõ phím là màn hình nhấp nháy liên tục. */}
+            <div
+                className={`w-full flex-1 overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700 shadow-xs bg-white dark:bg-[#282a2c] transition-opacity duration-150 ${
+                    isRefreshing ? 'opacity-50 pointer-events-none' : ''
+                }`}
+                aria-busy={isRefreshing}
+            >
                 <table className="w-full text-left border-collapse min-w-[560px] lg:min-w-[850px]">
                     <thead>
                         <tr className="border-b border-gray-200 dark:border-gray-700 text-[11px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider bg-gray-100/90 dark:bg-white/5 select-none">

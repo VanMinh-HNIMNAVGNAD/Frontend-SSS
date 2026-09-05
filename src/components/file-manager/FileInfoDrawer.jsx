@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { flushSync } from 'react-dom';
-import { useFiles } from '../../context/FileContext';
+import { useFilePreview } from '../../context/FileContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { filesApi } from '../../services/api';
 import { formatBytes } from '../../utils/formatFileSize';
@@ -45,7 +45,7 @@ import {
 } from 'lucide-react';
 
 export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', onClose, onOpenShare, onOpenRename }) {
-    const { openPreview } = useFiles();
+    const { openPreview } = useFilePreview();
     const { t, language } = useLanguage();
     const locale = localeTagOf(language);
     const [currentTab, setCurrentTab] = useState(activeTab);

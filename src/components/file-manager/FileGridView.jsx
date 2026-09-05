@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
-import { useFiles } from '../../context/FileContext';
+import { useFiles, useFileSelection, useClipboard, useFilePreview } from '../../context/FileContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { sharingApi } from '../../services/api';
 import { readDefaultShareRole } from '../../constants/privacy';
@@ -27,27 +27,15 @@ export default function FileGridView() {
         restoreFromTrash,
         deletePermanently,
         renameItem,
-        openInfoDrawer,
-        openPreview,
         getDownloadUrl,
         activeTab,
         isLoading,
+        isRefreshing,
         currentPage,
         setCurrentPage,
         pageSize,
         totalItems,
         totalPages,
-        // Selection
-        selectedIds,
-        isSelected,
-        toggleSelect,
-        selectRange,
-        // Clipboard
-        clipboard,
-        isPasting,
-        cutItems,
-        copyItems,
-        pasteItems,
         // Upload / tạo thư mục (right-click vùng nền trống)
         createFolder,
         enqueueUpload,
@@ -55,6 +43,14 @@ export default function FileGridView() {
         currentSharedDriveId,
         uploadEntries,
     } = useFiles();
+
+    // Xem chú thích cùng chỗ trong FileListView: ba nhóm này đổi theo từng cú
+    // bấm chuột nên đi context riêng, không gộp vào useFiles().
+    const { selectedIds, isSelected, toggleSelect, selectRange } = useFileSelection();
+
+    const { clipboard, isPasting, cutItems, copyItems, pasteItems } = useClipboard();
+
+    const { openInfoDrawer, openPreview } = useFilePreview();
 
 
     // Context menu state
@@ -246,7 +242,15 @@ export default function FileGridView() {
         >
             <input type="file" ref={fileInputRef} onChange={handleFileInputChange} multiple className="hidden" aria-label={t('newBtn.aria.pickFiles')} />
             <input type="file" ref={setFolderInputRef} onChange={handleFolderInputChange} multiple className="hidden" aria-label={t('newBtn.aria.pickFolder')} />
-            <div className="space-y-6 overflow-y-auto pr-1">
+            {/* `isRefreshing` = vẫn đứng nguyên thư mục này, chỉ đang lọc / tìm lại.
+                Làm mờ và khoá tương tác thay vì thay bằng skeleton: xoá cả lưới đi
+                rồi dựng lại sau mỗi 400ms gõ phím là màn hình nhấp nháy liên tục. */}
+            <div
+                className={`space-y-6 overflow-y-auto pr-1 transition-opacity duration-150 ${
+                    isRefreshing ? 'opacity-50 pointer-events-none' : ''
+                }`}
+                aria-busy={isRefreshing}
+            >
                 {/* Section 1: Thư mục (Folders) */}
                 {folders && folders.length > 0 && (
                     <div>

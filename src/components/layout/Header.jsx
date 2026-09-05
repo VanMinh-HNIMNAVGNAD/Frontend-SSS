@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import toast from 'react-hot-toast';
-import { useFiles } from '../../context/FileContext';
+import { useFiles, useFileSelection, useClipboard } from '../../context/FileContext';
 import { filesApi } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -33,10 +33,6 @@ export default function Header({ toggleRightSidebar }) {
         toggleSidebar, 
         filterType,
         isSidebarCollapsed,
-        selectedIds,
-        selectedCount,
-        deselectAll,
-        selectAll,
         getSelectedItems,
         folders,
         files,
@@ -46,12 +42,17 @@ export default function Header({ toggleRightSidebar }) {
         deletePermanently,
         moveItem,
         copyItem,
-        cutItems,
-        copyItems,
         getDownloadUrl,
         triggerReload,
         refreshStorageInfo
     } = useFiles();
+
+    // Thanh công cụ hàng loạt (hiện ra khi có mục được chọn) đọc từ context
+    // riêng: nếu để chung useFiles() thì mỗi lần tích chọn một tệp là cả Header
+    // — logo, ô tìm kiếm, avatar, mọi modal treo trên nó — render lại.
+    const { selectedIds, selectedCount, deselectAll, selectAll } = useFileSelection();
+
+    const { cutItems, copyItems } = useClipboard();
 
     const { t } = useLanguage();
 

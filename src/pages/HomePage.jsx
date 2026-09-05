@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { useFiles } from '../context/FileContext';
+import { useFiles, useClipboard, useFilePreview } from '../context/FileContext';
 import { useLanguage } from '../context/LanguageContext';
 import FileSkeleton from '../components/common/FileSkeleton';
 import FileThumbnail from '../components/file-manager/FileThumbnail';
@@ -166,23 +166,22 @@ export default function HomePage() {
         setActiveTab,
         activeTab,
         isLoading,
+        isRefreshing,
         viewMode,
         setViewMode,
-        openPreview,
         openFolder,
         toggleStar,
         moveToTrash,
         restoreFromTrash,
         deletePermanently,
         renameItem,
-        openInfoDrawer,
         getDownloadUrl,
-        clipboard,
-        isPasting,
-        cutItems,
-        copyItems,
-        pasteItems,
     } = useFiles();
+
+    // Bảng tạm và cửa sổ xem trước đi context riêng — xem chú thích ở FileContext.
+    const { clipboard, isPasting, cutItems, copyItems, pasteItems } = useClipboard();
+
+    const { openPreview, openInfoDrawer } = useFilePreview();
 
     // Context menu state
     const [contextMenu, setContextMenu] = useState({ isOpen: false, x: 0, y: 0, item: null });
@@ -271,7 +270,14 @@ export default function HomePage() {
     }
 
     return (
-        <div className="flex flex-col h-full space-y-7 overflow-y-auto pr-1">
+        // `isRefreshing`: đang đồng bộ lại nhưng nội dung cũ vẫn đúng chỗ này —
+        // làm mờ thay vì thay bằng skeleton (xem `scopeKey` trong FileContext).
+        <div
+            className={`flex flex-col h-full space-y-7 overflow-y-auto pr-1 transition-opacity duration-150 ${
+                isRefreshing ? 'opacity-50 pointer-events-none' : ''
+            }`}
+            aria-busy={isRefreshing}
+        >
             {/* Header Toolbar */}
             <div className="flex items-center justify-between pb-2 border-b border-gray-200 dark:border-gray-700">
                 <div className="flex items-center gap-2">

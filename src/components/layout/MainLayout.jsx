@@ -1,7 +1,7 @@
-import { useState, useRef, useCallback } from 'react';
+import { lazy, Suspense, useState, useRef, useCallback } from 'react';
 import { Outlet } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { useFiles } from '../../context/FileContext';
+import { useFiles, useFilePreview } from '../../context/FileContext';
 import { useLanguage } from '../../context/LanguageContext';
 import useGlobalShortcuts from '../../hooks/useGlobalShortcuts';
 import Sidebar from './SideBar';
@@ -10,7 +10,13 @@ import Header from './Header';
 import FileInfoDrawer from '../file-manager/FileInfoDrawer';
 import ShareModal from '../file-manager/ShareModal';
 import RenameModal from '../file-manager/RenameModal';
-import FilePreviewModal from '../file-manager/FilePreviewModal';
+/**
+ * Cửa sổ xem trước nạp theo yêu cầu: nó kéo theo pdf.js, mammoth, `marked` và bộ
+ * tô màu cú pháp — nhóm nặng nhất trong toàn bộ gói — nhưng chỉ chạy khi người
+ * dùng thật sự bấm mở một tệp. Nó vốn đã được render có điều kiện, nên tách ra
+ * không đổi hành vi nào.
+ */
+const FilePreviewModal = lazy(() => import('../file-manager/FilePreviewModal'));
 import UploadProgress from '../file-manager/UploadProgress';
 import ResumeUploads from '../file-manager/ResumeUploads';
 
@@ -22,13 +28,7 @@ export const SEARCH_INPUT_ID = 'global-search-input';
 export default function MainLayout() {
     const { t } = useLanguage();
     const {
-        isInfoDrawerOpen,
-        infoDrawerItem,
-        infoDrawerTab,
-        closeInfoDrawer,
         renameItem,
-        previewItem,
-        closePreview,
         // ── Phục vụ hệ thống phím tắt ──
         activeTab,
         currentFolderId,
@@ -42,6 +42,17 @@ export default function MainLayout() {
         moveToTrash,
         refreshStorageInfo,
     } = useFiles();
+
+    // Ngăn thông tin và cửa sổ xem trước đi context riêng: mở/đóng chúng không
+    // được phép kéo theo một lần render của Sidebar, Header và cả cây danh sách.
+    const {
+        isInfoDrawerOpen,
+        infoDrawerItem,
+        infoDrawerTab,
+        closeInfoDrawer,
+        previewItem,
+        closePreview,
+    } = useFilePreview();
 
     const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
     const [shareTargetItem, setShareTargetItem] = useState(null);
@@ -256,10 +267,12 @@ export default function MainLayout() {
 
             {/* File Preview Modal */}
             {previewItem && (
-                <FilePreviewModal
-                    item={previewItem}
-                    onClose={closePreview}
-                />
+                <Suspense fallback={null}>
+                    <FilePreviewModal
+                        item={previewItem}
+                        onClose={closePreview}
+                    />
+                </Suspense>
             )}
 
             {/* Global Upload Progress — floating bottom-right */}

@@ -13,6 +13,24 @@ import { localeTagOf } from '../utils/locale';
 
 const FileContext = createContext();
 
+/**
+ * Ba context tách khỏi FileContext, cùng sống trong FileProvider.
+ *
+ * Lý do tách — `contextValue` của FileContext gói khoảng chín mươi khoá vào một
+ * object. React so sánh context value bằng reference, nên chỉ cần MỘT khoá đổi
+ * là mọi component gọi `useFiles()` phải render lại: bấm chọn một tệp làm
+ * Sidebar, thanh dung lượng, nút "Mới", thanh bộ lọc và cả hàng đợi upload cùng
+ * render theo, dù không cái nào trong số đó quan tâm tệp nào đang được chọn.
+ * `memo()` trên FileCard cũng vô hiệu vì bản thân FileCard cũng đọc context.
+ *
+ * Ba mảnh dưới đây là ba mảnh đổi nhiều nhất và có ít người dùng nhất — đúng
+ * tiêu chí để tách. State vẫn nằm nguyên trong FileProvider, chỉ có value là
+ * chia thành nhiều đường dẫn để mỗi component đăng ký đúng thứ nó cần.
+ */
+const SelectionContext = createContext();
+const ClipboardContext = createContext();
+const PreviewContext = createContext();
+
 // ── Kiểu hiển thị (list / grid) ─────────────────────────────────────────────
 // Khoá localStorage riêng cho preference này. Đọc/ghi bọc try/catch vì chế độ
 // ẩn danh hoặc iframe có thể chặn storage — chặn thì phiên đó không nhớ chứ
@@ -21,6 +39,13 @@ const FileContext = createContext();
 // `driveR_chunk_<userId>_<jobId>`. Khai báo một chỗ vì cả getChunkStateKey(),
 // clearChunkState() và listResumableSessions() đều phải dựng đúng cùng dạng khoá.
 const CHUNK_STATE_PREFIX = 'driveR_chunk_';
+
+/**
+ * Trần số khung nhìn được giữ trong bộ nhớ đệm danh sách (xem `listCacheRef`).
+ * Đủ cho một phiên duyệt bình thường — mười tab cộng vài chục thư mục vừa mở —
+ * mà không để một phiên đi sâu vào cây thư mục phình bộ nhớ vô hạn.
+ */
+const LIST_CACHE_MAX = 24;
 
 const VIEW_MODE_KEY = 'driver.viewMode';
 const VIEW_MODES = ['list', 'grid'];
@@ -238,6 +263,9 @@ export function FileProvider({ children }) {
   // nếu không tablet/mobile vừa vào app đã bị lớp phủ che hết nội dung
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => window.innerWidth < 1024);
   const [isLoading, setIsLoading] = useState(false);
+  // Đang tải NHƯNG vẫn còn nội dung hợp lệ để hiển thị — xem `scopeKey`.
+  // Các view làm mờ danh sách thay vì thay nó bằng skeleton.
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState(null);
 
   const toggleSidebar = useCallback(() => {
@@ -379,6 +407,110 @@ export function FileProvider({ children }) {
 
   // Ref tracking latest fetch request ID to prevent race conditions on concurrent fetches
   const fetchRequestIdRef = useRef(0);
+
+  // ── Bộ nhớ đệm danh sách theo từng "khung nhìn" ───────────────────────────
+  //
+  // Vấn đề được sửa: trước đây mọi lần đổi tab / mở thư mục / đổi bộ lọc đều đi
+  // đúng một đường — xoá sạch màn hình, dựng skeleton, chờ mạng. Máy chủ đặt ở
+  // Mỹ còn người dùng ở Việt Nam nên mỗi lượt khứ hồi tốn ~265ms kể cả khi
+  // backend trả lời tức thì; bấm qua lại My Drive ↔ Có gắn sao là tải lại đúng
+  // thứ vừa tải xong vài giây trước. Cảm giác thu được là "app tự reload".
+  //
+  // Nay theo lối stale-while-revalidate: quay lại một khung nhìn đã xem thì vẽ
+  // ngay bản đã lưu (0ms, không skeleton) rồi vẫn gọi server ở chế độ nền để
+  // cập nhật. Người dùng thấy nội dung tức thì; thanh tiến trình mảnh ở đỉnh
+  // trang (GlobalProgressBar) là thứ duy nhất báo còn đang đồng bộ.
+  //
+  // Cache nằm trong ref chứ không phải state: ghi vào nó KHÔNG được kéo theo
+  // một lần render nào. Và nằm trong provider chứ không phải module-level, để
+  // đăng xuất là mất theo — dữ liệu file của người này không được sống sót sang
+  // phiên của người khác trên cùng trình duyệt.
+  const listCacheRef = useRef(new Map());
+
+  /**
+   * Khung nhìn mà `items` / `breadcrumb` / `totalItems` hiện tại đang MÔ TẢ.
+   *
+   * Không được suy ra từ `cacheKey`: giữa lúc bấm sang tab khác và lúc dữ liệu
+   * tab đó về, `cacheKey` đã là tab mới trong khi `items` vẫn là của tab cũ.
+   * Thiếu ref này thì effect đồng bộ bên dưới sẽ ghi danh sách tab cũ vào ô
+   * cache của tab mới — lần sau mở tab mới ra sẽ thấy nội dung của tab cũ.
+   */
+  const itemsKeyRef = useRef(null);
+
+  const readListCache = useCallback((key) => {
+    const cache = listCacheRef.current;
+    const hit = cache.get(key);
+    if (!hit) return null;
+    // Chạm vào thì đẩy xuống cuối Map — Map giữ thứ tự chèn nên đây là LRU đủ dùng
+    cache.delete(key);
+    cache.set(key, hit);
+    return hit;
+  }, []);
+
+  const writeListCache = useCallback((key, snapshot) => {
+    const cache = listCacheRef.current;
+    cache.delete(key);
+    cache.set(key, snapshot);
+    // Giữ trần để một phiên duyệt nhiều thư mục không phình bộ nhớ vô hạn
+    while (cache.size > LIST_CACHE_MAX) {
+      cache.delete(cache.keys().next().value);
+    }
+  }, []);
+
+  /**
+   * Danh tính của khung nhìn hiện tại. Mọi tham số ĐỔI KẾT QUẢ của GET /files
+   * đều phải có mặt, nếu không hai khung nhìn khác nhau sẽ dùng chung một ô.
+   *
+   * `locale` cũng nằm trong khoá: `formatApiItem` đã nướng chuỗi ngày tháng theo
+   * ngôn ngữ vào từng item, nên bản lưu của tiếng Việt không dùng lại được cho
+   * tiếng Anh — đổi ngôn ngữ phải là một lần tải mới.
+   */
+  const cacheKey = useMemo(
+    () =>
+      JSON.stringify({
+        tab: activeTab,
+        folderId: currentFolderId || null,
+        driveId: activeTab === 'shared-drives' ? currentSharedDriveId || null : null,
+        search: debouncedSearch || '',
+        filterType,
+        filterDate,
+        filterOwner,
+        page: currentPage,
+        limit: pageSize,
+        locale,
+      }),
+    [
+      activeTab, currentFolderId, currentSharedDriveId, debouncedSearch,
+      filterType, filterDate, filterOwner, currentPage, pageSize, locale,
+    ],
+  );
+
+  /**
+   * "Đang đứng ở đâu" — tab và thư mục — tách khỏi "đang hỏi gì" (tìm kiếm, bộ
+   * lọc, số trang).
+   *
+   * Phân biệt này quyết định lúc nào được phép giữ danh sách cũ trên màn hình:
+   *  • Đổi CHỖ ĐỨNG (My Drive → Thùng rác) mà vẫn để danh sách cũ nằm đó là nói
+   *    dối — người dùng đang nhìn nội dung của một nơi họ đã rời đi. Chỗ này
+   *    phải dựng skeleton.
+   *  • Đổi CÂU HỎI trong cùng một chỗ (gõ tìm kiếm, chọn "chỉ ảnh", sang trang
+   *    2) thì danh sách cũ vẫn là nội dung của đúng nơi này, chỉ chưa lọc lại.
+   *    Xoá nó đi để dựng skeleton là làm màn hình nhấp nháy sau mỗi 400ms gõ
+   *    phím. Chỗ này chỉ làm mờ và chờ.
+   */
+  const scopeKey = useMemo(
+    () =>
+      JSON.stringify({
+        tab: activeTab,
+        folderId: currentFolderId || null,
+        driveId: activeTab === 'shared-drives' ? currentSharedDriveId || null : null,
+        locale,
+      }),
+    [activeTab, currentFolderId, currentSharedDriveId, locale],
+  );
+
+  /** Chỗ đứng mà `items` hiện tại thuộc về (xem `scopeKey`). */
+  const itemsScopeRef = useRef(null);
 
   // Storage Analytics State
   const [analytics, setAnalytics] = useState(null);
@@ -604,7 +736,27 @@ export function FileProvider({ children }) {
 
     // Dùng chung bộ đếm request với fetchFiles để response cũ không ghi đè response mới
     const requestId = ++fetchRequestIdRef.current;
-    if (!silent) setIsLoading(true);
+
+    // Đã xem Trang chủ rồi thì vẽ lại bản cũ ngay và đi thẳng xuống lượt gọi nền:
+    // Trang chủ tốn tới BA request song song, để nó dựng skeleton mỗi lần quay về
+    // là chỗ nhức mắt nhất trong toàn app.
+    const key = cacheKey;
+    const cached = silent ? null : readListCache(key);
+    if (cached) {
+      itemsKeyRef.current = key;
+      itemsScopeRef.current = scopeKey;
+      setItems((prev) => mergeItemsPreservingRefs(prev, cached.items));
+      setTotalItems(cached.totalItems);
+      setTotalPages(cached.totalPages);
+    }
+
+    // Chỉ khi KHÔNG có gì để vẽ mới được xoá màn hình đi dựng skeleton;
+    // còn đứng nguyên Trang chủ mà chỉ đổi từ khoá thì làm mờ (xem `scopeKey`).
+    const sameScope = itemsScopeRef.current === scopeKey;
+    const showSkeleton = !silent && !cached && !sameScope;
+    const showRefreshing = !silent && !cached && sameScope;
+    if (showSkeleton) setIsLoading(true);
+    if (showRefreshing) setIsRefreshing(true);
     setError(null);
 
     try {
@@ -638,14 +790,26 @@ export function FileProvider({ children }) {
         });
       });
 
-      setItems((prev) => mergeItemsPreservingRefs(prev, Array.from(mergedById.values())));
-      setError(responses.every((response) => response === null) ? t('file.list.loadFailed') : null);
+      const allFailed = responses.every((response) => response === null);
+      const merged = Array.from(mergedById.values());
+
+      // Cả ba nguồn cùng chết: giữ nguyên những gì đang hiện (có thể là bản cache
+      // vừa vẽ ở trên) thay vì thay bằng một Trang chủ trống trơn.
+      if (!allFailed) {
+        itemsKeyRef.current = key;
+        itemsScopeRef.current = scopeKey;
+        setItems((prev) => mergeItemsPreservingRefs(prev, merged));
+        writeListCache(key, { items: merged, breadcrumb: null, totalItems: merged.length, totalPages: 1 });
+      }
+      setError(allFailed && !cached ? t('file.list.loadFailed') : null);
     } finally {
-      if (!silent && requestId === fetchRequestIdRef.current) {
+      // Vô điều kiện — xem chú thích cùng chỗ trong `fetchFiles`.
+      if (requestId === fetchRequestIdRef.current) {
         setIsLoading(false);
+        setIsRefreshing(false);
       }
     }
-  }, [isAuthenticated, isAuthLoading, debouncedSearch, pageSize, locale, t]);
+  }, [isAuthenticated, isAuthLoading, debouncedSearch, pageSize, locale, t, cacheKey, scopeKey, readListCache, writeListCache]);
 
   // Fetch Files and Folders from Backend API
   const fetchFiles = useCallback(
@@ -660,10 +824,35 @@ export function FileProvider({ children }) {
       if (!VALID_FILE_TABS.includes(activeTab)) return; // Billing không cần danh sách file
 
       const requestId = ++fetchRequestIdRef.current;
+
+      // Khung nhìn này đã xem rồi → vẽ lại bản đã lưu NGAY, rồi vẫn đi tiếp
+      // xuống lượt gọi server bên dưới để cập nhật. Đây là điểm khác biệt lớn
+      // nhất so với bản cũ: chuyển tab không còn phải chờ mạng mới thấy gì.
+      const key = cacheKey;
+      const cached = silent ? null : readListCache(key);
+      if (cached) {
+        itemsKeyRef.current = key;
+        itemsScopeRef.current = scopeKey;
+        setItems((prev) => mergeItemsPreservingRefs(prev, cached.items));
+        if (cached.breadcrumb) setBreadcrumb(cached.breadcrumb);
+        setTotalItems(cached.totalItems);
+        setTotalPages(cached.totalPages);
+        setError(null);
+      }
+
       // `silent` = đồng bộ nền (sau khi upload xong): KHÔNG bật skeleton, chỉ
-      // trộn dữ liệu mới vào danh sách đang hiện — người dùng không thấy gì nháy
-      if (!silent) setIsLoading(true);
-      if (!silent) setError(null);
+      // trộn dữ liệu mới vào danh sách đang hiện — người dùng không thấy gì nháy.
+      // `cached` cho kết quả y hệt: đã có cái để vẽ thì đừng xoá nó đi.
+      // Không cả hai, nhưng vẫn đứng nguyên chỗ cũ (chỉ đổi bộ lọc / từ khoá /
+      // số trang) thì làm mờ danh sách hiện có thay vì thay bằng skeleton.
+      const sameScope = itemsScopeRef.current === scopeKey;
+      const showSkeleton = !silent && !cached && !sameScope;
+      const showRefreshing = !silent && !cached && sameScope;
+      if (showSkeleton) {
+        setIsLoading(true);
+        setError(null);
+      }
+      if (showRefreshing) setIsRefreshing(true);
 
       const doFetch = async (remainingRetries) => {
         try {
@@ -685,46 +874,75 @@ export function FileProvider({ children }) {
           const rawItems = response.items || [];
           const formattedItems = rawItems.map((item) => formatApiItem(item, activeTab === 'shared-with-me', locale));
 
+          itemsKeyRef.current = key;
+          itemsScopeRef.current = scopeKey;
           setItems((prev) => mergeItemsPreservingRefs(prev, formattedItems));
+
+          const nextTotalItems = response.meta ? response.meta.total || formattedItems.length : formattedItems.length;
+          const nextTotalPages = response.meta ? response.meta.totalPages || 1 : 1;
           if (response.meta) {
-            setTotalItems(response.meta.total || formattedItems.length);
-            setTotalPages(response.meta.totalPages || 1);
+            setTotalItems(nextTotalItems);
+            setTotalPages(nextTotalPages);
           }
+          let nextBreadcrumb = null;
           if (response.breadcrumb) {
             // Chặng gốc do backend đặt tên ('Driver của tôi', xem FilesService)
             // — thay bằng khoá dịch để nó theo ngôn ngữ giao diện. Các chặng sau
             // là tên thư mục thật của người dùng, giữ nguyên.
-            setBreadcrumb(
-              response.breadcrumb.map((crumb) =>
-                crumb.id === null ? { id: null, nameKey: 'file.breadcrumb.myDrive' } : crumb,
-              ),
+            nextBreadcrumb = response.breadcrumb.map((crumb) =>
+              crumb.id === null ? { id: null, nameKey: 'file.breadcrumb.myDrive' } : crumb,
             );
+            setBreadcrumb(nextBreadcrumb);
           }
           setError(null);
+
+          // Ghi thẳng vào cache ở đây thay vì chỉ dựa vào effect đồng bộ bên dưới:
+          // khi dữ liệu mới trùng khít dữ liệu đang hiện, `mergeItemsPreservingRefs`
+          // cố tình trả về đúng mảng cũ để React bỏ qua lần render — không có
+          // render thì effect không chạy, và ô cache của khung nhìn này sẽ trống.
+          writeListCache(key, {
+            items: formattedItems,
+            breadcrumb: nextBreadcrumb,
+            totalItems: nextTotalItems,
+            totalPages: nextTotalPages,
+          });
         } catch (err) {
           if (requestId !== fetchRequestIdRef.current) return;
 
           if (remainingRetries > 0) {
             console.warn(`Lỗi khi lấy danh sách file, đang thử lại sau 1s (còn ${remainingRetries} lần thử):`, err);
-            if (!silent) setError(t('file.list.retrying'));
+            if (showSkeleton || showRefreshing) setError(t('file.list.retrying'));
             await new Promise((resolve) => setTimeout(resolve, 1000));
             if (requestId !== fetchRequestIdRef.current) return;
             return await doFetch(remainingRetries - 1);
           }
 
           console.error('Lỗi khi lấy danh sách file sau khi thử lại:', err);
-          if (!silent) setError(err.message || t('file.list.loadFailed'));
+          // Đang hiện bản cache thì im lặng nuốt lỗi: người dùng có dữ liệu (hơi cũ)
+          // để làm việc, đập một câu lỗi đỏ lên trên đó là làm hỏng một màn hình
+          // vốn đang dùng được.
+          if (showSkeleton || showRefreshing) setError(err.message || t('file.list.loadFailed'));
           // Giữ lại danh sách items cũ, KHÔNG gọi setItems([]) để tránh làm trắng trang
         } finally {
-          if (!silent && requestId === fetchRequestIdRef.current) {
+          // Tắt VÔ ĐIỀU KIỆN, không hỏi lượt này có tự bật cờ hay không.
+          //
+          // Lượt gọi bật skeleton và lượt gọi tắt nó không nhất thiết là một:
+          // đang chờ một tab chưa có cache (skeleton đang bật) mà người dùng đổi
+          // bộ lọc sang một tổ hợp ĐÃ có cache thì lượt mới không bật cờ nào,
+          // còn lượt cũ bị `requestId` loại ở đầu hàm nên không bao giờ chạm tới
+          // finally của nó. Kiểm tra theo cờ riêng của từng lượt sẽ để skeleton
+          // kẹt vĩnh viễn. React bỏ qua setState khi giá trị không đổi nên gọi
+          // thừa ở đây không tốn một lần render nào.
+          if (requestId === fetchRequestIdRef.current) {
             setIsLoading(false);
+            setIsRefreshing(false);
           }
         }
       };
 
       await doFetch(retries);
     },
-    [isAuthenticated, isAuthLoading, activeTab, currentFolderId, currentSharedDriveId, debouncedSearch, filterType, filterDate, filterOwner, currentPage, pageSize, fetchHomeItems, locale, t]
+    [isAuthenticated, isAuthLoading, activeTab, currentFolderId, currentSharedDriveId, debouncedSearch, filterType, filterDate, filterOwner, currentPage, pageSize, fetchHomeItems, locale, t, cacheKey, scopeKey, readListCache, writeListCache]
   );
 
   /**
@@ -741,8 +959,49 @@ export function FileProvider({ children }) {
 
   useEffect(() => {
     fetchFiles();
+  }, [fetchFiles]);
+
+  /**
+   * Thống kê dung lượng đi effect RIÊNG, không đi ké effect tải danh sách.
+   *
+   * Trước đây hai lời gọi nằm chung một effect có dependency là `fetchFiles`.
+   * `fetchFiles` đổi identity theo tab, thư mục, bộ lọc, số trang và cả từ khoá
+   * tìm kiếm — nên GET /files/analytics bị gọi lại theo từng cú bấm sidebar,
+   * từng lần mở thư mục, thậm chí từng nhịp gõ phím (sau debounce). Đó là một
+   * nửa số request của mọi lần chuyển tab, và không lần nào trong số đó cần
+   * thiết: hạn mức chỉ đổi khi upload / xoá / mua gói, và cả ba đường đó đều đã
+   * tự gọi `refreshStorageInfo()` rồi.
+   *
+   * `fetchAnalytics` chỉ phụ thuộc trạng thái đăng nhập, nên effect này thực tế
+   * chạy đúng một lần mỗi phiên.
+   */
+  useEffect(() => {
     fetchAnalytics();
-  }, [fetchFiles, fetchAnalytics]);
+  }, [fetchAnalytics]);
+
+  /**
+   * Giữ ô cache của khung nhìn hiện tại khớp với những gì đang hiển thị.
+   *
+   * Cần thiết vì phần lớn thao tác trong app cập nhật `items` tại chỗ, KHÔNG đi
+   * qua `fetchFiles`: đánh dấu sao, đổi tên, xoá vào thùng rác, dán, và mỗi tệp
+   * upload xong. Không có effect này thì cache đóng băng ở lần tải cuối, và rời
+   * tab rồi quay lại sẽ thấy tệp vừa xoá sống dậy trong khoảnh khắc trước khi
+   * lượt đồng bộ nền kịp sửa lại.
+   */
+  useEffect(() => {
+    const key = itemsKeyRef.current;
+    if (!key) return;
+    writeListCache(key, { items, breadcrumb, totalItems, totalPages });
+  }, [items, breadcrumb, totalItems, totalPages, writeListCache]);
+
+  /**
+   * Đổi chủ (đăng xuất, đăng nhập tài khoản khác) thì đốt sạch cache.
+   * Tên tệp của người này không được phép loé lên trong phiên của người kia.
+   */
+  useEffect(() => {
+    listCacheRef.current.clear();
+    itemsKeyRef.current = null;
+  }, [user?.id]);
 
   /**
    * Hai bộ gộp (debounce) dùng cho hàng đợi upload.
@@ -858,10 +1117,22 @@ export function FileProvider({ children }) {
 
   const isSelected = useCallback((id) => selectedIds.has(id), [selectedIds]);
 
+  /**
+   * Đọc `selectedIdsRef` chứ không phải `selectedIds`, để hàm này ổn định VĨNH
+   * VIỄN. Nó là khoá duy nhất liên quan tới việc chọn còn ở lại trong
+   * `contextValue` (Header và MainLayout cần nó cho các thao tác hàng loạt);
+   * nếu nó đổi identity theo từng cú bấm chọn thì cả `contextValue` đổi theo,
+   * và việc tách SelectionContext ra thành công cốc.
+   *
+   * Ref luôn mang giá trị mới nhất và hàm chỉ được gọi tại thời điểm người dùng
+   * bấm — không có nguy cơ đọc phải state cũ.
+   */
   const getSelectedItems = useCallback(
     (currentSortedFolders, currentSortedFiles) =>
-      [...(currentSortedFolders || []), ...(currentSortedFiles || [])].filter((item) => selectedIds.has(item.id)),
-    [selectedIds]
+      [...(currentSortedFolders || []), ...(currentSortedFiles || [])].filter((item) =>
+        selectedIdsRef.current.has(item.id),
+      ),
+    []
   );
 
   // Reset selection khi fetch lại data (tab thay đổi, folder thay đổi)
@@ -2116,6 +2387,7 @@ export function FileProvider({ children }) {
     setIsSidebarCollapsed,
     toggleSidebar,
     isLoading,
+    isRefreshing,
     error,
     triggerReload: fetchFiles,
     currentPage,
@@ -2186,35 +2458,14 @@ export function FileProvider({ children }) {
     // contextValue này được cả FileGridView/FileListView/SideBar… tiêu thụ —
     // để lại thì mỗi 2% tiến độ là một lần render toàn bộ màn hình danh sách.
     // Ai cần hàng đợi thì dùng `useUpload()` (UploadProgress đang làm đúng vậy).
-    infoDrawerItem,
-    isInfoDrawerOpen,
-    infoDrawerTab,
-    openInfoDrawer,
-    closeInfoDrawer,
-    previewItem,
-    openPreview,
-    closePreview,
-    // Selection
-    selectedIds,
-    selectedCount: selectedIds.size,
-    lastSelectedId,
-    toggleSelect,
-    selectRange,
-    selectAll,
-    deselectAll,
-    isSelected,
+    // Selection, clipboard, preview và info drawer KHÔNG nằm ở đây nữa — xem
+    // useFileSelection() / useClipboard() / useFilePreview(). Chúng đổi theo mỗi
+    // cú bấm chuột, để lại thì mỗi lần chọn một tệp là một lần render toàn app.
     getSelectedItems,
-    // Clipboard (Cut / Copy / Paste)
-    clipboard,
-    isPasting,
-    cutItems,
-    copyItems,
-    clearClipboard,
-    pasteItems,
   }), [
     // ── State cơ bản ──
     items, folders, files, sortedFolders, sortedFiles,
-    isLoading, error, viewMode, isSidebarCollapsed,
+    isLoading, isRefreshing, error, viewMode, isSidebarCollapsed,
     currentPage, pageSize, totalItems, totalPages, breadcrumb,
     // ── Điều hướng / tab ──
     activeTab, currentFolderId, currentSharedDriveId,
@@ -2233,21 +2484,83 @@ export function FileProvider({ children }) {
     uploadFile, enqueueUpload, uploadEntries, retryUploadJob, uploadFileMock,
     cancelUploadJob, cancelAllUploads, pauseUploadJob, resumePausedJob,
     listResumableSessions, resumeUpload, discardResumableSession,
-    // ── Drawer / preview ──
-    infoDrawerItem, isInfoDrawerOpen, infoDrawerTab, openInfoDrawer, closeInfoDrawer,
+    // ── Chọn nhiều mục ──
+    // Chỉ còn `getSelectedItems`: Header và MainLayout gọi nó để gom danh sách
+    // đang chọn cho các thao tác hàng loạt, và nó chỉ đổi theo `selectedIds`.
+    getSelectedItems,
+  ]);
+
+  /**
+   * Ai đang được chọn. Đổi theo từng cú bấm chuột và Ctrl+A, nhưng chỉ có bốn
+   * nơi quan tâm: hai khung danh sách, thanh công cụ hàng loạt trên Header, và
+   * MainLayout (cho phím tắt).
+   */
+  const selectionValue = useMemo(() => ({
+    selectedIds,
+    selectedCount: selectedIds.size,
+    lastSelectedId,
+    toggleSelect,
+    selectRange,
+    selectAll,
+    deselectAll,
+    isSelected,
+    getSelectedItems,
+  }), [
+    selectedIds, lastSelectedId, toggleSelect, selectRange,
+    selectAll, deselectAll, isSelected, getSelectedItems,
+  ]);
+
+  /** Cắt / sao chép / dán. Chỉ hai khung danh sách, Trang chủ, My Drive và Header dùng. */
+  const clipboardValue = useMemo(() => ({
+    clipboard,
+    isPasting,
+    cutItems,
+    copyItems,
+    clearClipboard,
+    pasteItems,
+  }), [clipboard, isPasting, cutItems, copyItems, clearClipboard, pasteItems]);
+
+  /**
+   * Cửa sổ xem trước và ngăn thông tin bên phải.
+   *
+   * Đây là mảnh trả lời trực tiếp cho triệu chứng "mở modal là cả app tải lại":
+   * `previewItem` nằm chung `contextValue` nghĩa là mỗi lần mở/đóng xem trước,
+   * toàn bộ cây — Sidebar, Header, danh sách, hàng đợi upload — render lại.
+   */
+  const previewValue = useMemo(() => ({
+    previewItem,
+    openPreview,
+    closePreview,
+    infoDrawerItem,
+    isInfoDrawerOpen,
+    infoDrawerTab,
+    openInfoDrawer,
+    closeInfoDrawer,
+  }), [
     previewItem, openPreview, closePreview,
-    // ── Selection ──
-    selectedIds, lastSelectedId, toggleSelect, selectRange, selectAll,
-    deselectAll, isSelected, getSelectedItems,
-    // ── Clipboard ──
-    clipboard, isPasting, cutItems, copyItems, clearClipboard, pasteItems,
+    infoDrawerItem, isInfoDrawerOpen, infoDrawerTab, openInfoDrawer, closeInfoDrawer,
   ]);
 
   return (
     <FileContext.Provider value={contextValue}>
-      {children}
+      <SelectionContext.Provider value={selectionValue}>
+        <ClipboardContext.Provider value={clipboardValue}>
+          <PreviewContext.Provider value={previewValue}>
+            {children}
+          </PreviewContext.Provider>
+        </ClipboardContext.Provider>
+      </SelectionContext.Provider>
     </FileContext.Provider>
   );
 }
 
 export const useFiles = () => useContext(FileContext);
+
+/** Trạng thái chọn nhiều mục. Tách khỏi useFiles() — xem chú thích ở đầu file. */
+export const useFileSelection = () => useContext(SelectionContext);
+
+/** Bảng tạm cắt / sao chép / dán. Tách khỏi useFiles() — xem chú thích ở đầu file. */
+export const useClipboard = () => useContext(ClipboardContext);
+
+/** Cửa sổ xem trước + ngăn thông tin. Tách khỏi useFiles() — xem chú thích ở đầu file. */
+export const useFilePreview = () => useContext(PreviewContext);

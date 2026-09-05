@@ -2,6 +2,7 @@ import axios from 'axios';
 
 import { API_BASE_URL } from '../constants/api';
 import { decodeJwt, subjectOf } from '../utils/jwt';
+import { plansCache, previewUrlCache, fileTextCache, sessionsCache } from '../utils/ttlCache';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -402,9 +403,22 @@ export const userApi = {
     },
   }),
   recalculateQuota: () => api.patch('/users/me/recalculate-quota'),
-  getMySessions: () => api.get('/users/me/sessions'),
-  revokeSession: (sessionId) => api.delete(`/users/me/sessions/${sessionId}`),
-  revokeAllOtherSessions: () => api.delete('/users/me/sessions'),
+  // Bộ đệm 30 giây — vừa đủ để đóng/mở lại hồ sơ cá nhân không thành một chuỗi
+  // request, vừa đủ ngắn để màn hình bảo mật này không hiển thị thông tin cũ.
+  getMySessions: () => sessionsCache.get('me', () => api.get('/users/me/sessions')),
+
+  // Hai hàm thu hồi bên dưới làm câu trả lời đang đệm thành sai ngay lập tức,
+  // nên phải đốt đệm — nếu không, danh sách vẫn hiện phiên vừa bị đá ra.
+  revokeSession: async (sessionId) => {
+    const res = await api.delete(`/users/me/sessions/${sessionId}`);
+    sessionsCache.invalidate('me');
+    return res;
+  },
+  revokeAllOtherSessions: async () => {
+    const res = await api.delete('/users/me/sessions');
+    sessionsCache.invalidate('me');
+    return res;
+  },
   deleteMyAccount: (password) => api.delete('/users/me', { data: { password } }),
 };
 
@@ -436,8 +450,18 @@ export const storageApi = {
   getUploadUrl: (data) => api.post('/files/upload-url', data),
   confirmUpload: (data) => api.post('/files/confirm-upload', data),
   getDownloadUrl: (id) => api.get(`/files/${id}/download-url`),
-  getPreviewUrl: (id) => api.get(`/files/${id}/preview-url`),
-  getFileTextContent: (id) => api.get(`/files/${id}/content`),
+  /**
+   * URL xem trước có chữ ký, qua bộ đệm.
+   *
+   * Trước đây mỗi lần mở cửa sổ xem trước là một lượt xin URL mới, kể cả khi
+   * người dùng vừa đóng đúng tệp đó một giây trước — và trên Trang chủ, cùng
+   * một tệp hiện ở ba khu vực nên ba thẻ xin ba lần. URL do backend phát sống
+   * 15 phút, giữ lại 10 phút là an toàn.
+   */
+  getPreviewUrl: (id) => previewUrlCache.get(String(id), () => api.get(`/files/${id}/preview-url`)),
+
+  /** Nội dung văn bản cho khung xem trước code / text / markdown. Xem chú thích trên. */
+  getFileTextContent: (id) => fileTextCache.get(String(id), () => api.get(`/files/${id}/content`)),
 
   /**
    * Huỷ một phiên tải lên đang dở và dọn rác trên cloud.
@@ -595,7 +619,9 @@ export const sharedDrivesApi = {
 export const billingApi = {
   // Bảng giá lấy từ DB (chỉ gói is_active). Trả [{ id, name, storageBytes, storageGB,
   // priceMonthly, priceYearly }] đã sắp theo priceMonthly tăng dần.
-  getPlans: () => api.get('/billing/plans'),
+  // Qua bộ đệm 10 phút: bảng giá chỉ đổi khi vận hành sửa nó, nhưng trang Gói
+  // dịch vụ tải lại nguyên bảng mỗi lần người dùng ghé qua.
+  getPlans: () => plansCache.get('all', () => api.get('/billing/plans')),
 
   // Gói ĐANG CHẠY của chính mình, hoặc null nếu chưa từng mua (đang ở hạn mức mặc định).
   // Trả { planId, planName, storageBytes, billingCycle, status, cancelAtPeriodEnd, startDate,

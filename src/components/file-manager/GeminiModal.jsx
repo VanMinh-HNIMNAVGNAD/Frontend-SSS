@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { marked } from 'marked';
 import {
     Sparkles,
@@ -21,6 +22,9 @@ import {
     FileSearch,
     FolderSearch,
     Info,
+    Gauge,
+    Globe,
+    ArrowUpRight,
 } from 'lucide-react';
 
 import { aiApi } from '../../services/api';
@@ -80,8 +84,13 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
     const [prompt, setPrompt] = useState('');
     const [isThinking, setIsThinking] = useState(false);
     const [error, setError] = useState(null);
-    // null = chưa hỏi xong; { enabled, model } = đã biết backend có bật AI hay không
+    // null = chưa hỏi xong; { enabled, model, quota } = đã biết backend có bật AI hay không
     const [status, setStatus] = useState(null);
+    // Hạn mức token của tháng. Lấy lần đầu từ `GET /ai/status`, sau đó mỗi câu trả lời
+    // trả về hạn mức mới nên thanh còn lại không cần gọi thêm request nào.
+    const [quota, setQuota] = useState(null);
+    // Hết hạn mức: backend trả 429 kèm nguyên trạng thái hạn mức trong body.
+    const [quotaBlocked, setQuotaBlocked] = useState(false);
     const [copiedIndex, setCopiedIndex] = useState(null);
 
     const abortRef = useRef(null);
@@ -137,12 +146,29 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
 
                 setMessages((prev) => [
                     ...prev,
-                    { sender: 'ai', text: res.answer, context: res.context, model: res.model },
+                    {
+                        sender: 'ai',
+                        text: res.answer,
+                        context: res.context,
+                        model: res.model,
+                        grounded: res.grounded,
+                        tokens: res.quota?.lastRequestTokens,
+                    },
                 ]);
+                if (res.quota) {
+                    setQuota(res.quota);
+                    setQuotaBlocked(Boolean(res.quota.exhausted));
+                }
             } catch (err) {
                 if (err?.name === 'CanceledError' || err?.code === 'ERR_CANCELED') {
                     // Người dùng bấm Dừng: bỏ luôn bong bóng câu hỏi vừa thêm để hội
                     // thoại không còn một câu hỏi treo lơ lửng không có câu trả lời.
+                    setMessages((prev) => prev.slice(0, -1));
+                } else if (err?.response?.status === 429) {
+                    // Hết hạn mức tháng — không phải lỗi kỹ thuật, nên hiện khối nâng cấp
+                    // gói thay vì dòng lỗi đỏ kèm nút "thử lại" (thử lại cũng vô ích).
+                    setQuota(err.response.data?.quota ?? null);
+                    setQuotaBlocked(true);
                     setMessages((prev) => prev.slice(0, -1));
                 } else {
                     setError(
@@ -179,6 +205,13 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
         const start = (nextStatus) => {
             if (cancelled) return;
             setStatus(nextStatus);
+            if (nextStatus?.quota) {
+                setQuota(nextStatus.quota);
+                setQuotaBlocked(Boolean(nextStatus.quota.exhausted));
+                // Hết hạn mức thì KHÔNG tự chạy lệnh nhanh: gửi đi cũng chỉ nhận 429,
+                // mà người dùng thì thấy khung chat tự nhấp nháy rồi báo lỗi.
+                if (nextStatus.quota.exhausted) return;
+            }
             if (nextStatus?.enabled === false) return;
             if (initialAction && initialAction !== 'chat') {
                 sendRef.current({ action: initialAction });
@@ -244,7 +277,7 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
     };
 
     /** Dòng chú thích "AI đã đọc được gì" dưới mỗi câu trả lời. */
-    const renderContextNote = (context) => {
+    const renderContextNote = (context, msg) => {
         if (!context) return null;
         const map = {
             'file-text': {
@@ -272,17 +305,48 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
         if (!entry) return null;
         const Icon = entry.icon;
         return (
-            <div className={`mt-2 pt-2 border-t border-gray-200/70 dark:border-gray-700/60 flex items-center gap-1.5 text-[11px] ${entry.tone}`}>
-                <Icon className="w-3 h-3 shrink-0" />
-                <span className="truncate">
-                    {entry.text}
-                    {context.truncated ? ` · ${t('ai.context.truncated')}` : ''}
+            <div className="mt-2 pt-2 border-t border-gray-200/70 dark:border-gray-700/60 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
+                <span className={`flex items-center gap-1.5 min-w-0 ${entry.tone}`}>
+                    <Icon className="w-3 h-3 shrink-0" />
+                    <span className="truncate">
+                        {entry.text}
+                        {context.truncated ? ` · ${t('ai.context.truncated')}` : ''}
+                    </span>
                 </span>
+                {msg?.grounded && (
+                    <span className="flex items-center gap-1 text-sky-600 dark:text-sky-400 shrink-0">
+                        <Globe className="w-3 h-3" /> {t('ai.context.grounded')}
+                    </span>
+                )}
+                {/* Token của ĐÚNG lượt này: người dùng thấy ngay câu hỏi nào đắt, thay vì
+                    chỉ thấy tổng hạn mức tụt xuống mà không biết vì sao. */}
+                {msg?.tokens > 0 && (
+                    <span className="text-gray-400 dark:text-gray-500 shrink-0 font-mono">
+                        {t('ai.tokensUsed', { tokens: msg.tokens.toLocaleString() })}
+                    </span>
+                )}
             </div>
         );
     };
 
     const aiDisabled = status?.enabled === false;
+    // Phần trăm ĐÃ DÙNG. `limit` có thể là 0 (gói bị khoá AI) — chia cho 0 ra Infinity
+    // nên chặn ở đây, coi như đã dùng hết.
+    const usedPercent = quota
+        ? quota.limit > 0
+            ? Math.min(100, Math.round((quota.used / quota.limit) * 100))
+            : 100
+        : 0;
+    // Ngày cấp lại, hiển thị theo giờ VN vì chu kỳ hạn mức tính theo múi giờ đó.
+    const resetLabel = quota?.resetAt
+        ? new Date(quota.resetAt).toLocaleDateString(language === 'en' ? 'en-GB' : 'vi-VN', {
+              day: '2-digit',
+              month: '2-digit',
+              year: 'numeric',
+              timeZone: 'Asia/Ho_Chi_Minh',
+          })
+        : null;
+    const inputLocked = aiDisabled || quotaBlocked;
 
     return (
         <div
@@ -336,6 +400,51 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                     </div>
                 </div>
 
+                {/* ── Hạn mức AI của tháng ──
+                    Hiện SỐ LƯỢT PHÂN TÍCH CÒN LẠI chứ không phải số token: "còn 7 lượt"
+                    là thứ người dùng hình dung được, còn "còn 213.480 token" thì không.
+                    Số token thật vẫn có, nằm ở tooltip cho ai cần đối chiếu. */}
+                {quota && !aiDisabled && (
+                    <div className="px-5 py-2 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-[#1e1e1e]">
+                        <div className="flex items-center justify-between gap-3 text-[11px]">
+                            <span
+                                className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400 min-w-0"
+                                title={t('ai.quota.tooltip', {
+                                    used: quota.used.toLocaleString(),
+                                    limit: quota.limit.toLocaleString(),
+                                })}
+                            >
+                                <Gauge className="w-3.5 h-3.5 shrink-0 text-purple-500" />
+                                <span className="truncate">
+                                    {quotaBlocked
+                                        ? t('ai.quota.empty')
+                                        : t('ai.quota.left', { count: quota.analysesLeft })}
+                                </span>
+                                <span className="text-gray-400 dark:text-gray-500 truncate hidden sm:inline">
+                                    · {quota.planName}
+                                </span>
+                            </span>
+                            {resetLabel && (
+                                <span className="text-gray-400 dark:text-gray-500 shrink-0">
+                                    {t('ai.quota.reset', { date: resetLabel })}
+                                </span>
+                            )}
+                        </div>
+                        <div className="mt-1.5 h-1 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+                            <div
+                                className={`h-full rounded-full transition-all ${
+                                    usedPercent >= 100
+                                        ? 'bg-rose-500'
+                                        : usedPercent >= 80
+                                          ? 'bg-amber-500'
+                                          : 'bg-gradient-to-r from-blue-500 to-purple-500'
+                                }`}
+                                style={{ width: `${usedPercent}%` }}
+                            />
+                        </div>
+                    </div>
+                )}
+
                 {/* ── Khu hội thoại ── */}
                 <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/60 dark:bg-[#18191a]">
                     {aiDisabled ? (
@@ -343,6 +452,19 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                             <AlertTriangle className="w-8 h-8 text-amber-500" />
                             <p className="font-semibold text-gray-800 dark:text-gray-200">{t('ai.disabled.title')}</p>
                             <p className="text-xs text-gray-500 dark:text-gray-400 max-w-sm">{t('ai.disabled.desc')}</p>
+                        </div>
+                    ) : quotaBlocked && messages.length === 0 ? (
+                        <div className="h-full flex flex-col items-center justify-center text-center px-8 gap-3">
+                            <div className="p-3 rounded-2xl bg-amber-100 dark:bg-amber-500/15">
+                                <Gauge className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+                            </div>
+                            <p className="font-semibold text-gray-800 dark:text-gray-200">{t('ai.quota.blockedTitle')}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 max-w-sm">
+                                {t('ai.quota.blockedDesc', {
+                                    plan: quota?.planName ?? '',
+                                    date: resetLabel ?? '',
+                                })}
+                            </p>
                         </div>
                     ) : messages.length === 0 && !isThinking ? (
                         // Màn hình trống có ích: nói rõ AI sẽ đọc được gì ở mục này và
@@ -377,7 +499,7 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                                                 className="prose-ai"
                                                 dangerouslySetInnerHTML={{ __html: renderMarkdown(msg.text) }}
                                             />
-                                            {renderContextNote(msg.context)}
+                                            {renderContextNote(msg.context, msg)}
                                             <button
                                                 onClick={() => handleCopy(msg.text, idx)}
                                                 className="mt-2 inline-flex items-center gap-1 text-[11px] text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity cursor-pointer"
@@ -429,7 +551,7 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                 </div>
 
                 {/* ── Lệnh nhanh ── */}
-                {!aiDisabled && (
+                {!inputLocked && (
                     <div className="px-3 py-2 bg-white dark:bg-[#1e1e1e] border-t border-gray-100 dark:border-gray-800 flex gap-2 overflow-x-auto text-xs">
                         {quickActions.map((action) => {
                             const Icon = action.icon;
@@ -449,21 +571,42 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                     </div>
                 )}
 
+                {/* ── Hết hạn mức: mời nâng cấp thay vì để một ô nhập bấm vào chỉ ra lỗi ── */}
+                {quotaBlocked && !aiDisabled && (
+                    <div className="p-3 bg-white dark:bg-[#1e1e1e] border-t border-gray-100 dark:border-gray-800 flex items-center justify-between gap-3">
+                        <p className="text-[11px] text-gray-500 dark:text-gray-400 min-w-0">
+                            {t('ai.quota.upgradeHint')}
+                        </p>
+                        <Link
+                            to="/app/billing"
+                            onClick={onClose}
+                            className="shrink-0 px-3 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium text-xs shadow-xs transition-all flex items-center gap-1.5"
+                        >
+                            {t('ai.quota.upgradeCta')}
+                            <ArrowUpRight className="w-3.5 h-3.5" />
+                        </Link>
+                    </div>
+                )}
+
                 {/* ── Ô nhập ── */}
-                <form onSubmit={handleSubmit} className="p-3 bg-white dark:bg-[#1e1e1e] border-t border-gray-100 dark:border-gray-800">
+                <form
+                    onSubmit={handleSubmit}
+                    hidden={quotaBlocked && !aiDisabled}
+                    className="p-3 bg-white dark:bg-[#1e1e1e] border-t border-gray-100 dark:border-gray-800"
+                >
                     <div className="flex gap-2">
                         <input
                             ref={inputRef}
                             type="text"
                             value={prompt}
-                            disabled={aiDisabled}
+                            disabled={inputLocked}
                             onChange={(e) => setPrompt(e.target.value)}
                             placeholder={isFolder ? t('ai.placeholder.folder') : t('ai.placeholder.file')}
                             className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#282a2c] text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 outline-none text-[13px] disabled:opacity-50"
                         />
                         <button
                             type="submit"
-                            disabled={!prompt.trim() || isThinking || aiDisabled}
+                            disabled={!prompt.trim() || isThinking || inputLocked}
                             className="px-4 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium rounded-xl shadow-xs disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-1 text-xs cursor-pointer"
                         >
                             <Send className="w-4 h-4" />

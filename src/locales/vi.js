@@ -455,6 +455,19 @@ const vi = {
   'ai.context.folder': 'Đã đọc danh sách {count} mục con',
   'ai.context.metadata': 'Chỉ đọc được thông tin mô tả, không phải nội dung',
   'ai.context.truncated': 'nội dung đã bị cắt bớt',
+  // ── Hạn mức AI theo gói (backend: storage_plans.ai_token_quota) ──
+  // Hiển thị "số lượt phân tích" thay vì token: 30.000 token ≈ 1 lượt phân tích tài liệu
+  // đầy đủ. Con số token thật vẫn có trong tooltip cho ai cần đối chiếu hoá đơn.
+  'ai.quota.left': 'Còn ~{count} lượt phân tích trong tháng',
+  'ai.quota.empty': 'Đã dùng hết hạn mức AI tháng này',
+  'ai.quota.reset': 'Cấp lại {date}',
+  'ai.quota.tooltip': 'Đã dùng {used}/{limit} token AI trong tháng này',
+  'ai.quota.blockedTitle': 'Hết hạn mức AI của tháng',
+  'ai.quota.blockedDesc': 'Gói "{plan}" của bạn đã dùng hết số token AI trong tháng này. Hạn mức được cấp lại vào {date}, hoặc nâng cấp gói để có thêm ngay.',
+  'ai.quota.upgradeHint': 'Nâng cấp gói để có thêm hạn mức AI ngay, không phải chờ sang tháng.',
+  'ai.quota.upgradeCta': 'Xem các gói',
+  'ai.context.grounded': 'có tra cứu web',
+  'ai.tokensUsed': '{tokens} token',
   'star.readOnly': 'Chỉ chủ sở hữu mới gắn sao được',
   // ── Bảng tiến trình tải lên + phiên tải dở ──
   'upload.summary.done': 'Hoàn tất {done}/{total} tệp{extra}',

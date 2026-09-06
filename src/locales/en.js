@@ -450,6 +450,17 @@ const en = {
   'ai.context.folder': 'Read a listing of {count} child items',
   'ai.context.metadata': 'Only metadata was available, not the contents',
   'ai.context.truncated': 'content was truncated',
+  // ── Per-plan AI quota (backend: storage_plans.ai_token_quota) ──
+  'ai.quota.left': '~{count} analyses left this month',
+  'ai.quota.empty': 'Monthly AI quota used up',
+  'ai.quota.reset': 'Resets {date}',
+  'ai.quota.tooltip': 'Used {used}/{limit} AI tokens this month',
+  'ai.quota.blockedTitle': 'Monthly AI quota reached',
+  'ai.quota.blockedDesc': 'Your "{plan}" plan has used all of this month\'s AI tokens. The quota resets on {date}, or upgrade your plan to get more right away.',
+  'ai.quota.upgradeHint': 'Upgrade your plan for more AI quota now, without waiting for next month.',
+  'ai.quota.upgradeCta': 'See plans',
+  'ai.context.grounded': 'used web lookup',
+  'ai.tokensUsed': '{tokens} tokens',
   'star.readOnly': 'Only the owner can star this',
   // ── Upload progress panel + resumable sessions ──
   'upload.summary.done': 'Finished {done}/{total} files{extra}',

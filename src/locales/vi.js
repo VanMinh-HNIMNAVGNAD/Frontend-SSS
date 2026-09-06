@@ -336,6 +336,7 @@ const vi = {
   'auth.nickname.placeholder': 'Nhập nickname của bạn',
   'auth.captcha.required': 'Vui lòng hoàn tất xác minh CAPTCHA bên dưới.',
   'auth.captcha.requiredResend': 'Vui lòng hoàn tất xác minh CAPTCHA bên dưới rồi bấm gửi lại.',
+  'auth.captcha.loading': 'Vui lòng chờ ô xác minh CAPTCHA tải xong.',
   'auth.captcha.expired': 'Mã xác minh đã hết hạn, đang làm mới...',
   'login.title': 'Đăng nhập driveR',
   'login.otpTitle': 'Xác minh đăng nhập',
@@ -393,6 +394,9 @@ const vi = {
   'turnstile.clockSkew': 'Đồng hồ máy bạn có vẻ sai giờ. Hãy chỉnh lại ngày giờ hệ thống rồi tải lại trang{suffix}',
   'turnstile.timeout': 'Phiên xác minh đã quá hạn. Vui lòng xác minh lại{suffix}',
   'turnstile.generic': 'Xác minh không thành công. Vui lòng thử lại{suffix}',
+  'turnstile.loading': 'Đang tải xác minh…',
+  'turnstile.loadFailed': 'Không tải được ô xác minh. Hãy kiểm tra kết nối mạng hoặc tắt tiện ích chặn quảng cáo, rồi tải lại trang.',
+  'turnstile.unsupported': 'Trình duyệt của bạn không chạy được phần xác minh bảo mật. Hãy dùng một trình duyệt mới hơn.',
   'turnstile.expired': 'Mã xác minh đã hết hạn, đang làm mới...',
   // ── Phím tắt toàn cục (components/layout/MainLayout.jsx) ──
   'shortcutToast.needDrive': 'Vui lòng mở một Bộ nhớ dùng chung trước.',

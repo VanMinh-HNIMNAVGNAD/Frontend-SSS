@@ -129,3 +129,17 @@ export function describeTurnstileError(code) {
 
 /** Khoá dịch cho lúc token hết hạn (widget tự làm mới, người dùng không cần làm gì) */
 export const TURNSTILE_EXPIRED_KEY = 'turnstile.expired';
+
+/**
+ * Bao lâu (ms) mà widget vẫn chưa render xong thì coi như script Cloudflare
+ * KHÔNG tải được và báo cho người dùng.
+ *
+ * Cần con số này vì trạng thái "chưa tải xong" và "tải hỏng vĩnh viễn" nhìn y
+ * hệt nhau: cả hai đều là một ô trống 65px và một nút submit bị khoá. Không có
+ * đồng hồ đếm, người bị tường lửa/adblock chặn challenges.cloudflare.com sẽ
+ * ngồi nhìn nút xám suốt mà không một dòng chữ nào giải thích.
+ *
+ * 15 giây: rộng hơn nhiều so với thời gian tải thật (~1-3s kể cả mạng 3G) nên
+ * không báo nhầm, mà vẫn ngắn hơn ngưỡng kiên nhẫn của người dùng.
+ */
+export const TURNSTILE_LOAD_TIMEOUT_MS = 15000;

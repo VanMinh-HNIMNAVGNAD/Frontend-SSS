@@ -333,6 +333,7 @@ const en = {
   'auth.nickname.placeholder': 'Choose a nickname',
   'auth.captcha.required': 'Please complete the CAPTCHA below.',
   'auth.captcha.requiredResend': 'Complete the CAPTCHA below, then tap resend.',
+  'auth.captcha.loading': 'Please wait for the security check to finish loading.',
   'auth.captcha.expired': 'The CAPTCHA expired — refreshing...',
   'login.title': 'Sign in to driveR',
   'login.otpTitle': 'Verify your sign-in',
@@ -390,6 +391,9 @@ const en = {
   'turnstile.clockSkew': "Your computer's clock looks wrong. Fix the system date and time, then reload the page{suffix}",
   'turnstile.timeout': 'The CAPTCHA session timed out. Please verify again{suffix}',
   'turnstile.generic': 'Verification failed. Please try again{suffix}',
+  'turnstile.loading': 'Loading verification…',
+  'turnstile.loadFailed': 'The security check could not load. Check your connection or disable your ad blocker, then reload the page.',
+  'turnstile.unsupported': 'Your browser cannot run the security check. Please use a newer browser.',
   'turnstile.expired': 'The CAPTCHA token expired — refreshing...',
   // ── Global shortcuts (components/layout/MainLayout.jsx) ──
   'shortcutToast.needDrive': 'Open a shared drive first.',

@@ -57,7 +57,7 @@ export default function RegisterPage() {
     }
 
     if (!captcha.isVerified) {
-      setLocalError(t('auth.captcha.required'));
+      setLocalError(t(captcha.isReady ? 'auth.captcha.required' : 'auth.captcha.loading'));
       return;
     }
 
@@ -93,7 +93,7 @@ export default function RegisterPage() {
     // ("Vui lòng hoàn tất xác minh CAPTCHA") — chặn tại đây để người dùng đọc được câu
     // đúng việc họ cần làm. <OtpForm captcha={captcha}> là nơi hiện ô CAPTCHA để lấy token.
     if (!captcha.isVerified) {
-      setLocalError(t('auth.captcha.requiredResend'));
+      setLocalError(t(captcha.isReady ? 'auth.captcha.requiredResend' : 'auth.captcha.loading'));
       return;
     }
     try {
@@ -278,7 +278,16 @@ export default function RegisterPage() {
             disabled={isLoading || !captcha.isVerified}
             className="w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-base font-bold tracking-wide transition flex items-center justify-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-600/25 cursor-pointer"
           >
-            <span>{isLoading ? t('register.submitting') : t('register.submit')}</span>
+            {/* Nút bị khoá cho tới khi ô xác minh render xong VÀ giải xong (xem
+                useTurnstile.isVerified). Nhãn đổi theo để lý do bị khoá đọc được
+                ngay trên nút, thay vì chỉ là một khối xám không giải thích gì. */}
+            <span>
+              {isLoading
+                ? t('register.submitting')
+                : captcha.isReady
+                  ? t('register.submit')
+                  : t('turnstile.loading')}
+            </span>
             <ArrowRight className="w-5 h-5" />
           </button>
 

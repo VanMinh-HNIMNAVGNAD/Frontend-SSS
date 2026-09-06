@@ -23,6 +23,7 @@ export default function FileGridView() {
         currentFilteredItems, 
         openFolder, 
         toggleStar, 
+        updateColor,
         moveToTrash,
         restoreFromTrash,
         deletePermanently,
@@ -382,6 +383,7 @@ export default function FileGridView() {
                 onRestore={(item) => restoreFromTrash(item.id)}
                 onDeletePermanently={(item) => deletePermanently(item.id)}
                 onShowInfo={(item, tab) => openInfoDrawer(item, tab)}
+                onChangeColor={(item, color) => updateColor(item.id, color)}
             />
 
             {/* Modals */}

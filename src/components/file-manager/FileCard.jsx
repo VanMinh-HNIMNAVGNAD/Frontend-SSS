@@ -2,6 +2,7 @@ import { memo } from 'react';
 import { formatBytes } from '../../utils/formatFileSize';
 import { useFileThumbnail, getFileTypeCategory } from '../../hooks/useFileThumbnail';
 import StarButton from '../common/StarButton';
+import { getEffectiveColor } from '../../utils/fileColors';
 import { 
     FileText, 
     FileSpreadsheet, 
@@ -19,96 +20,95 @@ import {
     ShieldAlert,
 } from 'lucide-react';
 
-const fileTypeStyles = {
-    pdf: {
-        bg: 'bg-rose-50/70 dark:bg-rose-500/15 hover:bg-rose-100/80 dark:hover:bg-rose-500/25 border-rose-300/90 dark:border-rose-900/50',
-        badgeBg: 'bg-rose-100 text-rose-800 font-semibold dark:bg-rose-500/20 dark:text-rose-300',
-        icon: <FileText className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0" />,
-        previewBg: 'bg-rose-500/10 text-rose-700 dark:text-rose-300',
-        label: 'PDF Document'
-    },
-    sheet: {
-        bg: 'bg-emerald-50/70 dark:bg-emerald-500/15 hover:bg-emerald-100/80 dark:hover:bg-emerald-500/25 border-emerald-300/90 dark:border-emerald-900/50',
-        badgeBg: 'bg-emerald-100 text-emerald-800 font-semibold dark:bg-emerald-500/20 dark:text-emerald-300',
-        icon: <FileSpreadsheet className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />,
-        previewBg: 'bg-emerald-500/10 text-emerald-800 dark:text-emerald-300',
-        label: 'Spreadsheet'
-    },
-    image: {
-        bg: 'bg-purple-50/70 dark:bg-purple-500/15 hover:bg-purple-100/80 dark:hover:bg-purple-500/25 border-purple-300/90 dark:border-purple-900/50',
-        badgeBg: 'bg-purple-100 text-purple-800 font-semibold dark:bg-purple-500/20 dark:text-purple-300',
-        icon: <ImageIcon className="w-5 h-5 text-purple-600 dark:text-purple-400 shrink-0" />,
-        previewBg: 'bg-purple-500/10 text-purple-800 dark:text-purple-300',
-        label: 'Image'
-    },
-    video: {
-        bg: 'bg-violet-50/70 dark:bg-violet-500/15 hover:bg-violet-100/80 dark:hover:bg-violet-500/25 border-violet-300/90 dark:border-violet-900/50',
-        badgeBg: 'bg-violet-100 text-violet-800 font-semibold dark:bg-violet-500/20 dark:text-violet-300',
-        icon: <Video className="w-5 h-5 text-violet-600 dark:text-violet-400 shrink-0" />,
-        previewBg: 'bg-violet-500/10 text-violet-800 dark:text-violet-300',
-        label: 'Video Clip'
-    },
-    audio: {
-        bg: 'bg-pink-50/70 dark:bg-pink-500/15 hover:bg-pink-100/80 dark:hover:bg-pink-500/25 border-pink-300/90 dark:border-pink-900/50',
-        badgeBg: 'bg-pink-100 text-pink-800 font-semibold dark:bg-pink-500/20 dark:text-pink-300',
-        icon: <Music className="w-5 h-5 text-pink-600 dark:text-pink-400 shrink-0" />,
-        previewBg: 'bg-pink-500/10 text-pink-800 dark:text-pink-300',
-        label: 'Audio File'
-    },
-    database: {
-        bg: 'bg-cyan-50/70 dark:bg-cyan-500/15 hover:bg-cyan-100/80 dark:hover:bg-cyan-500/25 border-cyan-300/90 dark:border-cyan-900/50',
-        badgeBg: 'bg-cyan-100 text-cyan-800 font-semibold dark:bg-cyan-500/20 dark:text-cyan-300',
-        icon: <Database className="w-5 h-5 text-cyan-600 dark:text-cyan-400 shrink-0" />,
-        previewBg: 'bg-cyan-500/10 text-cyan-800 dark:text-cyan-300',
-        label: 'Database SQL'
-    },
-    figma: {
-        bg: 'bg-purple-50/70 dark:bg-purple-500/15 hover:bg-purple-100/80 dark:hover:bg-purple-500/25 border-purple-300/90 dark:border-purple-900/50',
-        badgeBg: 'bg-purple-100 text-purple-800 font-semibold dark:bg-purple-500/20 dark:text-purple-300',
-        icon: <Layers className="w-5 h-5 text-purple-600 dark:text-purple-400 shrink-0" />,
-        previewBg: 'bg-purple-500/10 text-purple-800 dark:text-purple-300',
-        label: 'Figma Design'
-    },
-    doc: {
-        bg: 'bg-blue-50/70 dark:bg-blue-500/15 hover:bg-blue-100/80 dark:hover:bg-blue-500/25 border-blue-300/90 dark:border-blue-900/50',
-        badgeBg: 'bg-blue-100 text-blue-800 font-semibold dark:bg-blue-500/20 dark:text-blue-300',
-        icon: <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0" />,
-        previewBg: 'bg-blue-500/10 text-blue-800 dark:text-blue-300',
-        label: 'Document'
-    },
-    markdown: {
-        bg: 'bg-indigo-50/70 dark:bg-indigo-500/15 hover:bg-indigo-100/80 dark:hover:bg-indigo-500/25 border-indigo-300/90 dark:border-indigo-900/50',
-        badgeBg: 'bg-indigo-100 text-indigo-800 font-semibold dark:bg-indigo-500/20 dark:text-indigo-300',
-        icon: <FileCode className="w-5 h-5 text-indigo-600 dark:text-indigo-400 shrink-0" />,
-        previewBg: 'bg-indigo-500/10 text-indigo-800 dark:text-indigo-300',
-        label: 'Markdown'
-    },
-    archive: {
-        bg: 'bg-amber-50/70 dark:bg-amber-500/15 hover:bg-amber-100/80 dark:hover:bg-amber-500/25 border-amber-300/90 dark:border-amber-900/50',
-        badgeBg: 'bg-amber-100 text-amber-800 font-semibold dark:bg-amber-500/20 dark:text-amber-300',
-        icon: <FileArchive className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />,
-        previewBg: 'bg-amber-500/10 text-amber-800 dark:text-amber-300',
-        label: 'Archive'
-    },
-    code: {
-        bg: 'bg-amber-50/70 dark:bg-amber-500/15 hover:bg-amber-100/80 dark:hover:bg-amber-500/25 border-amber-300/90 dark:border-amber-900/50',
-        badgeBg: 'bg-amber-100 text-amber-800 font-semibold dark:bg-amber-500/20 dark:text-amber-300',
-        icon: <FileCode className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />,
-        previewBg: 'bg-amber-500/10 text-amber-800 dark:text-amber-300',
-        label: 'Source Code'
-    },
-    default: {
-        bg: 'bg-slate-50/90 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 border-slate-300/90 dark:border-gray-700',
-        badgeBg: 'bg-slate-200 text-slate-800 font-semibold dark:bg-gray-700 dark:text-gray-300',
-        icon: <File className="w-5 h-5 text-slate-600 dark:text-gray-400 shrink-0" />,
-        previewBg: 'bg-slate-500/10 text-slate-800 dark:text-gray-300',
-        label: 'File'
+/**
+ * Lấy icon React cho loại file, tô màu theo `color` (HEX).
+ * Dùng inline style để hỗ trợ màu tùy chỉnh RGB bất kỳ.
+ */
+function getCatIcon(cat, color, size = 'w-5 h-5') {
+    const style = { color };
+    const cls = `${size} shrink-0`;
+    switch (cat) {
+        case 'pdf':      return <FileText className={cls} style={style} />;
+        case 'sheet':    return <FileSpreadsheet className={cls} style={style} />;
+        case 'image':    return <ImageIcon className={cls} style={style} />;
+        case 'video':    return <Video className={cls} style={style} />;
+        case 'audio':    return <Music className={cls} style={style} />;
+        case 'database': return <Database className={cls} style={style} />;
+        case 'figma':    return <Layers className={cls} style={style} />;
+        case 'markdown': return <FileCode className={cls} style={style} />;
+        case 'doc':      return <FileText className={cls} style={style} />;
+        case 'archive':  return <FileArchive className={cls} style={style} />;
+        case 'code':     return <FileCode className={cls} style={style} />;
+        default:         return <File className={cls} style={style} />;
     }
+}
+
+/**
+ * Trả về Tailwind class màu nền nhẹ cho card dựa trên màu HEX hiệu lực.
+ * Vì Tailwind không hỗ trợ dynamic class, ta map theo category thay vì hex.
+ * customColor sẽ override bằng inline border-color.
+ */
+const CAT_BG_CLASS = {
+    pdf:      'bg-rose-50/70 dark:bg-rose-500/15 hover:bg-rose-100/80 dark:hover:bg-rose-500/25 border-rose-300/90 dark:border-rose-900/50',
+    sheet:    'bg-emerald-50/70 dark:bg-emerald-500/15 hover:bg-emerald-100/80 dark:hover:bg-emerald-500/25 border-emerald-300/90 dark:border-emerald-900/50',
+    image:    'bg-purple-50/70 dark:bg-purple-500/15 hover:bg-purple-100/80 dark:hover:bg-purple-500/25 border-purple-300/90 dark:border-purple-900/50',
+    video:    'bg-violet-50/70 dark:bg-violet-500/15 hover:bg-violet-100/80 dark:hover:bg-violet-500/25 border-violet-300/90 dark:border-violet-900/50',
+    audio:    'bg-pink-50/70 dark:bg-pink-500/15 hover:bg-pink-100/80 dark:hover:bg-pink-500/25 border-pink-300/90 dark:border-pink-900/50',
+    database: 'bg-emerald-50/70 dark:bg-emerald-500/15 hover:bg-emerald-100/80 dark:hover:bg-emerald-500/25 border-emerald-300/90 dark:border-emerald-900/50',
+    figma:    'bg-purple-50/70 dark:bg-purple-500/15 hover:bg-purple-100/80 dark:hover:bg-purple-500/25 border-purple-300/90 dark:border-purple-900/50',
+    doc:      'bg-blue-50/70 dark:bg-blue-500/15 hover:bg-blue-100/80 dark:hover:bg-blue-500/25 border-blue-300/90 dark:border-blue-900/50',
+    markdown: 'bg-indigo-50/70 dark:bg-indigo-500/15 hover:bg-indigo-100/80 dark:hover:bg-indigo-500/25 border-indigo-300/90 dark:border-indigo-900/50',
+    archive:  'bg-amber-50/70 dark:bg-amber-500/15 hover:bg-amber-100/80 dark:hover:bg-amber-500/25 border-amber-300/90 dark:border-amber-900/50',
+    code:     'bg-sky-50/70 dark:bg-sky-500/15 hover:bg-sky-100/80 dark:hover:bg-sky-500/25 border-sky-300/90 dark:border-sky-900/50',
+    default:  'bg-slate-50/90 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 border-slate-300/90 dark:border-gray-700',
+};
+
+const CAT_BADGE_CLASS = {
+    pdf:      'bg-rose-100 text-rose-800 font-semibold dark:bg-rose-500/20 dark:text-rose-300',
+    sheet:    'bg-emerald-100 text-emerald-800 font-semibold dark:bg-emerald-500/20 dark:text-emerald-300',
+    image:    'bg-purple-100 text-purple-800 font-semibold dark:bg-purple-500/20 dark:text-purple-300',
+    video:    'bg-violet-100 text-violet-800 font-semibold dark:bg-violet-500/20 dark:text-violet-300',
+    audio:    'bg-pink-100 text-pink-800 font-semibold dark:bg-pink-500/20 dark:text-pink-300',
+    database: 'bg-emerald-100 text-emerald-800 font-semibold dark:bg-emerald-500/20 dark:text-emerald-300',
+    figma:    'bg-purple-100 text-purple-800 font-semibold dark:bg-purple-500/20 dark:text-purple-300',
+    doc:      'bg-blue-100 text-blue-800 font-semibold dark:bg-blue-500/20 dark:text-blue-300',
+    markdown: 'bg-indigo-100 text-indigo-800 font-semibold dark:bg-indigo-500/20 dark:text-indigo-300',
+    archive:  'bg-amber-100 text-amber-800 font-semibold dark:bg-amber-500/20 dark:text-amber-300',
+    code:     'bg-sky-100 text-sky-800 font-semibold dark:bg-sky-500/20 dark:text-sky-300',
+    default:  'bg-slate-200 text-slate-800 font-semibold dark:bg-gray-700 dark:text-gray-300',
+};
+
+const CAT_PREVIEW_CLASS = {
+    pdf:      'bg-rose-500/10 text-rose-700 dark:text-rose-300',
+    sheet:    'bg-emerald-500/10 text-emerald-800 dark:text-emerald-300',
+    image:    'bg-purple-500/10 text-purple-800 dark:text-purple-300',
+    video:    'bg-violet-500/10 text-violet-800 dark:text-violet-300',
+    audio:    'bg-pink-500/10 text-pink-800 dark:text-pink-300',
+    database: 'bg-emerald-500/10 text-emerald-800 dark:text-emerald-300',
+    figma:    'bg-purple-500/10 text-purple-800 dark:text-purple-300',
+    doc:      'bg-blue-500/10 text-blue-800 dark:text-blue-300',
+    markdown: 'bg-indigo-500/10 text-indigo-800 dark:text-indigo-300',
+    archive:  'bg-amber-500/10 text-amber-800 dark:text-amber-300',
+    code:     'bg-sky-500/10 text-sky-800 dark:text-sky-300',
+    default:  'bg-slate-500/10 text-slate-800 dark:text-gray-300',
 };
 
 function FileCard({ file, onDoubleClick, onContextMenu, onStarToggle, onOpenInfo, isSelected, isCut = false, onToggleSelect, onSelectRange }) {
     const cat = getFileTypeCategory(file?.name);
-    const style = fileTypeStyles[cat] || fileTypeStyles.default;
+
+    // Màu hiệu lực: customColor (DB) nếu có, ngược lại dùng màu theo extension
+    const color = getEffectiveColor(file);
+    const icon = getCatIcon(cat, color);
+    const bigIcon = getCatIcon(cat, color, 'w-6 h-6');
+
+    const bgClass     = CAT_BG_CLASS[cat]     ?? CAT_BG_CLASS.default;
+    const badgeClass  = CAT_BADGE_CLASS[cat]  ?? CAT_BADGE_CLASS.default;
+    const previewClass = CAT_PREVIEW_CLASS[cat] ?? CAT_PREVIEW_CLASS.default;
+
+    // Nếu có customColor, override border bằng inline style
+    const cardBorderStyle = file?.customColor
+        ? { borderColor: `${file.customColor}55` }  // 33% opacity
+        : undefined;
 
     // Thumbnail: logic tải/parse nằm trong hook dùng chung với Trang chủ
     const { thumbType, thumbUrl, textContent, sheetData } = useFileThumbnail(file);
@@ -117,9 +117,10 @@ function FileCard({ file, onDoubleClick, onContextMenu, onStarToggle, onOpenInfo
         <div
             onDoubleClick={() => onDoubleClick && onDoubleClick(file)}
             onContextMenu={(e) => onContextMenu && onContextMenu(e, file)}
+            style={isSelected ? undefined : cardBorderStyle}
             className={`group relative flex flex-col justify-between p-3.5 rounded-2xl cursor-pointer transition-all duration-200 border shadow-sm hover:shadow-md hover:-translate-y-0.5 h-52 ${
                 isCut ? 'opacity-50 border-dashed' : ''
-            } ${isSelected ? 'ring-2 ring-blue-500 border-blue-300 bg-blue-50 dark:bg-blue-500/15' : style.bg}`}
+            } ${isSelected ? 'ring-2 ring-blue-500 border-blue-300 bg-blue-50 dark:bg-blue-500/15' : bgClass}`}
         >
             {/* Checkbox top-left – only this triggers selection */}
             <button
@@ -148,7 +149,7 @@ function FileCard({ file, onDoubleClick, onContextMenu, onStarToggle, onOpenInfo
             {/* Header: Title & Actions */}
             <div className="flex items-start justify-between gap-2 z-10">
                 <div className="flex items-center gap-2 min-w-0 pl-4">
-                    {style.icon}
+                    {icon}
                     <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate" title={file.name}>
                         {file.name}
                     </span>
@@ -236,7 +237,7 @@ function FileCard({ file, onDoubleClick, onContextMenu, onStarToggle, onOpenInfo
 
                 ) : thumbType === 'text' && textContent ? (
                     /* ── Text / Code / JSON / DOCX ── */
-                    <div className={`w-full h-full rounded-lg p-2 overflow-hidden ${style.previewBg}`}>
+                    <div className={`w-full h-full rounded-lg p-2 overflow-hidden ${previewClass}`}>
                         <pre
                             className="text-[8px] font-mono leading-tight opacity-60 whitespace-pre-wrap break-all text-left"
                             style={{ maxHeight: '100%', overflow: 'hidden' }}
@@ -246,9 +247,9 @@ function FileCard({ file, onDoubleClick, onContextMenu, onStarToggle, onOpenInfo
                     </div>
 
                 ) : (
-                    /* ── Fallback: icon mặc định (không có chữ "Đang tải...") ── */
-                    <div className={`w-full h-full rounded-lg flex flex-col items-center justify-center gap-2 ${style.previewBg}`}>
-                        <div className="opacity-30 scale-150">{style.icon}</div>
+                    /* ── Fallback: icon mặc định ── */
+                    <div className={`w-full h-full rounded-lg flex flex-col items-center justify-center gap-2 ${previewClass}`}>
+                        <div className="opacity-30 scale-150">{bigIcon}</div>
                         <span className="text-[10px] font-semibold opacity-40 tracking-wide uppercase">
                             {file.name.split('.').pop() || 'FILE'}
                         </span>
@@ -258,7 +259,7 @@ function FileCard({ file, onDoubleClick, onContextMenu, onStarToggle, onOpenInfo
 
             {/* Footer */}
             <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 pt-1 border-t border-gray-300/80 dark:border-gray-700/60">
-                <span className={`px-2 py-0.5 rounded-full font-semibold text-[11px] ${style.badgeBg}`}>
+                <span className={`px-2 py-0.5 rounded-full font-semibold text-[11px] ${badgeClass}`}>
                     {file.name.split('.').pop()?.toUpperCase() || 'FILE'}
                 </span>
                 <span className="font-mono text-[11px] text-gray-700 dark:text-gray-300 font-semibold">

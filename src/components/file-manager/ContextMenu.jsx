@@ -18,17 +18,12 @@ import {
     FileUp,
     FolderUp,
     FolderPlus,
+    Palette,
     ChevronRight,
-    ChevronLeft,
-    FileText,
-    Lightbulb,
-    Tags,
-    ListChecks,
-    Wand2,
-    MessageSquare
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { SHORTCUT_HINTS } from '../../hooks/useGlobalShortcuts';
+import ColorPickerPanel from './ColorPickerPanel';
 
 // Bảng phím tắt lấy thẳng từ hook — đã format sẵn theo hệ điều hành đang chạy,
 // nên phần hiển thị không bao giờ lệch với phím thật sự đang được lắng nghe.
@@ -41,24 +36,6 @@ import { SHORTCUT_HINTS } from '../../hooks/useGlobalShortcuts';
 // khớp với CHỮ HIỂN THỊ, nên đổi giao diện sang English là mất gợi ý phím tắt.
 const RENAME_SHORTCUT_KEYS =
     SHORTCUT_HINTS.find((hint) => hint.id === 'rename')?.keys ?? [];
-
-// ── Hành động nhanh của trợ lý AI ──────────────────────────────────────────
-// `id` đi thẳng xuống `POST /ai/ask` làm trường `action`; backend giữ câu lệnh
-// thật, nên sửa cách hỏi Gemini là deploy backend chứ không build lại frontend.
-// `folderOnly` / `fileOnly` lọc theo mục được bấm: "tạo câu hỏi ôn tập" từ một
-// thư mục chỉ có danh sách tên tệp thì không ra được gì hữu ích.
-const AI_QUICK_ACTIONS = [
-    { id: 'summarize', icon: FileText, labelKey: 'ai.action.summarize' },
-    { id: 'explain', icon: Lightbulb, labelKey: 'ai.action.explain' },
-    { id: 'keywords', icon: Tags, labelKey: 'ai.action.keywords' },
-    { id: 'quiz', icon: ListChecks, labelKey: 'ai.action.quiz', fileOnly: true },
-    { id: 'improve', icon: Wand2, labelKey: 'ai.action.improve', fileLabelKey: 'ai.action.improveFile' },
-];
-
-// Chiều rộng menu chính (w-64) và menu con (w-60) tính bằng px — cần con số thật
-// để biết còn chỗ mở sang phải hay phải lật sang trái.
-const MENU_WIDTH = 256;
-const SUBMENU_WIDTH = 240;
 
 export default function ContextMenu({
     isOpen = true,
@@ -89,6 +66,7 @@ export default function ContextMenu({
     onToggleStar,
     onShowInfo,
     onDismissSuggestion,
+    onChangeColor,          // (item, hexColor | null) → void
     // Menu cho vùng nền trống (right-click ngoài mọi file/folder) — không có `item`
     onUploadFile,
     onUploadFolder,
@@ -100,11 +78,8 @@ export default function ContextMenu({
 
     // Reposition menu to stay inside window bounds
     const [pos, setPos] = useState({ top: y, left: x });
-
-    // Menu con "Hỏi AI": null = đóng, 'right' | 'left' = đang mở và mở về phía nào.
-    // Lật sang trái khi bấm chuột phải sát mép phải màn hình, nếu không menu con
-    // tràn ra ngoài và người dùng không đọc được nửa cuối các mục.
-    const [aiSubmenuSide, setAiSubmenuSide] = useState(null);
+    // Bảng màu inline (trong menu này, không mở popup riêng)
+    const [showColorPicker, setShowColorPicker] = useState(false);
 
     useEffect(() => {
         if (menuRef.current) {
@@ -121,9 +96,6 @@ export default function ContextMenu({
 
             setPos({ top: newTop, left: newLeft });
         }
-        // Bấm chuột phải ở chỗ khác khi menu đang mở: menu chính nhảy sang vị trí
-        // mới, menu con phải đóng theo chứ không lơ lửng cạnh vị trí cũ.
-        setAiSubmenuSide(null);
     }, [x, y]);
 
     // Handle click outside
@@ -292,11 +264,6 @@ export default function ContextMenu({
     }
 
     const isFolder = item.type === 'folder';
-
-    // Menu chính đã được kéo vào trong màn hình ở effect trên, nên `pos.left` là vị
-    // trí thật; chỉ cần hỏi tiếp: mở thêm 240px sang phải có tràn không.
-    const openSideForSubmenu = () =>
-        pos.left + MENU_WIDTH + SUBMENU_WIDTH + 8 > window.innerWidth ? 'left' : 'right';
 
     // ── RBAC: Phân quyền cho tệp/thư mục được chia sẻ ──────────────
     const isShared = item.isSharedWithMe || activeTab === 'shared-with-me';
@@ -471,81 +438,20 @@ export default function ContextMenu({
                     {/* Separator 1 */}
                     <div className="h-px bg-gray-200 dark:bg-gray-700/60 my-1"></div>
 
-                    {/* 3. Hỏi AI — một mục mở menu con chứa các lệnh nhanh.
-                        Trước đây đây là một nút duy nhất mở khung chat trống, người dùng
-                        phải tự nghĩ ra câu hỏi. Các lệnh hay dùng nhất giờ nằm ngay trong
-                        menu chuột phải: một cú bấm là có câu trả lời. */}
-                    <div
-                        className="relative"
-                        onMouseEnter={() => setAiSubmenuSide(openSideForSubmenu())}
-                        onMouseLeave={() => setAiSubmenuSide(null)}
+                    {/* 3. Hỏi AI — bấm là vào thẳng khung chat.
+                        Trước đây đây là menu con chứa 5 lệnh nhanh (tóm tắt, giải thích,
+                        từ khoá, câu hỏi ôn tập, cải thiện). Bỏ đi vì nó bắt người dùng
+                        đi qua một lớp hover nữa mới tới được chỗ gõ câu hỏi, trong khi
+                        chính khung chat đã có sẵn đúng 5 chip đó ở chân khung cho ai cần.
+                        Vì vậy ContextMenu không còn biết tới khái niệm "lệnh nhanh" —
+                        danh sách chỉ còn sống một chỗ duy nhất là GeminiModal.jsx. */}
+                    <button
+                        onClick={() => { onGemini?.(item, 'chat'); onClose(); }}
+                        className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-900 dark:text-gray-100 font-medium transition-colors"
                     >
-                        <button
-                            type="button"
-                            aria-haspopup="menu"
-                            aria-expanded={!!aiSubmenuSide}
-                            onClick={() => setAiSubmenuSide((prev) => (prev ? null : openSideForSubmenu()))}
-                            className={`w-full px-4 py-2 cursor-pointer flex items-center justify-between gap-3 font-medium transition-colors text-gray-900 dark:text-gray-100 ${
-                                aiSubmenuSide ? 'bg-purple-50 dark:bg-purple-500/10' : 'hover:bg-gray-100 dark:hover:bg-[#37393b]'
-                            }`}
-                        >
-                            <div className="flex items-center gap-3 min-w-0">
-                                <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />
-                                <span className="truncate">{t('ai.menu.title')}</span>
-                            </div>
-                            {aiSubmenuSide === 'left'
-                                ? <ChevronLeft className="w-4 h-4 text-gray-400 shrink-0" />
-                                : <ChevronRight className="w-4 h-4 text-gray-400 shrink-0" />}
-                        </button>
-
-                        {aiSubmenuSide && (
-                            <div
-                                role="menu"
-                                // -top-2 kéo menu con lên ngang mép trên của hàng cha (py-2 của
-                                // menu chính), để mục đầu tiên thẳng hàng với chính nó.
-                                className={`absolute -top-2 w-60 bg-white dark:bg-[#282a2c]/95 backdrop-blur-md rounded-2xl shadow-2xl py-2 border border-gray-300 dark:border-gray-700/80 animate-fade-in z-10 ${
-                                    aiSubmenuSide === 'left' ? 'right-full mr-1' : 'left-full ml-1'
-                                }`}
-                            >
-                                <div className="px-4 pb-1.5 mb-1 border-b border-gray-200 dark:border-gray-700/60 text-[11px] font-semibold text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
-                                    <Sparkles className="w-3 h-3 text-purple-500 shrink-0" />
-                                    <span className="truncate">{t('ai.menu.subtitle')}</span>
-                                </div>
-
-                                {AI_QUICK_ACTIONS
-                                    .filter((action) => !(action.fileOnly && isFolder))
-                                    .filter((action) => !(action.folderOnly && !isFolder))
-                                    .map((action) => {
-                                        const Icon = action.icon;
-                                        const labelKey =
-                                            !isFolder && action.fileLabelKey ? action.fileLabelKey : action.labelKey;
-                                        return (
-                                            <button
-                                                key={action.id}
-                                                role="menuitem"
-                                                onClick={() => { onGemini?.(item, action.id); onClose(); }}
-                                                className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-800 dark:text-gray-200 transition-colors text-left"
-                                            >
-                                                <Icon className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />
-                                                <span className="truncate">{t(labelKey)}</span>
-                                            </button>
-                                        );
-                                    })}
-
-                                <div className="h-px bg-gray-200 dark:bg-gray-700/60 my-1"></div>
-
-                                {/* Câu hỏi tự do — vẫn giữ đường vào khung chat như trước */}
-                                <button
-                                    role="menuitem"
-                                    onClick={() => { onGemini?.(item, 'chat'); onClose(); }}
-                                    className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-900 dark:text-gray-100 font-medium transition-colors text-left"
-                                >
-                                    <MessageSquare className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
-                                    <span className="truncate">{t('ai.menu.chat')}</span>
-                                </button>
-                            </div>
-                        )}
-                    </div>
+                        <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />
+                        <span className="truncate">{t('ai.menu.title')}</span>
+                    </button>
 
                     {/* Separator 2 */}
                     <div className="h-px bg-gray-200 dark:bg-gray-700/60 my-1"></div>
@@ -571,6 +477,40 @@ export default function ContextMenu({
                         <Info className="w-4 h-4 text-gray-700 dark:text-gray-300 shrink-0" />
                         <span>{t('menu.details')}</span>
                     </button>
+
+                    {/* 6.5. Đổi màu — chỉ hiện khi owner hoặc EDITOR trong shared */}
+                    {onChangeColor && !item.isSharedWithMe && (
+                        <>
+                            <button
+                                onClick={() => setShowColorPicker((v) => !v)}
+                                className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center justify-between text-gray-800 dark:text-gray-200 transition-colors"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <Palette className="w-4 h-4 text-gray-700 dark:text-gray-300 shrink-0" />
+                                    <span>Đổi màu</span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                    {/* Preview màu hiện tại */}
+                                    <span
+                                        className="w-3.5 h-3.5 rounded-full border border-gray-300 dark:border-gray-600 shrink-0"
+                                        style={{ backgroundColor: item.customColor || undefined }}
+                                    />
+                                    <ChevronRight className={`w-3.5 h-3.5 text-gray-400 transition-transform ${showColorPicker ? 'rotate-90' : ''}`} />
+                                </div>
+                            </button>
+
+                            {showColorPicker && (
+                                <ColorPickerPanel
+                                    item={item}
+                                    currentColor={item.customColor ?? null}
+                                    onSelectColor={(hex) => {
+                                        onChangeColor(item, hex);
+                                    }}
+                                    onClose={onClose}
+                                />
+                            )}
+                        </>
+                    )}
 
                     {/* Separator 3 */}
                     <div className="h-px bg-gray-200 dark:bg-gray-700/60 my-1"></div>

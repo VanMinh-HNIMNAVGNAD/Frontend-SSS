@@ -7,56 +7,89 @@ import {
 	FileArchive,
 	Video,
 	Music,
+	Database,
+	Layers,
 	File,
 } from 'lucide-react';
+import { getEffectiveColor } from './fileColors';
 
+/**
+ * Trả về icon React cho một file/folder, màu sắc theo ngôn ngữ lập trình
+ * hoặc customColor nếu người dùng đã tùy chỉnh.
+ *
+ * @param {object} item       - { type, name, mimeType, customColor }
+ * @param {string} sizeClass  - Tailwind class kích thước (mặc định 'w-5 h-5')
+ */
 export function getFileIcon(item, sizeClass = 'w-5 h-5') {
 	if (!item) {
 		return <File className={`${sizeClass} text-gray-500 shrink-0`} />;
 	}
 
-	if (item.type === 'folder') {
-		return <Folder className={`${sizeClass} text-amber-500 fill-amber-100 dark:fill-amber-950/40 shrink-0`} />;
-	}
+	// Tính màu hiệu lực (customColor ưu tiên, còn lại dùng màu mặc định theo loại)
+	const color = getEffectiveColor(item);
+	const style = { color };
 
 	const name = (item.name || '').toLowerCase();
 	const mime = (item.mimeType || '').toLowerCase();
 
-	if (name.endsWith('.md') || name.endsWith('.markdown')) {
-		return <FileCode className={`${sizeClass} text-indigo-500 dark:text-indigo-400 shrink-0`} />;
+	if (item.type === 'folder') {
+		return <Folder className={`${sizeClass} shrink-0`} style={style} />;
 	}
 
+	// ── PDF ──
 	if (name.endsWith('.pdf') || mime.includes('pdf')) {
-		return <FileText className={`${sizeClass} text-rose-500 dark:text-rose-400 shrink-0`} />;
+		return <FileText className={`${sizeClass} shrink-0`} style={style} />;
 	}
 
-	if (name.endsWith('.docx') || name.endsWith('.doc') || name.endsWith('.txt') || name.endsWith('.log') || mime.includes('word') || mime.startsWith('text/plain')) {
-		return <FileText className={`${sizeClass} text-blue-500 dark:text-blue-400 shrink-0`} />;
-	}
-
+	// ── Spreadsheet ──
 	if (name.endsWith('.xlsx') || name.endsWith('.xls') || name.endsWith('.csv') || mime.includes('spreadsheet') || mime.includes('csv')) {
-		return <FileSpreadsheet className={`${sizeClass} text-emerald-600 dark:text-emerald-400 shrink-0`} />;
+		return <FileSpreadsheet className={`${sizeClass} shrink-0`} style={style} />;
 	}
 
+	// ── Office docs ──
+	if (name.endsWith('.docx') || name.endsWith('.doc') || name.endsWith('.txt') || name.endsWith('.log') || mime.includes('word') || mime.startsWith('text/plain')) {
+		return <FileText className={`${sizeClass} shrink-0`} style={style} />;
+	}
+
+	// ── Ảnh ──
 	if (name.endsWith('.png') || name.endsWith('.jpg') || name.endsWith('.jpeg') || name.endsWith('.svg') || name.endsWith('.webp') || name.endsWith('.gif') || mime.startsWith('image/')) {
-		return <ImageIcon className={`${sizeClass} text-purple-500 dark:text-purple-400 shrink-0`} />;
+		return <ImageIcon className={`${sizeClass} shrink-0`} style={style} />;
 	}
 
+	// ── Video ──
 	if (name.endsWith('.mp4') || name.endsWith('.mkv') || name.endsWith('.mov') || name.endsWith('.webm') || mime.startsWith('video/')) {
-		return <Video className={`${sizeClass} text-violet-500 dark:text-violet-400 shrink-0`} />;
+		return <Video className={`${sizeClass} shrink-0`} style={style} />;
 	}
 
+	// ── Audio ──
 	if (name.endsWith('.mp3') || name.endsWith('.wav') || name.endsWith('.flac') || name.endsWith('.ogg') || name.endsWith('.m4a') || mime.startsWith('audio/')) {
-		return <Music className={`${sizeClass} text-pink-500 dark:text-pink-400 shrink-0`} />;
+		return <Music className={`${sizeClass} shrink-0`} style={style} />;
 	}
 
+	// ── Archive ──
 	if (name.endsWith('.zip') || name.endsWith('.rar') || name.endsWith('.7z') || name.endsWith('.tar') || name.endsWith('.gz') || mime.includes('zip') || mime.includes('compressed')) {
-		return <FileArchive className={`${sizeClass} text-amber-600 dark:text-amber-400 shrink-0`} />;
+		return <FileArchive className={`${sizeClass} shrink-0`} style={style} />;
 	}
 
-	if (name.endsWith('.js') || name.endsWith('.jsx') || name.endsWith('.ts') || name.endsWith('.tsx') || name.endsWith('.py') || name.endsWith('.json') || name.endsWith('.html') || name.endsWith('.css') || name.endsWith('.xml') || name.endsWith('.yaml') || name.endsWith('.yml') || name.endsWith('.sql')) {
-		return <FileCode className={`${sizeClass} text-amber-500 dark:text-amber-400 shrink-0`} />;
+	// ── Database / SQL ──
+	if (name.endsWith('.sql') || name.endsWith('.db') || name.endsWith('.sqlite')) {
+		return <Database className={`${sizeClass} shrink-0`} style={style} />;
 	}
 
-	return <File className={`${sizeClass} text-gray-500 dark:text-gray-400 shrink-0`} />;
+	// ── Figma ──
+	if (name.endsWith('.fig')) {
+		return <Layers className={`${sizeClass} shrink-0`} style={style} />;
+	}
+
+	// ── Markdown ──
+	if (name.endsWith('.md') || name.endsWith('.markdown')) {
+		return <FileCode className={`${sizeClass} shrink-0`} style={style} />;
+	}
+
+	// ── Code (mọi extension lập trình) ──
+	if (/\.(js|jsx|mjs|cjs|ts|tsx|py|pyw|java|class|jar|c|cpp|cc|cxx|h|hpp|cs|go|rb|php|sh|bash|zsh|fish|kt|kts|swift|rs|dart|lua|json|yaml|yml|toml|ini|conf|env|html|htm|css|scss|sass|less|vue|svelte|graphql|gql|prisma|xml)$/i.test(name)) {
+		return <FileCode className={`${sizeClass} shrink-0`} style={style} />;
+	}
+
+	return <File className={`${sizeClass} shrink-0`} style={style} />;
 }

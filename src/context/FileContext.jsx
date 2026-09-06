@@ -1271,6 +1271,38 @@ export function FileProvider({ children }) {
   }, [t]);
 
   /**
+   * Cập nhật màu tùy chỉnh cho file/folder.
+   * Dùng optimistic update: đổi màu ngay, rollback nếu API thất bại.
+   * @param {string} id      — id của file/folder
+   * @param {string|null} color — mã hex '#RRGGBB' hoặc null để reset
+   */
+  const updateColor = useCallback(async (id, color) => {
+    const prevColor = (() => {
+      // Lưu lại màu cũ để rollback
+      const found = items.find((item) => item.id === id);
+      return found?.customColor ?? null;
+    })();
+
+    // Optimistic update ngay lập tức
+    setItems((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, customColor: color } : item)),
+    );
+
+    try {
+      await filesApi.updateColor(id, color);
+      toast.success(color ? 'Đã đổi màu' : 'Đã đặt lại màu mặc định');
+      return { ok: true };
+    } catch (err) {
+      // Rollback về màu cũ
+      setItems((prev) =>
+        prev.map((item) => (item.id === id ? { ...item, customColor: prevColor } : item)),
+      );
+      toast.error(err.message || 'Không thể đổi màu');
+      return { ok: false, error: err };
+    }
+  }, [items]);
+
+  /**
    * Ba hàm thùng rác dưới đây dùng chung một hợp đồng với `toggleStar`:
    * trả `{ ok, error }` và KHÔNG throw, kèm tuỳ chọn `silent`.
    *
@@ -2429,6 +2461,7 @@ export function FileProvider({ children }) {
     currentFilteredItems: items,
     paginatedItems: items,
     toggleStar,
+    updateColor,
     moveToTrash,
     restoreFromTrash,
     deletePermanently,

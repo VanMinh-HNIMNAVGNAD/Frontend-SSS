@@ -455,6 +455,8 @@ export const filesApi = {
   moveItem: (id, data) => api.patch(`/files/${id}/move`, data),
   copyItem: (id, data) => api.post(`/files/${id}/copy`, data),
   toggleStar: (id) => api.patch(`/files/${id}/star`),
+  /** Cập nhật màu tùy chỉnh. Truyền color=null để reset về mặc định. */
+  updateColor: (id, color) => api.patch(`/files/${id}/color`, { color }),
   moveToTrash: (id) => api.patch(`/files/${id}/trash`),
   restoreFromTrash: (id) => api.patch(`/files/${id}/restore`),
   emptyTrash: () => api.delete('/files/trash/empty'),
@@ -742,13 +744,36 @@ export const aiApi = {
    * @param {string=}  payload.prompt  Câu người dùng gõ (bắt buộc khi action = 'chat')
    * @param {Array=}   payload.history [{ role: 'user' | 'model', text }] — cũ → mới, KHÔNG gồm câu đang hỏi
    * @param {string=}  payload.lang    'vi' | 'en'
+   * @param {string=}  payload.conversationId  Cuộc trò chuyện đang mở; bỏ trống ở câu
+   *                   đầu tiên rồi dùng `conversationId` mà backend trả về cho các câu
+   *                   sau, để cả khung chat được lưu thành MỘT cuộc trong lịch sử.
    * @param {AbortSignal=} signal      Nút Dừng cắt đúng request đang chạy
    *
-   * Trả { answer, question, context: { mode, name, chars, truncated, childCount, reason }, model }.
+   * Trả { answer, question, context: { mode, name, chars, truncated, childCount, reason },
+   * model, conversationId }.
    * `context.mode` cho biết AI thực sự đọc được gì ('file-text' | 'file-binary' |
    * 'folder-listing' | 'metadata') để giao diện khỏi hứa suông là đã đọc nội dung.
    */
   ask: (payload, signal) => api.post('/ai/ask', payload, { signal }),
+
+  /**
+   * Lịch sử: MỌI cuộc trò chuyện của mình, mới nhất trước.
+   *
+   * `before` là con trỏ thời gian lấy từ `nextBefore` của trang trước, KHÔNG phải số
+   * trang: danh sách xê dịch mỗi lần hỏi thêm một câu, nên phân trang kiểu offset sẽ
+   * lặp hoặc bỏ sót hàng.
+   *
+   * Trả { items: [{ id, title, fileId, itemName, itemType, messageCount, createdAt,
+   * updatedAt }], nextBefore }. `nextBefore` là null khi đã hết trang.
+   */
+  listConversations: ({ limit, before } = {}) =>
+    api.get('/ai/conversations', { params: { limit, before } }),
+
+  /** Toàn bộ nội dung một cuộc: { id, title, itemName, itemType, fileId, messages: [...] }. */
+  getConversation: (id) => api.get(`/ai/conversations/${id}`),
+
+  /** Xoá một cuộc trò chuyện. Không ảnh hưởng tới hạn mức đã dùng. */
+  deleteConversation: (id) => api.delete(`/ai/conversations/${id}`),
 };
 
 export default api;

@@ -349,6 +349,7 @@ export default function FileListView() {
         currentFilteredItems,
         openFolder,
         toggleStar,
+        updateColor,
         moveToTrash,
         restoreFromTrash,
         deletePermanently,
@@ -827,6 +828,7 @@ export default function FileListView() {
                 onRestore={(item) => restoreFromTrash(item.id)}
                 onDeletePermanently={(item) => deletePermanently(item.id)}
                 onShowInfo={(item, tab) => openInfoDrawer(item, tab)}
+                onChangeColor={(item, color) => updateColor(item.id, color)}
             />
 
             {/* Modals */}

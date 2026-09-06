@@ -455,10 +455,27 @@ const vi = {
   'ai.context.folder': 'Đã đọc danh sách {count} mục con',
   'ai.context.metadata': 'Chỉ đọc được thông tin mô tả, không phải nội dung',
   'ai.context.truncated': 'nội dung đã bị cắt bớt',
+  // Bản KHÔNG kèm số, dùng cho tin nhắn nạp lại từ lịch sử: bảng ai_message chỉ lưu
+  // `context_mode`, không lưu số ký tự / số mục con, nên hiện "0 ký tự" là nói sai.
+  'ai.context.fileTextPlain': 'Đã đọc nội dung tệp',
+  'ai.context.folderPlain': 'Đã đọc danh sách mục con',
+  // ── Lịch sử trò chuyện (backend: ai_conversation + ai_message, migration 022) ──
+  'ai.history.title': 'Lịch sử trò chuyện',
+  'ai.history.open': 'Xem lịch sử trò chuyện',
+  'ai.history.close': 'Đóng lịch sử',
+  'ai.history.back': 'Quay lại danh sách',
+  'ai.history.empty': 'Chưa có cuộc trò chuyện nào được lưu',
+  'ai.history.loadError': 'Không tải được lịch sử trò chuyện',
+  'ai.history.messages': '{count} lượt',
+  'ai.history.delete': 'Xoá cuộc trò chuyện này',
+  'ai.history.loadMore': 'Tải thêm',
+  'ai.history.deletedItem': 'Mục đã bị xoá',
+  'ai.history.continue': 'Hỏi tiếp cuộc này',
+  'ai.history.otherItem': 'Cuộc trò chuyện này về "{name}" — mở AI từ chính mục đó để hỏi tiếp.',
   // ── Hạn mức AI theo gói (backend: storage_plans.ai_token_quota) ──
-  // Hiển thị "số lượt phân tích" thay vì token: 30.000 token ≈ 1 lượt phân tích tài liệu
-  // đầy đủ. Con số token thật vẫn có trong tooltip cho ai cần đối chiếu hoá đơn.
-  'ai.quota.left': 'Còn ~{count} lượt phân tích trong tháng',
+  // Hiển thị PHẦN TRĂM ĐÃ DÙNG cho khớp với thanh tiến trình ngay bên dưới. Con số token
+  // thật vẫn có trong tooltip cho ai cần đối chiếu hoá đơn.
+  'ai.quota.usedPercent': 'Đã dùng {percent}% hạn mức AI tháng này',
   'ai.quota.empty': 'Đã dùng hết hạn mức AI tháng này',
   'ai.quota.reset': 'Cấp lại {date}',
   'ai.quota.tooltip': 'Đã dùng {used}/{limit} token AI trong tháng này',

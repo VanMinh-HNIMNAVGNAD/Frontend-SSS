@@ -24,6 +24,9 @@ import {
     Info,
     Gauge,
     Globe,
+    History,
+    ChevronLeft,
+    MessageSquare,
     ArrowUpRight,
 } from 'lucide-react';
 
@@ -93,6 +96,19 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
     const [quotaBlocked, setQuotaBlocked] = useState(false);
     const [copiedIndex, setCopiedIndex] = useState(null);
 
+    // ── Lịch sử trò chuyện (bảng ai_conversation, migration 022) ──
+    // `conversationId` null = khung chat này chưa được lưu thành cuộc nào. Câu hỏi đầu
+    // tiên khiến backend tạo cuộc mới rồi trả id về, các câu sau nối vào đúng id đó.
+    const [conversationId, setConversationId] = useState(null);
+    const [historyOpen, setHistoryOpen] = useState(false);
+    // Đặt tên `historyList` chứ không `history`: trong `send()` đã có biến cục bộ tên
+    // `history` (mấy lượt gửi kèm cho Gemini), trùng tên là bẫy đọc nhầm.
+    const [historyList, setHistoryList] = useState({ items: [], nextBefore: null });
+    const [historyLoading, setHistoryLoading] = useState(false);
+    const [historyError, setHistoryError] = useState(null);
+    // Cuộc đang mở ra đọc; null = đang ở màn hình danh sách.
+    const [viewing, setViewing] = useState(null);
+
     const abortRef = useRef(null);
     const scrollRef = useRef(null);
     const inputRef = useRef(null);
@@ -139,6 +155,7 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                         action,
                         ...(action === 'chat' ? { prompt: text } : {}),
                         ...(history.length ? { history } : {}),
+                        ...(conversationId ? { conversationId } : {}),
                         lang: language === 'en' ? 'en' : 'vi',
                     },
                     controller.signal,
@@ -159,6 +176,10 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                     setQuota(res.quota);
                     setQuotaBlocked(Boolean(res.quota.exhausted));
                 }
+                // Câu đầu tiên trả về id cuộc vừa được tạo; nhớ lấy để câu sau nối vào
+                // cùng một cuộc thay vì sinh ra một cuộc mới cho mỗi câu hỏi. Backend
+                // trả null khi ghi lịch sử lỗi — khi đó cứ để null, không ghi đè id cũ.
+                if (res.conversationId) setConversationId(res.conversationId);
             } catch (err) {
                 if (err?.name === 'CanceledError' || err?.code === 'ERR_CANCELED') {
                     // Người dùng bấm Dừng: bỏ luôn bong bóng câu hỏi vừa thêm để hội
@@ -183,7 +204,7 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                 abortRef.current = null;
             }
         },
-        [item, isFolder, language, messages, t],
+        [item, isFolder, language, messages, conversationId, t],
     );
 
     // `send` đổi tham chiếu sau mỗi lượt trả lời (nó đọc `messages`), nhưng hiệu ứng
@@ -265,6 +286,82 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
         send({ action: 'chat', text });
     };
 
+    /** Một trang danh sách. `before` = null là tải lại từ đầu, khác null là tải thêm. */
+    const loadHistory = async (before = null) => {
+        setHistoryLoading(true);
+        setHistoryError(null);
+        try {
+            const res = await aiApi.listConversations({ limit: 30, before: before ?? undefined });
+            setHistoryList((prev) => ({
+                items: before ? [...prev.items, ...res.items] : res.items,
+                nextBefore: res.nextBefore,
+            }));
+        } catch (err) {
+            setHistoryError(err?.response?.data?.message || t('ai.history.loadError'));
+        } finally {
+            setHistoryLoading(false);
+        }
+    };
+
+    const openHistory = () => {
+        setHistoryOpen(true);
+        setViewing(null);
+        // Tải lại mỗi lần mở: cuộc trò chuyện có thể vừa được thêm ở tab khác, và danh
+        // sách này nhỏ nên không đáng cache để rồi hiện dữ liệu cũ.
+        loadHistory();
+    };
+
+    const openConversation = async (id) => {
+        setHistoryLoading(true);
+        setHistoryError(null);
+        try {
+            setViewing(await aiApi.getConversation(id));
+        } catch (err) {
+            setHistoryError(err?.response?.data?.message || t('ai.history.loadError'));
+        } finally {
+            setHistoryLoading(false);
+        }
+    };
+
+    const removeConversation = async (id) => {
+        try {
+            await aiApi.deleteConversation(id);
+            setHistoryList((prev) => ({ ...prev, items: prev.items.filter((c) => c.id !== id) }));
+            if (viewing?.id === id) setViewing(null);
+            // Vừa xoá đúng cuộc mà khung chat đang nối vào: bỏ liên kết, câu hỏi tiếp
+            // theo sẽ mở cuộc mới thay vì ghi vào một id không còn tồn tại.
+            if (conversationId === id) setConversationId(null);
+        } catch (err) {
+            setHistoryError(err?.response?.data?.message || t('ai.history.loadError'));
+        }
+    };
+
+    /**
+     * Nạp cuộc đang đọc vào khung chat để hỏi tiếp.
+     *
+     * Chỉ cho phép khi cuộc đó nói về ĐÚNG mục đang mở: hỏi tiếp nghĩa là gửi kèm ngữ
+     * cảnh của `item` hiện tại, nên nối vào một cuộc về tệp khác sẽ tạo ra hội thoại
+     * mà nửa đầu nói về tệp này, nửa sau nói về tệp kia.
+     */
+    const continueConversation = () => {
+        if (!viewing) return;
+        setMessages(
+            viewing.messages.map((m) => ({
+                sender: m.role === 'user' ? 'user' : 'ai',
+                text: m.content,
+                action: m.action || undefined,
+                // Chỉ có `mode`: số ký tự/số mục con không được lưu lại, nên dòng chú
+                // thích sẽ dùng bản không kèm số (xem renderContextNote).
+                context: m.contextMode ? { mode: m.contextMode } : undefined,
+                grounded: m.grounded,
+            })),
+        );
+        setConversationId(viewing.id);
+        setHistoryOpen(false);
+        setViewing(null);
+        setError(null);
+    };
+
     const handleCopy = async (text, index) => {
         try {
             await navigator.clipboard.writeText(text);
@@ -282,7 +379,13 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
         const map = {
             'file-text': {
                 icon: FileSearch,
-                text: t('ai.context.fileText', { chars: (context.chars || 0).toLocaleString() }),
+                // Tin nhắn nạp từ lịch sử không có `chars` (bảng ai_message chỉ lưu
+                // `context_mode`). Hiện "Đã đọc 0 ký tự" là nói sai, nên khi thiếu số
+                // thì dùng câu không kèm số.
+                text:
+                    context.chars != null
+                        ? t('ai.context.fileText', { chars: context.chars.toLocaleString() })
+                        : t('ai.context.fileTextPlain'),
                 tone: 'text-emerald-600 dark:text-emerald-400',
             },
             'file-binary': {
@@ -292,7 +395,10 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
             },
             'folder-listing': {
                 icon: FolderSearch,
-                text: t('ai.context.folder', { count: context.childCount ?? 0 }),
+                text:
+                    context.childCount != null
+                        ? t('ai.context.folder', { count: context.childCount })
+                        : t('ai.context.folderPlain'),
                 tone: 'text-emerald-600 dark:text-emerald-400',
             },
             metadata: {
@@ -354,7 +460,7 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
             onClick={onClose}
         >
             <div
-                className="bg-white dark:bg-[#1e1e1e] dark:text-gray-100 rounded-2xl shadow-2xl w-full max-w-2xl border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col h-[620px] max-h-[90vh] cursor-default"
+                className="relative bg-white dark:bg-[#1e1e1e] dark:text-gray-100 rounded-2xl shadow-2xl w-full max-w-2xl border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col h-[620px] max-h-[90vh] cursor-default"
                 onClick={(e) => e.stopPropagation()}
                 role="dialog"
                 aria-modal="true"
@@ -382,9 +488,24 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                         </div>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
+                        <button
+                            onClick={openHistory}
+                            title={t('ai.history.open')}
+                            aria-label={t('ai.history.open')}
+                            className="p-1.5 rounded-full text-gray-400 hover:text-purple-600 dark:hover:text-purple-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+                        >
+                            <History className="w-4 h-4" />
+                        </button>
                         {messages.length > 0 && (
                             <button
-                                onClick={() => { setMessages([]); setError(null); }}
+                                onClick={() => {
+                                    setMessages([]);
+                                    setError(null);
+                                    // Bỏ luôn liên kết cuộc cũ: người dùng vừa dọn sạch
+                                    // khung chat thì câu sau là một cuộc mới, chứ không
+                                    // âm thầm ghi tiếp vào cuộc đã bị dọn khỏi màn hình.
+                                    setConversationId(null);
+                                }}
                                 title={t('ai.clear')}
                                 className="p-1.5 rounded-full text-gray-400 hover:text-rose-600 dark:hover:text-rose-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
                             >
@@ -401,9 +522,10 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                 </div>
 
                 {/* ── Hạn mức AI của tháng ──
-                    Hiện SỐ LƯỢT PHÂN TÍCH CÒN LẠI chứ không phải số token: "còn 7 lượt"
-                    là thứ người dùng hình dung được, còn "còn 213.480 token" thì không.
-                    Số token thật vẫn có, nằm ở tooltip cho ai cần đối chiếu. */}
+                    Hiện PHẦN TRĂM ĐÃ DÙNG, khớp với thanh tiến trình ngay bên dưới:
+                    một con số và một thanh nói cùng một điều thì đọc phát hiểu, không
+                    phải trừ nhẩm "còn 7 lượt" ra khỏi "thanh đã đầy 80%". Số token thật
+                    vẫn có, nằm ở tooltip cho ai cần đối chiếu. */}
                 {quota && !aiDisabled && (
                     <div className="px-5 py-2 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-[#1e1e1e]">
                         <div className="flex items-center justify-between gap-3 text-[11px]">
@@ -418,7 +540,7 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                                 <span className="truncate">
                                     {quotaBlocked
                                         ? t('ai.quota.empty')
-                                        : t('ai.quota.left', { count: quota.analysesLeft })}
+                                        : t('ai.quota.usedPercent', { percent: usedPercent })}
                                 </span>
                                 <span className="text-gray-400 dark:text-gray-500 truncate hidden sm:inline">
                                     · {quota.planName}
@@ -614,6 +736,174 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                     </div>
                     <p className="mt-1.5 px-1 text-[11px] text-gray-400 dark:text-gray-500">{t('ai.disclaimer')}</p>
                 </form>
+
+                {/* ── Lịch sử trò chuyện ──
+                    Một tấm phủ kín khung, có phần đầu riêng: khỏi phải đoán chiều cao
+                    phần đầu của khung chat bằng con số px (con số đó sai ngay khi tên
+                    tệp dài xuống hai dòng). Hai màn hình trong cùng tấm này: danh sách
+                    mọi cuộc, và nội dung một cuộc khi bấm vào. */}
+                {historyOpen && (
+                    <div className="absolute inset-0 z-10 flex flex-col bg-white dark:bg-[#1e1e1e] animate-fade-in">
+                        <div className="flex items-center justify-between gap-2 px-4 py-3.5 border-b border-gray-100 dark:border-gray-800 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10">
+                            <div className="flex items-center gap-2 min-w-0">
+                                {viewing ? (
+                                    <button
+                                        onClick={() => setViewing(null)}
+                                        title={t('ai.history.back')}
+                                        className="p-1.5 rounded-full text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer shrink-0"
+                                    >
+                                        <ChevronLeft className="w-4 h-4" />
+                                    </button>
+                                ) : (
+                                    <History className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />
+                                )}
+                                <div className="min-w-0">
+                                    <h4 className="font-bold text-gray-900 dark:text-gray-100 text-sm truncate">
+                                        {viewing ? viewing.title : t('ai.history.title')}
+                                    </h4>
+                                    {viewing?.itemName && (
+                                        <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">
+                                            {viewing.itemType === 'folder'
+                                                ? t('ai.subject.folder')
+                                                : t('ai.subject.file')}{' '}
+                                            {viewing.itemName}
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => { setHistoryOpen(false); setViewing(null); }}
+                                title={t('ai.history.close')}
+                                className="p-1.5 rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer shrink-0"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto px-3 py-3">
+                            {historyError && (
+                                <div className="mb-3 flex items-start gap-2 p-3 rounded-xl bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300 text-xs">
+                                    <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                                    <p className="break-words min-w-0">{historyError}</p>
+                                </div>
+                            )}
+
+                            {/* Đang tải mà CHƯA có gì để hiện: chỉ lúc này mới chiếm cả
+                                khung bằng spinner. Tải thêm trang sau thì danh sách cũ
+                                phải ở nguyên đó, không bị thay bằng spinner. */}
+                            {historyLoading && !viewing && historyList.items.length === 0 ? (
+                                <div className="h-full flex items-center justify-center text-gray-400">
+                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                </div>
+                            ) : viewing ? (
+                                <div className="space-y-3">
+                                    {viewing.messages.map((m) => (
+                                        <div
+                                            key={m.id}
+                                            className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                                        >
+                                            <div
+                                                className={`max-w-[85%] px-3.5 py-2.5 rounded-2xl text-[13px] ${
+                                                    m.role === 'user'
+                                                        ? 'bg-gradient-to-br from-blue-600 to-purple-600 text-white'
+                                                        : 'bg-gray-100 dark:bg-[#282a2c] text-gray-800 dark:text-gray-200'
+                                                }`}
+                                            >
+                                                {m.role === 'user' ? (
+                                                    <p className="whitespace-pre-wrap break-words">{m.content}</p>
+                                                ) : (
+                                                    <div
+                                                        className="prose prose-sm dark:prose-invert max-w-none break-words"
+                                                        dangerouslySetInnerHTML={{ __html: renderMarkdown(m.content) }}
+                                                    />
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : historyList.items.length === 0 ? (
+                                <div className="h-full flex flex-col items-center justify-center text-center gap-2 text-gray-400 dark:text-gray-500 px-6">
+                                    <History className="w-8 h-8" />
+                                    <p className="text-xs">{t('ai.history.empty')}</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-1">
+                                    {historyList.items.map((c) => (
+                                        <div
+                                            key={c.id}
+                                            className="group flex items-center gap-2 rounded-xl hover:bg-gray-100 dark:hover:bg-[#282a2c] transition-colors"
+                                        >
+                                            <button
+                                                onClick={() => openConversation(c.id)}
+                                                className="flex-1 min-w-0 text-left px-3 py-2.5 cursor-pointer"
+                                            >
+                                                <p className="text-[13px] font-medium text-gray-800 dark:text-gray-200 truncate">
+                                                    {c.title}
+                                                </p>
+                                                <p className="mt-0.5 flex items-center gap-2 text-[11px] text-gray-500 dark:text-gray-400 min-w-0">
+                                                    <span className="truncate">
+                                                        {c.itemName || t('ai.history.deletedItem')}
+                                                    </span>
+                                                    <span className="shrink-0 flex items-center gap-1">
+                                                        <MessageSquare className="w-3 h-3" />
+                                                        {t('ai.history.messages', { count: c.messageCount })}
+                                                    </span>
+                                                    <span className="shrink-0 hidden sm:inline">
+                                                        {new Date(c.updatedAt).toLocaleDateString(
+                                                            language === 'en' ? 'en-GB' : 'vi-VN',
+                                                            { day: '2-digit', month: '2-digit', year: 'numeric' },
+                                                        )}
+                                                    </span>
+                                                </p>
+                                            </button>
+                                            <button
+                                                onClick={() => removeConversation(c.id)}
+                                                title={t('ai.history.delete')}
+                                                aria-label={t('ai.history.delete')}
+                                                className="mr-2 p-1.5 rounded-full text-gray-400 hover:text-rose-600 dark:hover:text-rose-300 hover:bg-white dark:hover:bg-gray-800 transition-colors cursor-pointer shrink-0 sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100"
+                                            >
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                            </button>
+                                        </div>
+                                    ))}
+
+                                    {historyList.nextBefore && (
+                                        <button
+                                            onClick={() => loadHistory(historyList.nextBefore)}
+                                            disabled={historyLoading}
+                                            className="w-full mt-1 py-2 text-[11px] font-medium text-purple-600 dark:text-purple-400 hover:bg-gray-100 dark:hover:bg-[#282a2c] rounded-xl transition-colors cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5"
+                                        >
+                                            {historyLoading && <Loader2 className="w-3 h-3 animate-spin" />}
+                                            {t('ai.history.loadMore')}
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Hỏi tiếp chỉ mở khi cuộc đó nói về ĐÚNG mục đang mở: hỏi tiếp
+                            là gửi kèm ngữ cảnh của `item` hiện tại, nên nối vào cuộc về
+                            tệp khác sẽ ra hội thoại nửa đầu nói tệp này, nửa sau tệp kia. */}
+                        {viewing && (
+                            <div className="px-3 py-2.5 border-t border-gray-100 dark:border-gray-800">
+                                {viewing.fileId === item.id ? (
+                                    <button
+                                        onClick={continueConversation}
+                                        className="w-full py-2 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-xs font-medium transition-all cursor-pointer"
+                                    >
+                                        {t('ai.history.continue')}
+                                    </button>
+                                ) : (
+                                    <p className="text-[11px] text-gray-500 dark:text-gray-400 text-center px-2">
+                                        {t('ai.history.otherItem', {
+                                            name: viewing.itemName || t('ai.history.deletedItem'),
+                                        })}
+                                    </p>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
         </div>
     );

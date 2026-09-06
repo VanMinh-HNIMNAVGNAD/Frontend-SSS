@@ -450,8 +450,25 @@ const en = {
   'ai.context.folder': 'Read a listing of {count} child items',
   'ai.context.metadata': 'Only metadata was available, not the contents',
   'ai.context.truncated': 'content was truncated',
+  // Number-free variants for messages reloaded from history: ai_message stores only
+  // `context_mode`, not the character/child counts, so "0 characters" would be a lie.
+  'ai.context.fileTextPlain': 'Read the file content',
+  'ai.context.folderPlain': 'Read the folder listing',
+  // ── Chat history (backend: ai_conversation + ai_message, migration 022) ──
+  'ai.history.title': 'Chat history',
+  'ai.history.open': 'View chat history',
+  'ai.history.close': 'Close history',
+  'ai.history.back': 'Back to list',
+  'ai.history.empty': 'No saved conversations yet',
+  'ai.history.loadError': 'Could not load the chat history',
+  'ai.history.messages': '{count} messages',
+  'ai.history.delete': 'Delete this conversation',
+  'ai.history.loadMore': 'Load more',
+  'ai.history.deletedItem': 'Item deleted',
+  'ai.history.continue': 'Continue this chat',
+  'ai.history.otherItem': 'This chat is about "{name}" — open AI from that item to continue it.',
   // ── Per-plan AI quota (backend: storage_plans.ai_token_quota) ──
-  'ai.quota.left': '~{count} analyses left this month',
+  'ai.quota.usedPercent': 'Used {percent}% of this month\'s AI quota',
   'ai.quota.empty': 'Monthly AI quota used up',
   'ai.quota.reset': 'Resets {date}',
   'ai.quota.tooltip': 'Used {used}/{limit} AI tokens this month',

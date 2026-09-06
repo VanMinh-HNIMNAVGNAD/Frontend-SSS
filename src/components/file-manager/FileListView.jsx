@@ -398,6 +398,9 @@ export default function FileListView() {
     const [renameItemTarget, setRenameItemTarget] = useState(null);
     const [shareItemTarget, setShareItemTarget] = useState(null);
     const [geminiItemTarget, setGeminiItemTarget] = useState(null);
+    // Lệnh nhanh chọn từ menu con "Hỏi AI" — khung chat tự chạy nó ngay khi mở.
+    // null = mở khung trống để người dùng tự gõ.
+    const [geminiAction, setGeminiAction] = useState(null);
 
     // Hidden inputs cho "Tải tệp lên" / "Tải thư mục lên" từ menu vùng nền trống
     const fileInputRef = useRef(null);
@@ -815,7 +818,10 @@ export default function FileListView() {
                 isPasting={isPasting}
                 onShare={(item) => setShareItemTarget(item)}
                 onQuickCopyLink={handleQuickCopyLink}
-                onGemini={(item) => setGeminiItemTarget(item)}
+                onGemini={(item, action) => {
+                    setGeminiItemTarget(item);
+                    setGeminiAction(action || null);
+                }}
                 onToggleStar={(item) => toggleStar(item.id)}
                 onMoveToTrash={(item) => moveToTrash(item.id)}
                 onRestore={(item) => restoreFromTrash(item.id)}
@@ -837,11 +843,18 @@ export default function FileListView() {
                 onClose={() => setShareItemTarget(null)}
             />
 
-            <GeminiModal
-                isOpen={!!geminiItemTarget}
-                item={geminiItemTarget}
-                onClose={() => setGeminiItemTarget(null)}
-            />
+            {/* Dựng MỚI mỗi lần mở (và `key` theo mục) thay vì để sẵn một instance ẩn:
+                hội thoại, lệnh nhanh đang chạy và request đang bay đều thuộc về đúng
+                một mục — mở mục khác là bắt đầu sạch, không sót lại câu trả lời cũ. */}
+            {geminiItemTarget && (
+                <GeminiModal
+                    key={geminiItemTarget.id}
+                    isOpen
+                    item={geminiItemTarget}
+                    initialAction={geminiAction}
+                    onClose={() => setGeminiItemTarget(null)}
+                />
+            )}
         </div>
     );
 }

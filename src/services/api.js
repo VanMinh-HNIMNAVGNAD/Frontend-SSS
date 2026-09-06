@@ -723,5 +723,33 @@ export const billingApi = {
     api.post(`/billing/transactions/${orderCode}/cancel`, reason ? { reason } : {}),
 };
 
+// ───────────────────────────── Hỏi AI (Vertex AI / Gemini) ─────────────────────────────
+//
+// Ngữ cảnh do BACKEND dựng, không phải frontend: nội dung tệp nằm trên cloud storage
+// và chỉ backend mới có quyền đọc nó. Frontend chỉ gửi `itemId` — nhờ vậy quyền truy
+// cập được kiểm đúng một lần, ở nơi vốn đã kiểm cho xem trước/tải xuống.
+export const aiApi = {
+  // { enabled, model } — gọi lúc mở khung chat để biết nên hiện khung nhập hay
+  // hiện dòng "chưa bật AI", thay vì để người dùng gõ xong mới nhận 503.
+  getStatus: () => api.get('/ai/status'),
+
+  /**
+   * Hỏi một câu về tệp/thư mục.
+   *
+   * @param {object}   payload
+   * @param {string=}  payload.itemId  Mục được bấm chuột phải. Bỏ trống = hỏi chay.
+   * @param {string=}  payload.action  'summarize' | 'explain' | 'keywords' | 'quiz' | 'improve' | 'chat'
+   * @param {string=}  payload.prompt  Câu người dùng gõ (bắt buộc khi action = 'chat')
+   * @param {Array=}   payload.history [{ role: 'user' | 'model', text }] — cũ → mới, KHÔNG gồm câu đang hỏi
+   * @param {string=}  payload.lang    'vi' | 'en'
+   * @param {AbortSignal=} signal      Nút Dừng cắt đúng request đang chạy
+   *
+   * Trả { answer, question, context: { mode, name, chars, truncated, childCount, reason }, model }.
+   * `context.mode` cho biết AI thực sự đọc được gì ('file-text' | 'file-binary' |
+   * 'folder-listing' | 'metadata') để giao diện khỏi hứa suông là đã đọc nội dung.
+   */
+  ask: (payload, signal) => api.post('/ai/ask', payload, { signal }),
+};
+
 export default api;
 

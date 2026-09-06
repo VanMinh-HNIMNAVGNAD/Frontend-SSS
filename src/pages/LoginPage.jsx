@@ -29,11 +29,18 @@ export default function LoginPage() {
   // Backend chỉ phát phiên ở bước 'otp', nên state này thuần tuý là chuyện hiển thị.
   const [step, setStep] = useState('credentials');
 
-  // Đọc query param ?error=oauth_failed khi OAuth cụ redirect về với lỗi
+  // Đọc query param ?error= khi bị đưa về đây kèm một lý do:
+  //   • oauth_failed    — nhà cung cấp OAuth từ chối;
+  //   • account_locked  — tài khoản bị khoá (`isActive = false`). Bắt buộc phải hiện:
+  //     trước đây người bị khoá đăng nhập OAuth thì vào được /app một nhịp rồi bị đá ra
+  //     không lời nào, nên họ thử đi thử lại mãi mà không biết chuyện gì đang xảy ra.
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    if (params.get('error') === 'oauth_failed') {
+    const reason = params.get('error');
+    if (reason === 'oauth_failed') {
       setLocalError(t('login.oauthFailed'));
+    } else if (reason === 'account_locked') {
+      setLocalError(t('login.accountLocked'));
     }
   }, [location.search, t]);
 

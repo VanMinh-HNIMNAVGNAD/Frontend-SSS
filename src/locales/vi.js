@@ -343,6 +343,8 @@ const vi = {
   'login.submitting': 'Đang xử lý...',
   'login.success': 'Đăng nhập thành công!',
   'login.oauthFailed': 'Đăng nhập OAuth thất bại. Vui lòng thử lại hoặc sử dụng Email để đăng nhập.',
+  'login.accountLocked':
+    'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên để được mở khóa.',
   'login.oauth.google': 'Đăng nhập bằng Google',
   'login.oauth.facebook': 'Đăng nhập bằng Facebook',
   'login.oauth.github': 'Đăng nhập bằng GitHub',

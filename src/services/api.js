@@ -99,6 +99,18 @@ api.interceptors.request.use(
  *     dùng cần thấy thông báo lỗi chứ không phải bị điều hướng.
  *   • /shares/ — khách vãng lai xem link chia sẻ, chưa từng có phiên nào để làm mới.
  */
+/**
+ * Mã lỗi backend cho tài khoản bị khoá (`ErrorCode.AUTH_ACCOUNT_LOCKED`).
+ * Đối chiếu bằng MÃ chứ không bằng câu tiếng Việt: câu chữ còn đổi, và bản tiếng Anh
+ * sẽ không khớp `includes('khóa')` nữa.
+ */
+const ACCOUNT_LOCKED_CODE = 'AUTH_2005_ACCOUNT_LOCKED';
+
+/** Tài khoản bị khoá có phải là lý do của lỗi này không? */
+function isAccountLocked(errorLike) {
+  return errorLike?.response?.data?.errorCode === ACCOUNT_LOCKED_CODE;
+}
+
 const NO_REFRESH_PATHS = [
   '/auth/refresh',
   '/auth/login',
@@ -151,10 +163,13 @@ let refreshPromise = null;
  * khác là sự cố tạm thời: giữ nguyên phiên, để lượt sau thử lại.
  */
 class RefreshFailure extends Error {
-  constructor(message, { isAuthFailure }) {
+  constructor(message, { isAuthFailure, isLocked = false }) {
     super(message);
     this.name = 'RefreshFailure';
     this.isAuthFailure = isAuthFailure;
+    // Phiên chết vì tài khoản bị KHOÁ, không phải vì hết hạn. Đăng xuất trong cả hai
+    // trường hợp, nhưng chỉ trường hợp này mới có gì để nói với người dùng.
+    this.isLocked = isLocked;
   }
 }
 
@@ -201,6 +216,7 @@ function refreshAccessToken() {
         }
         throw new RefreshFailure(err?.message || 'Làm mới phiên thất bại', {
           isAuthFailure,
+          isLocked: isAccountLocked(err),
         });
       })
       .finally(() => {
@@ -211,14 +227,20 @@ function refreshAccessToken() {
   return refreshPromise;
 }
 
-/** Xoá phiên cục bộ + đưa về /login, trừ các trang không cần đăng nhập. */
-function forceLogout() {
+/**
+ * Xoá phiên cục bộ + đưa về /login, trừ các trang không cần đăng nhập.
+ *
+ * `reason` đi kèm dưới dạng `?error=` để `LoginPage` nói được VÌ SAO người dùng vừa bị
+ * đá ra. Không có nó thì tài khoản bị khoá chỉ thấy màn đăng nhập trắng trơn, thử lại,
+ * lại bị đá ra — vòng lặp đó là phàn nàn đã dẫn tới thay đổi này.
+ */
+function forceLogout(reason) {
   localStorage.removeItem('accessToken');
   const path = window.location.pathname;
   // Khách vãng lai trên trang chia sẻ KHÔNG bao giờ bị redirect về /login
   const isPublicSharePage = path.startsWith('/share');
   if (!isPublicSharePage && path !== '/login' && path !== '/register' && path !== '/') {
-    window.location.href = '/login';
+    window.location.href = reason ? `/login?error=${reason}` : '/login';
   }
 }
 
@@ -320,10 +342,12 @@ api.interceptors.response.use(
         // Phiên chết thật (hết hạn do không dùng / bị thu hồi / cookie bị chặn) thì mới
         // đăng xuất. Lỗi mạng hay 5xx thì giữ phiên và để request này báo lỗi như một
         // lỗi bình thường — người dùng thử lại là xong, không mất việc đang làm.
-        if (refreshError?.isAuthFailure) forceLogout();
+        if (refreshError?.isAuthFailure) {
+          forceLogout(refreshError.isLocked ? 'account_locked' : undefined);
+        }
       }
     } else if (error.response?.status === 401) {
-      forceLogout();
+      forceLogout(isAccountLocked(error) ? 'account_locked' : undefined);
     }
 
     // Với `responseType: 'blob'` (vd. filesApi.downloadZip) axios trả body lỗi

@@ -340,6 +340,8 @@ const en = {
   'login.submitting': 'Working...',
   'login.success': 'Signed in',
   'login.oauthFailed': 'OAuth sign-in failed. Try again, or sign in with your email.',
+  'login.accountLocked':
+    'Your account has been locked. Contact an administrator to have it unlocked.',
   'login.oauth.google': 'Sign in with Google',
   'login.oauth.facebook': 'Sign in with Facebook',
   'login.oauth.github': 'Sign in with GitHub',

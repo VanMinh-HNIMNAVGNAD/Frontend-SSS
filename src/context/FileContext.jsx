@@ -2382,10 +2382,15 @@ export function FileProvider({ children }) {
     }
   }, [t]);
 
+  /**
+   * Trả về CẢ payload chứ không riêng chuỗi URL: từ khi backend kèm thêm
+   * `playbackHint` (tệp này trình duyệt phát ngay được hay phải tải hết trước —
+   * xem `backend/src/storage/mp4-container.ts`), khung xem trước cần đọc nó để
+   * nói đúng chuyện gì đang xảy ra thay vì để người dùng ngồi trước vòng xoay.
+   */
   const getPreviewUrl = useCallback(async (id) => {
     try {
-      const res = await storageApi.getPreviewUrl(id);
-      return res.previewUrl;
+      return await storageApi.getPreviewUrl(id);
     } catch (err) {
       toast.error(t('file.previewUrl.failed', { reason: err.message }));
       return null;

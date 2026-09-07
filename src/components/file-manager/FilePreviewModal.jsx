@@ -36,6 +36,29 @@ if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
   ).toString();
 }
 
+/**
+ * Trình duyệt có dùng lõi Chromium (Edge, Chrome, Opera...) hay không.
+ *
+ * Cần biết vì cảnh báo "MP4 phân mảnh" CHỈ đúng với nhóm này: Firefox đọc tới
+ * `moof` nào thì phát `moof` đó nên không hề gặp vấn đề, hiện cảnh báo ở đó chỉ
+ * là nhiễu. Ưu tiên `userAgentData` vì chuỗi UA đang bị đóng băng dần.
+ */
+const IS_CHROMIUM = (() => {
+  const brands = navigator.userAgentData?.brands;
+  if (Array.isArray(brands)) return brands.some((b) => /Chromium/i.test(b.brand));
+  return /Chrom(e|ium)|Edg\//.test(navigator.userAgent) && !/Firefox/.test(navigator.userAgent);
+})();
+
+/**
+ * Chờ bấy nhiêu mà thẻ <video> vẫn chưa đủ dữ liệu để phát liên tục thì mới nói
+ * ra chuyện container.
+ *
+ * Không cảnh báo ngay từ đầu: `moov-at-end` và cả một phần `fragmented` vẫn phát
+ * được, chỉ chậm — dán cảnh báo lên một video đang chuẩn bị phát bình thường là
+ * tự tạo báo động giả. Chỉ khi nó thực sự không lên thì câu giải thích mới có giá.
+ */
+const SLOW_START_AFTER_MS = 8000;
+
 // Ngưỡng xem trước chung: dưới mức này thì MỞ, trên thì mời tải về.
 // Khai một chỗ để backend (`getFileTextContent`) và ba nhánh preview không lệch nhau
 // như trước (5MB cho text, 8MB cho docx, câu thông báo lại ghi 8MB).
@@ -250,6 +273,10 @@ function MediaSupportNotice({ diagnosis, fileName, onDownload, t, inline = false
     'no-audio-track': { Icon: VolumeX, tone: 'amber' },
     'decode-error': { Icon: AlertTriangle, tone: 'rose' },
     'src-unsupported': { Icon: AlertTriangle, tone: 'rose' },
+    // Hai loại dưới đây nói về CẤU TRÚC tệp, không phải codec — tệp vẫn nguyên
+    // vẹn và trình duyệt khác vẫn phát được, nên tông vàng chứ không phải đỏ.
+    'fragmented-mp4': { Icon: Loader2, tone: 'amber' },
+    'moov-at-end': { Icon: Loader2, tone: 'amber' },
   };
   const { Icon, tone } = VISUALS[diagnosis] || VISUALS['src-unsupported'];
 
@@ -304,6 +331,14 @@ export default function FilePreviewModal({ item, onClose }) {
   const mediaRetriedForRef = useRef(null); // id tệp đã thử làm mới URL một lần
   const resumeRef = useRef(null); // { at, playing } — chỗ đang phát trước khi tải lại
 
+  // Backend phân loại cấu trúc tệp bằng một lần đọc 64KB đầu object: 'progressive'
+  // | 'moov-at-end' | 'fragmented' | null. Xem `backend/src/storage/mp4-container.ts`.
+  const [playbackHint, setPlaybackHint] = useState(null);
+
+  // Kết luận "mãi không phát được" LƯU KÈM tệp mà nó nói về, theo đúng lối của
+  // `useMediaSupport`: đọc ra mới đối chiếu, khỏi cần một effect chỉ để dọn state.
+  const [slowStart, setSlowStart] = useState({ key: null, value: false });
+
   useEffect(() => {
     if (!item) return;
 
@@ -316,6 +351,7 @@ export default function FilePreviewModal({ item, onClose }) {
 
     if (isTextLikeFile(item.name, item.mimeType)) {
       setUrl(null);
+      setPlaybackHint(null);
       setLoading(false);
       return () => {
         isMounted = false;
@@ -329,6 +365,7 @@ export default function FilePreviewModal({ item, onClose }) {
         const validUrl = typeof res === 'string' ? res : (res?.previewUrl || res?.url || null);
 
         if (isMounted) {
+          setPlaybackHint(typeof res === 'string' ? null : res?.playbackHint ?? null);
           if (validUrl) {
             setUrl(validUrl);
           } else {
@@ -453,11 +490,12 @@ export default function FilePreviewModal({ item, onClose }) {
     storageApi.invalidatePreviewUrl(item.id);
     getPreviewUrl(item.id)
       .then((fresh) => {
-        if (!fresh) {
+        const freshUrl = typeof fresh === 'string' ? fresh : fresh?.previewUrl || null;
+        if (!freshUrl) {
           mediaHandlers.onError();
           return;
         }
-        setUrl(fresh);
+        setUrl(freshUrl);
         setMediaReloadNonce((n) => n + 1);
       })
       .catch(() => mediaHandlers.onError());
@@ -477,6 +515,43 @@ export default function FilePreviewModal({ item, onClose }) {
     }
     if (resume.playing) el.play().catch(() => {});
   }, [mediaRef, mediaHandlers]);
+
+  // Khoá định danh CHO MỘT LẦN NẠP: đổi tệp hoặc tải lại vì lỗi thì phép đo
+  // "mãi không phát được" phải bắt đầu lại từ đầu.
+  const mediaKey = item ? `${item.id}:${mediaReloadNonce}` : null;
+  const isSlowStart = slowStart.key === mediaKey && slowStart.value;
+
+  useEffect(() => {
+    if (!mediaKey || !isVideo) return;
+    // Chỉ đo với hai cấu trúc thật sự có thể làm trình duyệt đứng. 'progressive'
+    // mà chậm thì là đường truyền, không phải chuyện app nói hộ được.
+    if (playbackHint !== 'fragmented' && playbackHint !== 'moov-at-end') return;
+
+    const timer = setTimeout(() => {
+      const el = mediaRef.current;
+      // readyState < HAVE_FUTURE_DATA (3) = chưa đủ dữ liệu để phát liên tục.
+      if (el && el.readyState < 3) setSlowStart({ key: mediaKey, value: true });
+    }, SLOW_START_AFTER_MS);
+
+    return () => clearTimeout(timer);
+  }, [mediaKey, isVideo, playbackHint, mediaRef]);
+
+  /**
+   * Kết luận hiển thị cho người xem, gộp hai nguồn.
+   *
+   * Kết luận về CODEC (`useMediaSupport`) thắng: nó dựa trên chuyện đã xảy ra
+   * thật với thẻ media, còn cấu trúc container chỉ là dự đoán. Cảnh báo container
+   * chỉ lên tiếng khi video đã thực sự không phát nổi sau `SLOW_START_AFTER_MS`.
+   *
+   * Riêng 'fragmented' chỉ nói với Chromium: Firefox phát dạng này bình thường,
+   * hiện cảnh báo ở đó là nói sai.
+   */
+  const containerDiagnosis =
+    !isSlowStart ? null
+      : playbackHint === 'fragmented' ? (IS_CHROMIUM ? 'fragmented-mp4' : null)
+        : playbackHint === 'moov-at-end' ? 'moov-at-end'
+          : null;
+  const playerDiagnosis = mediaDiagnosis || containerDiagnosis;
 
   const [copied, setCopied] = useState(false);
   const [textContent, setTextContent] = useState(null);
@@ -684,7 +759,7 @@ export default function FilePreviewModal({ item, onClose }) {
                 {/* Lời nhắc chung: chỉ hiện khi RÊ CHUỘT và chỉ khi chưa phát hiện vấn đề
                     gì cụ thể. Đã có kết luận thật thì khối cảnh báo bên dưới nói rõ hơn,
                     hai khối cùng lúc chỉ chèn lên nhau. */}
-                {!mediaDiagnosis && (
+                {!playerDiagnosis && (
                   <div className="absolute top-4 left-4 right-4 bg-slate-900/90 backdrop-blur-md text-xs text-slate-300 p-3 rounded-xl border border-white/15 opacity-0 group-hover:opacity-100 transition-all duration-200 z-10 flex flex-wrap items-center justify-between gap-2 shadow-xl">
                     <div className="flex items-center gap-2.5 min-w-0">
                       <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
@@ -703,7 +778,7 @@ export default function FilePreviewModal({ item, onClose }) {
                 )}
 
                 <MediaSupportNotice
-                  diagnosis={mediaDiagnosis}
+                  diagnosis={playerDiagnosis}
                   fileName={item?.name}
                   onDownload={handleDownload}
                   t={t}

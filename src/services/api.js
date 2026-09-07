@@ -490,6 +490,15 @@ export const storageApi = {
    */
   getPreviewUrl: (id) => previewUrlCache.get(String(id), () => api.get(`/files/${id}/preview-url`)),
 
+  /**
+   * Bỏ URL xem trước đã đệm của MỘT tệp để lần gọi sau xin chữ ký mới.
+   *
+   * Dùng khi thẻ <video>/<audio> báo lỗi: nghi phạm số một là chữ ký đã hết hạn
+   * giữa lúc phát (xem `resolvePreviewUrlTtlSeconds` ở backend), mà URL cũ vẫn
+   * còn trong bộ đệm nên thử lại bằng nó thì chỉ ăn đúng cái 403 lần nữa.
+   */
+  invalidatePreviewUrl: (id) => previewUrlCache.invalidate(String(id)),
+
   /** Nội dung văn bản cho khung xem trước code / text / markdown. Xem chú thích trên. */
   getFileTextContent: (id) => fileTextCache.get(String(id), () => api.get(`/files/${id}/content`)),
 

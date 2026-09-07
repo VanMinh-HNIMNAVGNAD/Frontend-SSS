@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { formatBytes } from '../../utils/formatFileSize';
 import { 
   X, 
@@ -297,6 +297,13 @@ export default function FilePreviewModal({ item, onClose }) {
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
 
+  // Đổi giá trị là buộc thẻ <video>/<audio> dựng lại từ đầu. Cần đến vì hai chữ
+  // ký sinh trong cùng một giây có thể ra ĐÚNG một URL — lúc đó setUrl() không
+  // đổi state nên trình duyệt không tải lại gì cả và video đứng nguyên.
+  const [mediaReloadNonce, setMediaReloadNonce] = useState(0);
+  const mediaRetriedForRef = useRef(null); // id tệp đã thử làm mới URL một lần
+  const resumeRef = useRef(null); // { at, playing } — chỗ đang phát trước khi tải lại
+
   useEffect(() => {
     if (!item) return;
 
@@ -305,6 +312,7 @@ export default function FilePreviewModal({ item, onClose }) {
     setError(null);
     setZoom(1);
     setRotation(0);
+    resumeRef.current = null;
 
     if (isTextLikeFile(item.name, item.mimeType)) {
       setUrl(null);
@@ -414,6 +422,61 @@ export default function FilePreviewModal({ item, onClose }) {
     diagnosis: mediaDiagnosis,
     handlers: mediaHandlers,
   } = useMediaSupport({ kind: isVideo ? 'video' : 'audio', resetKey: item?.id });
+
+  /**
+   * Thẻ media báo lỗi: THỬ LẤY URL MỚI TRƯỚC, chỉ khi vẫn lỗi mới kết luận codec.
+   *
+   * Thứ tự này quan trọng. URL xem trước là chữ ký có hạn; hết hạn giữa lúc phát
+   * thì cloud trả 403 kèm một mẩu XML, và Chromium (Edge/Chrome) báo đúng
+   * `MEDIA_ERR_SRC_NOT_SUPPORTED` (code 4) y như một tệp sai định dạng — nên nếu
+   * đưa thẳng cho `useMediaSupport` thì người dùng đọc được câu "trình duyệt
+   * không hỗ trợ định dạng này" cho một tệp .mp4 H.264 hoàn toàn bình thường.
+   *
+   * Chuyện này gần như CHỈ xảy ra trên Edge/Chrome: Firefox nạp trước cả tệp ngay
+   * từ đầu nên nó tải xong trước khi chữ ký hết hạn, còn Chromium chỉ đệm quanh
+   * đầu phát rồi xin `Range` mới suốt thời gian phát và mỗi lần người xem tua.
+   *
+   * Chỉ thử LẠI MỘT LẦN cho mỗi tệp: nếu URL vừa xin xong mà vẫn lỗi thì nguyên
+   * nhân không phải hạn dùng, và vòng lặp xin URL vô hạn còn tệ hơn im lặng.
+   */
+  const handleMediaError = useCallback(() => {
+    const el = mediaRef.current;
+
+    if (!item || !el?.error || mediaRetriedForRef.current === item.id) {
+      mediaHandlers.onError();
+      return;
+    }
+
+    mediaRetriedForRef.current = item.id;
+    resumeRef.current = { at: el.currentTime || 0, playing: !el.paused };
+
+    storageApi.invalidatePreviewUrl(item.id);
+    getPreviewUrl(item.id)
+      .then((fresh) => {
+        if (!fresh) {
+          mediaHandlers.onError();
+          return;
+        }
+        setUrl(fresh);
+        setMediaReloadNonce((n) => n + 1);
+      })
+      .catch(() => mediaHandlers.onError());
+  }, [item, mediaRef, mediaHandlers, getPreviewUrl]);
+
+  /** Sau khi tải lại vì lỗi ở trên: về đúng giây đang xem, phát tiếp nếu đang phát. */
+  const handleMediaLoadedMetadata = useCallback(() => {
+    mediaHandlers.onLoadedMetadata();
+
+    const el = mediaRef.current;
+    const resume = resumeRef.current;
+    resumeRef.current = null;
+    if (!el || !resume) return;
+
+    if (resume.at > 0 && Number.isFinite(el.duration) && resume.at < el.duration) {
+      el.currentTime = resume.at;
+    }
+    if (resume.playing) el.play().catch(() => {});
+  }, [mediaRef, mediaHandlers]);
 
   const [copied, setCopied] = useState(false);
   const [textContent, setTextContent] = useState(null);
@@ -647,15 +710,27 @@ export default function FilePreviewModal({ item, onClose }) {
                 />
 
                 <video
+                  key={`${item.id}:${mediaReloadNonce}`}
                   ref={mediaRef}
                   src={url}
                   controls
                   playsInline
-                  // `metadata` để `loadedmetadata` chắc chắn bắn ra — phép thử "có dựng
-                  // được hình không" dựa vào chính sự kiện đó.
-                  preload="metadata"
+                  // `auto`, KHÔNG phải `metadata`. Người dùng đã bấm đúp để mở cửa sổ
+                  // này nên họ chắc chắn muốn xem — nạp trước là đúng việc.
+                  //
+                  // Trước đây đặt `metadata` với lý do "để `loadedmetadata` chắc chắn
+                  // bắn ra" (phép thử mất hình dựa vào nó), nhưng sự kiện đó bắn ra ở
+                  // MỌI mức preload, kể cả `auto`. Cái giá phải trả thì có thật và
+                  // riêng Chromium: mặc định của Chrome/Edge là `auto`, ghi tay thành
+                  // `metadata` là TẮT phần nạp trước của chúng — mở video xong Edge chỉ
+                  // lấy vài chục KB đầu rồi ngồi im, đến lúc bấm play mới bắt đầu tải
+                  // thật. Firefox không hề hạn chế đọc vượt như vậy nên vẫn "vào là
+                  // phát", và đó chính là khác biệt người dùng thấy giữa hai trình duyệt.
+                  preload="auto"
                   className="w-full max-h-[75vh] object-contain"
                   {...mediaHandlers}
+                  onLoadedMetadata={handleMediaLoadedMetadata}
+                  onError={handleMediaError}
                 />
               </div>
             )}
@@ -675,12 +750,16 @@ export default function FilePreviewModal({ item, onClose }) {
                 </div>
                 <div className="w-full bg-slate-950/60 p-3 rounded-2xl border border-white/5">
                   <audio
+                    key={`${item.id}:${mediaReloadNonce}`}
                     ref={mediaRef}
                     src={url}
                     controls
-                    preload="metadata"
+                    // Xem chú thích ở thẻ <video> phía trên về `auto` vs `metadata`.
+                    preload="auto"
                     className="w-full"
                     {...mediaHandlers}
+                    onLoadedMetadata={handleMediaLoadedMetadata}
+                    onError={handleMediaError}
                   />
                 </div>
 

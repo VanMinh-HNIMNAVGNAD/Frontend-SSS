@@ -1,6 +1,8 @@
 import { useState, useCallback, useRef, memo } from 'react';
 import { useFiles, useFileSelection, useClipboard, useFilePreview } from '../../context/FileContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { getFileIcon as getSharedFileIcon } from '../../utils/getFileIcon';
+import { getCardColorVars } from '../../utils/fileColors';
 import { sharingApi } from '../../services/api';
 import { readDefaultShareRole } from '../../constants/privacy';
 import toast from 'react-hot-toast';
@@ -16,16 +18,6 @@ import { collectInputEntries } from '../../utils/uploadTree';
 import tRich from '../../utils/tRich';
 import {
     Folder,
-    FileText,
-    FileSpreadsheet,
-    Image as ImageIcon,
-    FileCode,
-    FileArchive,
-    File,
-    Video,
-    Music,
-    Database,
-    Layers,
     MoreVertical,
     FolderOpen,
     ChevronLeft,
@@ -66,22 +58,16 @@ const getFileTypeKey = (item) => {
     return 'fileType.other';
 };
 
-const getFileIcon = (file) => {
-    const name = file.name.toLowerCase();
-    if (name.endsWith('.pdf')) return <FileText className="w-4 h-4 text-rose-500 shrink-0" />;
-    if (name.endsWith('.xlsx') || name.endsWith('.csv')) return <FileSpreadsheet className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />;
-    if (name.endsWith('.png') || name.endsWith('.jpg') || name.endsWith('.jpeg')) return <ImageIcon className="w-4 h-4 text-purple-500 shrink-0" />;
-    if (name.endsWith('.svg')) return <ImageIcon className="w-4 h-4 text-pink-500 shrink-0" />;
-    if (name.endsWith('.docx') || name.endsWith('.txt') || name.endsWith('.md')) return <FileText className="w-4 h-4 text-blue-500 shrink-0" />;
-    if (name.endsWith('.mp4') || name.endsWith('.mkv')) return <Video className="w-4 h-4 text-violet-500 shrink-0" />;
-    if (name.endsWith('.mp3') || name.endsWith('.wav')) return <Music className="w-4 h-4 text-pink-500 shrink-0" />;
-    if (name.endsWith('.py') || name.endsWith('.js') || name.endsWith('.jsx') || name.endsWith('.ts')) return <FileCode className="w-4 h-4 text-amber-500 shrink-0" />;
-    if (name.endsWith('.sql') || name.endsWith('.db')) return <Database className="w-4 h-4 text-cyan-600 shrink-0" />;
-    if (name.endsWith('.fig')) return <Layers className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />;
-    if (name.endsWith('.zip') || name.endsWith('.rar')) return <FileArchive className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />;
-    if (name.endsWith('.exe')) return <FileCode className="w-4 h-4 text-rose-600 shrink-0" />;
-    return <File className="w-4 h-4 text-gray-500 dark:text-gray-400 shrink-0" />;
-};
+/**
+ * Icon tệp cho bảng danh sách.
+ *
+ * Trước đây đây là một bảng if/else riêng với màu Tailwind cứng, nên tệp đã đổi
+ * màu (customColor) vẫn hiện đúng màu mặc định của đuôi tệp — đổi màu ở chế độ
+ * lưới thì thấy, chuyển sang danh sách là mất. Nay dùng chung util
+ * utils/getFileIcon.jsx (đã ưu tiên customColor) để hai chế độ xem không lệch.
+ */
+const getFileIcon = (file) => getSharedFileIcon(file, 'w-4 h-4');
+
 
 const FolderTableRow = memo(function FolderTableRow({
     folder,
@@ -102,8 +88,11 @@ const FolderTableRow = memo(function FolderTableRow({
             onKeyDown={(e) => onKeyDown(e, folder)}
             onDoubleClick={() => onDoubleClick(folder)}
             onContextMenu={(e) => onContextMenu(e, folder)}
+            style={getCardColorVars(folder)}
             className={`transition-colors group cursor-pointer ${isCut ? 'opacity-50 border-dashed' : ''} ${
-                isSelected ? 'bg-blue-50 dark:bg-blue-500/15 ring-1 ring-inset ring-blue-300' : 'hover:bg-gray-100/70 dark:hover:bg-white/5'
+                isSelected
+                    ? 'ring-1 ring-inset ring-blue-400 bg-[var(--fc-hover-l)] dark:bg-[var(--fc-hover-d)]'
+                    : 'bg-[var(--fc-panel-l)] dark:bg-[var(--fc-panel-d)] hover:bg-[var(--fc-surface-l)] dark:hover:bg-[var(--fc-surface-d)]'
             }`}
         >
             {/* Checkbox Column – only this triggers selection */}
@@ -140,10 +129,10 @@ const FolderTableRow = memo(function FolderTableRow({
             {/* Name Column */}
             <td className="py-3.5 px-3">
                 <div className="flex items-center gap-2.5">
-                    <div className="p-1.5 rounded-lg bg-amber-100 dark:bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-200/80 dark:border-transparent shrink-0">
-                        <Folder className="w-4 h-4 fill-amber-400" />
+                    <div className="p-1.5 rounded-lg shrink-0 bg-[var(--fc-surface-l)] dark:bg-[var(--fc-surface-d)] border border-[var(--fc-border-l)] dark:border-[var(--fc-border-d)]">
+                        <Folder className="w-4 h-4 fill-current text-[var(--fc-icon-l)] dark:text-[var(--fc-icon-d)]" />
                     </div>
-                    <span className="font-semibold text-gray-900 dark:text-gray-100 group-hover:text-blue-700 dark:group-hover:text-blue-400 truncate max-w-[200px]" title={folder.name}>
+                    <span className="font-semibold truncate max-w-[200px] text-[var(--fc-ink-l)] dark:text-[var(--fc-ink-d)]" title={folder.name}>
                         {folder.name}
                     </span>
                 </div>
@@ -223,8 +212,11 @@ const FileTableRow = memo(function FileTableRow({
             onKeyDown={(e) => onKeyDown(e, file)}
             onDoubleClick={() => onDoubleClick(file)}
             onContextMenu={(e) => onContextMenu(e, file)}
+            style={getCardColorVars(file)}
             className={`transition-colors group cursor-pointer ${isCut ? 'opacity-50 border-dashed' : ''} ${
-                isSelected ? 'bg-blue-50 dark:bg-blue-500/15 ring-1 ring-inset ring-blue-300' : 'hover:bg-gray-100/70 dark:hover:bg-white/5'
+                isSelected
+                    ? 'ring-1 ring-inset ring-blue-400 bg-[var(--fc-hover-l)] dark:bg-[var(--fc-hover-d)]'
+                    : 'bg-[var(--fc-panel-l)] dark:bg-[var(--fc-panel-d)] hover:bg-[var(--fc-surface-l)] dark:hover:bg-[var(--fc-surface-d)]'
             }`}
         >
             {/* Checkbox Column – only this triggers selection */}
@@ -267,7 +259,7 @@ const FileTableRow = memo(function FileTableRow({
                         className="w-8 h-8 rounded-md bg-white dark:bg-white/5 border border-gray-200 dark:border-gray-700/60 shadow-2xs"
                         fallback={getFileIcon(file)}
                     />
-                    <span className="font-semibold text-gray-900 dark:text-gray-100 group-hover:text-blue-700 dark:group-hover:text-blue-400 truncate max-w-[180px]" title={file.name}>
+                    <span className="font-semibold truncate max-w-[180px] text-[var(--fc-ink-l)] dark:text-[var(--fc-ink-d)]" title={file.name}>
                         {file.name}
                     </span>
                     {/* Lý do bị gắn cờ do Spam Guard — chỉ tệp trong mục Nội dung rác mới có */}

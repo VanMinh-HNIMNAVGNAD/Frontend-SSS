@@ -179,3 +179,198 @@ export function getEffectiveColor(item) {
   return getDefaultColor(item);
 }
 
+
+// ─────────────────────────────────────────────────────────────
+// PALETTE CHO THẺ (card) — tô màu TOÀN BỘ thẻ, không chỉ viền
+// ─────────────────────────────────────────────────────────────
+//
+// Vấn đề của bản cũ: customColor chỉ được gán vào borderColor, còn nền / chữ /
+// badge vẫn lấy từ bảng CAT_*_CLASS cứng theo category, nên đổi màu một tệp
+// gần như không thấy gì.
+//
+// Bản này suy ra cả bộ màu từ MỘT mã hex, và ràng buộc tương phản bằng công
+// thức WCAG chứ không đoán bằng mắt: nền là màu pha loãng trên nền trang, còn
+// chữ / icon được kéo sáng-tối cho tới khi đạt ngưỡng tương phản so với chính
+// nền vừa tính. Nhờ vậy màu vàng nhạt (#FDE68A) hay xanh navy tối (#1E293B)
+// đều đọc được, chủ thể không bị chìm vào nền ở chế độ lưới.
+
+/** Nền trang thật sự phía sau thẻ — xem MainLayout.jsx */
+const BASE_LIGHT = '#F8FAFD';
+const BASE_DARK  = '#1E1E1E';
+
+function hexToRgb(hex) {
+  const m = /^#?([\da-f]{3}|[\da-f]{6})$/i.exec(String(hex).trim());
+  if (!m) return null;
+  let h = m[1];
+  if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+  const int = parseInt(h, 16);
+  return { r: (int >> 16) & 255, g: (int >> 8) & 255, b: int & 255 };
+}
+
+const toHex2 = (n) => Math.round(Math.min(255, Math.max(0, n))).toString(16).padStart(2, '0');
+const rgbToHex = ({ r, g, b }) => `#${toHex2(r)}${toHex2(g)}${toHex2(b)}`.toUpperCase();
+
+/** Trộn `fg` lên trên `bg` với độ mờ `a` (0–1) — mô phỏng đúng phép alpha blend. */
+function blend(fg, bg, a) {
+  return {
+    r: fg.r * a + bg.r * (1 - a),
+    g: fg.g * a + bg.g * (1 - a),
+    b: fg.b * a + bg.b * (1 - a),
+  };
+}
+
+/** Độ chói tương đối theo WCAG 2.1 */
+function luminance({ r, g, b }) {
+  const ch = (v) => {
+    const s = v / 255;
+    return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * ch(r) + 0.7152 * ch(g) + 0.0722 * ch(b);
+}
+
+/** Tỉ lệ tương phản 1–21 giữa hai màu RGB */
+function contrast(a, b) {
+  const la = luminance(a);
+  const lb = luminance(b);
+  return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+}
+
+function rgbToHsl({ r, g, b }) {
+  const rr = r / 255, gg = g / 255, bb = b / 255;
+  const max = Math.max(rr, gg, bb), min = Math.min(rr, gg, bb);
+  const l = (max + min) / 2;
+  const d = max - min;
+  if (!d) return { h: 0, s: 0, l };
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  let h;
+  if (max === rr) h = ((gg - bb) / d) % 6;
+  else if (max === gg) h = (bb - rr) / d + 2;
+  else h = (rr - gg) / d + 4;
+  h *= 60;
+  if (h < 0) h += 360;
+  return { h, s, l };
+}
+
+function hslToRgb({ h, s, l }) {
+  const c = (1 - Math.abs(2 * l - 1)) * s;
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+  const m = l - c / 2;
+  const [r, g, b] = [
+    [c, x, 0], [x, c, 0], [0, c, x], [0, x, c], [x, 0, c], [c, 0, x],
+  ][Math.floor((h % 360) / 60) % 6];
+  return { r: (r + m) * 255, g: (g + m) * 255, b: (b + m) * 255 };
+}
+
+/**
+ * Kéo độ sáng của `hsl` về phía `toward` (0 = đen, 1 = trắng) cho tới khi đạt
+ * tương phản `target` so với nền `bgRgb`. Giữ nguyên hue nên chữ vẫn "cùng màu"
+ * với thẻ, chỉ đủ đậm/nhạt để đọc được.
+ *
+ * Bão hoà được nâng nhẹ khi phải đi xa: màu càng gần đen/trắng càng bạc màu,
+ * bù lại chút saturation thì vẫn nhận ra là màu người dùng đã chọn.
+ */
+function readable(hsl, bgRgb, target, toward) {
+  // Màu vốn đã xám (xám mặc định của thư mục, đen, trắng) thì giữ nguyên độ bão
+  // hoà — nâng lên sẽ biến nó thành một màu khác hẳn.
+  const s = hsl.s < 0.25 ? hsl.s : Math.min(1, Math.max(hsl.s, 0.45));
+  for (let step = 0; step <= 24; step++) {
+    const l = hsl.l + (toward - hsl.l) * (step / 24);
+    const rgb = hslToRgb({ ...hsl, s, l });
+    if (contrast(rgb, bgRgb) >= target) return rgb;
+  }
+  // Không đạt nổi thì dùng luôn hai đầu mút — chắc chắn tương phản cao nhất
+  return toward > 0.5 ? { r: 255, g: 255, b: 255 } : { r: 17, g: 17, b: 17 };
+}
+
+/** Một chế độ (sáng hoặc tối) của bảng màu thẻ */
+function buildScheme(rgb, baseHex, isDark) {
+  const base = hexToRgb(baseHex);
+  const hsl = rgbToHsl(rgb);
+
+  // Nền thẻ: pha loãng màu trên nền trang. Đậm hơn ở chế độ tối vì màu trên nền
+  // tối luôn trông nhạt hơn cùng tỉ lệ trên nền sáng.
+  const surface      = blend(rgb, base, isDark ? 0.26 : 0.18);
+  const surfaceHover = blend(rgb, base, isDark ? 0.38 : 0.30);
+  // Khung xem trước giữ gần như trung tính để ảnh / bảng tính không bị ám màu
+  const panel        = blend(rgb, base, isDark ? 0.12 : 0.07);
+  const border       = blend(rgb, base, isDark ? 0.55 : 0.50);
+
+  // Ngưỡng: 5.5 cho tên tệp (chữ nhỏ, đậm), 4.0 cho chữ phụ, 3.0 cho icon/đồ hoạ
+  const toward = isDark ? 1 : 0;
+  const ink   = readable(hsl, surface, 5.5, toward);
+  const muted = readable(hsl, surface, 4.0, toward);
+  const icon  = readable(hsl, surface, 3.0, toward);
+
+  // Badge đuôi tệp: nền màu đặc hơn hẳn nền thẻ để nổi lên như một con tem
+  const badgeBg = blend(rgb, base, isDark ? 0.55 : 0.85);
+  const badgeFg = contrast(badgeBg, { r: 255, g: 255, b: 255 }) >= 4.5
+    ? { r: 255, g: 255, b: 255 }
+    : { r: 17, g: 17, b: 17 };
+
+  return {
+    surface:      rgbToHex(surface),
+    surfaceHover: rgbToHex(surfaceHover),
+    panel:        rgbToHex(panel),
+    border:       rgbToHex(border),
+    ink:          rgbToHex(ink),
+    muted:        rgbToHex(muted),
+    icon:         rgbToHex(icon),
+    badgeBg:      rgbToHex(badgeBg),
+    badgeFg:      rgbToHex(badgeFg),
+  };
+}
+
+// Bảng màu chỉ phụ thuộc mã hex nên nhớ lại được; lưới có thể có hàng trăm thẻ
+// cùng vài mã màu, tính lại mỗi lần render là phí.
+const paletteCache = new Map();
+
+/**
+ * Bảng màu đầy đủ (cả chế độ sáng lẫn tối) suy ra từ một mã hex.
+ * @param {string} hex
+ * @returns {{light: object, dark: object}}
+ */
+export function getCardPalette(hex) {
+  const key = String(hex).toUpperCase();
+  const cached = paletteCache.get(key);
+  if (cached) return cached;
+
+  const rgb = hexToRgb(hex) ?? hexToRgb(DEFAULT_FILE_COLOR);
+  const palette = {
+    light: buildScheme(rgb, BASE_LIGHT, false),
+    dark:  buildScheme(rgb, BASE_DARK, true),
+  };
+  paletteCache.set(key, palette);
+  return palette;
+}
+
+/**
+ * Biến CSS để gắn thẳng vào `style` của thẻ. Mỗi biến có hai bản `-l` / `-d`;
+ * class Tailwind chọn bản nào bằng biến thể `dark:` (class `dark` trên <html>,
+ * xem useTheme.js) — nhờ vậy thẻ không phải subscribe theme, và đổi Sáng/Tối
+ * không cần render lại toàn bộ lưới.
+ *
+ * @param {object} item - file/folder
+ */
+export function getCardColorVars(item) {
+  const { light, dark } = getCardPalette(getEffectiveColor(item));
+  return {
+    '--fc-surface-l': light.surface,
+    '--fc-hover-l':   light.surfaceHover,
+    '--fc-panel-l':   light.panel,
+    '--fc-border-l':  light.border,
+    '--fc-ink-l':     light.ink,
+    '--fc-muted-l':   light.muted,
+    '--fc-icon-l':    light.icon,
+    '--fc-badge-l':   light.badgeBg,
+    '--fc-badge-fg-l': light.badgeFg,
+    '--fc-surface-d': dark.surface,
+    '--fc-hover-d':   dark.surfaceHover,
+    '--fc-panel-d':   dark.panel,
+    '--fc-border-d':  dark.border,
+    '--fc-ink-d':     dark.ink,
+    '--fc-muted-d':   dark.muted,
+    '--fc-icon-d':    dark.icon,
+    '--fc-badge-d':   dark.badgeBg,
+    '--fc-badge-fg-d': dark.badgeFg,
+  };
+}

@@ -463,6 +463,8 @@ const vi = {
   'ai.disabled.desc': 'Máy chủ chưa cấu hình Vertex AI. Khai báo VERTEX_PROJECT_ID trong backend/.env và bật Vertex AI API cho dự án Google Cloud.',
   'ai.context.fileText': 'Đã đọc {chars} ký tự nội dung tệp',
   'ai.context.binary': 'Đã gửi trực tiếp tệp cho AI xem',
+  'ai.context.video': 'Đã xem {minutes} phút đầu của video (1 khung/5 giây, có tiếng)',
+  'ai.context.videoPlain': 'Đã xem phần đầu của video',
   'ai.context.folder': 'Đã đọc danh sách {count} mục con',
   'ai.context.metadata': 'Chỉ đọc được thông tin mô tả, không phải nội dung',
   'ai.context.truncated': 'nội dung đã bị cắt bớt',

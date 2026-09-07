@@ -753,10 +753,12 @@ export const aiApi = {
    *                   sau, để cả khung chat được lưu thành MỘT cuộc trong lịch sử.
    * @param {AbortSignal=} signal      Nút Dừng cắt đúng request đang chạy
    *
-   * Trả { answer, question, context: { mode, name, chars, truncated, childCount, reason },
-   * model, conversationId }.
+   * Trả { answer, question, context: { mode, name, chars, seconds, truncated, childCount,
+   * reason }, model, conversationId }.
    * `context.mode` cho biết AI thực sự đọc được gì ('file-text' | 'file-binary' |
-   * 'folder-listing' | 'metadata') để giao diện khỏi hứa suông là đã đọc nội dung.
+   * 'file-video' | 'folder-listing' | 'metadata') để giao diện khỏi hứa suông là đã đọc
+   * nội dung. Với 'file-video', `seconds` là số giây ĐẦU của video mà AI xem được —
+   * backend cắt ở 10 phút, và cắt ngắn hơn nữa khi hạn mức token còn ít.
    */
   ask: (payload, signal) => api.post('/ai/ask', payload, { signal }),
 

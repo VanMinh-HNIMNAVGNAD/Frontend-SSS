@@ -458,6 +458,8 @@ const en = {
   'ai.disabled.desc': 'The server has no Vertex AI configuration. Set VERTEX_PROJECT_ID in backend/.env and enable the Vertex AI API for the Google Cloud project.',
   'ai.context.fileText': 'Read {chars} characters of file content',
   'ai.context.binary': 'Sent the file itself to the AI',
+  'ai.context.video': 'Watched the first {minutes} min of the video (1 frame/5s, with audio)',
+  'ai.context.videoPlain': 'Watched the beginning of the video',
   'ai.context.folder': 'Read a listing of {count} child items',
   'ai.context.metadata': 'Only metadata was available, not the contents',
   'ai.context.truncated': 'content was truncated',

@@ -20,6 +20,7 @@ import {
     Trash2,
     Loader2,
     FileSearch,
+    FileVideo,
     FolderSearch,
     Info,
     Gauge,
@@ -391,6 +392,19 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
             'file-binary': {
                 icon: FileSearch,
                 text: t('ai.context.binary'),
+                tone: 'text-emerald-600 dark:text-emerald-400',
+            },
+            'file-video': {
+                icon: FileVideo,
+                // Nói rõ AI chỉ xem PHẦN ĐẦU video là bắt buộc, không phải cho đẹp: câu
+                // trả lời về một video 40 phút mà chỉ dựa trên 10 phút đầu trông y như
+                // câu trả lời sai nếu giao diện không nói ra giới hạn đó. Tin nhắn nạp từ
+                // lịch sử không có `seconds` (bảng ai_message chỉ lưu `context_mode`) nên
+                // vẫn cần câu không kèm số.
+                text:
+                    context.seconds != null
+                        ? t('ai.context.video', { minutes: Math.round(context.seconds / 60) })
+                        : t('ai.context.videoPlain'),
                 tone: 'text-emerald-600 dark:text-emerald-400',
             },
             'folder-listing': {

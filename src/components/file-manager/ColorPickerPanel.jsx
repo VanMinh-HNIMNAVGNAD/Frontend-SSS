@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
-import { RotateCcw, Check } from 'lucide-react';
+import { RotateCcw, Check, Pipette } from 'lucide-react';
 import { getDefaultColor } from '../../utils/fileColors';
 
 /**
@@ -24,6 +24,54 @@ const PANEL_W = 252;   // phải khớp với w-63 bên dưới — dùng để 
 // của menu — menu còn 6px padding nữa mới tới viền. Trừ đi phần đó thì khoảng hở
 // nhìn thấy được là 8px, và đối xứng cả khi panel lật sang trái.
 const GAP = 14;
+
+// ── Đổi hệ màu ────────────────────────────────────────────────────────────
+// Bộ chọn làm việc trên HSV chứ không trên hex, vì hai thanh kéo của nó chính là
+// hai trục của HSV: thanh dải màu là H, ô vuông là S (ngang) và V (dọc). HSV mới
+// là nguồn sự thật — quy về hex sau mỗi lần kéo thì hue sẽ mất khi kéo tới trắng
+// hoặc đen (cả hai đều có vô số hue quy về cùng một mã hex), và thanh dải màu sẽ
+// tự nhảy về đỏ ngay giữa lúc người dùng đang kéo.
+
+const clamp01 = (n) => Math.min(1, Math.max(0, n));
+
+/** '#RRGGBB' → {h: 0-360, s: 0-1, v: 0-1}; trả null nếu chuỗi không hợp lệ. */
+function hexToHsv(hex) {
+    const m = /^#?([\da-f]{6})$/i.exec(String(hex).trim());
+    if (!m) return null;
+
+    const int = parseInt(m[1], 16);
+    const r = ((int >> 16) & 255) / 255;
+    const g = ((int >> 8) & 255) / 255;
+    const b = (int & 255) / 255;
+
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const d = max - min;
+
+    let h = 0;
+    if (d) {
+        if (max === r) h = ((g - b) / d) % 6;
+        else if (max === g) h = (b - r) / d + 2;
+        else h = (r - g) / d + 4;
+        h = h * 60;
+        if (h < 0) h += 360;
+    }
+
+    return { h, s: max ? d / max : 0, v: max };
+}
+
+/** {h, s, v} → '#RRGGBB' viết hoa. */
+function hsvToHex({ h, s, v }) {
+    const c = v * s;
+    const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+    const m = v - c;
+    const [r, g, b] = [
+        [c, x, 0], [x, c, 0], [0, c, x], [0, x, c], [x, 0, c], [c, 0, x],
+    ][Math.floor(h / 60) % 6];
+
+    const to = (n) => Math.round((n + m) * 255).toString(16).padStart(2, '0');
+    return `#${to(r)}${to(g)}${to(b)}`.toUpperCase();
+}
 
 /**
  * Bảng chọn màu — bung SANG BÊN PHẢI hàng "Đổi màu" như một submenu, chứ không
@@ -55,12 +103,55 @@ export default function ColorPickerPanel({ item, currentColor, onSelectColor, on
     // Màu đang "active" = customColor hoặc null
     const activeColor = currentColor ?? null;
 
-    // Màu nháp của bộ chọn RGB. Native <input type="color"> bắn `change` liên tục
-    // trong lúc người dùng kéo con trỏ; bản cũ gọi thẳng onSelectColor + onClose ở
-    // mỗi lần bắn nên vừa chạm vào là bảng màu biến mất và mỗi cú kéo là một lần
-    // gọi API + toast. Giữ ở state cục bộ rồi mới "Áp dụng" một lần.
-    const [draft, setDraft] = useState(activeColor ?? defaultColor);
+    // Màu nháp của bộ chọn. Mỗi lần đổi màu là một lần gọi API + toast, nên giữ ở
+    // state cục bộ trong lúc kéo rồi mới "Áp dụng" một lần.
+    const [hsv, setHsv] = useState(() => hexToHsv(activeColor ?? defaultColor) ?? { h: 0, s: 0, v: 0 });
+    const draft = hsvToHex(hsv);
+
+    // Ô hex là input tự do nên phải có state riêng: người dùng gõ dở "#3B8" thì
+    // chuỗi đó chưa quy được ra màu, nhưng vẫn phải nằm nguyên trong ô.
+    const [hexInput, setHexInput] = useState(draft);
+
     const hasDraft = draft.toLowerCase() !== (activeColor ?? '').toLowerCase();
+
+    /** Đổi màu nháp và đồng bộ luôn ô hex — hai thứ này không bao giờ được lệch nhau. */
+    const applyHsv = useCallback((next) => {
+        setHsv(next);
+        setHexInput(hsvToHex(next));
+    }, []);
+
+    const handleHexInput = (raw) => {
+        setHexInput(raw);
+        const parsed = hexToHsv(raw);
+        // Chỉ nhận khi đã gõ đủ 6 ký tự; gõ dở thì ô cứ giữ nguyên chữ, màu chưa đổi
+        if (parsed) setHsv(parsed);
+    };
+
+    // ── Kéo trên ô vuông S/V và thanh dải màu ─────────────────────────────
+    // Dùng Pointer Events + setPointerCapture: kéo ra ngoài khung vẫn tiếp tục nhận
+    // toạ độ, nên con trỏ không "kẹt" ở mép khi người dùng vung tay hơi quá.
+    // Khung được đo qua `e.currentTarget` (chính phần tử gắn handler) thay vì một
+    // ref — đỡ hai ref chỉ dùng để đo, và ref thì không được đọc trong lúc render.
+    // `toValue(x, y)` nhận toạ độ đã quy về 0–1 trong khung.
+    const dragProps = (toValue) => {
+        const track = (e) => {
+            const rect = e.currentTarget.getBoundingClientRect();
+            toValue(
+                clamp01((e.clientX - rect.left) / rect.width),
+                clamp01((e.clientY - rect.top) / rect.height),
+            );
+        };
+        return {
+            onPointerDown: (e) => {
+                e.preventDefault();           // chặn bôi đen chữ trong lúc kéo
+                e.currentTarget.setPointerCapture(e.pointerId);
+                track(e);
+            },
+            onPointerMove: (e) => {
+                if (e.buttons === 1) track(e);
+            },
+        };
+    };
 
     // Canh vị trí: mặc định bung sang phải, lật sang trái nếu bên phải không còn đủ
     // chỗ (menu bị bấm sát mép phải màn hình), và đẩy lên nếu chạm mép dưới.
@@ -128,6 +219,9 @@ export default function ColorPickerPanel({ item, currentColor, onSelectColor, on
         onCloseMenu?.();
     };
 
+    // Màu thuần của hue đang chọn — dùng cho nền ô S/V và cho núm thanh dải màu
+    const hueColor = hsvToHex({ h: hsv.h, s: 1, v: 1 });
+
     return (
         <div
             ref={panelRef}
@@ -190,32 +284,70 @@ export default function ColorPickerPanel({ item, currentColor, onSelectColor, on
 
             <div className="h-px bg-gray-200 dark:bg-gray-700/60 my-2.5" />
 
-            {/* Bộ chọn RGB tự do */}
-            <div className="flex items-center gap-2">
-                {/* Native color input phủ trong suốt lên đúng ô swatch: bấm thẳng vào
-                    input để mở hộp màu của hệ điều hành. Bản cũ giấu input ra ngoài
-                    rồi gọi ref.click() — cú bấm rơi vào nút bọc ngoài trước, và trên
-                    một số trình duyệt hộp màu mở ở sai chỗ hoặc không mở lại được. */}
-                <label
-                    className="relative w-8 h-8 shrink-0 rounded-lg border border-gray-300 dark:border-gray-600 cursor-pointer overflow-hidden"
+            {/* ── Bộ chọn màu tự do ───────────────────────────────────────── */}
+            <div className="flex items-center gap-1.5 mb-2">
+                <Pipette className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500 shrink-0" />
+                <span className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Tuỳ chỉnh
+                </span>
+            </div>
+
+            {/* Ô vuông S/V: ngang là độ đậm màu, dọc là độ sáng. Nền là hue hiện tại
+                phủ hai lớp gradient (trắng sang ngang, đen lên dọc) — đúng cách một
+                color picker vẽ, nên mọi sắc độ của dải màu đó đều với tới được. */}
+            <div
+                {...dragProps((x, y) => applyHsv({ ...hsv, s: x, v: 1 - y }))}
+                className="relative w-full h-26 rounded-lg cursor-crosshair touch-none overflow-hidden border border-gray-200 dark:border-gray-700"
+                style={{
+                    backgroundColor: hueColor,
+                    backgroundImage:
+                        'linear-gradient(to top, #000, rgba(0,0,0,0)), linear-gradient(to right, #fff, rgba(255,255,255,0))',
+                }}
+            >
+                <span
+                    className="absolute w-3.5 h-3.5 rounded-full border-2 border-white shadow-md ring-1 ring-black/30 pointer-events-none -translate-x-1/2 -translate-y-1/2"
+                    style={{
+                        left: `${hsv.s * 100}%`,
+                        top: `${(1 - hsv.v) * 100}%`,
+                        backgroundColor: draft,
+                    }}
+                />
+            </div>
+
+            {/* Thanh dải màu (hue 0–360°) */}
+            <div
+                {...dragProps((x) => applyHsv({ ...hsv, h: x * 360 }))}
+                className="relative w-full h-3.5 rounded-full mt-2.5 cursor-ew-resize touch-none border border-gray-200 dark:border-gray-700"
+                style={{
+                    backgroundImage:
+                        'linear-gradient(to right, #FF0000, #FFFF00, #00FF00, #00FFFF, #0000FF, #FF00FF, #FF0000)',
+                }}
+            >
+                <span
+                    className="absolute top-1/2 w-3.5 h-3.5 rounded-full border-2 border-white shadow-md ring-1 ring-black/30 pointer-events-none -translate-x-1/2 -translate-y-1/2"
+                    style={{ left: `${(hsv.h / 360) * 100}%`, backgroundColor: hueColor }}
+                />
+            </div>
+
+            {/* Ô hex nhập tay + nút áp dụng */}
+            <div className="flex items-center gap-2 mt-2.5">
+                <span
+                    className="w-8 h-8 shrink-0 rounded-lg border border-gray-300 dark:border-gray-600"
                     style={{ backgroundColor: draft }}
-                    title="Mở bảng màu RGB"
-                >
-                    <input
-                        type="color"
-                        value={draft}
-                        onChange={(e) => setDraft(e.target.value)}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    />
-                </label>
-
-                <div className="flex-1 min-w-0">
-                    <div className="text-[11px] text-gray-500 dark:text-gray-400 leading-tight">RGB tuỳ chọn</div>
-                    <div className="font-mono text-[12px] text-gray-700 dark:text-gray-200 leading-tight truncate">
-                        {draft.toUpperCase()}
-                    </div>
-                </div>
-
+                    title={draft}
+                />
+                <input
+                    value={hexInput}
+                    onChange={(e) => handleHexInput(e.target.value)}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter' && hasDraft) handleApplyDraft();
+                        e.stopPropagation();   // đừng để phím tắt toàn cục nuốt mất
+                    }}
+                    spellCheck={false}
+                    maxLength={7}
+                    aria-label="Mã màu hex"
+                    className="flex-1 min-w-0 px-2 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-transparent font-mono text-[12px] text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
                 <button
                     onClick={handleApplyDraft}
                     disabled={!hasDraft}
@@ -243,7 +375,6 @@ export default function ColorPickerPanel({ item, currentColor, onSelectColor, on
                     </button>
                 </>
             )}
-
         </div>
     );
 }

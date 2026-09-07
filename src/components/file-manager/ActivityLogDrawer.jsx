@@ -252,6 +252,14 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                     bgBadge: 'bg-teal-50 dark:bg-teal-950/50 border-teal-200 dark:border-teal-800 text-teal-700 dark:text-teal-300',
                     timelineDot: 'bg-teal-500 ring-teal-100 dark:ring-teal-900',
                 };
+            case 'MARK_NOT_SPAM':
+                return {
+                    label: t('activity.action.notSpam'),
+                    icon: RotateCcw,
+                    iconColor: 'text-teal-600 dark:text-teal-400',
+                    bgBadge: 'bg-teal-50 dark:bg-teal-950/50 border-teal-200 dark:border-teal-800 text-teal-700 dark:text-teal-300',
+                    timelineDot: 'bg-teal-500 ring-teal-100 dark:ring-teal-900',
+                };
             case 'DELETE_PERMANENTLY':
                 return {
                     label: t('activity.action.deleteForever'),
@@ -416,6 +424,18 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                 return (
                     <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
                         Khôi phục <span className="font-semibold text-gray-900 dark:text-gray-100">{name}</span> từ thùng rác
+                    </div>
+                );
+            }
+            case 'MARK_NOT_SPAM': {
+                const name = d.fileName || t('activity.fallback.file');
+                return (
+                    <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                        {tRich(t('activity.desc.notSpam'), {
+                            name: (
+                                <span className="font-semibold text-gray-900 dark:text-gray-100">{name}</span>
+                            ),
+                        })}
                     </div>
                 );
             }

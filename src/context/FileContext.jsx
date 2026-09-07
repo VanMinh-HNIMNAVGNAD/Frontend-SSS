@@ -388,6 +388,14 @@ export function FileProvider({ children }) {
     const view = viewRef.current;
     if (!view || !entity) return false;
     if (!['my-drive', 'home', 'shared-drives'].includes(view.activeTab)) return false;
+
+    // Tệp bị Spam Guard gắn cờ lúc upload KHÔNG thuộc về mấy tab này — cả ba đều lọc
+    // `is_spam = false` phía server. Thiếu chốt này thì card của nó vẫn được chèn vào
+    // My Drive, người dùng thấy tệp nằm đó khoảng 1,5 giây rồi lượt đồng bộ im lặng
+    // cuối hàng đợi xoá mất, không kèm một lời giải thích nào. `onUploadedFile` là
+    // nơi báo cho họ biết tệp đã bị chuyển vào Nội dung rác.
+    if (entity.isSpam || entity.isTrash) return false;
+
     if (view.search) return false;
     if (view.filterType !== 'all' || view.filterDate !== 'all' || view.filterOwner !== 'all') return false;
 
@@ -1052,9 +1060,17 @@ export function FileProvider({ children }) {
     if (entity && belongsToCurrentView(entity)) {
       upsertItems(entity);
     }
+
+    // Tải lên xong nhưng Spam Guard gắn cờ: tệp KHÔNG hiện ở thư mục đích, nên phải
+    // nói ra. Không có thông báo này thì hàng đợi báo "xong 100%" mà thư mục vẫn
+    // trống — trông y hệt một lần upload thất bại trong im lặng.
+    if (entity?.isSpam) {
+      toast(t('file.upload.flaggedSpam', { name: entity.name }), { icon: '🛡️', duration: 6000 });
+    }
+
     scheduleAnalyticsRefresh();
     scheduleSilentSync();
-  }, [belongsToCurrentView, upsertItems, scheduleAnalyticsRefresh, scheduleSilentSync]);
+  }, [belongsToCurrentView, upsertItems, scheduleAnalyticsRefresh, scheduleSilentSync, t]);
 
   const resetFilters = useCallback(() => {
     setFilterType('all');
@@ -1337,6 +1353,25 @@ export function FileProvider({ children }) {
       return { ok: false, error: err };
     }
   }, [fetchAnalytics, t]);
+
+  /**
+   * Gỡ một mục khỏi Nội dung rác — nó quay lại đúng thư mục đã tải lên.
+   *
+   * Tách khỏi `restoreFromTrash` vì hai chuyện khác hẳn nhau: tệp spam KHÔNG nằm
+   * trong thùng rác (`is_trash = false`), nên `PATCH /files/:id/restore` không đổi
+   * được cột nào. Trả về `{ ok, parentName }` để phía gọi nói được tệp đã về đâu —
+   * người dùng đang đứng ở trang Nội dung rác nên không tự thấy.
+   */
+  const markNotSpam = useCallback(async (id, { silent = false } = {}) => {
+    try {
+      const res = await filesApi.markNotSpam(id);
+      setItems((prev) => prev.filter((item) => item.id !== id));
+      return { ok: true, parentName: res?.parentName ?? null, parentId: res?.parentId ?? null };
+    } catch (err) {
+      if (!silent) toast.error(t('file.notSpam.failed', { reason: err.message }));
+      return { ok: false, error: err };
+    }
+  }, [t]);
 
   const deletePermanently = useCallback(async (id, { silent = false } = {}) => {
     try {
@@ -2464,6 +2499,7 @@ export function FileProvider({ children }) {
     updateColor,
     moveToTrash,
     restoreFromTrash,
+    markNotSpam,
     deletePermanently,
     emptyTrash,
     createFolder,
@@ -2510,7 +2546,7 @@ export function FileProvider({ children }) {
     // ── Lưu trữ ──
     storageInfo, fetchAnalytics,
     // ── Hành động trên file/folder ──
-    fetchFiles, toggleStar, moveToTrash, restoreFromTrash, deletePermanently,
+    fetchFiles, toggleStar, moveToTrash, restoreFromTrash, markNotSpam, deletePermanently,
     emptyTrash, createFolder, createFolderSilent, moveItem, copyItem, renameItem,
     getDownloadUrl, getPreviewUrl, getFileTextContent, createShareLink,
     // ── Upload ──

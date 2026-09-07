@@ -126,6 +126,7 @@ const en = {
   // Confirm / prompt dialogs
   'header.confirm.trash': 'Move {count} item(s) to trash?',
   'header.confirm.restore': 'Restore {count} item(s)?',
+  'header.confirm.notSpam': 'Remove {count} item(s) from Spam and send them back to their folder?',
   'header.confirm.deleteForever':
     'Permanently delete {count} item(s)? This cannot be undone!',
   'header.prompt.moveTarget': 'Enter the destination folder ID (leave empty for root):',
@@ -134,6 +135,8 @@ const en = {
   // Success messages — also used for batch actions, hence the {count}
   'header.success.delete': 'Moved {count} item(s) to trash',
   'header.success.restore': 'Restored {count} item(s)',
+  'header.success.notSpam': 'Removed {count} item(s) from Spam',
+  'header.success.notSpamTo': 'Items are back in "{folder}"',
   'header.success.deleteForever': 'Permanently deleted {count} item(s)',
   'header.success.move': 'Moved {count} item(s)',
   'header.success.copy': 'Copied {count} item(s)',
@@ -190,6 +193,7 @@ const en = {
   'menu.details': 'Details & activity',
   'menu.moveToTrash': 'Move to trash',
   'menu.notSpam': 'Not spam',
+  'menu.notSpamRestore': 'Not spam — send back to its folder',
   'menu.star.add': 'Add to starred',
   'menu.star.remove': 'Remove from starred',
   // ── Filter bar (components/common/FileFilterBar.jsx) ──
@@ -302,6 +306,9 @@ const en = {
   'file.star.failed': 'Could not update the star',
   'file.trash.failed': 'Could not move to trash: {reason}',
   'file.restore.failed': 'Could not restore: {reason}',
+  'file.notSpam.failed': 'Could not remove from Spam: {reason}',
+  'file.notSpam.done': '"{name}" is back in "{folder}"',
+  'file.upload.flaggedSpam': 'Uploaded "{name}", but it was flagged as suspicious, so it is in Spam instead of the target folder.',
   'file.deleteForever.failed': 'Could not delete permanently: {reason}',
   'file.emptyTrash.failed': 'Could not empty the trash: {reason}',
   'file.rename.done': 'Renamed',
@@ -649,6 +656,7 @@ const en = {
   'activity.action.unstar': 'Unstarred',
   'activity.action.trash': 'Moved to trash',
   'activity.action.restore': 'Restored',
+  'activity.action.notSpam': 'Removed from Spam',
   'activity.action.deleteForever': 'Deleted permanently',
   'activity.action.emptyTrash': 'Trash emptied',
   'activity.action.copy': 'Copied',
@@ -665,6 +673,7 @@ const en = {
   'activity.fallback.user': 'User',
   'activity.desc.renameFromTo': 'Renamed {old} to {new}',
   'activity.desc.renameTo': 'Renamed to {new}',
+  'activity.desc.notSpam': 'Removed {name} from Spam, back in its folder',
   'activity.desc.move': 'Moved {name}',
   'activity.desc.shareAdded': 'Granted access to {name} for {email}',
   'activity.desc.shareRemoved': 'Revoked access to {name}',

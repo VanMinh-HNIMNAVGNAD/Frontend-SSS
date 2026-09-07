@@ -459,6 +459,10 @@ export const filesApi = {
   updateColor: (id, color) => api.patch(`/files/${id}/color`, { color }),
   moveToTrash: (id) => api.patch(`/files/${id}/trash`),
   restoreFromTrash: (id) => api.patch(`/files/${id}/restore`),
+  // Gỡ cờ "Nội dung rác". KHÁC `restoreFromTrash`: tệp spam có `is_trash = false`
+  // sẵn rồi, nên gọi /restore cho nó là một câu UPDATE không đổi gì — đó chính là
+  // lý do "khôi phục xong không thấy tệp đâu".
+  markNotSpam: (id) => api.patch(`/files/${id}/not-spam`),
   emptyTrash: () => api.delete('/files/trash/empty'),
   deletePermanently: (id) => api.delete(`/files/${id}/permanent`),
   getStorageAnalytics: () => api.get('/files/analytics'),

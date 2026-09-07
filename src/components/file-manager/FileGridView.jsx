@@ -26,6 +26,7 @@ export default function FileGridView() {
         updateColor,
         moveToTrash,
         restoreFromTrash,
+        markNotSpam,
         deletePermanently,
         renameItem,
         getDownloadUrl,
@@ -53,6 +54,22 @@ export default function FileGridView() {
 
     const { openInfoDrawer, openPreview } = useFilePreview();
 
+    /**
+     * Gỡ một tệp khỏi Nội dung rác từ menu chuột phải.
+     *
+     * Toast nêu rõ tệp về thư mục nào: người dùng vẫn đang đứng ở trang Nội dung rác
+     * sau thao tác, dòng vừa biến mất khỏi bảng mà không kèm lời nào thì trông y hệt
+     * lỗi cũ ("khôi phục xong không thấy tệp đâu").
+     */
+    const handleNotSpam = useCallback(async (item) => {
+        const res = await markNotSpam(item.id);
+        if (res.ok) {
+            toast.success(t('file.notSpam.done', {
+                name: item.name,
+                folder: res.parentName || t('nav.myDrive'),
+            }));
+        }
+    }, [markNotSpam, t]);
 
     // Context menu state
     const [contextMenu, setContextMenu] = useState({ isOpen: false, x: 0, y: 0, item: null });
@@ -228,6 +245,7 @@ export default function FileGridView() {
                     y={contextMenu.y}
                     item={contextMenu.item}
                     isTrashTab={activeTab === 'trash'}
+                    isSpamTab={activeTab === 'spam'}
                     activeTab={activeTab}
                     onClose={closeContextMenu}
                     onUploadFile={() => fileInputRef.current?.click()}
@@ -346,6 +364,7 @@ export default function FileGridView() {
                 y={contextMenu.y}
                 item={contextMenu.item}
                 isTrashTab={activeTab === 'trash'}
+                isSpamTab={activeTab === 'spam'}
                 activeTab={activeTab}
                 onClose={closeContextMenu}
                 onUploadFile={() => fileInputRef.current?.click()}
@@ -381,6 +400,7 @@ export default function FileGridView() {
                 onToggleStar={(item) => toggleStar(item.id)}
                 onMoveToTrash={(item) => moveToTrash(item.id)}
                 onRestore={(item) => restoreFromTrash(item.id)}
+                onNotSpam={(item) => handleNotSpam(item)}
                 onDeletePermanently={(item) => deletePermanently(item.id)}
                 onShowInfo={(item, tab) => openInfoDrawer(item, tab)}
                 onChangeColor={(item, color) => updateColor(item.id, color)}

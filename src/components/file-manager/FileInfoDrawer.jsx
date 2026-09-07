@@ -159,6 +159,16 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                 bgClass: 'bg-blue-100 dark:bg-blue-900/40',
             };
         }
+        // Phải đứng TRƯỚC nhánh TRASH/DELETE: 'MARK_NOT_SPAM' không chứa hai chữ đó,
+        // nhưng để rơi xuống cuối thì nhãn hiện ra là chuỗi thô "Mark Not Spam".
+        if (act.includes('NOT_SPAM')) {
+            return {
+                label: t('activity.action.notSpam'),
+                icon: RotateCcw,
+                colorClass: 'text-emerald-600 dark:text-emerald-400',
+                bgClass: 'bg-emerald-100 dark:bg-emerald-900/40',
+            };
+        }
         if (act.includes('RESTORE')) {
             return {
                 label: t('activity.action.restore'),

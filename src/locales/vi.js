@@ -129,6 +129,7 @@ const vi = {
   // Hộp thoại xác nhận / nhập liệu
   'header.confirm.trash': 'Chuyển {count} mục vào thùng rác?',
   'header.confirm.restore': 'Khôi phục {count} mục?',
+  'header.confirm.notSpam': 'Gỡ {count} mục khỏi Nội dung rác và trả về thư mục cũ?',
   'header.confirm.deleteForever':
     'Xóa vĩnh viễn {count} mục? Hành động này không thể hoàn tác!',
   'header.prompt.moveTarget': 'Nhập ID thư mục đích (để trống = gốc):',
@@ -136,6 +137,8 @@ const vi = {
   // Thông báo thành công — gộp cho cả thao tác nhiều mục, nên luôn nêu {count}
   'header.success.delete': 'Đã chuyển {count} mục vào thùng rác',
   'header.success.restore': 'Đã khôi phục {count} mục',
+  'header.success.notSpam': 'Đã gỡ {count} mục khỏi Nội dung rác',
+  'header.success.notSpamTo': 'Các mục đã quay lại thư mục "{folder}"',
   'header.success.deleteForever': 'Đã xóa vĩnh viễn {count} mục',
   'header.success.move': 'Đã di chuyển {count} mục',
   'header.success.copy': 'Đã sao chép {count} mục',
@@ -193,6 +196,7 @@ const vi = {
   'menu.details': 'Xem chi tiết & hoạt động',
   'menu.moveToTrash': 'Chuyển vào thùng rác',
   'menu.notSpam': 'Không phải mục đề xuất hữu ích',
+  'menu.notSpamRestore': 'Không phải rác — trả về thư mục cũ',
   'menu.star.add': 'Thêm vào mục gắn sao',
   'menu.star.remove': 'Bỏ khỏi mục gắn sao',
   // ── Thanh bộ lọc (components/common/FileFilterBar.jsx) ──
@@ -305,6 +309,9 @@ const vi = {
   'file.star.failed': 'Không cập nhật được dấu sao',
   'file.trash.failed': 'Không thể chuyển vào thùng rác: {reason}',
   'file.restore.failed': 'Không thể khôi phục: {reason}',
+  'file.notSpam.failed': 'Không gỡ được khỏi Nội dung rác: {reason}',
+  'file.notSpam.done': 'Đã trả "{name}" về thư mục "{folder}"',
+  'file.upload.flaggedSpam': 'Đã tải "{name}" lên, nhưng tệp bị gắn cờ đáng ngờ nên nằm trong Nội dung rác chứ không ở thư mục đích.',
   'file.deleteForever.failed': 'Không thể xóa vĩnh viễn: {reason}',
   'file.emptyTrash.failed': 'Không thể dọn thùng rác: {reason}',
   'file.rename.done': 'Đã đổi tên',
@@ -656,6 +663,7 @@ const vi = {
   'activity.action.unstar': 'Bỏ gắn sao',
   'activity.action.trash': 'Chuyển vào thùng rác',
   'activity.action.restore': 'Khôi phục tệp',
+  'activity.action.notSpam': 'Gỡ khỏi Nội dung rác',
   'activity.action.deleteForever': 'Xóa vĩnh viễn',
   'activity.action.emptyTrash': 'Dọn sạch thùng rác',
   'activity.action.copy': 'Tạo bản sao',
@@ -672,6 +680,7 @@ const vi = {
   'activity.fallback.user': 'Người dùng',
   'activity.desc.renameFromTo': 'Đổi tên từ {old} thành {new}',
   'activity.desc.renameTo': 'Đổi tên thành {new}',
+  'activity.desc.notSpam': 'Gỡ {name} khỏi Nội dung rác, trả về thư mục cũ',
   'activity.desc.move': 'Di chuyển {name}',
   'activity.desc.shareAdded': 'Chia sẻ quyền {name} tới {email}',
   'activity.desc.shareRemoved': 'Thu hồi quyền truy cập trên tệp {name}',

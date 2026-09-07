@@ -15,6 +15,7 @@ import {
     Scissors,
     Loader2,
     ShieldOff,
+    ShieldCheck,
     FileUp,
     FolderUp,
     FolderPlus,
@@ -48,6 +49,7 @@ export default function ContextMenu({
     //           Thùng rác — không mục nào trong số đó áp dụng được cho một drive.
     variant = 'item',
     isTrashTab = false,
+    isSpamTab = false,
     activeTab = 'my-drive',
     onClose,
     onPreview,
@@ -62,6 +64,7 @@ export default function ContextMenu({
     onDownload, 
     onMoveToTrash, 
     onRestore,
+    onNotSpam,
     onDeletePermanently,
     onToggleStar,
     onShowInfo,
@@ -307,7 +310,29 @@ export default function ContextMenu({
                 )}
             </div>
 
-            {isTrashTab ? (
+            {isSpamTab ? (
+                <>
+                    {/* Nội dung rác: chỉ hai lối ra. Menu đầy đủ (Chia sẻ, Cắt, Dán,
+                        Hỏi Gemini…) không áp dụng cho một tệp đang bị cách ly, và
+                        trước đây tab này KHÔNG hề có mục gỡ cờ — người dùng buộc phải
+                        tích chọn rồi tìm nút trên thanh công cụ xanh. */}
+                    <button
+                        onClick={() => { onNotSpam?.(item); onClose(); }}
+                        className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-800 dark:text-gray-200 transition-colors"
+                    >
+                        <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                        <span>{t('menu.notSpamRestore')}</span>
+                    </button>
+
+                    <button
+                        onClick={() => { onDeletePermanently?.(item); onClose(); }}
+                        className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-rose-600 dark:text-rose-300 hover:text-rose-700 dark:hover:text-rose-200 transition-colors"
+                    >
+                        <Trash2 className="w-4 h-4 shrink-0" />
+                        <span>{t('common.deleteForever')}</span>
+                    </button>
+                </>
+            ) : isTrashTab ? (
                 <>
                     {/* Trash view options */}
                     <button

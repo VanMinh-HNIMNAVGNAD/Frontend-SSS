@@ -39,6 +39,7 @@ export default function Header({ toggleRightSidebar }) {
         activeTab,
         moveToTrash,
         restoreFromTrash,
+        markNotSpam,
         deletePermanently,
         moveItem,
         copyItem,
@@ -146,18 +147,40 @@ export default function Header({ toggleRightSidebar }) {
         if (succeeded > 0) refreshStorageInfo();
     };
 
+    /**
+     * Nút "Khôi phục" phục vụ CẢ hai tab, nhưng gọi hai endpoint khác nhau.
+     *
+     * Tab Nội dung rác phải đi `markNotSpam`: mục ở đó có `is_trash = false` sẵn,
+     * nên `restoreFromTrash` chỉ set lại đúng giá trị cũ — backend trả 200, dòng bị
+     * xoá khỏi danh sách, và tệp thì không đi đâu cả. Đó là lỗi "khôi phục xong
+     * không thấy tệp đâu".
+     */
     const handleRestoreSelected = async () => {
         const items = getSelectedItems(folders, files);
         if (!items.length) return;
-        if (!confirm(t('header.confirm.restore', { count: items.length }))) return;
+        const confirmKey = isSpamTab ? 'header.confirm.notSpam' : 'header.confirm.restore';
+        if (!confirm(t(confirmKey, { count: items.length }))) return;
+
+        // Nơi tệp quay về, để báo cho người dùng biết — họ đang đứng ở trang Nội dung
+        // rác nên không nhìn thấy nó xuất hiện lại trong cây thư mục.
+        const destinations = new Set();
 
         const succeeded = await runBatch(
             items,
-            (item) => restoreFromTrash(item.id, { silent: true }),
-            'header.success.restore',
+            async (item) => {
+                if (!isSpamTab) return restoreFromTrash(item.id, { silent: true });
+                const res = await markNotSpam(item.id, { silent: true });
+                if (res.ok) destinations.add(res.parentName || t('nav.myDrive'));
+                return res;
+            },
+            isSpamTab ? 'header.success.notSpam' : 'header.success.restore',
             'header.error.restore',
             'header.error.restorePartial',
         );
+
+        if (isSpamTab && succeeded > 0 && destinations.size === 1) {
+            toast.success(t('header.success.notSpamTo', { folder: [...destinations][0] }));
+        }
         if (succeeded > 0) refreshStorageInfo();
     };
 

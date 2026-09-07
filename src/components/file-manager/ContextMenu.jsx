@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
     Download,
     Pencil,
@@ -38,6 +38,71 @@ import ColorPickerPanel from './ColorPickerPanel';
 const RENAME_SHORTCUT_KEYS =
     SHORTCUT_HINTS.find((hint) => hint.id === 'rename')?.keys ?? [];
 
+// ── Khung đo dùng chung cho cả ba biến thể menu ───────────────────────────
+// Trước đây mỗi nhánh tự viết chuỗi class riêng: hàng có phím tắt dùng
+// `justify-between`, hàng không có dùng `gap-3`, nên nhãn ở hai kiểu hàng không
+// nằm cùng một cột và bề rộng w-60/w-64 lệch nhau giữa các menu. Gom về đây để
+// mọi hàng, mọi menu đều chung một lưới: [icon 16px][gap 12px][nhãn co giãn][phần đuôi].
+const MENU_SHELL =
+    'fixed z-50 w-72 max-w-[calc(100vw-16px)] bg-white dark:bg-[#282a2c]/95 backdrop-blur-md ' +
+    'text-gray-900 dark:text-gray-200 rounded-2xl shadow-2xl px-1.5 py-1.5 ' +
+    'border border-gray-300 dark:border-gray-700/80 text-[13px] font-sans select-none animate-fade-in';
+
+const ROW_BASE = 'w-full px-2.5 py-2 rounded-xl flex items-center gap-3 text-left transition-colors';
+
+const TONE = {
+    default: 'text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#37393b]',
+    strong: 'text-gray-900 dark:text-gray-100 font-medium hover:bg-gray-100 dark:hover:bg-[#37393b]',
+    accent: 'text-blue-700 dark:text-blue-300 font-medium hover:bg-gray-100 dark:hover:bg-[#37393b]',
+    danger: 'text-rose-600 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-500/10',
+    // Chỉ chữ chuyển sang đỏ khi rê chuột (Chuyển vào thùng rác)
+    dangerHover: 'text-gray-800 dark:text-gray-200 hover:text-rose-700 dark:hover:text-rose-300 hover:bg-gray-100 dark:hover:bg-[#37393b]',
+};
+
+/**
+ * Một hàng lệnh. `icon` nhận sẵn node để chỗ gọi tự quyết màu/animation
+ * (ngôi sao đã tô, Loader2 đang quay…), phần còn lại của lưới thì cố định.
+ */
+function MenuRow({ icon, label, shortcut, shortcutTitle, trailing, onClick, disabled = false, tone = 'default' }) {
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            disabled={disabled}
+            className={`${ROW_BASE} ${TONE[tone]} ${
+                disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+            }`}
+        >
+            <span className="shrink-0 flex items-center">{icon}</span>
+            <span className="flex-1 min-w-0 truncate">{label}</span>
+            {shortcut && (
+                <span
+                    title={shortcutTitle}
+                    className="shrink-0 font-mono text-[11px] text-gray-400 dark:text-gray-500 whitespace-nowrap"
+                >
+                    {shortcut}
+                </span>
+            )}
+            {trailing}
+        </button>
+    );
+}
+
+/** Hàng bị khoá quyền: cùng lưới với MenuRow để chữ không bị so le. */
+function MenuRowLocked({ label, hint }) {
+    return (
+        <div className={`${ROW_BASE} text-gray-400 dark:text-gray-500 cursor-not-allowed`}>
+            <ShieldOff className="w-4 h-4 shrink-0" />
+            <span className="flex-1 min-w-0 truncate line-through">{label}</span>
+            <span className="shrink-0 text-[10px] whitespace-nowrap">{hint}</span>
+        </div>
+    );
+}
+
+function MenuSeparator() {
+    return <div className="h-px bg-gray-200 dark:bg-gray-700/60 my-1 mx-1.5" />;
+}
+
 export default function ContextMenu({
     isOpen = true,
     x,
@@ -53,16 +118,16 @@ export default function ContextMenu({
     activeTab = 'my-drive',
     onClose,
     onPreview,
-    onRename, 
+    onRename,
     onCut,
     onCopy,
     onPaste,
     canPaste = false,
     isPasting = false,
-    onShare, 
-    onGemini, 
-    onDownload, 
-    onMoveToTrash, 
+    onShare,
+    onGemini,
+    onDownload,
+    onMoveToTrash,
     onRestore,
     onNotSpam,
     onDeletePermanently,
@@ -81,8 +146,18 @@ export default function ContextMenu({
 
     // Reposition menu to stay inside window bounds
     const [pos, setPos] = useState({ top: y, left: x });
-    // Bảng màu inline (trong menu này, không mở popup riêng)
-    const [showColorPicker, setShowColorPicker] = useState(false);
+    // Bảng màu — bung sang bên phải như submenu (xem ColorPickerPanel.jsx).
+    // Lưu ID của mục đang mở bảng màu chứ không phải cờ boolean: component này KHÔNG
+    // remount khi bấm chuột phải sang mục khác (mọi trang đều giữ một instance duy
+    // nhất), nên cờ boolean sẽ để panel mở nguyên và hiện màu của mục trước đó.
+    const [colorPickerFor, setColorPickerFor] = useState(null);
+    const showColorPicker = colorPickerFor != null && colorPickerFor === item?.id;
+
+    // Mọi lối đóng menu đều đi qua đây để bảng màu không còn mở sẵn ở lần mở sau.
+    const closeMenu = useCallback(() => {
+        setColorPickerFor(null);
+        onClose?.();
+    }, [onClose]);
 
     useEffect(() => {
         if (menuRef.current) {
@@ -105,12 +180,12 @@ export default function ContextMenu({
     useEffect(() => {
         const handleClickOutside = (e) => {
             if (menuRef.current && !menuRef.current.contains(e.target)) {
-                onClose();
+                closeMenu();
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [onClose]);
+    }, [closeMenu]);
 
     const hasBlankAreaActions = onUploadFile || onUploadFolder || onCreateFolder;
 
@@ -124,41 +199,36 @@ export default function ContextMenu({
         return (
             <div
                 ref={menuRef}
-                className="fixed z-50 w-60 bg-white dark:bg-[#282a2c]/95 backdrop-blur-md text-gray-900 dark:text-gray-200 rounded-2xl shadow-2xl py-2 border border-gray-300 dark:border-gray-700/80 text-[13px] font-sans select-none animate-fade-in"
+                className={MENU_SHELL}
                 style={{ top: pos.top, left: pos.left }}
                 onClick={(e) => e.stopPropagation()}
                 onContextMenu={(e) => e.preventDefault()}
             >
-                <button
-                    onClick={() => { onUploadFile?.(); onClose(); }}
-                    className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-900 dark:text-gray-200 font-medium transition-colors"
-                >
-                    <FileUp className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
-                    <span>{t('menu.uploadFile')}</span>
-                </button>
+                <MenuRow
+                    tone="strong"
+                    icon={<FileUp className="w-4 h-4 text-blue-600 dark:text-blue-400" />}
+                    label={t('menu.uploadFile')}
+                    onClick={() => { onUploadFile?.(); closeMenu(); }}
+                />
 
-                <button
-                    onClick={() => { onUploadFolder?.(); onClose(); }}
+                <MenuRow
+                    tone="strong"
                     disabled={isBuildingTree}
-                    className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] disabled:opacity-50 disabled:cursor-wait cursor-pointer flex items-center gap-3 text-gray-900 dark:text-gray-200 font-medium transition-colors"
-                >
-                    {isBuildingTree ? (
-                        <Loader2 className="w-4 h-4 text-amber-600 dark:text-amber-400 animate-spin shrink-0" />
-                    ) : (
-                        <FolderUp className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-                    )}
-                    <span>{isBuildingTree ? t('menu.buildingTree') : t('menu.uploadFolder')}</span>
-                </button>
+                    icon={isBuildingTree
+                        ? <Loader2 className="w-4 h-4 text-amber-600 dark:text-amber-400 animate-spin" />
+                        : <FolderUp className="w-4 h-4 text-amber-600 dark:text-amber-400" />}
+                    label={isBuildingTree ? t('menu.buildingTree') : t('menu.uploadFolder')}
+                    onClick={() => { onUploadFolder?.(); closeMenu(); }}
+                />
 
-                <div className="h-px bg-gray-200 dark:bg-gray-700/60 my-1"></div>
+                <MenuSeparator />
 
-                <button
-                    onClick={() => { onCreateFolder?.(); onClose(); }}
-                    className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-900 dark:text-gray-200 font-medium transition-colors"
-                >
-                    <FolderPlus className="w-4 h-4 text-gray-700 dark:text-gray-300 shrink-0" />
-                    <span>{t('menu.newFolder')}</span>
-                </button>
+                <MenuRow
+                    tone="strong"
+                    icon={<FolderPlus className="w-4 h-4 text-gray-700 dark:text-gray-300" />}
+                    label={t('menu.newFolder')}
+                    onClick={() => { onCreateFolder?.(); closeMenu(); }}
+                />
             </div>
         );
     }
@@ -174,16 +244,16 @@ export default function ContextMenu({
         return (
             <div
                 ref={menuRef}
-                className="fixed z-50 w-64 bg-white/95 dark:bg-[#282a2c]/90 backdrop-blur-md text-gray-800 dark:text-gray-200 rounded-2xl shadow-2xl py-2 border border-gray-200 dark:border-gray-700/80 text-[13px] font-sans select-none animate-fade-in"
+                className={MENU_SHELL}
                 style={{ top: pos.top, left: pos.left }}
                 onClick={(e) => e.stopPropagation()}
                 onContextMenu={(e) => e.preventDefault()}
             >
                 {/* Header */}
-                <div className="px-4 py-1.5 mb-1 border-b border-gray-200 dark:border-gray-700/60 text-xs font-semibold text-gray-500 dark:text-gray-400 truncate flex items-center gap-2">
-                    <span className="truncate">{item.name}</span>
+                <div className="px-2.5 pt-1 pb-2 mb-1 border-b border-gray-200 dark:border-gray-700/60 text-xs font-semibold text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                    <span className="flex-1 min-w-0 truncate">{item.name}</span>
                     {item.userRole && (
-                        <span className={`ml-auto shrink-0 px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
+                        <span className={`shrink-0 px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
                             isDriveAdmin
                                 ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-300'
                                 : 'bg-sky-100 dark:bg-sky-500/20 text-sky-600 dark:text-sky-300'
@@ -195,72 +265,51 @@ export default function ContextMenu({
 
                 {/* Đổi tên — chỉ ADMIN của drive (backend PATCH /:id cũng chặn tương tự) */}
                 {isDriveAdmin ? (
-                    <button
-                        onClick={() => { onRename?.(item); onClose(); }}
-                        className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-800 dark:text-gray-200 transition-colors"
-                    >
-                        <Pencil className="w-4 h-4 text-gray-700 dark:text-gray-300 shrink-0" />
-                        <span>{t('menu.renameAndDesc')}</span>
-                    </button>
+                    <MenuRow
+                        icon={<Pencil className="w-4 h-4 text-gray-700 dark:text-gray-300" />}
+                        label={t('menu.renameAndDesc')}
+                        onClick={() => { onRename?.(item); closeMenu(); }}
+                    />
                 ) : (
-                    <div className="w-full px-4 py-2 flex items-center justify-between text-gray-400 dark:text-gray-500 cursor-not-allowed">
-                        <div className="flex items-center gap-3">
-                            <ShieldOff className="w-4 h-4 shrink-0" />
-                            <span className="line-through text-xs">{t('menu.renameAndDesc')}</span>
-                        </div>
-                        <span className="text-[10px] text-gray-400 dark:text-gray-500">{t('menu.needAdmin')}</span>
-                    </div>
+                    <MenuRowLocked label={t('menu.renameAndDesc')} hint={t('menu.needAdmin')} />
                 )}
 
                 {/* Gắn sao — mọi thành viên đều làm được, và là dấu sao RIÊNG của người đang
                     đăng nhập (backend lưu ở hàng shared_drive_members của họ) */}
-                <button
-                    onClick={() => { onToggleStar?.(item); onClose(); }}
-                    className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-800 dark:text-gray-200 transition-colors"
-                >
-                    <Star className={`w-4 h-4 ${item.isStarred ? 'text-amber-600 dark:text-amber-400 fill-amber-400' : 'text-gray-700 dark:text-gray-300'} shrink-0`} />
-                    <span>{item.isStarred ? t('menu.star.remove') : t('menu.star.add')}</span>
-                </button>
+                <MenuRow
+                    icon={<Star className={`w-4 h-4 ${item.isStarred ? 'text-amber-600 dark:text-amber-400 fill-amber-400' : 'text-gray-700 dark:text-gray-300'}`} />}
+                    label={item.isStarred ? t('menu.star.remove') : t('menu.star.add')}
+                    onClick={() => { onToggleStar?.(item); closeMenu(); }}
+                />
 
                 {/* Sao chép tên drive — KHÔNG có deep-link tới một drive nên không copy link được */}
-                <button
-                    onClick={() => { onCopy?.(item); onClose(); }}
-                    className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-800 dark:text-gray-200 transition-colors"
-                >
-                    <Copy className="w-4 h-4 text-gray-700 dark:text-gray-300 shrink-0" />
-                    <span>{t('menu.copyName')}</span>
-                </button>
+                <MenuRow
+                    icon={<Copy className="w-4 h-4 text-gray-700 dark:text-gray-300" />}
+                    label={t('menu.copyName')}
+                    onClick={() => { onCopy?.(item); closeMenu(); }}
+                />
 
-                <div className="h-px bg-gray-200 dark:bg-gray-700/60 my-1"></div>
+                <MenuSeparator />
 
                 {/* Chia sẻ = quản lý thành viên (bảng shared_drive_members, KHÔNG phải file_shares) */}
-                <button
-                    onClick={() => { onShare?.(item); onClose(); }}
-                    className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-800 dark:text-gray-200 transition-colors"
-                >
-                    <UserPlus className="w-4 h-4 text-gray-700 dark:text-gray-300 shrink-0" />
-                    <span>{t('menu.shareAndMembers')}</span>
-                </button>
+                <MenuRow
+                    icon={<UserPlus className="w-4 h-4 text-gray-700 dark:text-gray-300" />}
+                    label={t('menu.shareAndMembers')}
+                    onClick={() => { onShare?.(item); closeMenu(); }}
+                />
 
-                <div className="h-px bg-gray-200 dark:bg-gray-700/60 my-1"></div>
+                <MenuSeparator />
 
                 {/* Xóa drive — chỉ người tạo. Trang sẽ mở hộp thoại xác nhận trước khi gọi API */}
                 {item.canDelete ? (
-                    <button
-                        onClick={() => { onDeletePermanently?.(item); onClose(); }}
-                        className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-rose-600 dark:text-rose-300 hover:text-rose-700 dark:hover:text-rose-200 transition-colors"
-                    >
-                        <Trash2 className="w-4 h-4 shrink-0" />
-                        <span>{t('menu.deleteDrive')}</span>
-                    </button>
+                    <MenuRow
+                        tone="danger"
+                        icon={<Trash2 className="w-4 h-4" />}
+                        label={t('menu.deleteDrive')}
+                        onClick={() => { onDeletePermanently?.(item); closeMenu(); }}
+                    />
                 ) : (
-                    <div className="w-full px-4 py-2 flex items-center justify-between text-gray-400 dark:text-gray-500 cursor-not-allowed">
-                        <div className="flex items-center gap-3">
-                            <ShieldOff className="w-4 h-4 shrink-0" />
-                            <span className="line-through text-xs">{t('menu.deleteDrive')}</span>
-                        </div>
-                        <span className="text-[10px] text-gray-400 dark:text-gray-500">{t('menu.creatorOnly')}</span>
-                    </div>
+                    <MenuRowLocked label={t('menu.deleteDrive')} hint={t('menu.creatorOnly')} />
                 )}
             </div>
         );
@@ -291,16 +340,16 @@ export default function ContextMenu({
     return (
         <div
             ref={menuRef}
-            className="fixed z-50 w-64 bg-white dark:bg-[#282a2c]/95 backdrop-blur-md text-gray-900 dark:text-gray-200 rounded-2xl shadow-2xl py-2 border border-gray-300 dark:border-gray-700/80 text-[13px] font-sans select-none animate-fade-in"
+            className={MENU_SHELL}
             style={{ top: pos.top, left: pos.left }}
             onClick={(e) => e.stopPropagation()}
             onContextMenu={(e) => e.preventDefault()}
         >
             {/* Header */}
-            <div className="px-4 py-1.5 mb-1 border-b border-gray-200 dark:border-gray-700/60 text-xs font-bold text-gray-700 dark:text-gray-400 truncate flex items-center gap-2">
-                <span className="truncate">{item.name}</span>
+            <div className="px-2.5 pt-1 pb-2 mb-1 border-b border-gray-200 dark:border-gray-700/60 text-xs font-bold text-gray-700 dark:text-gray-400 flex items-center gap-2">
+                <span className="flex-1 min-w-0 truncate">{item.name}</span>
                 {isShared && sharedRole && (
-                    <span className={`ml-auto shrink-0 px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
+                    <span className={`shrink-0 px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
                         sharedRole === 'EDITOR'
                             ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300'
                             : 'bg-sky-100 dark:bg-sky-500/20 text-sky-800 dark:text-sky-300'
@@ -316,262 +365,211 @@ export default function ContextMenu({
                         Hỏi Gemini…) không áp dụng cho một tệp đang bị cách ly, và
                         trước đây tab này KHÔNG hề có mục gỡ cờ — người dùng buộc phải
                         tích chọn rồi tìm nút trên thanh công cụ xanh. */}
-                    <button
-                        onClick={() => { onNotSpam?.(item); onClose(); }}
-                        className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-800 dark:text-gray-200 transition-colors"
-                    >
-                        <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                        <span>{t('menu.notSpamRestore')}</span>
-                    </button>
+                    <MenuRow
+                        icon={<ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />}
+                        label={t('menu.notSpamRestore')}
+                        onClick={() => { onNotSpam?.(item); closeMenu(); }}
+                    />
 
-                    <button
-                        onClick={() => { onDeletePermanently?.(item); onClose(); }}
-                        className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-rose-600 dark:text-rose-300 hover:text-rose-700 dark:hover:text-rose-200 transition-colors"
-                    >
-                        <Trash2 className="w-4 h-4 shrink-0" />
-                        <span>{t('common.deleteForever')}</span>
-                    </button>
+                    <MenuRow
+                        tone="danger"
+                        icon={<Trash2 className="w-4 h-4" />}
+                        label={t('common.deleteForever')}
+                        onClick={() => { onDeletePermanently?.(item); closeMenu(); }}
+                    />
                 </>
             ) : isTrashTab ? (
                 <>
                     {/* Trash view options */}
-                    <button
-                        onClick={() => { onRestore?.(item); onClose(); }}
-                        className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-800 dark:text-gray-200 transition-colors"
-                    >
-                        <RotateCcw className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
-                        <span>{t('common.restore')}</span>
-                    </button>
+                    <MenuRow
+                        icon={<RotateCcw className="w-4 h-4 text-blue-600 dark:text-blue-400" />}
+                        label={t('common.restore')}
+                        onClick={() => { onRestore?.(item); closeMenu(); }}
+                    />
 
-                    <button
-                        onClick={() => { onDeletePermanently?.(item); onClose(); }}
-                        className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-rose-600 dark:text-rose-300 hover:text-rose-700 dark:hover:text-rose-200 transition-colors"
-                    >
-                        <Trash2 className="w-4 h-4 shrink-0" />
-                        <span>{t('common.deleteForever')}</span>
-                    </button>
+                    <MenuRow
+                        tone="danger"
+                        icon={<Trash2 className="w-4 h-4" />}
+                        label={t('common.deleteForever')}
+                        onClick={() => { onDeletePermanently?.(item); closeMenu(); }}
+                    />
                 </>
             ) : (
                 <>
-                    {/* 0. Xem trước */}
+                    {/* 1. Hỏi AI — đứng đầu menu: đây là việc người dùng tìm tới
+                        nhiều nhất và trước đây nó bị chôn ở giữa danh sách.
+                        Bấm là vào thẳng khung chat. Trước đây đây là menu con chứa 5
+                        lệnh nhanh (tóm tắt, giải thích, từ khoá, câu hỏi ôn tập, cải
+                        thiện). Bỏ đi vì nó bắt người dùng đi qua một lớp hover nữa mới
+                        tới được chỗ gõ câu hỏi, trong khi chính khung chat đã có sẵn
+                        đúng 5 chip đó ở chân khung cho ai cần. Vì vậy ContextMenu không
+                        còn biết tới khái niệm "lệnh nhanh" — danh sách chỉ còn sống một
+                        chỗ duy nhất là GeminiModal.jsx. */}
+                    <MenuRow
+                        tone="strong"
+                        icon={<Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400" />}
+                        label={t('ai.menu.title')}
+                        onClick={() => { onGemini?.(item, 'chat'); closeMenu(); }}
+                    />
+
+                    <MenuSeparator />
+
+                    {/* 2. Xem trước */}
                     {item.type !== 'folder' && (
-                        <button
-                            onClick={() => { onPreview?.(item); onClose(); }}
-                            className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-800 dark:text-gray-200 transition-colors font-medium"
-                        >
-                            <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
-                            <span>{t('menu.preview')}</span>
-                        </button>
+                        <MenuRow
+                            tone="strong"
+                            icon={<Eye className="w-4 h-4 text-blue-600 dark:text-blue-400" />}
+                            label={t('menu.preview')}
+                            onClick={() => { onPreview?.(item); closeMenu(); }}
+                        />
                     )}
 
-                    {/* 1. Tải xuống */}
-                    <button
-                        onClick={() => { onDownload?.(item); onClose(); }}
-                        className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-800 dark:text-gray-200 transition-colors"
-                    >
-                        <Download className="w-4 h-4 text-gray-700 dark:text-gray-300 shrink-0" />
-                        <span>{t('common.download')}</span>
-                    </button>
+                    {/* 3. Tải xuống */}
+                    <MenuRow
+                        icon={<Download className="w-4 h-4 text-gray-700 dark:text-gray-300" />}
+                        label={t('common.download')}
+                        onClick={() => { onDownload?.(item); closeMenu(); }}
+                    />
 
-                    {/* 2. Đổi tên — ẩn nếu VIEWER trong shared-with-me */}
+                    {/* 4. Đổi tên — ẩn nếu VIEWER trong shared-with-me.
+                        Chỉ in phím tắt ĐẦU TIÊN: chuỗi "Ctrl+Alt+E hoặc F2" dài hơn phần
+                        chỗ trống còn lại của hàng nên nó đẩy nhãn co lại và làm hàng này
+                        cao hơn mọi hàng khác. Phím còn lại nằm trong tooltip. */}
                     {canRename ? (
-                        <button
-                            onClick={() => { onRename?.(item); onClose(); }}
-                            className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center justify-between text-gray-800 dark:text-gray-200 transition-colors"
-                        >
-                            <div className="flex items-center gap-3">
-                                <Pencil className="w-4 h-4 text-gray-700 dark:text-gray-300 shrink-0" />
-                                <span>{t('menu.rename')}</span>
-                            </div>
-                            <span className="text-[11px] text-gray-500 dark:text-gray-400 font-mono text-right leading-snug">{RENAME_SHORTCUT_KEYS.join(`  ${t('shortcuts.or')}  `)}</span>
-                        </button>
+                        <MenuRow
+                            icon={<Pencil className="w-4 h-4 text-gray-700 dark:text-gray-300" />}
+                            label={t('menu.rename')}
+                            shortcut={RENAME_SHORTCUT_KEYS[0]}
+                            shortcutTitle={RENAME_SHORTCUT_KEYS.join(`  ${t('shortcuts.or')}  `)}
+                            onClick={() => { onRename?.(item); closeMenu(); }}
+                        />
                     ) : (
-                        // Hiển thị disabled hint khi VIEWER
-                        <div className="w-full px-4 py-2 flex items-center justify-between text-gray-400 dark:text-gray-500 cursor-not-allowed">
-                            <div className="flex items-center gap-3">
-                                <ShieldOff className="w-4 h-4 shrink-0" />
-                                <span className="line-through text-xs">{t('menu.rename')}</span>
-                            </div>
-                            <span className="text-[10px] text-gray-400 dark:text-gray-500">{t('menu.viewerOnly')}</span>
-                        </div>
+                        <MenuRowLocked label={t('menu.rename')} hint={t('menu.viewerOnly')} />
                     )}
 
-                    {/* 2.5. Đánh dấu sao — ẩn với tệp được người khác chia sẻ */}
-                    {canToggleStar && (
-                        <button
-                            onClick={() => { onToggleStar?.(item); onClose(); }}
-                            className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center justify-between text-gray-800 dark:text-gray-200 transition-colors"
-                        >
-                            <div className="flex items-center gap-3">
-                                <Star className={`w-4 h-4 ${item.isStarred ? 'text-amber-600 dark:text-amber-400 fill-amber-400' : 'text-gray-700 dark:text-gray-300'} shrink-0`} />
-                                <span>{item.isStarred ? t('menu.star.remove') : t('menu.star.add')}</span>
-                            </div>
-                        </button>
-                    )}
+                    {/* Separator: nhóm clipboard */}
+                    <MenuSeparator />
 
-                    {/* Separator: Clipboard Actions */}
-                    <div className="h-px bg-gray-200 dark:bg-gray-700/60 my-1"></div>
-
-                    {/* Cắt — ẩn trong shared-with-me */}
+                    {/* 5. Cắt — ẩn trong shared-with-me */}
                     {canCut && (
-                        <button
-                            onClick={() => { onCut?.(item); onClose(); }}
-                            className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center justify-between text-gray-800 dark:text-gray-200 transition-colors"
-                        >
-                            <div className="flex items-center gap-3">
-                                <Scissors className="w-4 h-4 text-gray-700 dark:text-gray-300 shrink-0" />
-                                <span>{t('common.cut')}</span>
-                            </div>
-                            <span className="text-[11px] text-gray-500 dark:text-gray-400 font-mono">Ctrl+X</span>
-                        </button>
+                        <MenuRow
+                            icon={<Scissors className="w-4 h-4 text-gray-700 dark:text-gray-300" />}
+                            label={t('common.cut')}
+                            shortcut="Ctrl+X"
+                            onClick={() => { onCut?.(item); closeMenu(); }}
+                        />
                     )}
 
-                    {/* Sao chép */}
-                    <button
-                        onClick={() => { onCopy?.(item); onClose(); }}
-                        className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center justify-between text-gray-800 dark:text-gray-200 transition-colors"
-                    >
-                        <div className="flex items-center gap-3">
-                            <Copy className="w-4 h-4 text-gray-700 dark:text-gray-300 shrink-0" />
-                            <span>{t('common.copy')}</span>
-                        </div>
-                        <span className="text-[11px] text-gray-500 dark:text-gray-400 font-mono">Ctrl+C</span>
-                    </button>
+                    {/* 6. Sao chép */}
+                    <MenuRow
+                        icon={<Copy className="w-4 h-4 text-gray-700 dark:text-gray-300" />}
+                        label={t('common.copy')}
+                        shortcut="Ctrl+C"
+                        onClick={() => { onCopy?.(item); closeMenu(); }}
+                    />
 
-                    {/* Dán (Chỉ hiển thị khi có item trong clipboard) */}
+                    {/* 7. Dán — chỉ hiện khi có mục trong clipboard. Nằm ngay sau
+                        Cắt/Sao chép để ba lệnh clipboard đi liền một khối. */}
                     {canPaste && canPasteIntoItem && (
-                        <button
+                        <MenuRow
+                            tone="accent"
                             disabled={isPasting}
-                            onClick={() => { 
-                                onPaste?.(isFolder ? item.id : undefined); 
-                                onClose(); 
+                            icon={isPasting
+                                ? <Loader2 className="w-4 h-4 text-blue-600 dark:text-blue-400 animate-spin" />
+                                : <FolderInput className="w-4 h-4 text-blue-600 dark:text-blue-400" />}
+                            label={isFolder ? t('menu.pasteIntoFolder') : t('menu.paste')}
+                            shortcut="Ctrl+V"
+                            onClick={() => {
+                                onPaste?.(isFolder ? item.id : undefined);
+                                closeMenu();
                             }}
-                            className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-between text-blue-700 dark:text-blue-300 hover:text-blue-800 dark:hover:text-blue-200 transition-colors font-medium"
-                        >
-                            <div className="flex items-center gap-3">
-                                {isPasting ? (
-                                    <Loader2 className="w-4 h-4 text-blue-600 dark:text-blue-400 animate-spin shrink-0" />
-                                ) : (
-                                    <FolderInput className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
-                                )}
-                                <span>{isFolder ? t('menu.pasteIntoFolder') : t('menu.paste')}</span>
-                            </div>
-                            <span className="text-[11px] text-gray-500 dark:text-gray-400 font-mono">Ctrl+V</span>
-                        </button>
+                        />
                     )}
 
-                    {/* Separator 1 */}
-                    <div className="h-px bg-gray-200 dark:bg-gray-700/60 my-1"></div>
+                    {/* 8. Gắn dấu sao — ẩn với tệp được người khác chia sẻ */}
+                    {canToggleStar && (
+                        <MenuRow
+                            icon={<Star className={`w-4 h-4 ${item.isStarred ? 'text-amber-600 dark:text-amber-400 fill-amber-400' : 'text-gray-700 dark:text-gray-300'}`} />}
+                            label={item.isStarred ? t('menu.star.remove') : t('menu.star.add')}
+                            onClick={() => { onToggleStar?.(item); closeMenu(); }}
+                        />
+                    )}
 
-                    {/* 3. Hỏi AI — bấm là vào thẳng khung chat.
-                        Trước đây đây là menu con chứa 5 lệnh nhanh (tóm tắt, giải thích,
-                        từ khoá, câu hỏi ôn tập, cải thiện). Bỏ đi vì nó bắt người dùng
-                        đi qua một lớp hover nữa mới tới được chỗ gõ câu hỏi, trong khi
-                        chính khung chat đã có sẵn đúng 5 chip đó ở chân khung cho ai cần.
-                        Vì vậy ContextMenu không còn biết tới khái niệm "lệnh nhanh" —
-                        danh sách chỉ còn sống một chỗ duy nhất là GeminiModal.jsx. */}
-                    <button
-                        onClick={() => { onGemini?.(item, 'chat'); onClose(); }}
-                        className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-900 dark:text-gray-100 font-medium transition-colors"
-                    >
-                        <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />
-                        <span className="truncate">{t('ai.menu.title')}</span>
-                    </button>
+                    <MenuSeparator />
 
-                    {/* Separator 2 */}
-                    <div className="h-px bg-gray-200 dark:bg-gray-700/60 my-1"></div>
-
-                    {/* 4. Chia sẻ — chỉ hiển thị khi là owner */}
+                    {/* 9. Chia sẻ — chỉ hiển thị khi là owner */}
                     {canShare && (
-                        <button
-                            onClick={() => { onShare?.(item); onClose(); }}
-                            className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center justify-between text-gray-800 dark:text-gray-200 transition-colors"
-                        >
-                            <div className="flex items-center gap-3">
-                                <UserPlus className="w-4 h-4 text-gray-700 dark:text-gray-300 shrink-0" />
-                                <span>{t('menu.share')}</span>
-                            </div>
-                        </button>
+                        <MenuRow
+                            icon={<UserPlus className="w-4 h-4 text-gray-700 dark:text-gray-300" />}
+                            label={t('menu.share')}
+                            onClick={() => { onShare?.(item); closeMenu(); }}
+                        />
                     )}
 
-                    {/* 6. Thông tin chi tiết & hoạt động */}
-                    <button
-                        onClick={() => { onShowInfo?.(item, 'details'); onClose(); }}
-                        className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-800 dark:text-gray-200 transition-colors"
-                    >
-                        <Info className="w-4 h-4 text-gray-700 dark:text-gray-300 shrink-0" />
-                        <span>{t('menu.details')}</span>
-                    </button>
+                    {/* 10. Thông tin chi tiết & hoạt động */}
+                    <MenuRow
+                        icon={<Info className="w-4 h-4 text-gray-700 dark:text-gray-300" />}
+                        label={t('menu.details')}
+                        onClick={() => { onShowInfo?.(item, 'details'); closeMenu(); }}
+                    />
 
-                    {/* 6.5. Đổi màu — chỉ hiện khi owner hoặc EDITOR trong shared */}
+                    {/* 11. Đổi màu — chỉ hiện khi owner hoặc EDITOR trong shared.
+                        Bảng màu bung SANG PHẢI (submenu) chứ không chèn vào giữa menu:
+                        ColorPickerPanel định vị `absolute` theo chính div bọc này, nên
+                        div này bắt buộc phải là `relative`. */}
                     {onChangeColor && !item.isSharedWithMe && (
-                        <>
-                            <button
-                                onClick={() => setShowColorPicker((v) => !v)}
-                                className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center justify-between text-gray-800 dark:text-gray-200 transition-colors"
-                            >
-                                <div className="flex items-center gap-3">
-                                    <Palette className="w-4 h-4 text-gray-700 dark:text-gray-300 shrink-0" />
-                                    <span>Đổi màu</span>
-                                </div>
-                                <div className="flex items-center gap-1.5">
-                                    {/* Preview màu hiện tại */}
-                                    <span
-                                        className="w-3.5 h-3.5 rounded-full border border-gray-300 dark:border-gray-600 shrink-0"
-                                        style={{ backgroundColor: item.customColor || undefined }}
-                                    />
-                                    <ChevronRight className={`w-3.5 h-3.5 text-gray-400 transition-transform ${showColorPicker ? 'rotate-90' : ''}`} />
-                                </div>
-                            </button>
+                        <div className="relative">
+                            <MenuRow
+                                icon={<Palette className="w-4 h-4 text-gray-700 dark:text-gray-300" />}
+                                label="Đổi màu"
+                                onClick={() => setColorPickerFor((v) => (v === item.id ? null : item.id))}
+                                trailing={
+                                    <span className="shrink-0 flex items-center gap-1.5">
+                                        {/* Preview màu hiện tại */}
+                                        <span
+                                            className="w-3.5 h-3.5 rounded-full border border-gray-300 dark:border-gray-600"
+                                            style={{ backgroundColor: item.customColor || undefined }}
+                                        />
+                                        <ChevronRight className={`w-3.5 h-3.5 text-gray-400 transition-transform ${showColorPicker ? 'rotate-90' : ''}`} />
+                                    </span>
+                                }
+                            />
 
                             {showColorPicker && (
                                 <ColorPickerPanel
                                     item={item}
                                     currentColor={item.customColor ?? null}
-                                    onSelectColor={(hex) => {
-                                        onChangeColor(item, hex);
-                                    }}
-                                    onClose={onClose}
+                                    onSelectColor={(hex) => onChangeColor(item, hex)}
+                                    onClose={() => setColorPickerFor(null)}
+                                    onCloseMenu={closeMenu}
                                 />
                             )}
-                        </>
-                    )}
-
-                    {/* Separator 3 */}
-                    <div className="h-px bg-gray-200 dark:bg-gray-700/60 my-1"></div>
-
-                    {/* 7. Chuyển vào thùng rác — ẩn trong shared-with-me */}
-                    {canTrash ? (
-                        <button
-                            onClick={() => { onMoveToTrash?.(item); onClose(); }}
-                            className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center justify-between text-gray-800 dark:text-gray-200 hover:text-rose-700 dark:hover:text-rose-300 transition-colors"
-                        >
-                            <div className="flex items-center gap-3">
-                                <Trash2 className="w-4 h-4 text-gray-700 dark:text-gray-300 shrink-0" />
-                                <span>{t('menu.moveToTrash')}</span>
-                            </div>
-                            <span className="text-[11px] text-gray-500 dark:text-gray-400 font-mono">Delete</span>
-                        </button>
-                    ) : (
-                        // Hiển thị disabled hint khi trong shared-with-me
-                        <div className="w-full px-4 py-2 flex items-center justify-between text-gray-400 dark:text-gray-500 cursor-not-allowed">
-                            <div className="flex items-center gap-3">
-                                <ShieldOff className="w-4 h-4 shrink-0" />
-                                <span className="line-through text-xs">{t('menu.moveToTrash')}</span>
-                            </div>
-                            <span className="text-[10px] text-gray-400 dark:text-gray-500">{t('menu.viewerOnly')}</span>
                         </div>
                     )}
 
-                    {/* 8. Không phải mục đề xuất hữu ích */}
+                    {/* Separator: nhóm huỷ bỏ */}
+                    <MenuSeparator />
+
+                    {/* 12. Chuyển vào thùng rác — ẩn trong shared-with-me */}
+                    {canTrash ? (
+                        <MenuRow
+                            tone="dangerHover"
+                            icon={<Trash2 className="w-4 h-4 text-gray-700 dark:text-gray-300" />}
+                            label={t('menu.moveToTrash')}
+                            shortcut="Delete"
+                            onClick={() => { onMoveToTrash?.(item); closeMenu(); }}
+                        />
+                    ) : (
+                        <MenuRowLocked label={t('menu.moveToTrash')} hint={t('menu.viewerOnly')} />
+                    )}
+
+                    {/* 13. Không phải mục đề xuất hữu ích */}
                     {activeTab === 'home' && (
-                        <button
-                            onClick={() => { onDismissSuggestion?.(item); onClose(); }}
-                            className="w-full px-4 py-2 hover:bg-gray-100 dark:hover:bg-[#37393b] cursor-pointer flex items-center gap-3 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:text-gray-100 transition-colors"
-                        >
-                            <ThumbsDown className="w-4 h-4 text-gray-500 dark:text-gray-400 shrink-0" />
-                            <span>{t('menu.notSpam')}</span>
-                        </button>
+                        <MenuRow
+                            icon={<ThumbsDown className="w-4 h-4 text-gray-500 dark:text-gray-400" />}
+                            label={t('menu.notSpam')}
+                            onClick={() => { onDismissSuggestion?.(item); closeMenu(); }}
+                        />
                     )}
                 </>
             )}

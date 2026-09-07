@@ -21,6 +21,7 @@ import {
 import { useFiles } from '../../context/FileContext';
 import { useLanguage } from '../../context/LanguageContext';
 import useMediaSupport from '../../hooks/useMediaSupport';
+import useFragmentedMp4, { supportsFragmentedMp4 } from '../../hooks/useFragmentedMp4';
 import { storageApi } from '../../services/api';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
@@ -335,6 +336,10 @@ export default function FilePreviewModal({ item, onClose }) {
   // | 'moov-at-end' | 'fragmented' | null. Xem `backend/src/storage/mp4-container.ts`.
   const [playbackHint, setPlaybackHint] = useState(null);
 
+  // Với tệp phân mảnh, backend kèm luôn thứ cần để dựng luồng MSE:
+  // `{ initSegmentBytes, mimeCodecs, durationSeconds }`. Xem `fmp4-manifest.ts`.
+  const [fmp4, setFmp4] = useState(null);
+
   // Kết luận "mãi không phát được" LƯU KÈM tệp mà nó nói về, theo đúng lối của
   // `useMediaSupport`: đọc ra mới đối chiếu, khỏi cần một effect chỉ để dọn state.
   const [slowStart, setSlowStart] = useState({ key: null, value: false });
@@ -352,6 +357,7 @@ export default function FilePreviewModal({ item, onClose }) {
     if (isTextLikeFile(item.name, item.mimeType)) {
       setUrl(null);
       setPlaybackHint(null);
+      setFmp4(null);
       setLoading(false);
       return () => {
         isMounted = false;
@@ -366,6 +372,7 @@ export default function FilePreviewModal({ item, onClose }) {
 
         if (isMounted) {
           setPlaybackHint(typeof res === 'string' ? null : res?.playbackHint ?? null);
+          setFmp4(typeof res === 'string' ? null : res?.fmp4 ?? null);
           if (validUrl) {
             setUrl(validUrl);
           } else {
@@ -521,8 +528,35 @@ export default function FilePreviewModal({ item, onClose }) {
   const mediaKey = item ? `${item.id}:${mediaReloadNonce}` : null;
   const isSlowStart = slowStart.key === mediaKey && slowStart.value;
 
+  /**
+   * Tệp phân mảnh thì phát bằng MSE thay vì để `<video src>` tự lo.
+   *
+   * Bốn điều kiện, thiếu một là lùi về thẻ thường: đúng nhóm `fragmented`,
+   * backend dựng được manifest, trình duyệt nhận bộ codec đó, và tệp có dung
+   * lượng để tính `Range`. KHÔNG giới hạn ở Chromium: Firefox phát fMP4 kiểu
+   * thường cũng được, nhưng đi qua MSE thì nó cũng không tải cả tệp về nữa.
+   */
+  const mseEligible =
+    isVideo &&
+    playbackHint === 'fragmented' &&
+    !!fmp4 &&
+    Number(item?.sizeBytes) > 0 &&
+    supportsFragmentedMp4(fmp4.mimeCodecs);
+
+  const { failed: mseFailed } = useFragmentedMp4({
+    videoRef: mediaRef,
+    url,
+    manifest: mseEligible ? fmp4 : null,
+    totalBytes: Number(item?.sizeBytes) || 0,
+    enabled: mseEligible,
+    resetKey: mediaKey,
+  });
+
+  // MSE chết giữa đường thì vẫn còn đường lùi — thà chậm còn hơn màn hình đen.
+  const useMse = mseEligible && !mseFailed;
+
   useEffect(() => {
-    if (!mediaKey || !isVideo) return;
+    if (!mediaKey || !isVideo || useMse) return;
     // Chỉ đo với hai cấu trúc thật sự có thể làm trình duyệt đứng. 'progressive'
     // mà chậm thì là đường truyền, không phải chuyện app nói hộ được.
     if (playbackHint !== 'fragmented' && playbackHint !== 'moov-at-end') return;
@@ -534,7 +568,7 @@ export default function FilePreviewModal({ item, onClose }) {
     }, SLOW_START_AFTER_MS);
 
     return () => clearTimeout(timer);
-  }, [mediaKey, isVideo, playbackHint, mediaRef]);
+  }, [mediaKey, isVideo, playbackHint, mediaRef, useMse]);
 
   /**
    * Kết luận hiển thị cho người xem, gộp hai nguồn.
@@ -547,7 +581,7 @@ export default function FilePreviewModal({ item, onClose }) {
    * hiện cảnh báo ở đó là nói sai.
    */
   const containerDiagnosis =
-    !isSlowStart ? null
+    !isSlowStart || useMse ? null
       : playbackHint === 'fragmented' ? (IS_CHROMIUM ? 'fragmented-mp4' : null)
         : playbackHint === 'moov-at-end' ? 'moov-at-end'
           : null;
@@ -787,7 +821,10 @@ export default function FilePreviewModal({ item, onClose }) {
                 <video
                   key={`${item.id}:${mediaReloadNonce}`}
                   ref={mediaRef}
-                  src={url}
+                  // Đi qua MSE thì KHÔNG đặt src ở đây: `useFragmentedMp4` gán
+                  // objectURL của `MediaSource` vào thẻ. Đặt cả hai thì React ghi
+                  // lại presigned URL và xoá luôn luồng vừa dựng.
+                  src={useMse ? undefined : url}
                   controls
                   playsInline
                   // `auto`, KHÔNG phải `metadata`. Người dùng đã bấm đúp để mở cửa sổ

@@ -348,6 +348,9 @@ const en = {
   'login.submitting': 'Working...',
   'login.success': 'Signed in',
   'login.oauthFailed': 'OAuth sign-in failed. Try again, or sign in with your email.',
+  'login.oauthExpired': 'The OAuth sign-in expired. Please click sign in again.',
+  'login.oauthUnavailable':
+    'Could not complete OAuth sign-in because a service is temporarily unavailable. Try again in a few minutes, or use your email.',
   'login.accountLocked':
     'Your account has been locked. Contact an administrator to have it unlocked.',
   'login.oauth.google': 'Sign in with Google',

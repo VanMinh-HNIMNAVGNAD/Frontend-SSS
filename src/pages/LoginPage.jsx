@@ -30,8 +30,12 @@ export default function LoginPage() {
   const [step, setStep] = useState('credentials');
 
   // Đọc query param ?error= khi bị đưa về đây kèm một lý do:
-  //   • oauth_failed    — nhà cung cấp OAuth từ chối;
-  //   • account_locked  — tài khoản bị khoá (`isActive = false`). Bắt buộc phải hiện:
+  //   • oauth_failed           — nhà cung cấp OAuth từ chối (bước 1);
+  //   • oauth_exchange_failed  — mã đổi phiên hết hạn hoặc đã dùng (bước 2). Xảy ra khi
+  //     người dùng bấm F5 ở trang vừa quay về, hoặc để tab đó quá 60 giây;
+  //   • oauth_unavailable      — backend không phát được mã vì Redis đang chết. Đây là lỗi
+  //     hạ tầng, không phải lỗi của người dùng, nên câu chữ phải nói "thử lại sau";
+  //   • account_locked         — tài khoản bị khoá (`isActive = false`). Bắt buộc phải hiện:
   //     trước đây người bị khoá đăng nhập OAuth thì vào được /app một nhịp rồi bị đá ra
   //     không lời nào, nên họ thử đi thử lại mãi mà không biết chuyện gì đang xảy ra.
   useEffect(() => {
@@ -39,6 +43,10 @@ export default function LoginPage() {
     const reason = params.get('error');
     if (reason === 'oauth_failed') {
       setLocalError(t('login.oauthFailed'));
+    } else if (reason === 'oauth_exchange_failed') {
+      setLocalError(t('login.oauthExpired'));
+    } else if (reason === 'oauth_unavailable') {
+      setLocalError(t('login.oauthUnavailable'));
     } else if (reason === 'account_locked') {
       setLocalError(t('login.accountLocked'));
     }

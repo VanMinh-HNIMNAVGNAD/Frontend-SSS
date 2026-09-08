@@ -351,6 +351,13 @@ const vi = {
   'login.submitting': 'Đang xử lý...',
   'login.success': 'Đăng nhập thành công!',
   'login.oauthFailed': 'Đăng nhập OAuth thất bại. Vui lòng thử lại hoặc sử dụng Email để đăng nhập.',
+  // Hai lý do dưới đây thuộc BƯỚC 2 của đăng nhập OAuth (đổi mã lấy phiên), khác hẳn
+  // `oauthFailed` ở bước 1 — ở bước 1 là nhà cung cấp từ chối, còn ở đây nhà cung cấp đã
+  // chấp nhận rồi mà ta không hoàn tất được. Nói đúng bước thì người dùng biết nên thử lại
+  // (mã hết hạn) hay nên đổi cách đăng nhập.
+  'login.oauthExpired': 'Phiên đăng nhập OAuth đã hết hạn. Vui lòng bấm đăng nhập lại.',
+  'login.oauthUnavailable':
+    'Không hoàn tất được đăng nhập OAuth vì dịch vụ tạm thời không sẵn sàng. Vui lòng thử lại sau ít phút hoặc dùng Email.',
   'login.accountLocked':
     'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên để được mở khóa.',
   'login.oauth.google': 'Đăng nhập bằng Google',

@@ -114,6 +114,10 @@ function isAccountLocked(errorLike) {
 const NO_REFRESH_PATHS = [
   '/auth/refresh',
   '/auth/login',
+  // 401 ở đây nghĩa là mã đổi phiên đã hết hạn / đã dùng — CHƯA từng có phiên nào để làm
+  // mới. Không loại trừ thì nó kéo theo một lượt refresh (cũng 401) rồi `forceLogout`, tức
+  // một lỗi đăng nhập biến thành một cú đá-ra-ngoài kèm câu thông báo sai.
+  '/auth/oauth/exchange',
   '/auth/verify-login-otp',
   '/auth/send-register-otp',
   '/auth/verify-register-otp',
@@ -399,6 +403,21 @@ export const authApi = {
   // phiên chỉ ra đời ở /auth/verify-login-otp.
   login: (data) => api.post('/auth/login', data),
   verifyLoginOtp: (data) => api.post('/auth/verify-login-otp', data),
+
+  // Bước cuối của đăng nhập OAuth: đổi mã dùng một lần (backend đưa về trên URL dưới dạng
+  // `?oauth_code=`) lấy accessToken + cookie refresh.
+  //
+  // PHẢI là XHR từ chính frontend, và đó là toàn bộ lý do bước này tồn tại. Trước đây
+  // backend đặt cookie refresh ngay trong callback OAuth — nhưng callback đó là một lượt
+  // điều hướng top-level tới `*.herokuapp.com`, nên trình duyệt xếp cookie vào phân vùng
+  // của herokuapp.com (CHIPS của Chrome, Tổng bảo vệ cookie của Firefox). Mọi lượt
+  // `POST /auth/refresh` sau đó là XHR từ `drwkmxjennie.fun` nên mang phân vùng khác và
+  // KHÔNG BAO GIỜ thấy cookie đó: người đăng nhập OAuth sống đúng một hạn access token
+  // rồi bị đá ra. Gọi từ đây thì cookie được đặt trong đúng phân vùng sẽ dùng nó.
+  //
+  // `withCredentials` đã bật ở `axios.create` phía trên — thiếu nó thì trình duyệt nhận
+  // `Set-Cookie` rồi bỏ đi, và triệu chứng giống hệt lỗi vừa sửa.
+  exchangeOAuthCode: (code) => api.post('/auth/oauth/exchange', { code }),
 
   // Quên mật khẩu ba bước: xin mã → đổi mã lấy resetToken → đổi token lấy mật khẩu mới.
   forgotPassword: (data) => api.post('/auth/forgot-password', data),

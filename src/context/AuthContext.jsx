@@ -13,6 +13,15 @@ export function AuthProvider({ children }) {
   const [accessToken, setAccessToken] = useState(() => localStorage.getItem('accessToken'));
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  // Trang này vừa được backend đưa về từ callback OAuth và đang cầm một mã chờ đổi?
+  //
+  // Đọc URL trong initializer của useState (lần render ĐẦU), không đọc trong effect: lượt
+  // đổi mã là một request mạng, còn effect nạp hồ sơ bên dưới chạy trước đó và sẽ
+  // `setIsLoading(false)` vì localStorage còn trống. Không có cờ này thì người vừa đăng
+  // nhập OAuth thấy màn /login nháy lên một nhịp rồi mới vào được app.
+  const [oauthPending, setOauthPending] = useState(
+    () => new URLSearchParams(window.location.search).has('oauth_code'),
+  );
 
   const fetchProfile = useCallback(async () => {
     try {
@@ -47,22 +56,12 @@ export function AuthProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const tokenFromUrl = urlParams.get('token');
-    if (tokenFromUrl) {
-      localStorage.setItem('accessToken', tokenFromUrl);
-      setAccessToken(tokenFromUrl);
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
-  }, []);
-
-  useEffect(() => {
     if (accessToken) {
       fetchProfile();
-    } else {
+    } else if (!oauthPending) {
       setIsLoading(false);
     }
-  }, [accessToken, fetchProfile]);
+  }, [accessToken, fetchProfile, oauthPending]);
 
   // Giữ phiên sống trong lúc người dùng đang làm việc (lỗi #10): làm mới access token
   // TRƯỚC khi nó hết hạn, thay vì đợi một request nào đó lĩnh 401 rồi mới chữa.
@@ -151,6 +150,63 @@ export function AuthProvider({ children }) {
     setUser(userProfile);
     return userProfile;
   }, []);
+
+  /**
+   * BƯỚC CUỐI của đăng nhập OAuth: đổi `?oauth_code=` trên URL lấy phiên thật.
+   *
+   * Trước đây backend đặt cookie refresh ngay trong callback OAuth rồi đưa access token về
+   * đây qua `?token=`. Cả hai nửa đều sai:
+   *   • Cookie: callback là một lượt điều hướng TOP-LEVEL tới `*.herokuapp.com`, nên trình
+   *     duyệt xếp cookie vào phân vùng của herokuapp.com (CHIPS của Chrome, Tổng bảo vệ
+   *     cookie của Firefox). Mọi `POST /auth/refresh` sau đó là XHR từ frontend nên mang
+   *     phân vùng khác và không bao giờ thấy cookie ấy — người đăng nhập OAuth sống đúng
+   *     một hạn access token rồi bị đá ra, không có đường phục hồi.
+   *   • Token trên URL: nó nằm lại trong lịch sử trình duyệt và có thể lọt vào `Referer`.
+   *
+   * Gọi bằng XHR từ đây thì cookie được đặt trong ĐÚNG phân vùng sẽ dùng nó, và trên URL
+   * chỉ còn một mã sống 60 giây, dùng một lần.
+   */
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('oauth_code');
+
+    // Đường CŨ, giữ lại cho cửa sổ deploy: frontend lên Vercel trước backend, nên trong
+    // khoảng đó backend vẫn còn đưa về `?token=`. Xoá được sau khi backend đã deploy.
+    const legacyToken = params.get('token');
+
+    if (!code) {
+      if (legacyToken) {
+        localStorage.setItem('accessToken', legacyToken);
+        setAccessToken(legacyToken);
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+      return;
+    }
+
+    // Xoá mã khỏi URL NGAY, trước mọi `await`: mã là dùng-một-lần, nên một lượt đổi thứ
+    // hai (StrictMode gọi effect hai lần ở dev, hay người dùng bấm F5) chắc chắn nhận 401.
+    // Xoá đồng bộ ở đây thì lần đọc thứ hai không còn thấy gì.
+    window.history.replaceState({}, document.title, window.location.pathname);
+
+    // KHÔNG có cleanup huỷ lượt đổi mã, và đó là chủ ý. `<StrictMode>` ở dev chạy effect
+    // hai lần (effect → cleanup → effect) trong cùng một commit; một cờ `cancelled` bật ở
+    // cleanup sẽ giết đúng lượt đổi mã DUY NHẤT, còn lượt thứ hai thì đọc URL đã bị xoá
+    // nên không làm gì — kết quả là app treo ở màn tải, chỉ ở dev.
+    //
+    // Không cần cleanup vì lượt đổi mã cũng chỉ chạy MỘT lần: `replaceState` ở trên là
+    // đồng bộ, nên lượt effect thứ hai thấy URL đã sạch và thoát ngay ở nhánh `!code`.
+    // Provider này thực tế không unmount trong đời một lần tải trang.
+    authApi
+      .exchangeOAuthCode(code)
+      .then((data) => applySession(data))
+      .catch((err) => {
+        console.error('[Auth] Đổi mã đăng nhập OAuth thất bại:', err);
+        // Mã hết hạn / đã dùng (401) hay dịch vụ nghẽn (503) — cả hai đều là "chưa đăng
+        // nhập được", nên đưa về /login kèm lý do thay vì để người dùng đứng ở /app trống.
+        window.location.replace('/login?error=oauth_exchange_failed');
+      })
+      .finally(() => setOauthPending(false));
+  }, [applySession]);
 
   /**
    * BƯỚC 1 của đăng nhập: gửi email + mật khẩu + captchaToken.

@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { formatBytes } from '../../utils/formatFileSize';
 import { useFileThumbnail, getFileTypeCategory } from '../../hooks/useFileThumbnail';
+import { useInViewport } from '../../hooks/useInViewport';
 import StarButton from '../common/StarButton';
 import { getCardColorVars } from '../../utils/fileColors';
 import { 
@@ -62,11 +63,20 @@ function FileCard({ file, onDoubleClick, onContextMenu, onStarToggle, onOpenInfo
     const icon = getCatIcon(cat);
     const bigIcon = getCatIcon(cat, 'w-6 h-6');
 
-    // Thumbnail: logic tải/parse nằm trong hook dùng chung với Trang chủ
-    const { thumbType, thumbUrl, textContent, sheetData } = useFileThumbnail(file);
+    // Thumbnail: logic tải/parse nằm trong hook dùng chung với Trang chủ.
+    //
+    // `enabled` gắn với việc thẻ đã vào gần khung nhìn chưa: một trang Lưới có tới
+    // 50 thẻ nhưng chỉ khoảng 12 thẻ được nhìn thấy. Không có cổng này thì mở một
+    // thư mục ảnh là 50 lượt xin URL và 50 lượt tải ảnh gốc ngay lập tức, cho 12 ô
+    // người dùng đang xem. Bản đã đệm vẫn hiện ngay, cổng chỉ hoãn việc gọi mạng.
+    const [viewportRef, isNearViewport] = useInViewport();
+    const { thumbType, thumbUrl, textContent, sheetData } = useFileThumbnail(file, {
+        enabled: isNearViewport,
+    });
 
     return (
         <div
+            ref={viewportRef}
             onDoubleClick={() => onDoubleClick && onDoubleClick(file)}
             onContextMenu={(e) => onContextMenu && onContextMenu(e, file)}
             style={colorVars}

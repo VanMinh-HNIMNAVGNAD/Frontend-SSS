@@ -771,12 +771,17 @@ export function FileProvider({ children }) {
       const responses = await Promise.all(
         HOME_SOURCE_TABS.map((tab) =>
           filesApi
-            .getFilesAndFolders({
-              tab,
-              search: debouncedSearch || undefined,
-              page: 1,
-              limit: pageSize,
-            })
+            .getFilesAndFolders(
+              {
+                tab,
+                search: debouncedSearch || undefined,
+                page: 1,
+                limit: pageSize,
+              },
+              // Lượt đồng bộ nền không bật thanh tiến trình toàn cục — Trang chủ
+              // tốn tới BA request song song nên đây là chỗ nhấp nháy nặng nhất.
+              { background: silent },
+            )
             .catch((err) => {
               // Một nguồn lỗi không được làm trắng cả Trang chủ
               console.error(`Lỗi khi tải dữ liệu Trang chủ (tab ${tab}):`, err);
@@ -864,17 +869,22 @@ export function FileProvider({ children }) {
 
       const doFetch = async (remainingRetries) => {
         try {
-          const response = await filesApi.getFilesAndFolders({
-            tab: activeTab,
-            folderId: currentFolderId || undefined,
-            sharedDriveId: activeTab === 'shared-drives' && currentSharedDriveId ? currentSharedDriveId : undefined,
-            search: debouncedSearch || undefined,
-            filterType: filterType !== 'all' ? filterType : undefined,
-            filterDate: filterDate !== 'all' ? filterDate : undefined,
-            filterSender: filterOwner !== 'all' ? filterOwner : undefined,
-            page: currentPage,
-            limit: pageSize,
-          });
+          const response = await filesApi.getFilesAndFolders(
+            {
+              tab: activeTab,
+              folderId: currentFolderId || undefined,
+              sharedDriveId: activeTab === 'shared-drives' && currentSharedDriveId ? currentSharedDriveId : undefined,
+              search: debouncedSearch || undefined,
+              filterType: filterType !== 'all' ? filterType : undefined,
+              filterDate: filterDate !== 'all' ? filterDate : undefined,
+              filterSender: filterOwner !== 'all' ? filterOwner : undefined,
+              page: currentPage,
+              limit: pageSize,
+            },
+            // `silent` = đồng bộ nền cuối hàng đợi upload: không skeleton, và cũng
+            // không thanh tiến trình ở đỉnh trang.
+            { background: silent },
+          );
 
           // Nếu có request mới hơn đã được phát đi, bỏ qua kết quả cũ tránh race condition
           if (requestId !== fetchRequestIdRef.current) return;
@@ -2388,9 +2398,11 @@ export function FileProvider({ children }) {
    * xem `backend/src/storage/mp4-container.ts`), khung xem trước cần đọc nó để
    * nói đúng chuyện gì đang xảy ra thay vì để người dùng ngồi trước vòng xoay.
    */
-  const getPreviewUrl = useCallback(async (id) => {
+  const getPreviewUrl = useCallback(async (id, options) => {
     try {
-      return await storageApi.getPreviewUrl(id);
+      // `options.needsPlayback` quyết định đi đường lẻ hay đường gộp — xem
+      // `storageApi.getPreviewUrl`. Phía gọi phải nói ra vì chỉ nó biết loại tệp.
+      return await storageApi.getPreviewUrl(id, options);
     } catch (err) {
       toast.error(t('file.previewUrl.failed', { reason: err.message }));
       return null;

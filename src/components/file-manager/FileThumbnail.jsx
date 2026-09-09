@@ -1,5 +1,6 @@
 import { memo } from 'react';
 import { useFileThumbnail } from '../../hooks/useFileThumbnail';
+import { useInViewport } from '../../hooks/useInViewport';
 
 /**
  * Thumbnail nhỏ gọn (ảnh / video / trang đầu PDF) dùng cho những chỗ chỉ cần một
@@ -11,12 +12,22 @@ import { useFileThumbnail } from '../../hooks/useFileThumbnail';
  * thumbnail: thư mục, tệp nén, audio, tệp > 10MB...
  */
 function FileThumbnail({ file, className = '', fallback = null, fit = 'cover' }) {
-    const { thumbType, thumbUrl } = useFileThumbnail(file, { variant: 'mini' });
+    // Xem chú thích cùng chỗ trong FileCard: chỉ dựng thumbnail cho ô đã vào gần
+    // khung nhìn. Ở Trang chủ ba khu vực cộng lại là 18 ô, còn danh sách dạng hàng
+    // thì dài hơn nhiều.
+    const [viewportRef, isNearViewport] = useInViewport();
+    const { thumbType, thumbUrl } = useFileThumbnail(file, {
+        variant: 'mini',
+        enabled: isNearViewport,
+    });
 
     const mediaClass = `w-full h-full ${fit === 'contain' ? 'object-contain' : 'object-cover'}`;
 
     return (
-        <div className={`relative overflow-hidden flex items-center justify-center shrink-0 ${className}`}>
+        <div
+            ref={viewportRef}
+            className={`relative overflow-hidden flex items-center justify-center shrink-0 ${className}`}
+        >
             {thumbType === 'image' && thumbUrl ? (
                 <img src={thumbUrl} alt={file?.name || ''} loading="lazy" className={mediaClass} />
             ) : thumbType === 'video' && thumbUrl ? (

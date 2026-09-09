@@ -1,3 +1,5 @@
+import { clearThumbnails } from './thumbnailStore';
+
 /**
  * Bộ nhớ đệm theo thời gian sống, dùng chung cho những lời gọi API mà cùng một
  * câu trả lời bị hỏi đi hỏi lại trong vài giây.
@@ -95,6 +97,76 @@ export const fileTextCache = createTtlCache({ ttlMs: 3 * 60 * 1000, maxEntries: 
 export const sessionsCache = createTtlCache({ ttlMs: 30 * 1000, maxEntries: 2 });
 
 /**
+ * Trạng thái AI (`GET /ai/status`: bật/tắt, model, hạn mức tháng).
+ *
+ * Khung AI hỏi cái này MỖI LẦN mở — mà nó được gắn `key={item.id}` nên mở một tệp
+ * khác là một instance mới, tức mỗi lượt right-click → "Hỏi AI" là một request.
+ * TTL ngắn vì hạn mức có thật sự đổi, nhưng `POST /ai/ask` đã trả về `quota` mới
+ * ở mỗi câu trả lời rồi, nên bộ đệm này chỉ chặn phần lặp vô ích.
+ */
+export const aiStatusCache = createTtlCache({ ttlMs: 60 * 1000, maxEntries: 2 });
+
+/**
+ * Nhật ký hoạt động. Khoá là fileId, hoặc `'global'` cho nhật ký toàn tài khoản.
+ *
+ * Hai chỗ dùng — `FileInfoDrawer` và `ActivityLogDrawer` — đều gọi lại API mỗi lần
+ * mở, kể cả khi vừa đóng đúng tệp đó một giây trước. TTL ngắn vì mọi thao tác trong
+ * app đều sinh thêm log; và mọi thao tác ghi đều đốt bộ đệm này
+ * (`invalidateAfterFileMutation`) nên 30 giây chỉ chặn việc đóng-mở liên tục.
+ */
+export const activityLogsCache = createTtlCache({ ttlMs: 30 * 1000, maxEntries: 20 });
+
+/**
+ * Danh sách phiên bản của một tệp. Chỉ đổi khi có ai tải lên một bản mới đè lên,
+ * nên dài hơn nhật ký được.
+ */
+export const fileVersionsCache = createTtlCache({ ttlMs: 60 * 1000, maxEntries: 20 });
+
+/**
+ * Danh sách người được chia sẻ trực tiếp một tệp (`ShareModal`).
+ * Ngắn: đây là màn hình quyền truy cập, người dùng mở nó ra để thấy trạng thái THẬT.
+ */
+export const shareAccessCache = createTtlCache({ ttlMs: 30 * 1000, maxEntries: 20 });
+
+/**
+ * Danh sách Bộ nhớ dùng chung. `SharedDrivesPage` gọi lại mỗi lần vào route.
+ */
+export const sharedDrivesCache = createTtlCache({ ttlMs: 60 * 1000, maxEntries: 2 });
+
+/** Các tệp lớn nhất (`QuickCleanupModal`) — gọi lại mỗi lần mở modal. */
+export const largestFilesCache = createTtlCache({ ttlMs: 60 * 1000, maxEntries: 4 });
+
+/**
+ * Một thao tác GHI lên tệp làm những câu trả lời nào thành sai?
+ *
+ * Gọi từ chính `services/api.js`, ngay sau khi mutation thành công — KHÔNG bắt phía
+ * gọi tự nhớ. Đặt việc đốt bộ đệm cạnh việc ghi là cách duy nhất để nó không bị bỏ
+ * sót khi có người thêm một nút mới ở đâu đó trong app.
+ *
+ * Cố ý KHÔNG đụng tới `listCacheRef` trong FileContext: danh sách file đã tự cập
+ * nhật tại chỗ theo từng thao tác (`upsertItems`, lọc bỏ khỏi `items`…) rồi, đốt
+ * thêm ở đây sẽ biến mỗi lần đổi tên thành một lần tải lại cả trang — đúng thứ mà
+ * lối stale-while-revalidate ở đó đang tránh.
+ */
+export function invalidateAfterFileMutation(fileId) {
+  // Nhật ký đổi sau MỌI thao tác, kể cả nhật ký toàn cục — nên xoá cả bộ.
+  activityLogsCache.clear();
+  // Dung lượng đổi thì bảng "tệp lớn nhất" cũng đổi.
+  largestFilesCache.clear();
+
+  if (fileId) {
+    const key = String(fileId);
+    fileVersionsCache.invalidate(key);
+    shareAccessCache.invalidate(key);
+    // Nội dung tệp có thể vừa bị thay bằng một bản upload đè.
+    fileTextCache.invalidate(key);
+    // Hai ô: đường gộp (`id`) và đường trình phát (`id:pb`) — xem `storageApi.getPreviewUrl`.
+    previewUrlCache.invalidate(key);
+    previewUrlCache.invalidate(`${key}:pb`);
+  }
+}
+
+/**
  * Đăng xuất / đổi tài khoản phải xoá sạch: các bộ đệm này nằm ở phạm vi module
  * nên không tự chết theo việc unmount cây React như state thường.
  */
@@ -103,4 +175,14 @@ export function resetSharedCaches() {
   previewUrlCache.clear();
   fileTextCache.clear();
   sessionsCache.clear();
+  aiStatusCache.clear();
+  activityLogsCache.clear();
+  fileVersionsCache.clear();
+  shareAccessCache.clear();
+  sharedDrivesCache.clear();
+  largestFilesCache.clear();
+  // Thumbnail nằm trên IndexedDB nên KHÔNG tự chết khi đóng tab — đây là nội dung
+  // tệp của một người dùng cụ thể, để lại trên máy dùng chung là để nó loé lên
+  // trong phiên của người kế tiếp. Không await: đăng xuất không được phép chờ đĩa.
+  void clearThumbnails();
 }

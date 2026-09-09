@@ -88,6 +88,28 @@ const isTextLikeFile = (fileName = '', mimeType = '') => {
 };
 
 /**
+ * Tệp này có cần `playbackHint` / `fmp4` từ backend không?
+ *
+ * Chỉ video và audio cần: đó là kết quả backend phân tích container mp4 để biết
+ * trình duyệt phát ngay được hay phải tải hết trước (`mp4-container.ts`), và nó chỉ
+ * có ở endpoint LẺ. Ảnh, PDF, tài liệu thì hai đường trả về y hệt nhau, nên để
+ * chúng đi đường gộp — mở xem trước một tấm ảnh vừa thấy thumbnail sẽ không tốn
+ * request nào.
+ *
+ * Giữ khớp với `isVideo` / `isAudio` bên trong component: lệch nhau thì một loại
+ * tệp sẽ đi sai đường và mất thông tin phát lại.
+ */
+const needsPlaybackInfo = (item) => {
+  const mime = (item?.mimeType || '').toLowerCase();
+  const name = (item?.name || '').toLowerCase();
+  return (
+    mime.startsWith('video/') ||
+    mime.startsWith('audio/') ||
+    /\.(mp4|webm|mov|mkv|mp3|wav|ogg|m4a)$/i.test(name)
+  );
+};
+
+/**
  * Component Canvas chuyên dụng xem PDF nhiều trang, hỗ trợ High-DPI
  */
 function PdfCanvasViewer({ url, zoom = 1, rotation = 0 }) {
@@ -366,7 +388,12 @@ export default function FilePreviewModal({ item, onClose }) {
 
     const fetchUrl = async () => {
       try {
-        const res = await getPreviewUrl(item.id);
+        // `needsPlayback` bắt buộc với video/audio: chỉ đường LẺ mới mang về
+        // `playbackHint` / `fmp4`. Thiếu cờ này thì cửa sổ xem trước nhận bản của
+        // đường gộp (dùng cho thumbnail) và mất sạch thông tin phát lại — video
+        // trên Chromium sẽ quay lại đúng lỗi "load rất lâu" mà
+        // `preview-url-ttl.spec.ts` được viết ra để chặn.
+        const res = await getPreviewUrl(item.id, { needsPlayback: needsPlaybackInfo(item) });
         // Trích xuất chính xác chuỗi URL (dù API trả về string hay object { previewUrl: "..." })
         const validUrl = typeof res === 'string' ? res : (res?.previewUrl || res?.url || null);
 
@@ -495,7 +522,7 @@ export default function FilePreviewModal({ item, onClose }) {
     resumeRef.current = { at: el.currentTime || 0, playing: !el.paused };
 
     storageApi.invalidatePreviewUrl(item.id);
-    getPreviewUrl(item.id)
+    getPreviewUrl(item.id, { needsPlayback: needsPlaybackInfo(item) })
       .then((fresh) => {
         const freshUrl = typeof fresh === 'string' ? fresh : fresh?.previewUrl || null;
         if (!freshUrl) {

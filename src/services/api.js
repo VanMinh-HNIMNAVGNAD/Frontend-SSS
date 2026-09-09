@@ -2,7 +2,21 @@ import axios from 'axios';
 
 import { API_BASE_URL } from '../constants/api';
 import { decodeJwt, subjectOf } from '../utils/jwt';
-import { plansCache, previewUrlCache, fileTextCache, sessionsCache } from '../utils/ttlCache';
+import {
+  plansCache,
+  previewUrlCache,
+  fileTextCache,
+  sessionsCache,
+  aiStatusCache,
+  activityLogsCache,
+  fileVersionsCache,
+  shareAccessCache,
+  sharedDrivesCache,
+  largestFilesCache,
+  invalidateAfterFileMutation,
+} from '../utils/ttlCache';
+import { recordRequestStart, recordRequestEnd } from '../utils/requestMetrics';
+import { createBatchLoader } from '../utils/batchLoader';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -37,18 +51,48 @@ export function subscribeApiBusy(listener) {
   return () => busyListeners.delete(listener);
 }
 
-/** Các đường đã có chỉ báo tiến trình riêng — đếm thêm ở đây chỉ gây nhiễu. */
+/**
+ * Các đường KHÔNG được kéo thanh tiến trình toàn cục.
+ *
+ * Hai lý do khác nhau, cùng một hệ quả nếu bỏ sót:
+ *
+ * 1/ ĐÃ CÓ CHỈ BÁO RIÊNG — luồng upload có bảng phần trăm, cửa sổ xem trước có
+ *    spinner của chính nó, khung AI có dấu "đang nghĩ". Đếm thêm ở đây là vẽ hai
+ *    chỉ báo cho cùng một việc.
+ *
+ * 2/ CỐ Ý IM LẶNG — thumbnail và lượt đồng bộ nền sau khi upload xong không phải
+ *    thao tác người dùng chờ đợi. Đây chính là thứ làm thanh "load liên tục" khi
+ *    tải một thư mục: mỗi tệp xong được chèn một card, card gọi `preview-url` để
+ *    dựng thumbnail, và 40 tệp thành 40 lần bật/tắt thanh. Bản thân các đường
+ *    upload thì đã bị loại từ trước, nên thủ phạm không nằm ở luồng upload.
+ *
+ * Chấp nhận cả chuỗi (so bằng `includes`) và RegExp — `/files/:id/content` có id
+ * ở giữa nên không viết được thành một chuỗi con cố định.
+ */
 const NO_PROGRESS_BAR_PATHS = [
   '/files/upload-proxy',
   '/files/upload-chunk/',
   '/files/upload-url',
   '/files/confirm-upload',
+  // Thống kê dung lượng: chạy nền sau mỗi thao tác ghi, thanh quota tự có skeleton.
+  '/files/analytics',
+  // URL xem trước — dùng cho THUMBNAIL (im lặng) và cửa sổ xem trước (đã có spinner
+  // riêng, xem `loading` trong FilePreviewModal). Khớp cả `/shares/:token/preview-url`.
+  '/preview-url',
+  // Nội dung văn bản cho thumbnail text/code, cùng lý do như trên.
+  /\/files\/[^/]+\/content$/,
+  // Khung AI: `ask` là request hàng chục giây, giữ thanh ở 92% suốt thời gian đó
+  // biến chỉ báo "đang xử lý" thành đèn báo luôn sáng.
+  '/ai/status',
+  '/ai/ask',
 ];
 
 function tracksProgress(config) {
   if (config?.meta?.noProgressBar) return false;
   const url = config?.url || '';
-  return !NO_PROGRESS_BAR_PATHS.some((p) => url.includes(p));
+  return !NO_PROGRESS_BAR_PATHS.some((p) =>
+    typeof p === 'string' ? url.includes(p) : p.test(url),
+  );
 }
 
 /**
@@ -76,6 +120,9 @@ api.interceptors.request.use(
       inFlightCount += 1;
       notifyBusy();
     }
+    // Đo TẤT CẢ request, kể cả những đường không kéo thanh tiến trình — chính
+    // những đường im lặng đó (thumbnail, đồng bộ nền) mới là chỗ cần đếm.
+    config.__metricsMark = recordRequestStart(config);
     return config;
   },
   (error) => Promise.reject(error),
@@ -316,6 +363,7 @@ export function startSessionKeeper() {
 api.interceptors.response.use(
   (response) => {
     releaseProgress(response.config);
+    recordRequestEnd(response.config?.__metricsMark);
     // Standardize backend wrapped response ({ statusCode, data, message })
     if (response.data && response.data.data !== undefined) {
       return response.data.data;
@@ -325,6 +373,7 @@ api.interceptors.response.use(
   async (error) => {
     const original = error.config;
     releaseProgress(original);
+    recordRequestEnd(original?.__metricsMark, { failed: true });
     const url = original?.url || '';
     const canRefresh =
       error.response?.status === 401 &&
@@ -465,39 +514,163 @@ export const userApi = {
   deleteMyAccount: (password) => api.delete('/users/me', { data: { password } }),
 };
 
+/**
+ * Đốt bộ đệm sau khi một lượt TẢI LÊN hoàn tất.
+ *
+ * Tách khỏi `afterFileMutation` vì lúc gọi ta chưa biết id của tệp mới — backend
+ * mới là nơi cấp id, và nó nằm trong response. Đọc id từ response rồi đốt theo id
+ * đó: nếu đây là một phiên bản mới của tệp đã có thì danh sách phiên bản, nội dung
+ * văn bản và URL xem trước đã đệm của nó đều thành sai.
+ *
+ * Ba luồng upload (`confirmUpload`, `uploadProxy`, `chunkedApi.complete`) đều phải
+ * đi qua đây — bỏ sót một luồng là bỏ sót đúng luồng mà người dùng đang dùng.
+ */
+function afterUpload(promise) {
+  return promise.then((res) => {
+    invalidateAfterFileMutation(res?.file?.id ?? res?.id ?? null);
+    return res;
+  });
+}
+
+/**
+ * Chạy một mutation rồi đốt các bộ đệm mà nó làm sai — nhưng CHỈ khi nó thành công.
+ *
+ * Nhận vào promise đã bắt đầu (chứ không phải một hàm) để dùng được dưới dạng
+ * một-dòng ngay tại chỗ khai báo endpoint, giữ nguyên hình dạng của `filesApi`.
+ */
+function afterFileMutation(fileId, promise) {
+  return promise.then((res) => {
+    invalidateAfterFileMutation(fileId);
+    return res;
+  });
+}
+
+/**
+ * Như `afterFileMutation`, nhưng cho các thao tác về QUYỀN: thêm/bớt người, tạo
+ * link. Chỉ danh sách quyền của đúng tệp đó thành sai — nên chỉ đốt chừng đó, thay
+ * vì đốt cả nhật ký và bảng tệp lớn nhất.
+ */
+function afterShareMutation(fileId, promise) {
+  return promise.then((res) => {
+    shareAccessCache.invalidate(String(fileId));
+    return res;
+  });
+}
+
 // Files & Folders Hierarchy APIs
 export const filesApi = {
-  getFilesAndFolders: (params = {}) => api.get('/files', { params }),
+  /**
+   * Danh sách tệp/thư mục.
+   *
+   * `background: true` dành cho lượt đồng bộ IM LẶNG sau khi hàng đợi upload rỗng
+   * (`fetchFiles(0, { silent: true })`): người dùng không bấm gì cả, nên lượt gọi
+   * đó không được phép bật thanh tiến trình ở đỉnh trang.
+   */
+  getFilesAndFolders: (params = {}, { background = false } = {}) =>
+    api.get('/files', background ? { params, meta: { noProgressBar: true } } : { params }),
   createFolder: (data) => api.post('/folders', data),
   createFoldersBatch: (paths, parentId, sharedDriveId) => api.post('/files/folders/batch', { paths, parentId, sharedDriveId }),
-  renameItem: (id, data) => api.patch(`/files/${id}/rename`, data),
-  moveItem: (id, data) => api.patch(`/files/${id}/move`, data),
-  copyItem: (id, data) => api.post(`/files/${id}/copy`, data),
-  toggleStar: (id) => api.patch(`/files/${id}/star`),
+  // ── Thao tác GHI ────────────────────────────────────────────────────────────
+  //
+  // Mỗi hàm dưới đây tự đốt các bộ đệm mà nó vừa làm sai, ngay tại chỗ, qua
+  // `afterFileMutation`. Để phía gọi tự nhớ thì chỉ cần một nút mới ở đâu đó trong
+  // app là bộ đệm bắt đầu trả dữ liệu cũ — loại lỗi rất khó lần ra vì nó chỉ hiện
+  // trong khoảng TTL rồi biến mất khi người ta thử lại.
+  //
+  // Đốt SAU khi thành công, không đốt trước: request lỗi thì câu trả lời cũ vẫn
+  // đúng, xoá nó đi chỉ tạo thêm một lượt gọi vô ích.
+  renameItem: (id, data) => afterFileMutation(id, api.patch(`/files/${id}/rename`, data)),
+  moveItem: (id, data) => afterFileMutation(id, api.patch(`/files/${id}/move`, data)),
+  copyItem: (id, data) => afterFileMutation(id, api.post(`/files/${id}/copy`, data)),
+  toggleStar: (id) => afterFileMutation(id, api.patch(`/files/${id}/star`)),
   /** Cập nhật màu tùy chỉnh. Truyền color=null để reset về mặc định. */
-  updateColor: (id, color) => api.patch(`/files/${id}/color`, { color }),
-  moveToTrash: (id) => api.patch(`/files/${id}/trash`),
-  restoreFromTrash: (id) => api.patch(`/files/${id}/restore`),
+  updateColor: (id, color) => afterFileMutation(id, api.patch(`/files/${id}/color`, { color })),
+  moveToTrash: (id) => afterFileMutation(id, api.patch(`/files/${id}/trash`)),
+  restoreFromTrash: (id) => afterFileMutation(id, api.patch(`/files/${id}/restore`)),
   // Gỡ cờ "Nội dung rác". KHÁC `restoreFromTrash`: tệp spam có `is_trash = false`
   // sẵn rồi, nên gọi /restore cho nó là một câu UPDATE không đổi gì — đó chính là
   // lý do "khôi phục xong không thấy tệp đâu".
-  markNotSpam: (id) => api.patch(`/files/${id}/not-spam`),
-  emptyTrash: () => api.delete('/files/trash/empty'),
-  deletePermanently: (id) => api.delete(`/files/${id}/permanent`),
+  markNotSpam: (id) => afterFileMutation(id, api.patch(`/files/${id}/not-spam`)),
+  // Xoá sạch thùng rác đụng tới nhiều tệp cùng lúc, không có một id nào để chỉ ra.
+  emptyTrash: () => afterFileMutation(null, api.delete('/files/trash/empty')),
+  deletePermanently: (id) => afterFileMutation(id, api.delete(`/files/${id}/permanent`)),
   getStorageAnalytics: () => api.get('/files/analytics'),
-  getLargestFiles: (limit = 3) => api.get('/files/largest', { params: { limit } }),
+  // Qua bộ đệm 60 giây: `QuickCleanupModal` gọi lại nguyên bảng mỗi lần mở.
+  getLargestFiles: (limit = 3) =>
+    largestFilesCache.get(`limit:${limit}`, () => api.get('/files/largest', { params: { limit } })),
   downloadZip: (fileIds) => api.post('/files/download-zip', { fileIds }, { responseType: 'blob' }),
-  getFileVersions: (id) => api.get(`/files/${id}/versions`),
+  // Qua bộ đệm: `FileInfoDrawer` gọi lại cả hai thứ này mỗi lần mở, kể cả khi vừa
+  // đóng đúng tệp đó. Mọi thao tác ghi lên tệp đều đốt bộ đệm (xem phần mutation
+  // ngay dưới), nên dữ liệu không thể cũ một cách vô hạn.
+  getFileVersions: (id) =>
+    fileVersionsCache.get(String(id), () => api.get(`/files/${id}/versions`)),
+
   getActivityLogs: (fileId) => {
     const url = fileId ? `/files/${fileId}/activity-logs` : '/files/activity-logs';
-    return api.get(url);
+    return activityLogsCache.get(fileId ? String(fileId) : 'global', () => api.get(url));
   },
 };
+
+/**
+ * Gộp việc xin URL xem trước của cả một trang danh sách thành MỘT request.
+ *
+ * Trước: 50 thẻ = 50 × `GET /files/:id/preview-url`, mỗi cái tốn ở backend một
+ * câu SELECT + một HEAD tới GCS + một câu UPDATE (`access_count`). Nay: một
+ * `POST /files/preview-urls` cho cả trang, backend làm 2 câu SQL và 0 lượt đi cloud.
+ *
+ * ## Đường lùi khi backend chưa có endpoint này
+ *
+ * Frontend (Vercel) và backend (Heroku) là HAI repo git riêng nên hai lần deploy
+ * không bao giờ đồng thời. Nếu frontend lên trước, `POST /files/preview-urls` sẽ
+ * nhận 404 — và nếu không xử lý thì TOÀN BỘ thumbnail của app chết trong khoảng
+ * thời gian giữa hai lần deploy. Nên: lần đầu gặp 404/405, hạ cờ `batchSupported`
+ * và từ đó mọi lượt xin URL tự quay về đường lẻ, vĩnh viễn cho phiên đó.
+ *
+ * Nhờ vậy thứ tự deploy không còn quan trọng, và thay đổi này rollback được bằng
+ * cách revert riêng một phía.
+ */
+let batchSupported = true;
+
+const previewUrlBatch = createBatchLoader({
+  windowMs: 16,
+  // Khớp `ArrayMaxSize(100)` của `GetPreviewUrlsDto` ở backend. Lệch lên là ăn 400.
+  maxBatchSize: 100,
+  fetchMany: async (ids) => {
+    if (batchSupported) {
+      try {
+        const res = await api.post(
+          '/files/preview-urls',
+          { ids },
+          { meta: { noProgressBar: true } },
+        );
+        return new Map((res?.items || []).map((item) => [String(item.id), item]));
+      } catch (err) {
+        const status = err?.response?.status;
+        if (status !== 404 && status !== 405) throw err;
+        batchSupported = false;
+        console.warn(
+          '[api] Backend chưa có POST /files/preview-urls — quay về đường lẻ cho cả phiên.',
+        );
+      }
+    }
+
+    // Đường lùi: gọi lẻ từng id. Chậm như trước khi có batch, nhưng vẫn CHẠY.
+    const entries = await Promise.all(
+      ids.map((id) =>
+        api
+          .get(`/files/${id}/preview-url`, { meta: { noProgressBar: true } })
+          .then((res) => [String(id), res])
+          .catch(() => [String(id), null]),
+      ),
+    );
+    return new Map(entries.filter(([, value]) => value));
+  },
+});
 
 // Multi-Cloud Storage APIs
 export const storageApi = {
   getUploadUrl: (data) => api.post('/files/upload-url', data),
-  confirmUpload: (data) => api.post('/files/confirm-upload', data),
+  confirmUpload: (data) => afterUpload(api.post('/files/confirm-upload', data)),
   getDownloadUrl: (id) => api.get(`/files/${id}/download-url`),
   /**
    * URL xem trước có chữ ký, qua bộ đệm.
@@ -507,7 +680,37 @@ export const storageApi = {
    * một tệp hiện ở ba khu vực nên ba thẻ xin ba lần. URL do backend phát sống
    * 15 phút, giữ lại 10 phút là an toàn.
    */
-  getPreviewUrl: (id) => previewUrlCache.get(String(id), () => api.get(`/files/${id}/preview-url`)),
+  /**
+   * URL xem trước, qua bộ đệm. HAI đường, và phải chọn đúng đường.
+   *
+   * `needsPlayback: false` (mặc định — đường của THUMBNAIL): gộp cả trang thành
+   * một request. Trả về `previewUrl` và metadata cơ bản.
+   *
+   * `needsPlayback: true` (đường của TRÌNH PHÁT): gọi lẻ, vì `playbackHint` và
+   * `fmp4` chỉ có ở endpoint lẻ — backend phải đọc byte range thật trên cloud mới
+   * biết tệp mp4 này trình duyệt phát ngay được hay phải tải hết trước
+   * (`mp4-container.ts`). Đường gộp cố ý bỏ bước đó: nó là việc đọc cloud cho MỖI
+   * tệp, không thể làm cho 50 thumbnail.
+   *
+   * KHOÁ ĐỆM KHÁC NHAU (`id` vs `id:pb`) — đây là phần dễ sai nhất. Hai đường trả
+   * về hai payload khác nhau; dùng chung một ô đệm thì một lượt dựng thumbnail sẽ
+   * nhét bản KHÔNG có `playbackHint` vào ô, rồi cửa sổ xem trước mở lên nhận đúng
+   * bản đó và mất sạch thông tin phát lại — một hồi quy im lặng, chỉ hiện ra ở
+   * video trên Chromium.
+   */
+  getPreviewUrl: (id, { needsPlayback = false } = {}) =>
+    needsPlayback
+      ? previewUrlCache.get(`${id}:pb`, () => api.get(`/files/${id}/preview-url`))
+      : previewUrlCache.get(String(id), () => previewUrlBatch.load(id)),
+
+  /**
+   * Đường LẺ, gọi thẳng, KHÔNG gộp và KHÔNG qua bộ đệm.
+   *
+   * Chỉ dùng để sửa khi `storage_provider` trong DB lệch với nơi object thật nằm —
+   * chỉ endpoint lẻ ở backend còn dò lại provider (xem `getPresignedPreviewUrlsBatch`).
+   * Không đệm là có ý: nó được gọi đúng lúc bản đã đệm vừa tỏ ra là sai.
+   */
+  getPreviewUrlDirect: (id) => api.get(`/files/${id}/preview-url`),
 
   /**
    * Bỏ URL xem trước đã đệm của MỘT tệp để lần gọi sau xin chữ ký mới.
@@ -516,10 +719,26 @@ export const storageApi = {
    * giữa lúc phát (xem `resolvePreviewUrlTtlSeconds` ở backend), mà URL cũ vẫn
    * còn trong bộ đệm nên thử lại bằng nó thì chỉ ăn đúng cái 403 lần nữa.
    */
-  invalidatePreviewUrl: (id) => previewUrlCache.invalidate(String(id)),
+  invalidatePreviewUrl: (id) => {
+    // Đốt CẢ HAI ô: người gọi (thẻ media báo lỗi) không cần biết bản đang hỏng là
+    // bản của đường gộp hay đường trình phát.
+    previewUrlCache.invalidate(String(id));
+    previewUrlCache.invalidate(`${id}:pb`);
+  },
 
   /** Nội dung văn bản cho khung xem trước code / text / markdown. Xem chú thích trên. */
   getFileTextContent: (id) => fileTextCache.get(String(id), () => api.get(`/files/${id}/content`)),
+
+  /**
+   * Xin URL PUT để đẩy thumbnail vừa dựng lên R2. CHỈ CHỦ TỆP được cấp.
+   *
+   * `items`: `[{ fileId, variant, sizeBytes }]`. `sizeBytes` phải là dung lượng
+   * CHÍNH XÁC của blob sắp gửi — nó nằm trong chữ ký, lệch là R2 trả 403.
+   *
+   * `noProgressBar`: đây là việc chạy nền sau khi người dùng đã thấy thumbnail rồi.
+   */
+  getThumbnailUploadUrls: (items) =>
+    api.post('/files/thumbnails/upload-urls', { items }, { meta: { noProgressBar: true } }),
 
   /**
    * Huỷ một phiên tải lên đang dở và dọn rác trên cloud.
@@ -551,7 +770,7 @@ export const storageApi = {
     if (sharedDriveId) formData.append('sharedDriveId', sharedDriveId);
     if (targetProvider) formData.append('targetProvider', targetProvider);
 
-    return api.post('/files/upload-proxy', formData, {
+    return afterUpload(api.post('/files/upload-proxy', formData, {
       signal,
       headers: {
         'Content-Type': 'multipart/form-data',
@@ -562,7 +781,7 @@ export const storageApi = {
           onUploadProgress(percentCompleted);
         }
       },
-    });
+    }));
   },
 };
 
@@ -602,8 +821,7 @@ export const chunkedApi = {
   /**
    * Hoàn tất: backend verify userId qua GCS metadata → tạo FileItem DB record.
    */
-  complete: (data) =>
-    api.post('/files/upload-chunk/complete', data),
+  complete: (data) => afterUpload(api.post('/files/upload-chunk/complete', data)),
 
   /**
    * Hỏi GCS đã nhận tới byte nào của phiên này.
@@ -642,32 +860,56 @@ export const sharingApi = {
       headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
     }),
   /** Tạo link chia sẻ công khai cho một tệp (yêu cầu đăng nhập) */
-  createShareLink: (id, data) => api.post(`/files/${id}/share`, data),
-  /** Lấy danh sách người được chia sẻ trực tiếp (yêu cầu đăng nhập) */
-  getShareAccess: (id) => api.get(`/files/${id}/share-access`),
+  createShareLink: (id, data) => afterShareMutation(id, api.post(`/files/${id}/share`, data)),
+  /**
+   * Lấy danh sách người được chia sẻ trực tiếp (yêu cầu đăng nhập).
+   * Qua bộ đệm 30 giây — `ShareModal` gọi lại mỗi lần mở. Ba hàm ghi ngay dưới tự
+   * đốt bộ đệm của đúng tệp đó, nên đóng-mở lại sau khi thêm người là thấy ngay.
+   */
+  getShareAccess: (id) => shareAccessCache.get(String(id), () => api.get(`/files/${id}/share-access`)),
   /** Thêm quyền truy cập cho người dùng cụ thể (yêu cầu đăng nhập) */
-  addShareAccess: (id, data) => api.post(`/files/${id}/share-access`, data),
+  addShareAccess: (id, data) => afterShareMutation(id, api.post(`/files/${id}/share-access`, data)),
   /** Thu hồi quyền truy cập của một người dùng (yêu cầu đăng nhập) */
-  removeShareAccess: (id, userId) => api.delete(`/files/${id}/share-access/${userId}`),
+  removeShareAccess: (id, userId) =>
+    afterShareMutation(id, api.delete(`/files/${id}/share-access/${userId}`)),
 };
 
 // Shared Drives APIs
+/**
+ * Đốt bộ đệm danh sách Bộ nhớ dùng chung sau một thao tác ghi lên drive.
+ *
+ * Danh sách này là MỘT câu trả lời duy nhất (không theo id) nên mọi thay đổi —
+ * tạo, đổi tên, xoá, đánh dấu sao, thêm/bớt thành viên — đều làm nó sai hết.
+ */
+function afterDriveMutation(promise) {
+  return promise.then((res) => {
+    sharedDrivesCache.clear();
+    return res;
+  });
+}
+
 export const sharedDrivesApi = {
-  create: (data) => api.post('/shared-drives', data),
-  getAll: () => api.get('/shared-drives'),
+  create: (data) => afterDriveMutation(api.post('/shared-drives', data)),
+
+  // Qua bộ đệm 60 giây: `SharedDrivesPage` gọi lại nguyên danh sách mỗi lần vào
+  // route. Mọi hàm ghi dưới đây tự đốt bộ đệm nên không thể thấy dữ liệu cũ sau
+  // khi vừa tự tay sửa.
+  getAll: () => sharedDrivesCache.get('all', () => api.get('/shared-drives')),
+
   getOne: (id) => api.get(`/shared-drives/${id}`),
   // Đổi tên / sửa mô tả — chỉ ADMIN của drive. data: { name?, description? }
-  update: (id, data) => api.patch(`/shared-drives/${id}`, data),
+  update: (id, data) => afterDriveMutation(api.patch(`/shared-drives/${id}`, data)),
   // ⚠️ Xóa cả drive, kéo theo MỌI tệp/thư mục bên trong (FK ON DELETE CASCADE).
   // Chỉ người tạo drive gọi được. Trả về { deletedItems }.
-  remove: (id) => api.delete(`/shared-drives/${id}`),
+  remove: (id) => afterDriveMutation(api.delete(`/shared-drives/${id}`)),
   // Dấu sao RIÊNG của từng người (lưu ở hàng shared_drive_members của người gọi, migration
   // 011): bật/tắt chỉ ảnh hưởng chính mình. Mọi role đều gọi được. Trả về { id, isStarred }
   // với `id` là id của DRIVE.
-  toggleStar: (id) => api.patch(`/shared-drives/${id}/star`),
+  toggleStar: (id) => afterDriveMutation(api.patch(`/shared-drives/${id}/star`)),
   // data: { email, role } — hoặc { userId, role } cho caller cũ
-  addMember: (id, data) => api.post(`/shared-drives/${id}/members`, data),
-  removeMember: (id, userId) => api.delete(`/shared-drives/${id}/members/${userId}`),
+  addMember: (id, data) => afterDriveMutation(api.post(`/shared-drives/${id}/members`, data)),
+  removeMember: (id, userId) =>
+    afterDriveMutation(api.delete(`/shared-drives/${id}/members/${userId}`)),
 };
 
 // Billing / Thanh toán (payOS)
@@ -765,7 +1007,10 @@ export const billingApi = {
 export const aiApi = {
   // { enabled, model } — gọi lúc mở khung chat để biết nên hiện khung nhập hay
   // hiện dòng "chưa bật AI", thay vì để người dùng gõ xong mới nhận 503.
-  getStatus: () => api.get('/ai/status'),
+  // Qua bộ đệm 60 giây: khung AI được gắn `key={item.id}` nên mỗi lần mở là một
+  // instance mới và hỏi lại trạng thái. Hạn mức hiển thị vẫn tươi vì `ask` trả
+  // `quota` mới sau mỗi câu trả lời.
+  getStatus: () => aiStatusCache.get('status', () => api.get('/ai/status')),
 
   /**
    * Hỏi một câu về tệp/thư mục.

@@ -15,14 +15,22 @@ import { useLanguage } from '../../context/LanguageContext';
  * nên thanh này không cần component nào truyền cờ loading xuống và không kéo theo
  * một lần render nào của cây file.
  *
- * Hai hằng số thời gian, cả hai đều để tránh nhấp nháy:
+ * Ba hằng số thời gian, cả ba đều để tránh nhấp nháy:
  *   • SHOW_DELAY_MS — request nhanh hơn mức này thì không vẽ gì cả. Không có nó thì
  *     mỗi cú bấm sao (đã cập nhật UI ngay tại chỗ) lại kèm một vệt sáng loé lên.
  *   • MIN_VISIBLE_MS — đã vẽ ra thì giữ đủ lâu để mắt kịp thấy, không thì thanh
  *     xuất hiện và biến mất trong một khung hình.
+ *   • HIDE_GRACE_MS — hết request thì CHỜ một nhịp trước khi tắt, vì rất nhiều
+ *     thao tác trong app là một CHUỖI lượt gọi nối nhau chứ không phải một lượt
+ *     (chọn nhiều mục rồi xoá, dán một loạt, mỗi tệp upload xong kéo theo phần
+ *     việc riêng). Không có nhịp chờ này thì mỗi khe hở giữa hai request thành
+ *     một lần tắt-rồi-bật-lại-từ-8%, và người dùng thấy thanh "load liên tục".
+ *     Có nó thì cả chuỗi đọc thành MỘT lần chạy liền mạch: thanh giữ nguyên chỗ
+ *     đang đứng, đợi lượt sau tiếp tục đẩy đi.
  */
 const SHOW_DELAY_MS = 180;
 const MIN_VISIBLE_MS = 320;
+const HIDE_GRACE_MS = 500;
 
 export default function GlobalProgressBar() {
   const { t } = useLanguage();
@@ -40,6 +48,16 @@ export default function GlobalProgressBar() {
   const hideTimerRef = useRef(null);
   const creepTimerRef = useRef(null);
   const shownAtRef = useRef(0);
+  // Nhịp chờ trước khi tắt (HIDE_GRACE_MS). Khác `hideTimerRef`: cái này còn HUỶ
+  // được khi có request mới, còn hideTimerRef là pha tắt đã chốt (thanh đã ở 100%).
+  const graceTimerRef = useRef(null);
+  // Số request đang bay, đọc được ở NGOÀI luồng thông báo.
+  //
+  // Cần vì `subscribeApiBusy` chỉ gọi khi bộ đếm ĐỔI: nếu một request bay lên đúng
+  // lúc thanh đang mờ dần thì lượt thông báo đó bị nhánh `hideTimerRef` bỏ qua, và
+  // sau đó không còn lượt nào nữa — thanh sẽ nằm im suốt một request có thể dài
+  // hàng giây. Pha tắt tự soi lại con số này để bắt đầu một lần chạy mới.
+  const inFlightRef = useRef(0);
 
   useEffect(() => {
     const startCreep = () => {
@@ -59,29 +77,9 @@ export default function GlobalProgressBar() {
       startCreep();
     };
 
-    const unsubscribe = subscribeApiBusy((inFlight) => {
-      if (inFlight > 0) {
-        clearTimeout(hideTimerRef.current);
-        hideTimerRef.current = null;
-        // Đang hiện rồi (hoặc đã hẹn hiện) thì để nguyên — một request mới bay lên
-        // KHÔNG kéo thanh về 0, nếu không thì mỗi lượt gọi trong một chuỗi thao tác
-        // lại giật thanh về đầu.
-        if (visibleRef.current || showTimerRef.current) return;
-        showTimerRef.current = setTimeout(show, SHOW_DELAY_MS);
-        return;
-      }
-
-      // inFlight === 0: đã xong hết.
-      if (showTimerRef.current) {
-        // Chưa kịp vẽ gì — huỷ luôn, request quá nhanh để cần chỉ báo.
-        clearTimeout(showTimerRef.current);
-        showTimerRef.current = null;
-        return;
-      }
-      if (!visibleRef.current) return;
-
-      clearInterval(creepTimerRef.current);
-      creepTimerRef.current = null;
+    /** Chốt pha tắt: đẩy lên 100% rồi mờ dần. */
+    const finish = () => {
+      graceTimerRef.current = null;
       setPercent(100);
 
       const shownFor = Date.now() - shownAtRef.current;
@@ -90,13 +88,62 @@ export default function GlobalProgressBar() {
         visibleRef.current = false;
         setVisible(false);
         setPercent(0);
+
+        // Có việc mới xen vào trong lúc mờ dần: mở một lần chạy mới ngay tại đây,
+        // vì bộ đếm sẽ không đổi nữa nên sẽ không có lượt thông báo nào để làm việc đó.
+        if (inFlightRef.current > 0) {
+          showTimerRef.current = setTimeout(show, SHOW_DELAY_MS);
+        }
       }, Math.max(MIN_VISIBLE_MS - shownFor, 160));
+    };
+
+    const unsubscribe = subscribeApiBusy((inFlight) => {
+      inFlightRef.current = inFlight;
+
+      if (inFlight > 0) {
+        // Còn trong nhịp chờ (HIDE_GRACE_MS) mà đã có việc mới: huỷ nhịp chờ và đẩy
+        // tiếp TỪ CHỖ ĐANG ĐỨNG. Đây là cả mục đích của HIDE_GRACE_MS — chuỗi thao
+        // tác đọc thành một lần chạy, không phải một tràng nhấp nháy.
+        if (graceTimerRef.current) {
+          clearTimeout(graceTimerRef.current);
+          graceTimerRef.current = null;
+          startCreep();
+          return;
+        }
+        // Đã sang pha tắt (thanh ở 100%, đang mờ dần) thì để nó tắt cho xong; lượt
+        // việc mới sẽ tự mở một lần chạy mới qua nhánh dưới.
+        if (hideTimerRef.current) return;
+        // Đang hiện rồi (hoặc đã hẹn hiện) thì để nguyên — một request mới bay lên
+        // KHÔNG kéo thanh về 0, nếu không thì mỗi lượt gọi trong một chuỗi thao tác
+        // lại giật thanh về đầu.
+        if (visibleRef.current || showTimerRef.current) return;
+        showTimerRef.current = setTimeout(show, SHOW_DELAY_MS);
+        return;
+      }
+
+      // inFlight === 0: xong hết — HOẶC chỉ là khe hở giữa hai lượt gọi.
+      if (showTimerRef.current) {
+        // Chưa kịp vẽ gì — huỷ luôn, request quá nhanh để cần chỉ báo.
+        clearTimeout(showTimerRef.current);
+        showTimerRef.current = null;
+        return;
+      }
+      if (!visibleRef.current) return;
+      // Đã hẹn tắt rồi thì đừng hẹn lần nữa (bộ đếm có thể về 0 nhiều lần liền nhau).
+      if (graceTimerRef.current || hideTimerRef.current) return;
+
+      // Đứng lại đúng chỗ trong lúc chờ: bò tiếp mà rồi không có việc gì thật là
+      // vẽ ra một tiến trình không tồn tại.
+      clearInterval(creepTimerRef.current);
+      creepTimerRef.current = null;
+      graceTimerRef.current = setTimeout(finish, HIDE_GRACE_MS);
     });
 
     return () => {
       unsubscribe();
       clearTimeout(showTimerRef.current);
       clearTimeout(hideTimerRef.current);
+      clearTimeout(graceTimerRef.current);
       clearInterval(creepTimerRef.current);
     };
   }, []);

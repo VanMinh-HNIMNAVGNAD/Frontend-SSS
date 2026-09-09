@@ -81,6 +81,23 @@ function renderMarkdown(text) {
     return marked.parse(escaped, { breaks: true, gfm: true });
 }
 
+/**
+ * Bỏ lượt hỏi đang dở khỏi hội thoại: bong bóng trả lời đang chảy (nếu đã kịp hiện)
+ * rồi tới bong bóng câu hỏi.
+ *
+ * Phải bỏ CẢ HAI, và đây là chỗ dễ sai nhất của việc phát theo đoạn: backend chỉ ghi
+ * lượt nói vào lịch sử khi câu trả lời hoàn tất, nên để lại một câu trả lời đứt giữa
+ * chữ trên màn hình là hứa với người dùng một thứ mà mở lại cuộc trò chuyện sẽ không
+ * còn. Bản cũ `slice(0, -1)` bỏ đúng một bong bóng vì hồi đó câu trả lời chỉ xuất
+ * hiện khi đã xong.
+ */
+function dropPendingTurn(prev) {
+    const next = [...prev];
+    if (next[next.length - 1]?.streaming) next.pop();
+    if (next[next.length - 1]?.sender === 'user') next.pop();
+    return next;
+}
+
 export default function GeminiModal({ isOpen, item, initialAction = null, onClose }) {
     const { t, language } = useLanguage();
 
@@ -150,7 +167,7 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                     .slice(-MAX_HISTORY_TURNS)
                     .map((m) => ({ role: m.sender === 'user' ? 'user' : 'model', text: m.text }));
 
-                const res = await aiApi.ask(
+                const res = await aiApi.askStream(
                     {
                         itemId: item.id,
                         action,
@@ -159,20 +176,46 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                         ...(conversationId ? { conversationId } : {}),
                         lang: language === 'en' ? 'en' : 'vi',
                     },
-                    controller.signal,
+                    {
+                        signal: controller.signal,
+                        // Ngữ cảnh tới TRƯỚC chữ đầu tiên, nên bong bóng của AI ra đời
+                        // ở đây — đã có sẵn dòng "AI đọc được gì" ngay từ lúc rỗng,
+                        // thay vì dán thêm vào sau khi người dùng đọc xong câu trả lời.
+                        onMeta: ({ context, model, grounded }) => {
+                            setMessages((prev) => [
+                                ...prev,
+                                { sender: 'ai', text: '', context, model, grounded, streaming: true },
+                            ]);
+                        },
+                        // NỐI vào phần đã có. `streaming` là cờ nhận dạng bong bóng đang
+                        // chảy: không có nó thì một lượt hỏi mới (hoặc một lần dọn lỗi)
+                        // có thể ghi chữ vào đúng bong bóng đã hoàn tất của lượt trước.
+                        onDelta: (chunk) => {
+                            setMessages((prev) => {
+                                const last = prev[prev.length - 1];
+                                if (!last?.streaming) return prev;
+                                return [...prev.slice(0, -1), { ...last, text: last.text + chunk }];
+                            });
+                        },
+                    },
                 );
 
-                setMessages((prev) => [
-                    ...prev,
-                    {
+                // Chốt bằng `res.answer` — câu trả lời TRỌN VẸN do backend gửi ở sự kiện
+                // cuối — chứ không giữ nguyên phần đã nối từ các đoạn. Nhờ vậy một đoạn
+                // bị mất hay bị lặp trên đường truyền không để lại bong bóng lệch với
+                // chính thứ backend đã ghi vào lịch sử trò chuyện.
+                setMessages((prev) => {
+                    const bubble = {
                         sender: 'ai',
                         text: res.answer,
                         context: res.context,
                         model: res.model,
                         grounded: res.grounded,
                         tokens: res.quota?.lastRequestTokens,
-                    },
-                ]);
+                    };
+                    const last = prev[prev.length - 1];
+                    return last?.streaming ? [...prev.slice(0, -1), bubble] : [...prev, bubble];
+                });
                 if (res.quota) {
                     setQuota(res.quota);
                     setQuotaBlocked(Boolean(res.quota.exhausted));
@@ -182,23 +225,28 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                 // trả null khi ghi lịch sử lỗi — khi đó cứ để null, không ghi đè id cũ.
                 if (res.conversationId) setConversationId(res.conversationId);
             } catch (err) {
+                // `err.status` là hình dạng lỗi của interceptor axios, `err.response.status`
+                // là hình dạng của `askStream` — đọc cả hai để nơi này không phải biết
+                // lượt hỏi vừa đi qua đường nào.
+                const status = err?.status ?? err?.response?.status;
+
                 if (err?.name === 'CanceledError' || err?.code === 'ERR_CANCELED') {
                     // Người dùng bấm Dừng: bỏ luôn bong bóng câu hỏi vừa thêm để hội
                     // thoại không còn một câu hỏi treo lơ lửng không có câu trả lời.
-                    setMessages((prev) => prev.slice(0, -1));
-                } else if (err?.response?.status === 429) {
+                    setMessages(dropPendingTurn);
+                } else if (status === 429) {
                     // Hết hạn mức tháng — không phải lỗi kỹ thuật, nên hiện khối nâng cấp
                     // gói thay vì dòng lỗi đỏ kèm nút "thử lại" (thử lại cũng vô ích).
-                    setQuota(err.response.data?.quota ?? null);
+                    setQuota(err?.response?.data?.quota ?? null);
                     setQuotaBlocked(true);
-                    setMessages((prev) => prev.slice(0, -1));
+                    setMessages(dropPendingTurn);
                 } else {
                     setError(
                         err?.response?.data?.message ||
                             err?.message ||
                             t('ai.error.generic'),
                     );
-                    setMessages((prev) => prev.slice(0, -1));
+                    setMessages(dropPendingTurn);
                 }
             } finally {
                 setIsThinking(false);

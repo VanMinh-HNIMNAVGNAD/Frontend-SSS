@@ -25,13 +25,24 @@ const DB_VERSION = 1;
 const STORE = 'thumbs';
 
 /**
- * Số bản ghi giữ lại. Mỗi bản ~15–25KB nên 500 bản ≈ 10MB — đủ cho vài thư mục
- * ảnh, và vẫn nhỏ so với hạn mức lưu trữ nguồn gốc của một trang web.
+ * Số bản ghi giữ lại. Mỗi bản ~15–25KB nên 3000 bản ≈ 60MB.
+ *
+ * Nâng từ 500 (≈10MB) sau khi kiểm thử thực tế: 500 bản chỉ đủ cho khoảng mười
+ * thư mục ảnh, nên duyệt qua vài thư mục là những thư mục đầu đã bị đẩy ra, và
+ * quay lại chúng là tải ảnh gốc từ đầu — đúng cảm giác "mới có tí đã phải load
+ * lại". Trần này là thứ quyết định bộ đệm ảnh phục vụ được BAO NHIÊU thư mục,
+ * chứ không phải TTL: bản ghi ở đây không hết hạn theo thời gian mà theo vân tay
+ * nội dung tệp (xem `thumbnailFingerprint`), nên một tấm ảnh không đổi thì bản
+ * thu nhỏ của nó đúng mãi mãi.
+ *
+ * 60MB vẫn nhỏ so với hạn mức lưu trữ nguồn gốc của một trang web (thường là một
+ * phần đáng kể dung lượng đĩa trống, cỡ hàng GB). Và trình duyệt không xoá giữa
+ * chừng: khi chật, nó thu hồi theo cả nguồn gốc chứ không gặm dần từng bản ghi.
  */
-const MAX_ENTRIES = 500;
+const MAX_ENTRIES = 3000;
 
 /** Dọn khi vượt ngưỡng bao nhiêu bản, để không phải dọn ở mỗi lần ghi. */
-const PRUNE_SLACK = 60;
+const PRUNE_SLACK = 200;
 
 let dbPromise = null;
 

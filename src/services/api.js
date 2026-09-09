@@ -436,6 +436,21 @@ api.interceptors.response.use(
     normalizedError.status = error.response?.status;
     normalizedError.errorCode = data?.errorCode;
     normalizedError.details = data?.details;
+    // Giữ lại `code` của axios và dấu "request này đi tới backend CỦA MÌNH".
+    //
+    // Không giữ thì mọi lỗi ra khỏi đây đều là một `Error` trơn, và mất đúng hai
+    // thông tin không thể suy lại được ở nơi gọi:
+    //   • "mạng máy người dùng vừa đứt" (`ERR_NETWORK`, không có phản hồi nào) khác
+    //     hẳn "server đã trả lời và từ chối" — hai thứ cần hai cách xử lý ngược nhau,
+    //     xem `isBackendUnreachable` bên dưới;
+    //   • lượt bị huỷ. Các chỗ kiểm `err.name === 'CanceledError'` trước đây KHÔNG
+    //     bao giờ đúng với lỗi đi qua interceptor này, vì `new Error()` đặt lại
+    //     `name` thành 'Error'.
+    normalizedError.code = error.code;
+    normalizedError.apiRequest = true;
+    if (error.name === 'CanceledError' || error.code === 'ERR_CANCELED') {
+      normalizedError.name = 'CanceledError';
+    }
     return Promise.reject(normalizedError);
   },
 );
@@ -679,9 +694,76 @@ const previewUrlBatch = createBatchLoader({
   },
 });
 
+// ───────────────── Lỗi mạng của máy người dùng vs. server từ chối ─────────────────
+
+/**
+ * Request tới BACKEND CỦA MÌNH chưa từng nhận được phản hồi nào.
+ *
+ * Nghĩa là mạng phía người dùng đứt hoặc vừa đổi (wifi nối lại, bật/tắt VPN, đổi
+ * IP/DNS, chuyển wifi↔4G — Chromium báo `net::ERR_NETWORK_CHANGED` và huỷ mọi socket
+ * đang bay), KHÔNG phải server từ chối. Phân biệt được hai thứ này là điều kiện để
+ * chọn đúng cách xử lý, vì chúng cần hai cách ngược nhau: server từ chối thì thử lại
+ * vô ích, còn mạng nhấp một nhịp thì thử lại là đúng và thường thành công ngay.
+ *
+ * `apiRequest` là điều kiện KHÔNG được bỏ: một lỗi `ERR_NETWORK` khi PUT thẳng lên
+ * cloud có thể là bucket cấu hình CORS sai — trình duyệt che nguyên nhân thật và báo
+ * y hệt một cú đứt mạng. Ở đó thì đường lùi qua proxy mới là câu trả lời đúng. Còn
+ * request tới backend của mình thì không có sự nhập nhằng đó: CORS của nó đã được
+ * chứng minh đúng (xem `.ai/environment.md`), nên không có phản hồi = không có mạng.
+ */
+export function isBackendUnreachable(err) {
+  if (!err?.apiRequest) return false;
+  // Huỷ do người dùng bấm — không phải sự cố.
+  if (err.name === 'CanceledError' || err.code === 'ERR_CANCELED') return false;
+  // Có mã HTTP nghĩa là request ĐÃ tới server và server đã trả lời. Đó là câu trả
+  // lời, không phải lỗi mạng, dù câu trả lời có là 500.
+  if (err.status !== undefined) return false;
+  return err.code === 'ERR_NETWORK' || err.code === 'ECONNABORTED';
+}
+
+/** Chờ giữa hai lần thử. */
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Chạy một request ĐIỀU KHIỂN (nhỏ, không mang byte của tệp) và thử lại khi mạng
+ * người dùng nhấp một nhịp.
+ *
+ * CHỈ dùng cho request điều khiển, và chỉ khi lượt gọi lặp lại không gây hậu quả:
+ * mạng đứt không phân biệt được với "server đã xử lý xong nhưng phản hồi mất trên
+ * đường về", nên mỗi lần thử lại đều có thể là lần thực thi thứ hai. Xem chú thích
+ * ở từng nơi gọi để biết hậu quả đó là gì.
+ *
+ * Backoff 400ms rồi 1200ms: đủ để đi qua một cú đổi wifi/VPN (thường dưới một giây)
+ * mà không giữ người dùng chờ quá lâu nếu mạng thật sự đã mất.
+ */
+async function retryWhenOffline(call, { attempts = 3, baseDelayMs = 400 } = {}) {
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      return await call();
+    } catch (err) {
+      if (attempt >= attempts || !isBackendUnreachable(err)) throw err;
+      console.warn(
+        `[api] Mất mạng giữa một request điều khiển — thử lại lần ${attempt}/${attempts - 1}.`,
+      );
+      await wait(baseDelayMs * (attempt === 1 ? 1 : 3));
+    }
+  }
+}
+
 // Multi-Cloud Storage APIs
 export const storageApi = {
-  getUploadUrl: (data) => api.post('/files/upload-url', data),
+  /**
+   * Xin một presigned URL để đẩy tệp thẳng lên cloud.
+   *
+   * Có thử lại khi mất mạng, và ở đây thử lại là AN TOÀN TUYỆT ĐỐI: backend chỉ đọc
+   * (kiểm quyền ghi + tìm thư mục cha) rồi ký một URL, không ghi hàng nào vào DB —
+   * hàng chỉ ra đời ở `confirm-upload`. Một URL đã ký mà không ai dùng thì không để
+   * lại gì trên bucket cả.
+   *
+   * Vì sao cần: đây chính là request đã chết trong sự cố 09/09/2026. Nó chỉ là một
+   * request bé xin URL, nhưng nó chết thì cả tệp bị đẩy sang đường proxy.
+   */
+  getUploadUrl: (data) => retryWhenOffline(() => api.post('/files/upload-url', data)),
   confirmUpload: (data) => afterUpload(api.post('/files/confirm-upload', data)),
   getDownloadUrl: (id) => api.get(`/files/${id}/download-url`),
   /**
@@ -805,7 +887,11 @@ export const chunkedApi = {
    * Response: { uploadId, resumableUrl, storageKey, chunkSize, totalChunks, totalSizeBytes }
    */
   init: (data) =>
-    api.post('/files/upload-chunk/init', data),
+    // Thử lại khi mất mạng. Hậu quả nếu lượt đầu đã chạy xong mà phản hồi mất trên
+    // đường về: thừa một phiên resumable trên GCS, không byte nào được ghi vào nó và
+    // GCS tự xoá phiên dở sau 7 ngày. Đổi lại, một cú nhấp mạng không còn giết cả một
+    // tệp lớn đang chờ tới lượt — đường chunked KHÔNG có đường lùi nào khác.
+    retryWhenOffline(() => api.post('/files/upload-chunk/init', data)),
 
   /**
    * PUT 1 chunk trực tiếp lên GCS resumable URL.
@@ -931,8 +1017,12 @@ export const sharedDrivesApi = {
 export const billingApi = {
   // Bảng giá lấy từ DB (chỉ gói is_active). Trả [{ id, name, storageBytes, storageGB,
   // priceMonthly, priceYearly }] đã sắp theo priceMonthly tăng dần.
-  // Qua bộ đệm 10 phút: bảng giá chỉ đổi khi vận hành sửa nó, nhưng trang Gói
-  // dịch vụ tải lại nguyên bảng mỗi lần người dùng ghé qua.
+  // Qua bộ đệm 60 phút CÓ LƯU BỀN (sống qua F5): bảng giá chỉ đổi khi vận hành sửa
+  // nó, nhưng trang Gói dịch vụ tải lại nguyên bảng mỗi lần người dùng ghé qua.
+  //
+  // Phần còn lại của trang này CỐ Ý không cache: `getMySubscription` và
+  // `getTransactions` là dữ liệu tiền bạc, hiện một trạng thái thanh toán cũ 15
+  // phút là đúng kiểu sai lầm khiến người dùng trả tiền hai lần.
   getPlans: () => plansCache.get('all', () => api.get('/billing/plans')),
 
   // Gói ĐANG CHẠY của chính mình, hoặc null nếu chưa từng mua (đang ở hạn mức mặc định).
@@ -1011,6 +1101,149 @@ export const billingApi = {
     api.post(`/billing/transactions/${orderCode}/cancel`, reason ? { reason } : {}),
 };
 
+// ───────────────────────── Đọc một dòng SSE do backend phát ─────────────────────────
+//
+// KHÔNG dùng axios được cho đường này: axios trên trình duyệt chạy trên XMLHttpRequest
+// và chỉ giao body khi request đã xong, tức đúng thứ mình đang cố bỏ. Cũng không dùng
+// `EventSource` được: nó chỉ biết GET, không gắn được header `Authorization`, và không
+// gửi được body — mà câu hỏi AI là một POST có payload.
+//
+// Nên: `fetch` + đọc `response.body` theo từng khối. Đổi lại phải tự làm ba việc mà
+// interceptor của axios vốn đã làm hộ — làm mới token khi 401, dựng lại đối tượng lỗi
+// theo cùng hình dạng, và nhận diện lượt bị người dùng huỷ.
+
+/**
+ * Dựng một lỗi có CÙNG hình dạng với lỗi mà interceptor của axios trả ra, cộng thêm
+ * `response` cho các nơi gọi đang đọc `err.response.status` / `err.response.data`.
+ * Hai hình dạng cùng tồn tại là chuyện đã có từ trước ở codebase này; ở đây mang cả
+ * hai để nơi gọi không phải biết mình vừa đi qua đường nào.
+ */
+function errorFromPayload(payload, fallbackMessage) {
+  const status = payload?.statusCode ?? payload?.status;
+  const err = new Error(payload?.message || fallbackMessage || 'Đã có lỗi xảy ra');
+  err.status = status;
+  err.errorCode = payload?.errorCode ?? payload?.error;
+  err.details = payload?.details;
+  err.response = { status, data: payload ?? undefined };
+  return err;
+}
+
+/** Lỗi "người dùng bấm Dừng", mang đúng `name`/`code` mà axios dùng. */
+function canceledError() {
+  const err = new Error('Đã huỷ');
+  err.name = 'CanceledError';
+  err.code = 'ERR_CANCELED';
+  return err;
+}
+
+/**
+ * POST một request và đọc phản hồi SSE, gọi `onEvent(name, data)` cho từng sự kiện.
+ *
+ * Tự làm mới token và gửi lại ĐÚNG MỘT LẦN khi gặp 401 — cùng luật với interceptor
+ * của axios (`_retried`): nếu lần thứ hai vẫn 401 thì vấn đề không phải token hết hạn,
+ * và thử lại tiếp chỉ là spam chính mình.
+ */
+async function postSse(path, payload, { signal, onEvent }) {
+  const open = async () => {
+    const token = localStorage.getItem('accessToken');
+    return fetch(`${API_BASE_URL}${path}`, {
+      method: 'POST',
+      credentials: 'include',
+      signal,
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'text/event-stream',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(payload),
+    });
+  };
+
+  let res;
+  try {
+    res = await open();
+    if (res.status === 401) {
+      // Cùng cách xử lý với interceptor: làm mới rồi gửi lại một lần. Lỗi refresh THẬT
+      // (401/403 từ chính /auth/refresh) mới đăng xuất; mất mạng một nhịp thì giữ phiên
+      // và để lượt hỏi này báo lỗi bình thường.
+      try {
+        await refreshAccessToken();
+      } catch (refreshError) {
+        if (refreshError?.isAuthFailure) {
+          forceLogout(refreshError.isLocked ? 'account_locked' : undefined);
+        }
+        throw refreshError;
+      }
+      res = await open();
+    }
+  } catch (err) {
+    if (err?.name === 'AbortError') throw canceledError();
+    throw err;
+  }
+
+  if (!res.ok) {
+    // Lỗi TRƯỚC khi dòng mở ra vẫn là một phản hồi HTTP bình thường (401 của guard,
+    // 400 của pipe validate…), nên body là JSON của AllExceptionsFilter.
+    let body;
+    try {
+      body = await res.json();
+    } catch {
+      body = undefined;
+    }
+    const err = errorFromPayload(body, `Request failed with status code ${res.status}`);
+    if (err.status === undefined) {
+      err.status = res.status;
+      err.response = { status: res.status, data: body };
+    }
+    console.error('[API Error]', res.status, path, err.message);
+    throw err;
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+
+      // Frame SSE kết thúc bằng một dòng trắng. Giữ phần dư trong `buffer`: một frame
+      // có thể bị cắt ngang giữa hai khối TCP, và parse nửa frame thì mất chữ.
+      let cut;
+      while ((cut = buffer.indexOf('\n\n')) !== -1) {
+        const frame = buffer.slice(0, cut);
+        buffer = buffer.slice(cut + 2);
+
+        let name = 'message';
+        const dataLines = [];
+        for (const line of frame.split('\n')) {
+          // Dòng bắt đầu bằng ':' là comment theo đặc tả — backend dùng nó cho `ping`
+          // và cho byte đầu tiên. Bỏ qua, nhưng chính chúng giữ dòng này sống.
+          if (line.startsWith(':')) continue;
+          if (line.startsWith('event:')) name = line.slice(6).trim();
+          else if (line.startsWith('data:')) dataLines.push(line.slice(5).trimStart());
+        }
+        if (!dataLines.length) continue;
+
+        let data;
+        try {
+          data = JSON.parse(dataLines.join('\n'));
+        } catch {
+          // Một frame méo không được làm mất cả câu trả lời đang chạy.
+          console.warn('[API] Bỏ qua frame SSE không đọc được ở', path);
+          continue;
+        }
+        onEvent(name, data);
+      }
+    }
+  } catch (err) {
+    if (err?.name === 'AbortError' || signal?.aborted) throw canceledError();
+    throw err;
+  }
+}
+
 // ───────────────────────────── Hỏi AI (Vertex AI / Gemini) ─────────────────────────────
 //
 // Ngữ cảnh do BACKEND dựng, không phải frontend: nội dung tệp nằm trên cloud storage
@@ -1025,7 +1258,12 @@ export const aiApi = {
   getStatus: () => aiStatusCache.get('status', () => api.get('/ai/status')),
 
   /**
-   * Hỏi một câu về tệp/thư mục.
+   * Hỏi một câu về tệp/thư mục, chờ trọn câu trả lời.
+   *
+   * KHÔNG DÙNG TỪ GIAO DIỆN — dùng `askStream` bên dưới. Đường này chạm trần 30 giây
+   * của router Heroku (`H12`): log production 09/09/2026 cho thấy lượt hỏi thành công
+   * đã mất 14,9–15,2s, và lượt nào vượt 30s thì trình duyệt báo một lỗi CORS sai
+   * nguyên nhân. Giữ lại vì nó là nơi ĐẶC TẢ payload mà `askStream` dùng chung.
    *
    * @param {object}   payload
    * @param {string=}  payload.itemId  Mục được bấm chuột phải. Bỏ trống = hỏi chay.
@@ -1046,6 +1284,57 @@ export const aiApi = {
    * backend cắt ở 10 phút, và cắt ngắn hơn nữa khi hạn mức token còn ít.
    */
   ask: (payload, signal) => api.post('/ai/ask', payload, { signal }),
+
+  /**
+   * Y HỆT `ask` về đầu vào và về dữ liệu trả về, chỉ khác là câu trả lời tới theo
+   * từng đoạn. Giao diện dùng đường NÀY; `ask` ở trên giữ lại cho script và test.
+   *
+   * VÌ SAO: `POST /ai/ask` chạm trần 30 giây của router Heroku (`H12`) và khi đó
+   * trình duyệt báo "blocked by CORS policy" — trang lỗi 503 do chính router sinh ra
+   * không đi qua middleware CORS của Nest nên thiếu `Access-Control-Allow-Origin`.
+   * Trần đó chỉ đo tới byte đầu tiên, nên phát theo đoạn là bỏ hẳn nó. Xem
+   * `AiController.askStream` ở backend.
+   *
+   * @param {object}   payload  Giống `ask`.
+   * @param {object}   handlers
+   * @param {AbortSignal=} handlers.signal   Nút Dừng. Huỷ thì ném lỗi `CanceledError`
+   *                   giống axios, nên nơi gọi không phải phân biệt hai đường.
+   * @param {function=} handlers.onMeta      ({ context, model, grounded }) — gọi NGAY
+   *                   khi backend dựng xong ngữ cảnh, TRƯỚC đoạn chữ đầu tiên. Đây là
+   *                   lúc biết AI đọc được gì (`context.mode`) để nói thật với người dùng.
+   * @param {function=} handlers.onDelta     (text) — một đoạn chữ mới, cần NỐI vào
+   *                   phần đã có chứ không phải thay thế nó.
+   *
+   * Trả về payload cuối cùng, cùng hình dạng `ask`: { answer, question, context,
+   * model, grounded, conversationId, quota }. `answer` là câu trả lời TRỌN VẸN, nên
+   * nơi gọi có thể bỏ qua `onDelta` nếu không cần hiệu ứng chữ chạy.
+   */
+  askStream: async (payload, { signal, onMeta, onDelta } = {}) => {
+    let result = null;
+    let streamError = null;
+
+    await postSse('/ai/ask/stream', payload, {
+      signal,
+      onEvent: (name, data) => {
+        if (name === 'meta') onMeta?.(data);
+        else if (name === 'delta') onDelta?.(data?.text ?? '');
+        else if (name === 'done') result = data;
+        else if (name === 'error') streamError = errorFromPayload(data);
+      },
+    });
+
+    if (streamError) {
+      console.error('[API Error]', streamError.status, '/ai/ask/stream', streamError.message);
+      throw streamError;
+    }
+    if (!result) {
+      // Dòng đóng mà không có `done` cũng không có `error`: dyno chết giữa lúc sinh,
+      // hoặc mạng đứt. Nói đúng như vậy — người dùng thử lại là hợp lý, khác hẳn với
+      // một lỗi có nguyên nhân rõ mà thử lại cũng vô ích.
+      throw new Error('Kết nối tới AI bị ngắt giữa lúc đang trả lời, vui lòng thử lại');
+    }
+    return result;
+  },
 
   /**
    * Lịch sử: MỌI cuộc trò chuyện của mình, mới nhất trước.

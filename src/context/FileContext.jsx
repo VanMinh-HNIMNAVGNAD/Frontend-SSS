@@ -1,7 +1,13 @@
 import { createContext, useState, useContext, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useLocation, useNavigate, matchPath } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { filesApi, storageApi, sharingApi, chunkedApi } from '../services/api';
+import {
+  filesApi,
+  storageApi,
+  sharingApi,
+  chunkedApi,
+  isBackendUnreachable,
+} from '../services/api';
 import { useAuth } from './AuthContext';
 import { useLanguage } from './LanguageContext';
 import { useDebounce } from '../hooks/useDebounce';
@@ -10,6 +16,7 @@ import { formatBytes } from '../utils/formatFileSize';
 import { buildSortedDirPaths } from '../utils/uploadTree';
 import { CHUNK_THRESHOLD, isResumableSize } from '../constants/upload';
 import { localeTagOf } from '../utils/locale';
+import { readNamespace, writeManyCached, clearPersistentCache } from '../utils/persistentCache';
 
 const FileContext = createContext();
 
@@ -42,10 +49,52 @@ const CHUNK_STATE_PREFIX = 'driveR_chunk_';
 
 /**
  * Trần số khung nhìn được giữ trong bộ nhớ đệm danh sách (xem `listCacheRef`).
- * Đủ cho một phiên duyệt bình thường — mười tab cộng vài chục thư mục vừa mở —
- * mà không để một phiên đi sâu vào cây thư mục phình bộ nhớ vô hạn.
+ *
+ * 60 chứ không phải 24: một khung nhìn là một bản ghi JSON cỡ vài chục KB, nên cả
+ * trần này cũng chỉ vài MB — không đáng gì so với việc phải hỏi lại máy chủ ở Mỹ.
+ * Con số cũ được đặt khi bộ đệm chỉ sống trong RAM của một phiên duyệt; nay nó
+ * sống qua cả F5 nên "vài chục thư mục vừa mở" phải hiểu là vài chục thư mục của
+ * cả buổi làm việc, không phải của mười phút vừa rồi.
  */
-const LIST_CACHE_MAX = 24;
+const LIST_CACHE_MAX = 60;
+
+/**
+ * Bao lâu thì một khung nhìn đã lưu bị coi là quá cũ để dùng lại.
+ *
+ * Cùng một con số 15 phút với `CONTENT_TTL_MS` trong `utils/ttlCache.js`, và cùng
+ * một lập luận: thay đổi do CHÍNH người đang ngồi đó gây ra đã được cập nhật tại
+ * chỗ vào `items` rồi (đánh dấu sao, đổi tên, xoá, dán, upload xong) — TTL này chỉ
+ * là trần cho thay đổi đến từ người khác hoặc từ thiết bị khác.
+ */
+const LIST_CACHE_TTL_MS = 15 * 60 * 1000;
+
+/**
+ * Dưới ngưỡng này thì KHÔNG gọi mạng nữa, kể cả gọi nền.
+ *
+ * Đây là chỗ chữa đúng lời phàn nàn "mới có tí đã phải load lại": bấm qua lại
+ * My Drive ↔ Có gắn sao ↔ một thư mục con, hay đóng/mở một modal, đều diễn ra
+ * trong vài giây — và trước đây mỗi lượt như vậy vẫn là một request thật, kéo
+ * theo thanh tiến trình ở đỉnh trang. Trong 60 giây đầu, bản đã lưu được coi là
+ * ĐÚNG và app im lặng hoàn toàn.
+ *
+ * Quá 60 giây thì vẫn vẽ bản đã lưu ngay lập tức, nhưng có thêm một lượt gọi NỀN
+ * để cập nhật — lượt gọi đó bị đánh dấu `background` nên không có skeleton và
+ * cũng không có thanh tiến trình.
+ */
+const LIST_REVALIDATE_AFTER_MS = 60 * 1000;
+
+/** Namespace của bộ đệm danh sách trong kho bền (`utils/persistentCache.js`). */
+const LIST_PERSIST_NS = 'file-list';
+
+/**
+ * Gom nhiều lượt ghi thành một lượt xuống đĩa.
+ *
+ * Cần vì effect đồng bộ cache chạy theo MỌI thay đổi của `items` — chọn nhiều tệp
+ * rồi đánh dấu sao là hàng chục lần ghi liên tiếp cho cùng một khung nhìn. Ghi
+ * thẳng mỗi lần là mở hàng chục giao dịch IndexedDB cho một kết quả cuối cùng
+ * duy nhất.
+ */
+const LIST_PERSIST_DEBOUNCE_MS = 800;
 
 const VIEW_MODE_KEY = 'driver.viewMode';
 const VIEW_MODES = ['list', 'grid'];
@@ -445,25 +494,148 @@ export function FileProvider({ children }) {
    */
   const itemsKeyRef = useRef(null);
 
+  /**
+   * Những khung nhìn đã đổi mà chưa kịp ghi xuống đĩa, cùng cái hẹn giờ xả chúng.
+   * Xem `LIST_PERSIST_DEBOUNCE_MS`.
+   */
+  const dirtyListKeysRef = useRef(new Set());
+  const persistTimerRef = useRef(null);
+
+  /**
+   * Đã nạp xong bộ đệm từ đĩa hay chưa.
+   *
+   * Là STATE chứ không phải ref vì `fetchFiles` phải đợi nó: nếu lượt tải đầu tiên
+   * chạy trước khi đĩa được đọc lên thì mỗi lần F5 vẫn dựng skeleton rồi mới nhận
+   * ra "à, có cache" — tức là mất trắng phần lợi ích chính của việc lưu bền. Đưa nó
+   * vào dependency của `fetchFiles` khiến effect tải dữ liệu tự chạy lại đúng một
+   * lần khi đĩa đã sẵn sàng.
+   */
+  const [isListCacheHydrated, setIsListCacheHydrated] = useState(false);
+
+  /** Ghi những khung nhìn đang bẩn xuống đĩa trong MỘT giao dịch. */
+  const flushListCache = useCallback(() => {
+    clearTimeout(persistTimerRef.current);
+    persistTimerRef.current = null;
+
+    const dirty = dirtyListKeysRef.current;
+    if (!dirty.size) return;
+
+    const rows = [];
+    for (const key of dirty) {
+      const hit = listCacheRef.current.get(key);
+      // Có thể đã bị LRU đẩy ra trong lúc chờ — không có gì để ghi thì thôi.
+      if (hit) rows.push({ key, value: hit, expiresAt: hit.cachedAt + LIST_CACHE_TTL_MS });
+    }
+    dirty.clear();
+    void writeManyCached(LIST_PERSIST_NS, rows);
+  }, []);
+
   const readListCache = useCallback((key) => {
     const cache = listCacheRef.current;
     const hit = cache.get(key);
     if (!hit) return null;
+    // Quá hạn thì coi như chưa từng có: người dùng sẽ thấy skeleton một lần, đúng
+    // như trước khi có bộ đệm. Xoá luôn để nó không nằm chiếm chỗ trong trần LRU.
+    if (Date.now() - hit.cachedAt > LIST_CACHE_TTL_MS) {
+      cache.delete(key);
+      return null;
+    }
     // Chạm vào thì đẩy xuống cuối Map — Map giữ thứ tự chèn nên đây là LRU đủ dùng
     cache.delete(key);
     cache.set(key, hit);
     return hit;
   }, []);
 
-  const writeListCache = useCallback((key, snapshot) => {
+  /**
+   * @param {object} snapshot  `{ items, breadcrumb, totalItems, totalPages }`
+   * @param {boolean} [opts.fromServer]  Lượt ghi này có phải dữ liệu VỪA lấy từ
+   *   máy chủ không. Chỉ khi đó mốc `cachedAt` mới được làm mới.
+   *
+   *   Phân biệt này là cần thiết: phần lớn lượt ghi vào đây đến từ effect đồng bộ
+   *   bên dưới, tức từ những sửa đổi TẠI CHỖ trên `items`. Nếu chúng cũng làm mới
+   *   mốc thời gian thì một khung nhìn được người dùng thao tác liên tục sẽ không
+   *   bao giờ đến hạn — và app sẽ không bao giờ biết người khác vừa thêm gì vào
+   *   thư mục đó.
+   */
+  const writeListCache = useCallback((key, snapshot, { fromServer = false } = {}) => {
     const cache = listCacheRef.current;
+    const previous = cache.get(key);
+    const cachedAt = fromServer ? Date.now() : previous?.cachedAt ?? Date.now();
+
     cache.delete(key);
-    cache.set(key, snapshot);
+    cache.set(key, { ...snapshot, cachedAt });
     // Giữ trần để một phiên duyệt nhiều thư mục không phình bộ nhớ vô hạn
     while (cache.size > LIST_CACHE_MAX) {
       cache.delete(cache.keys().next().value);
     }
+
+    dirtyListKeysRef.current.add(key);
+    if (!persistTimerRef.current) {
+      persistTimerRef.current = setTimeout(flushListCache, LIST_PERSIST_DEBOUNCE_MS);
+    }
+  }, [flushListCache]);
+
+  /**
+   * Nạp bộ đệm từ đĩa, một lần cho mỗi lần mở trang.
+   *
+   * Chỉ đọc, không lọc gì thêm: `readNamespace` đã bỏ qua bản hết hạn và đã giới
+   * hạn theo id người dùng đang giữ token. Cắt bớt cho vừa trần LRU bằng cách giữ
+   * những bản MỚI nhất — hai phiên trước để lại nhiều hơn trần thì bản cũ nhất là
+   * bản đáng bỏ nhất.
+   */
+  useEffect(() => {
+    let cancelled = false;
+
+    // Chặn cứng thời gian chờ. `fetchFiles` bị KHOÁ cho tới khi cờ này bật, nên
+    // một lần đọc đĩa treo (IndexedDB có thể im lặng không phát sự kiện nào trong
+    // vài trường hợp hiếm: hồ sơ trình duyệt hỏng, tab bị đóng băng) sẽ không chỉ
+    // làm mất bộ đệm mà làm mất LUÔN danh sách tệp. Quá 1,5 giây thì chạy tiếp mà
+    // không có bộ đệm — chậm hơn, nhưng app vẫn dùng được.
+    const withDeadline = Promise.race([
+      readNamespace(LIST_PERSIST_NS).catch(() => []),
+      new Promise((resolve) => setTimeout(() => resolve([]), 1500)),
+    ]);
+
+    withDeadline.then((rows) => {
+      if (cancelled) return;
+      const cache = listCacheRef.current;
+      rows
+        .filter((row) => row.value?.items && Number.isFinite(row.value.cachedAt))
+        .sort((a, b) => a.value.cachedAt - b.value.cachedAt)
+        .slice(-LIST_CACHE_MAX)
+        .forEach((row) => {
+          // Không đè lên thứ đã có trong RAM: nếu lượt tải đầu tiên đã kịp về thì
+          // bản trên đĩa là bản CŨ HƠN.
+          if (!cache.has(row.key)) cache.set(row.key, row.value);
+        });
+      setIsListCacheHydrated(true);
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
+
+  /**
+   * Xả nốt phần còn nợ khi tab bị ẩn hoặc bị đóng.
+   *
+   * `visibilitychange` chứ không phải `beforeunload`: trên di động, tab bị hệ điều
+   * hành thu hồi thường KHÔNG có `beforeunload` nào cả. Đây cũng đúng là thời điểm
+   * cần ghi — người dùng vừa rời đi, và cái họ sẽ gặp khi quay lại chính là thứ
+   * đang nằm trong hàng đợi này.
+   */
+  useEffect(() => {
+    const onHide = () => {
+      if (document.visibilityState === 'hidden') flushListCache();
+    };
+    document.addEventListener('visibilitychange', onHide);
+    window.addEventListener('pagehide', flushListCache);
+    return () => {
+      document.removeEventListener('visibilitychange', onHide);
+      window.removeEventListener('pagehide', flushListCache);
+      flushListCache();
+    };
+  }, [flushListCache]);
 
   /**
    * Danh tính của khung nhìn hiện tại. Mọi tham số ĐỔI KẾT QUẢ của GET /files
@@ -741,6 +913,9 @@ export function FileProvider({ children }) {
   // GET /files (không thêm endpoint mới), rồi gộp và loại trùng theo id.
   const fetchHomeItems = useCallback(async ({ silent = false } = {}) => {
     if (isAuthLoading || !isAuthenticated) return;
+    // Chưa đọc xong bộ đệm trên đĩa thì chưa biết có phải gọi mạng hay không —
+    // xem `isListCacheHydrated`.
+    if (!isListCacheHydrated) return;
 
     // Dùng chung bộ đếm request với fetchFiles để response cũ không ghi đè response mới
     const requestId = ++fetchRequestIdRef.current;
@@ -756,6 +931,20 @@ export function FileProvider({ children }) {
       setItems((prev) => mergeItemsPreservingRefs(prev, cached.items));
       setTotalItems(cached.totalItems);
       setTotalPages(cached.totalPages);
+      setError(null);
+
+      // Bản vừa vẽ còn rất mới ⇒ dừng ở đây: không request, không thanh tiến trình.
+      // Trang chủ là chỗ được lợi nhiều nhất vì mỗi lượt của nó là BA request.
+      if (Date.now() - cached.cachedAt < LIST_REVALIDATE_AFTER_MS) {
+        // BẮT BUỘC tắt cờ trước khi thoát — xem chú thích ở `finally` của
+        // `fetchFiles`: lượt gọi bật skeleton và lượt gọi tắt nó không nhất thiết
+        // là một. Đang chờ một khung nhìn chưa có cache mà người dùng bấm sang
+        // Trang chủ (đã có cache) thì lượt cũ đã bị `requestId` loại, còn lượt này
+        // thoát ở đây — không ai tắt skeleton, và nó đứng đó vĩnh viễn.
+        setIsLoading(false);
+        setIsRefreshing(false);
+        return;
+      }
     }
 
     // Chỉ khi KHÔNG có gì để vẽ mới được xoá màn hình đi dựng skeleton;
@@ -778,9 +967,11 @@ export function FileProvider({ children }) {
                 page: 1,
                 limit: pageSize,
               },
-              // Lượt đồng bộ nền không bật thanh tiến trình toàn cục — Trang chủ
-              // tốn tới BA request song song nên đây là chỗ nhấp nháy nặng nhất.
-              { background: silent },
+              // Không bật thanh tiến trình toàn cục khi: (a) đây là lượt đồng bộ
+              // nền sau upload, hoặc (b) người dùng ĐÃ có nội dung trên màn hình
+              // nhờ bộ đệm. Ở cả hai trường hợp không ai đang ngồi chờ cả — vẽ
+              // thanh chạy lên là báo bận cho một việc không hề chặn ai.
+              { background: silent || Boolean(cached) },
             )
             .catch((err) => {
               // Một nguồn lỗi không được làm trắng cả Trang chủ
@@ -812,7 +1003,11 @@ export function FileProvider({ children }) {
         itemsKeyRef.current = key;
         itemsScopeRef.current = scopeKey;
         setItems((prev) => mergeItemsPreservingRefs(prev, merged));
-        writeListCache(key, { items: merged, breadcrumb: null, totalItems: merged.length, totalPages: 1 });
+        writeListCache(
+          key,
+          { items: merged, breadcrumb: null, totalItems: merged.length, totalPages: 1 },
+          { fromServer: true },
+        );
       }
       setError(allFailed && !cached ? t('file.list.loadFailed') : null);
     } finally {
@@ -822,13 +1017,15 @@ export function FileProvider({ children }) {
         setIsRefreshing(false);
       }
     }
-  }, [isAuthenticated, isAuthLoading, debouncedSearch, pageSize, locale, t, cacheKey, scopeKey, readListCache, writeListCache]);
+  }, [isAuthenticated, isAuthLoading, isListCacheHydrated, debouncedSearch, pageSize, locale, t, cacheKey, scopeKey, readListCache, writeListCache]);
 
   // Fetch Files and Folders from Backend API
   const fetchFiles = useCallback(
     async (retries = 1, { silent = false } = {}) => {
       // Chờ cho đến khi AuthContext đã resolve xong mới fetch
       if (isAuthLoading || !isAuthenticated) return;
+      // …và cho đến khi bộ đệm trên đĩa đã được đọc lên (xem `isListCacheHydrated`).
+      if (!isListCacheHydrated) return;
       // Trang chủ đi theo luồng gộp riêng (xem fetchHomeItems) vì cần dữ liệu nhiều tab
       if (activeTab === 'home') {
         await fetchHomeItems({ silent });
@@ -851,6 +1048,22 @@ export function FileProvider({ children }) {
         setTotalItems(cached.totalItems);
         setTotalPages(cached.totalPages);
         setError(null);
+
+        // Vừa lấy về chưa lâu ⇒ KHÔNG gọi mạng nữa. Đây là chỗ chữa "mới có tí đã
+        // phải load lại": bấm qua lại giữa các tab hay ra vào một thư mục trong
+        // vòng một phút giờ không sinh một request nào, nên cũng không có gì kéo
+        // thanh tiến trình ở đỉnh trang.
+        //
+        // Quá ngưỡng đó thì vẫn đi tiếp xuống dưới, nhưng lượt gọi ấy là gọi NỀN:
+        // màn hình đã có nội dung, người dùng không đang chờ nó.
+        if (Date.now() - cached.cachedAt < LIST_REVALIDATE_AFTER_MS) {
+          // Tắt cờ trước khi thoát, cùng lý do với `finally` bên dưới: lượt gọi
+          // đang bật skeleton có thể là một lượt KHÁC, và nó sẽ bị `requestId`
+          // loại trước khi kịp chạm tới `finally` của chính nó.
+          setIsLoading(false);
+          setIsRefreshing(false);
+          return;
+        }
       }
 
       // `silent` = đồng bộ nền (sau khi upload xong): KHÔNG bật skeleton, chỉ
@@ -881,9 +1094,10 @@ export function FileProvider({ children }) {
               page: currentPage,
               limit: pageSize,
             },
-            // `silent` = đồng bộ nền cuối hàng đợi upload: không skeleton, và cũng
-            // không thanh tiến trình ở đỉnh trang.
-            { background: silent },
+            // Không thanh tiến trình khi `silent` (đồng bộ nền cuối hàng đợi
+            // upload) HOẶC khi đã vẽ được bản đệm: cả hai đều là lượt cập nhật
+            // âm thầm cho một màn hình vốn đã dùng được.
+            { background: silent || Boolean(cached) },
           );
 
           // Nếu có request mới hơn đã được phát đi, bỏ qua kết quả cũ tránh race condition
@@ -918,12 +1132,16 @@ export function FileProvider({ children }) {
           // khi dữ liệu mới trùng khít dữ liệu đang hiện, `mergeItemsPreservingRefs`
           // cố tình trả về đúng mảng cũ để React bỏ qua lần render — không có
           // render thì effect không chạy, và ô cache của khung nhìn này sẽ trống.
-          writeListCache(key, {
-            items: formattedItems,
-            breadcrumb: nextBreadcrumb,
-            totalItems: nextTotalItems,
-            totalPages: nextTotalPages,
-          });
+          writeListCache(
+            key,
+            {
+              items: formattedItems,
+              breadcrumb: nextBreadcrumb,
+              totalItems: nextTotalItems,
+              totalPages: nextTotalPages,
+            },
+            { fromServer: true },
+          );
         } catch (err) {
           if (requestId !== fetchRequestIdRef.current) return;
 
@@ -960,7 +1178,7 @@ export function FileProvider({ children }) {
 
       await doFetch(retries);
     },
-    [isAuthenticated, isAuthLoading, activeTab, currentFolderId, currentSharedDriveId, debouncedSearch, filterType, filterDate, filterOwner, currentPage, pageSize, fetchHomeItems, locale, t, cacheKey, scopeKey, readListCache, writeListCache]
+    [isAuthenticated, isAuthLoading, isListCacheHydrated, activeTab, currentFolderId, currentSharedDriveId, debouncedSearch, filterType, filterDate, filterOwner, currentPage, pageSize, fetchHomeItems, locale, t, cacheKey, scopeKey, readListCache, writeListCache]
   );
 
   /**
@@ -1015,10 +1233,31 @@ export function FileProvider({ children }) {
   /**
    * Đổi chủ (đăng xuất, đăng nhập tài khoản khác) thì đốt sạch cache.
    * Tên tệp của người này không được phép loé lên trong phiên của người kia.
+   *
+   * Phải so với chủ TRƯỚC ĐÓ chứ không thể chạy vô điều kiện như bản cũ. Bản cũ
+   * đúng vì bộ đệm khi ấy luôn rỗng lúc mount; nay nó được nạp từ đĩa, mà `user`
+   * thì đến muộn (một lượt gọi `/users/me`), nên "undefined → id" cũng là một lần
+   * đổi giá trị — chạy vô điều kiện sẽ xoá sạch đúng thứ vừa nạp lên, và mỗi lần
+   * F5 lại quay về dựng skeleton.
+   *
+   * Bốn tình huống: mount (null → null) và đăng nhập xong (null → A) thì KHÔNG
+   * xoá; đổi tài khoản (A → B) và đăng xuất (A → null) thì xoá.
    */
+  const previousUserIdRef = useRef(null);
   useEffect(() => {
+    const previous = previousUserIdRef.current;
+    const next = user?.id ?? null;
+    previousUserIdRef.current = next;
+    if (previous === null || previous === next) return;
+
     listCacheRef.current.clear();
     itemsKeyRef.current = null;
+    dirtyListKeysRef.current.clear();
+    // Và cả bản trên đĩa. Quét SẠCH chứ không chỉ namespace của người hiện tại:
+    // lúc effect này chạy thì token trong localStorage đã là của người MỚI, nên
+    // `cacheScope()` trỏ nhầm chỗ — xoá theo tiền tố sẽ để lại nguyên phần dữ
+    // liệu của người vừa rời đi, đúng thứ cần xoá.
+    void clearPersistentCache();
   }, [user?.id]);
 
   /**
@@ -1894,9 +2133,24 @@ export function FileProvider({ children }) {
         let isUploaded = false;
         let uploadedEntity = null;
 
-        // 1. Thử Direct Presigned PUT
+        // 1a. Xin URL đẩy trực tiếp.
+        //
+        // CỐ Ý tách khỏi khối try có đường lùi qua proxy ở dưới. Request này đi tới
+        // BACKEND CỦA MÌNH, và `/files/upload-proxy` cũng đi tới đúng host đó — chỉ
+        // nặng hơn vì mang theo cả tệp. Nên nếu nó chết vì MẤT MẠNG thì proxy không
+        // phải đường lùi mà là một lượt thất bại thứ hai, chậm hơn, và thay thông
+        // điệp lỗi thật bằng lỗi của lượt thử vô ích đó.
+        //
+        // Đây là đúng chuỗi đã xảy ra ngày 09/09/2026 (xem `.ai/error.md` #14):
+        // `/files/upload-url` chết với `net::ERR_NETWORK_CHANGED` → cả tệp bị đẩy
+        // sang proxy → proxy cũng chết vì mạng vẫn đang xuống. Log Heroku cùng lúc
+        // đó cho thấy server hoàn toàn khoẻ (`upload-url` trả 201 trong ~670ms).
+        //
+        // Mọi lỗi CÓ phản hồi từ server (cloud không cấp URL, provider từ chối…) vẫn
+        // rơi xuống proxy như trước — ở đó proxy đúng là câu trả lời.
+        let presignedData = null;
         try {
-          const presignedData = await storageApi.getUploadUrl({
+          presignedData = await storageApi.getUploadUrl({
             name: fileObj.name,
             sizeBytes: fileObj.size,
             mimeType: fileObj.type || 'application/octet-stream',
@@ -1904,48 +2158,65 @@ export function FileProvider({ children }) {
             sharedDriveId: sharedDriveId || undefined,
             targetProvider,
           });
+        } catch (urlErr) {
+          if (signal.aborted || canceledJobIdsRef.current.has(id)) throw urlErr;
+          // `storageApi.getUploadUrl` đã tự thử lại 2 lần có backoff trước khi tới
+          // đây, nên tới được đây nghĩa là mạng mất chứ không phải nhấp một nhịp.
+          if (isBackendUnreachable(urlErr)) throw urlErr;
+          console.warn('Không xin được URL đẩy trực tiếp, chuyển sang proxy:', urlErr);
+        }
 
-          const { uploadUrl, storageKey, storageProvider } = presignedData;
+        // 1b. Thử Direct Presigned PUT (chỉ khi 1a đã cấp được URL)
+        if (presignedData) {
+          try {
+            const { uploadUrl, storageKey, storageProvider } = presignedData;
 
-          // Ghi lại trước khi đẩy: bấm Huỷ giữa chừng thì đây là thứ duy nhất
-          // cho biết phải xoá object nào trên cloud
-          uploadSessionsRef.current.set(id, { storageKey, storageProvider });
+            // Ghi lại trước khi đẩy: bấm Huỷ giữa chừng thì đây là thứ duy nhất
+            // cho biết phải xoá object nào trên cloud
+            uploadSessionsRef.current.set(id, { storageKey, storageProvider });
 
-          await storageApi.uploadDirectToCloud(
-            uploadUrl,
-            fileObj,
-            (percent) => {
-              updateJob(id, { percent, status: 'uploading' });
-            },
-            signal,
-          );
+            await storageApi.uploadDirectToCloud(
+              uploadUrl,
+              fileObj,
+              (percent) => {
+                updateJob(id, { percent, status: 'uploading' });
+              },
+              signal,
+            );
 
-          updateJob(id, { percent: 99, status: 'confirming' });
+            updateJob(id, { percent: 99, status: 'confirming' });
 
-          const confirmRes = await storageApi.confirmUpload({
-            name: fileObj.name,
-            sizeBytes: fileObj.size,
-            mimeType: fileObj.type || 'application/octet-stream',
-            storageKey,
-            storageProvider,
-            parentId: parentId || undefined,
-            sharedDriveId: sharedDriveId || undefined,
-          });
+            const confirmRes = await storageApi.confirmUpload({
+              name: fileObj.name,
+              sizeBytes: fileObj.size,
+              mimeType: fileObj.type || 'application/octet-stream',
+              storageKey,
+              storageProvider,
+              parentId: parentId || undefined,
+              sharedDriveId: sharedDriveId || undefined,
+            });
 
-          // Backend có thể đổi tên nếu trùng (ví dụ: file.txt → file(1).txt)
-          const savedName = confirmRes?.file?.name || confirmRes?.name || fileObj.name;
-          if (savedName !== fileObj.name) {
-            updateJob(id, { fileName: savedName, renamedFrom: fileObj.name });
+            // Backend có thể đổi tên nếu trùng (ví dụ: file.txt → file(1).txt)
+            const savedName = confirmRes?.file?.name || confirmRes?.name || fileObj.name;
+            if (savedName !== fileObj.name) {
+              updateJob(id, { fileName: savedName, renamedFrom: fileObj.name });
+            }
+
+            uploadedEntity = confirmRes?.file || null;
+            isUploaded = true;
+            uploadSessionsRef.current.delete(id); // đã có hàng trong DB, không còn là rác
+          } catch (directErr) {
+            // Huỷ KHÔNG phải là "direct upload hỏng" — rơi xuống proxy lúc này là
+            // tải lại đúng tệp người dùng vừa bảo dừng.
+            if (signal.aborted || canceledJobIdsRef.current.has(id)) throw directErr;
+            // Mất mạng ở `confirm-upload` (request tới backend của mình) cũng vậy:
+            // proxy đi tới cùng host nên chắc chắn cũng chết, chỉ tốn thêm một lượt
+            // đẩy cả tệp. Lỗi khi PUT thẳng lên CLOUD thì KHÔNG vào nhánh này —
+            // `isBackendUnreachable` chỉ nhận lỗi của request qua axios instance của
+            // backend — nên ca bucket cấu hình CORS sai vẫn được proxy cứu như trước.
+            if (isBackendUnreachable(directErr)) throw directErr;
+            console.warn('Direct upload failed, falling back to proxy:', directErr);
           }
-
-          uploadedEntity = confirmRes?.file || null;
-          isUploaded = true;
-          uploadSessionsRef.current.delete(id); // đã có hàng trong DB, không còn là rác
-        } catch (directErr) {
-          // Huỷ KHÔNG phải là "direct upload hỏng" — rơi xuống proxy lúc này là
-          // tải lại đúng tệp người dùng vừa bảo dừng.
-          if (signal.aborted || canceledJobIdsRef.current.has(id)) throw directErr;
-          console.warn('Direct upload failed, falling back to proxy:', directErr);
         }
 
         // 2. Fallback qua Server Proxy

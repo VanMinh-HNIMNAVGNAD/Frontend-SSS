@@ -645,7 +645,19 @@ const previewUrlBatch = createBatchLoader({
         );
         return new Map((res?.items || []).map((item) => [String(item.id), item]));
       } catch (err) {
-        const status = err?.response?.status;
+        // `err.status`, KHÔNG phải `err.response.status`.
+        //
+        // Response interceptor ở dưới chuẩn hoá mọi lỗi thành `new Error(message)`
+        // rồi gán `status` PHẲNG lên nó — `err.response` không còn tồn tại khi lỗi
+        // tới tay caller. Đọc sai chỗ thì `status` là `undefined`, điều kiện dưới
+        // luôn đúng, cả lô bị `throw` và MỌI thumbnail trong thư mục thành icon;
+        // tệ hơn nữa là `batchSupported` không bao giờ bị hạ nên mỗi lần mở thư mục
+        // lại bắn thêm một request 404. Đây từng là lỗi thật trên production, phát
+        // hiện ra lúc frontend đã deploy mà backend thì chưa.
+        //
+        // Vẫn đọc kèm `err.response?.status` để hàm này còn đúng nếu có ai gọi nó
+        // với một lỗi axios thô (vd. trong test).
+        const status = err?.status ?? err?.response?.status;
         if (status !== 404 && status !== 405) throw err;
         batchSupported = false;
         console.warn(

@@ -450,6 +450,7 @@ const en = {
   'ai.empty.folder': 'Ask AI anything about this folder',
   'ai.empty.hint': 'Pick a quick action below, or type your own question. AI reads text and source files, images, PDFs, and a folder\'s listing.',
   'ai.thinking': 'Reading and reasoning…',
+  'ai.reasoning': 'Reasoning',
   'ai.send': 'Send',
   'ai.truncated': 'This answer was cut off at the length limit. Ask about one specific part to get a complete one.',
   'ai.stop': 'Stop',

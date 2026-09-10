@@ -328,9 +328,29 @@ function accessTokenNeedsRefresh() {
 
 function refreshIfNeeded() {
   if (!accessTokenNeedsRefresh()) return;
-  // Lỗi đã được `refreshAccessToken` log và xử lý (giữ hay huỷ phiên); ở đây chỉ cần
-  // không để một promise bị reject nổi lên thành "unhandled rejection".
-  refreshAccessToken().catch(() => {});
+  refreshAccessToken().catch((err) => {
+    // PHẢI xử lý ở đây. `refreshAccessToken` chỉ PHÂN LOẠI lỗi (`isAuthFailure`), nó
+    // không bao giờ tự đăng xuất — chỗ duy nhất làm việc đó là interceptor 401, và
+    // interceptor chỉ chạy khi có một request của người dùng đi qua axios.
+    //
+    // Bản trước nuốt trọn lỗi ở đây vì tin rằng "refreshAccessToken đã xử lý". Hệ quả
+    // đo được trên production ngày 10/09/2026: phiên chết lúc 06:16, nhịp giữ phiên
+    // thấy token sắp hết hạn nên gọi `/auth/refresh` → 401, nuốt lỗi, và vì token cũ
+    // VẪN nằm trong localStorage nên nhịp sau lại thấy "sắp hết hạn" → gọi lại. Đúng
+    // một lần mỗi 60 giây, 21 lần liền, từ 06:16:45 tới 06:41:24, mỗi lần một dòng đỏ
+    // trong console. Nó chỉ dừng khi người dùng TỰ đăng nhập lại bằng Google.
+    //
+    // Người dùng ở giữa khoảng đó mắc kẹt trong một phiên xác: giao diện vẫn hiện như
+    // đã đăng nhập vì token còn trong localStorage, nhưng token đã hết hạn nên mọi
+    // thao tác thật đều 401 — hỏi AI là thứ lộ ra rõ nhất vì nó là request dài nhất.
+    //
+    // 401/403 từ chính `/auth/refresh` là bằng chứng phiên đã chết (đúng luật mà
+    // interceptor đang dùng), nên xử lý y hệt: xoá token và đưa về /login. Lỗi mạng
+    // hay 5xx thì KHÔNG — giữ phiên và để nhịp sau thử lại, đó là chủ ý của #10.
+    if (err?.isAuthFailure) {
+      forceLogout(err.isLocked ? 'account_locked' : undefined);
+    }
+  });
 }
 
 /**
@@ -1302,6 +1322,12 @@ export const aiApi = {
    * @param {function=} handlers.onMeta      ({ context, model, grounded }) — gọi NGAY
    *                   khi backend dựng xong ngữ cảnh, TRƯỚC đoạn chữ đầu tiên. Đây là
    *                   lúc biết AI đọc được gì (`context.mode`) để nói thật với người dùng.
+   * @param {function=} handlers.onThought   (text) — một đoạn TÓM TẮT SUY LUẬN, cũng
+   *                   cần NỐI vào phần đã có. Tới trước `onDelta` đầu tiên hàng chục
+   *                   giây: đo ngày 10/09/2026 thì dòng suy luận đầu về ở 3,1–4,5s
+   *                   trong khi chữ đầu của câu trả lời phải chờ 9,6–15,0s. Đây KHÔNG
+   *                   phải câu trả lời — không lưu, không nối vào `answer`; hiện ở một
+   *                   khối tạm rồi thay bằng câu trả lời thật.
    * @param {function=} handlers.onDelta     (text) — một đoạn chữ mới, cần NỐI vào
    *                   phần đã có chứ không phải thay thế nó.
    *
@@ -1309,7 +1335,7 @@ export const aiApi = {
    * model, grounded, conversationId, quota }. `answer` là câu trả lời TRỌN VẸN, nên
    * nơi gọi có thể bỏ qua `onDelta` nếu không cần hiệu ứng chữ chạy.
    */
-  askStream: async (payload, { signal, onMeta, onDelta } = {}) => {
+  askStream: async (payload, { signal, onMeta, onThought, onDelta } = {}) => {
     let result = null;
     let streamError = null;
 
@@ -1317,6 +1343,7 @@ export const aiApi = {
       signal,
       onEvent: (name, data) => {
         if (name === 'meta') onMeta?.(data);
+        else if (name === 'thought') onThought?.(data?.text ?? '');
         else if (name === 'delta') onDelta?.(data?.text ?? '');
         else if (name === 'done') result = data;
         else if (name === 'error') streamError = errorFromPayload(data);

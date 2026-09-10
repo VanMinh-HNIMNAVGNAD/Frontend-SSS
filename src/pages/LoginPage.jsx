@@ -9,6 +9,7 @@ import useTurnstile from '../hooks/useTurnstile';
 import { TURNSTILE_ACTIONS } from '../constants/turnstile';
 import { API_BASE_URL } from '../constants/api';
 import OtpForm from '../components/security/OtpForm';
+import { LegalNotice } from '../components/security/LegalConsent';
 
 export default function LoginPage() {
   const { t } = useLanguage();
@@ -346,6 +347,23 @@ export default function LoginPage() {
               <Link to="/register" className="text-blue-400 hover:underline font-bold">
                 {t('login.registerNow')}
               </Link>
+            </div>
+
+            {/*
+              Điều khoản + Quyền riêng tư phải TIẾP CẬN ĐƯỢC TỪ LUỒNG ĐĂNG NHẬP —
+              đó là yêu cầu của Meta khi bật Facebook Login, và cũng là chỗ hợp lý
+              nhất để người dùng tìm chúng: họ đến trang này thường xuyên hơn trang
+              đăng ký nhiều.
+
+              KHÔNG có ô tích ở đây, chỉ một câu ghi chú. Người đăng nhập đã đồng ý
+              từ lần đăng ký; bắt tích lại mỗi lần vào là làm phiền mà không thêm
+              được gì. Nhưng ba nút OAuth trên trang này TẠO ĐƯỢC tài khoản mới cho
+              người chưa có (AuthService.validateOAuthUser), nên câu "tiếp tục nghĩa
+              là bạn đồng ý" ở đây không phải câu trang trí — nó là hình thức đồng ý
+              cho đúng nhóm người đó. Xem components/security/LegalConsent.jsx.
+            */}
+            <div className="pt-2">
+              <LegalNotice />
             </div>
           </div>
         </form>

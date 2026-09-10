@@ -373,6 +373,34 @@ const en = {
   'register.hasAccount': 'Already have an account?',
   'register.loginNow': 'Sign in',
   'register.failed': 'Sign-up failed',
+
+  // ── Trang pháp lý + ô đồng ý điều khoản ──
+  // Xem chú thích ở khối tương ứng trong `vi.js`. Hai câu 'legal.consent.*' phải
+  // giữ đúng hai chỗ trống {terms} và {privacy} — đánh rơi một cái là mất một
+  // liên kết BẮT BUỘC phải có, và check-i18n.mjs sẽ báo lệch placeholder.
+  'legal.terms': 'Terms of Service',
+  'legal.privacy': 'Privacy Policy',
+  'legal.consent.checkbox': 'I have read and agree to driveR’s {terms} and {privacy}.',
+  'legal.consent.notice': 'By continuing, you agree to driveR’s {terms} and {privacy}.',
+  'legal.consent.required': 'Please read and tick the box to accept the Terms of Service and Privacy Policy.',
+  'legal.consent.cta': 'Please accept the terms',
+  'legal.back': 'Back',
+  'legal.language': 'Language',
+  'legal.toc': 'Contents',
+  'legal.effective': 'Effective from {date}',
+  'legal.version': 'Version {version}',
+  'legal.contact': 'Contact:',
+  'legal.toRegister': 'Create an account',
+
+  // ── Màn chặn "chưa đồng ý điều khoản" (TermsAcceptanceGate.jsx) ──
+  // Xem chú thích ở khối tương ứng trong `vi.js`.
+  'legal.gate.title': 'Please accept our terms',
+  'legal.gate.body':
+    'driveR now has Terms of Service and a Privacy Policy. To keep using this account, please read and accept both documents below. You only need to do this once.',
+  'legal.gate.accept': 'I agree, continue',
+  'legal.gate.submitting': 'Saving...',
+  'legal.gate.decline': 'Sign out',
+  'legal.gate.failed': 'We could not record your acceptance. Please try again.',
   'forgot.title.email': 'Forgot password',
   'forgot.title.otp': 'Verify your email',
   'forgot.title.password': 'Set a new password',

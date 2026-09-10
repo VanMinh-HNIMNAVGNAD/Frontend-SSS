@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { authApi, userApi, startSessionKeeper } from '../services/api';
 import { writeDiscoverableByEmail } from '../constants/privacy';
+import { LEGAL_VERSION, needsTermsAcceptance } from '../constants/legal';
 import { subjectOf } from '../utils/jwt';
 import { resetSharedCaches } from '../utils/ttlCache';
 import { useLanguage } from './LanguageContext';
@@ -344,6 +345,34 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
+  /**
+   * Người đang đăng nhập bấm đồng ý ở màn chặn (`TermsAcceptanceGate`).
+   *
+   * `setUser` bằng hồ sơ server TRẢ VỀ, không phải vá `termsAcceptedAt` vào state
+   * cũ: endpoint trả nguyên hình dạng của `GET /auth/me`, nên nhận nguyên khối là
+   * không có chỗ nào để lệch. Chính lượt setUser này là thứ dỡ màn chặn — điều
+   * kiện chặn đọc từ `user`.
+   *
+   * NÉM tiếp lỗi ra ngoài: màn chặn cần biết để hiện câu lỗi và bật lại nút. Nuốt
+   * ở đây thì người dùng bấm "Đồng ý" và không có gì xảy ra cả.
+   */
+  const acceptTerms = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const data = await authApi.acceptTerms({
+        acceptedTerms: true,
+        termsVersion: LEGAL_VERSION,
+      });
+      setUser(data.user ?? data);
+    } catch (err) {
+      setError(err.message || t('legal.gate.failed'));
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [t]);
+
   const deleteAccount = useCallback(async (password) => {
     try {
       setIsLoading(true);
@@ -380,10 +409,25 @@ export function AuthProvider({ children }) {
     logout,
     deleteAccount,
     refreshUser: fetchProfile,
+
+    /**
+     * Phải hiện màn "đồng ý điều khoản" trước khi cho dùng app hay không.
+     *
+     * Tính ở đây thay vì để từng component tự đọc `user.termsAcceptedAt`: điều
+     * kiện này có một cái bẫy thật (phân biệt `null` với `undefined` — xem
+     * `needsTermsAcceptance` trong constants/legal.js) và nó chỉ đúng nếu MỌI nơi
+     * đọc đều nhớ cái bẫy đó.
+     *
+     * `isAuthenticated &&` vì màn chặn chỉ có nghĩa với người đã có phiên: người
+     * chưa đăng nhập thì `user` là null, mà cổng của họ nằm ở trang đăng ký.
+     */
+    needsTermsAcceptance: !!user && !!accessToken && needsTermsAcceptance(user),
+    acceptTerms,
   }), [
     user, accessToken, isLoading, error,
     login, verifyLoginOtp, sendRegisterOtp, verifyRegisterOtp,
     forgotPassword, verifyResetOtp, resetPassword, logout, deleteAccount, fetchProfile,
+    acceptTerms,
   ]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

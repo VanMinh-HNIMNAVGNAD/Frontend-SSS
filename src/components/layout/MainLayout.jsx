@@ -17,6 +17,7 @@ import RenameModal from '../file-manager/RenameModal';
  * không đổi hành vi nào.
  */
 const FilePreviewModal = lazy(() => import('../file-manager/FilePreviewModal'));
+import TermsAcceptanceGate from '../security/TermsAcceptanceGate';
 import UploadProgress from '../file-manager/UploadProgress';
 import ResumeUploads from '../file-manager/ResumeUploads';
 
@@ -280,6 +281,20 @@ export default function MainLayout() {
 
             {/* Tệp lớn còn tải dở từ phiên trước (F5, đóng tab, mất điện) */}
             <ResumeUploads />
+
+            {/*
+              Màn chặn "chưa đồng ý điều khoản". Tự trả về null khi không cần, nên
+              đặt thẳng ở đây không thêm điều kiện.
+
+              ĐẶT TRONG MainLayout, tức là chỉ trong khung /app: đây là cổng của
+              người ĐÃ đăng nhập. Trang đăng ký có cổng riêng (ô tích + CAPTCHA),
+              còn /share/:token là route công khai cho người nhận link — họ không
+              có tài khoản nào để mà đồng ý.
+
+              Là phần tử CUỐI trong cây để nó nằm sau mọi lớp khác trong thứ tự
+              vẽ; bản thân nó còn đặt z-[200] cao hơn mọi drawer/modal của app.
+            */}
+            <TermsAcceptanceGate />
         </div>
     );
 }

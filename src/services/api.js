@@ -481,6 +481,19 @@ export const authApi = {
   // tạm trong Redis 10 phút); bước 2 chỉ cần { email, otp }.
   // `POST /auth/register` cũ KHÔNG CÒN — nó là đường tạo tài khoản không cần xác minh email.
   sendRegisterOtp: (data) => api.post('/auth/send-register-otp', data),
+
+  /**
+   * Đồng ý điều khoản cho một tài khoản ĐÃ TỒN TẠI (cần JWT).
+   *
+   * Dành cho hai nhóm không đi qua ô tích ở trang đăng ký được: tài khoản tạo bằng
+   * OAuth, và mọi tài khoản có trước khi ba trang pháp lý tồn tại.
+   *
+   * Body chỉ có `{ acceptedTerms: true, termsVersion }` — KHÔNG có thời điểm.
+   * Server tự đóng mốc thời gian, và nó TỪ CHỐI request gửi kèm `termsAcceptedAt`
+   * (forbidNonWhitelisted): một bằng chứng đồng ý mà người được làm chứng tự khai
+   * giờ thì không còn là bằng chứng.
+   */
+  acceptTerms: (data) => api.post('/auth/accept-terms', data),
   verifyRegisterOtp: (data) => api.post('/auth/verify-register-otp', data),
 
   // Đăng nhập hai bước: /auth/login KHÔNG còn trả accessToken mà trả { requiresOtp: true };

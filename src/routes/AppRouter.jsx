@@ -3,6 +3,7 @@ import { Routes, Route, useNavigate, Navigate, useLocation } from 'react-router-
 import MainLayout from '../components/layout/MainLayout';
 import PageNotFound from '../pages/PageNotFound';
 import { readStartupPage } from '../constants/routes';
+import { LEGAL_ALIASES, LEGAL_DOCS, LEGAL_PATHS } from '../constants/legal';
 
 // Bốn trang nằm trong khung app, người dùng chuyển qua lại liên tục → nạp thẳng.
 // Tách chúng ra chunk riêng chỉ đổi một lần chờ mạng lấy một lần chờ mạng khác.
@@ -29,6 +30,11 @@ import StarredPage from '../pages/StarredPage';
 const LoginPage = lazy(() => import('../pages/LoginPage'));
 const RegisterPage = lazy(() => import('../pages/RegisterPage'));
 const ForgotPasswordPage = lazy(() => import('../pages/ForgotPasswordPage'));
+// Ba trang pháp lý dùng CHUNG một chunk (cùng một component, khác `docId`) và
+// nằm ngoài mọi khung app: người mở chúng thường CHƯA đăng nhập — thậm chí là
+// người kiểm duyệt của Meta mở thẳng URL — nên không có lý do gì để họ phải tải
+// theo cả Sidebar, Header và bộ xem trước tệp.
+const LegalPage = lazy(() => import('../pages/LegalPage'));
 const SharePage = lazy(() => import('../pages/SharePage'));
 const SharedDrivesPage = lazy(() => import('../pages/SharedDrivesPage'));
 const SharedWithMePage = lazy(() => import('../pages/SharedWithMePage'));
@@ -71,6 +77,36 @@ export default function AppRouter() {
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+
+                {/*
+                  Điều khoản / Quyền riêng tư / Hướng dẫn xoá dữ liệu.
+
+                  BA URL NÀY LÀ MỘT PHẦN CỦA CẤU HÌNH FACEBOOK LOGIN, không phải
+                  trang phụ: chúng được điền vào ba ô bắt buộc trong bảng điều khiển
+                  của Meta (xem `.ai/facebook-login.md`). Đường dẫn lấy từ
+                  `constants/legal.js` chứ không gõ chuỗi ở đây, để chỗ khai báo
+                  đường dẫn và chỗ dùng nó không bao giờ lệch nhau.
+
+                  Công khai và KHÔNG bọc MainLayout: người đọc chúng phần lớn chưa
+                  có tài khoản, và trang đăng ký mở chúng ra tab mới.
+                */}
+                <Route path={LEGAL_PATHS[LEGAL_DOCS.TERMS]} element={<LegalPage docId={LEGAL_DOCS.TERMS} />} />
+                <Route path={LEGAL_PATHS[LEGAL_DOCS.PRIVACY]} element={<LegalPage docId={LEGAL_DOCS.PRIVACY} />} />
+                <Route
+                    path={LEGAL_PATHS[LEGAL_DOCS.DATA_DELETION]}
+                    element={<LegalPage docId={LEGAL_DOCS.DATA_DELETION} />}
+                />
+
+                {/*
+                  Các tên gọi khác của cùng ba trang — '/privacy-policy' là dạng
+                  tài liệu của Meta hay dùng, '/terms-of-service' là dạng phổ biến
+                  ở nơi khác. Một URL pháp lý đã dán vào dashboard thì không được
+                  phép chết, mà mình không kiểm soát được người ta đã dán bản nào
+                  đi đâu, nên chúng chuyển hướng thay vì rơi vào trang 404.
+                */}
+                {Object.entries(LEGAL_ALIASES).map(([alias, target]) => (
+                    <Route key={alias} path={alias} element={<Navigate to={target} replace />} />
+                ))}
 
                 {/* Route công khai — xem file qua link chia sẻ, không cần đăng nhập */}
                 <Route path="/share/:token" element={<SharePage />} />

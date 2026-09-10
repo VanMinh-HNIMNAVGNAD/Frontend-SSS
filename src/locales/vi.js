@@ -380,6 +380,39 @@ const vi = {
   'register.hasAccount': 'Đã có tài khoản?',
   'register.loginNow': 'Đăng nhập ngay',
   'register.failed': 'Đăng ký thất bại',
+
+  // ── Trang pháp lý + ô đồng ý điều khoản ──
+  // Nội dung BA TÀI LIỆU không nằm ở đây mà ở `legal.vi.js` / `legal.en.js` (xem
+  // chú thích đầu hai file đó). Ở đây chỉ có chuỗi giao diện quanh chúng.
+  //
+  // Hai câu 'legal.consent.*' giữ nguyên hình dạng CÂU HOÀN CHỈNH với hai chỗ
+  // trống {terms} và {privacy}: LegalConsent.jsx cắt câu tại đó rồi thay bằng
+  // liên kết. Đừng tách thành 'phần đầu' + 'phần cuối' — trật tự từ giữa hai
+  // ngôn ngữ khác nhau, và check-i18n.mjs cũng canh đúng bộ chỗ trống này.
+  'legal.terms': 'Điều khoản sử dụng',
+  'legal.privacy': 'Chính sách quyền riêng tư',
+  'legal.consent.checkbox': 'Tôi đã đọc và đồng ý với {terms} và {privacy} của driveR.',
+  'legal.consent.notice': 'Khi tiếp tục, bạn đồng ý với {terms} và {privacy} của driveR.',
+  'legal.consent.required': 'Vui lòng đọc và tích vào ô đồng ý với Điều khoản sử dụng và Chính sách quyền riêng tư.',
+  'legal.consent.cta': 'Hãy tích vào ô đồng ý',
+  'legal.back': 'Quay lại',
+  'legal.language': 'Ngôn ngữ',
+  'legal.toc': 'Nội dung',
+  'legal.effective': 'Có hiệu lực từ {date}',
+  'legal.version': 'Phiên bản {version}',
+  'legal.contact': 'Liên hệ:',
+  'legal.toRegister': 'Tạo tài khoản',
+
+  // ── Màn chặn "chưa đồng ý điều khoản" (TermsAcceptanceGate.jsx) ──
+  // Ai thấy màn này: tài khoản tạo bằng OAuth (luồng đó không đi qua ô tích nào
+  // được) và mọi tài khoản có trước 10/09/2026 (migration 027 cố ý không backfill).
+  'legal.gate.title': 'Vui lòng đồng ý với điều khoản',
+  'legal.gate.body':
+    'driveR đã có Điều khoản sử dụng và Chính sách quyền riêng tư. Để tiếp tục dùng tài khoản này, bạn cần đọc và đồng ý với hai tài liệu dưới đây. Bạn chỉ phải làm việc này một lần.',
+  'legal.gate.accept': 'Tôi đồng ý và tiếp tục',
+  'legal.gate.submitting': 'Đang ghi nhận...',
+  'legal.gate.decline': 'Đăng xuất',
+  'legal.gate.failed': 'Không ghi nhận được sự đồng ý. Vui lòng thử lại.',
   'forgot.title.email': 'Quên mật khẩu',
   'forgot.title.otp': 'Xác minh email',
   'forgot.title.password': 'Đặt mật khẩu mới',

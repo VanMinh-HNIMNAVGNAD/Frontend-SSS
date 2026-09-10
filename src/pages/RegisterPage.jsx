@@ -9,6 +9,8 @@ import useTurnstile from '../hooks/useTurnstile';
 import { TURNSTILE_ACTIONS } from '../constants/turnstile';
 import { API_BASE_URL } from '../constants/api';
 import OtpForm from '../components/security/OtpForm';
+import { LegalConsentCheckbox } from '../components/security/LegalConsent';
+import { LEGAL_VERSION } from '../constants/legal';
 
 export default function RegisterPage() {
   const { t } = useLanguage();
@@ -22,6 +24,19 @@ export default function RegisterPage() {
 
   const captcha = useTurnstile({ action: TURNSTILE_ACTIONS.REGISTER });
 
+  /**
+   * Người dùng đã tích ô đồng ý điều khoản chưa.
+   *
+   * BẮT ĐẦU TỪ `false` VÀ KHÔNG BAO GIỜ TỰ BẬT. Một ô tích sẵn không phải là sự
+   * đồng ý — nó chỉ là một thứ người dùng chưa kịp bỏ tích.
+   *
+   * State này KHÔNG được reset khi quay lại từ bước OTP (handleBackToForm): người
+   * dùng đã đồng ý một lần rồi, bắt tích lại vì họ bấm "quay lại" là làm phiền vô
+   * cớ. Khác hẳn token CAPTCHA — thứ đó buộc phải lấy mới vì Cloudflare chỉ nhận
+   * một lần.
+   */
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+
   // 'form' (điền thông tin + CAPTCHA) → 'otp' (nhập mã). Tài khoản chỉ được tạo ở bước 'otp'.
   const [step, setStep] = useState('form');
 
@@ -32,6 +47,23 @@ export default function RegisterPage() {
       setLocalError(t('register.oauthFailed'));
     }
   }, [location.search, t]);
+
+  /**
+   * Phần thân request cho bước 1 của đăng ký: token CAPTCHA + bằng chứng đồng ý.
+   *
+   * Gộp vào một hàm vì có HAI nơi gọi (`handleSubmit` và `handleResendOtp`) mà
+   * `SendRegisterOtpDto` ở backend bật `forbidNonWhitelisted`: chỉ cần một nơi
+   * quên `acceptedTerms` là nơi đó nhận 400 trong khi nơi kia vẫn chạy tốt — đúng
+   * loại lệch mà không test nào ở frontend bắt được.
+   *
+   * `termsVersion` gửi kèm để về sau còn trả lời được câu "người này đã đồng ý với
+   * bản điều khoản nào" — xem LEGAL_VERSION trong constants/legal.js.
+   */
+  const consentPayload = () => ({
+    ...captcha.payload(),
+    acceptedTerms: true,
+    termsVersion: LEGAL_VERSION,
+  });
 
   const validateEmail = (val) => {
     const regex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
@@ -56,15 +88,17 @@ export default function RegisterPage() {
       return;
     }
 
-    if (!captcha.isVerified) {
-      setLocalError(t(captcha.isReady ? 'auth.captcha.required' : 'auth.captcha.loading'));
+    // Hai điều kiện của cổng đăng ký nằm chung trong `signupBlockReason` (xem chỗ
+    // khai báo): chưa tích đồng ý, hoặc CAPTCHA chưa xong.
+    if (signupBlockReason) {
+      setLocalError(signupBlockReason);
       return;
     }
 
     // BƯỚC 1: gửi cả thông tin tài khoản để backend băm mật khẩu và cất tạm vào Redis.
     // Chưa có tài khoản nào được tạo ở đây.
     try {
-      await sendRegisterOtp(email, password, fullName, captcha.payload());
+      await sendRegisterOtp(email, password, fullName, consentPayload());
       setStep('otp');
     } catch (err) {
       console.error('Không gửi được mã xác minh:', err);
@@ -97,7 +131,11 @@ export default function RegisterPage() {
       return;
     }
     try {
-      await sendRegisterOtp(email, password, fullName, captcha.payload());
+      // `consentPayload()` chứ không phải `captcha.payload()`: DTO của backend
+      // đòi `acceptedTerms` ở MỌI lần gọi endpoint này, kể cả lần gửi lại mã.
+      // Thiếu nó là 400 ngay, mà lúc đó người dùng đang ở màn nhập OTP và câu lỗi
+      // sẽ chẳng liên quan gì tới việc họ vừa làm.
+      await sendRegisterOtp(email, password, fullName, consentPayload());
     } catch (err) {
       console.error('Gửi lại mã thất bại:', err);
     } finally {
@@ -124,6 +162,19 @@ export default function RegisterPage() {
     ? ''
     : t(captcha.isReady ? 'auth.captcha.required' : 'auth.captcha.loading');
 
+  /**
+   * Toàn bộ lý do trang này chưa cho tạo tài khoản — chuỗi rỗng nghĩa là mở cổng.
+   *
+   * MỘT BIẾN CHO CẢ HAI ĐIỀU KIỆN, dùng ở cả `title` của ba nút OAuth, cả câu lỗi
+   * khi người dùng cố bấm, cả `disabled` của nút submit: tooltip, thông báo và
+   * trạng thái nút không bao giờ nói ba điều khác nhau.
+   *
+   * ĐIỀU KHOẢN XÉT TRƯỚC CAPTCHA. Đây là thứ tự người dùng đọc trên màn hình (ô
+   * tích nằm trên ô xác minh), và nó cũng là thứ tự đúng về mặt ý nghĩa: chưa
+   * đồng ý thì việc có phải người thật hay không còn chưa cần hỏi tới.
+   */
+  const signupBlockReason = !acceptedTerms ? t('legal.consent.required') : captchaBlockReason;
+
   const handleSocialRegister = (providerName) => {
     // CÙNG MỘT CÁNH CỔNG với form mật khẩu. Không có nhánh này thì ba nút
     // Google/GitHub/Facebook là đường vòng bỏ qua toàn bộ CAPTCHA: một cú bấm là
@@ -133,8 +184,14 @@ export default function RegisterPage() {
     // Nút đã có `disabled` ở JSX rồi vẫn phải chặn lại ở đây: `disabled` chỉ là
     // một thuộc tính DOM — sửa bằng devtools, hay gọi thẳng handler qua React
     // DevTools, là qua được. Chỗ chặn phải nằm ngay trước lệnh điều hướng.
-    if (captchaBlockReason) {
-      setLocalError(captchaBlockReason);
+    //
+    // Ô ĐỒNG Ý ĐIỀU KHOẢN CŨNG NẰM SAU CỔNG NÀY, và đây là chỗ DUY NHẤT chặn được
+    // nó cho luồng OAuth: một cú bấm là rời trang sang Facebook, không có request
+    // nào của mình đi kèm để backend kiểm `acceptedTerms` như ở luồng mật khẩu.
+    // Đổi lại, câu ghi chú "tiếp tục nghĩa là bạn đồng ý" ở trang đăng nhập là
+    // lớp thứ hai cho những ai tạo tài khoản mới bằng OAuth từ bên đó.
+    if (signupBlockReason) {
+      setLocalError(signupBlockReason);
       return;
     }
 
@@ -180,9 +237,9 @@ export default function RegisterPage() {
           <button
             type="button"
             onClick={() => handleSocialRegister('Google')}
-            disabled={!captcha.isVerified}
+            disabled={Boolean(signupBlockReason)}
             className="group flex-1 h-12 rounded-xl text-white bg-white/[0.03] border border-white/10 hover:border-white/25 hover:bg-white/[0.08] transition-all duration-200 flex items-center justify-center cursor-pointer shadow-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-white/10 disabled:hover:bg-white/[0.03]"
-            title={captchaBlockReason || t('register.oauth.google')}
+            title={signupBlockReason || t('register.oauth.google')}
           >
             <svg className="w-6 h-6 grayscale opacity-75 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-200" viewBox="0 0 24 24">
               <path
@@ -208,9 +265,9 @@ export default function RegisterPage() {
           <button
             type="button"
             onClick={() => handleSocialRegister('Facebook')}
-            disabled={!captcha.isVerified}
+            disabled={Boolean(signupBlockReason)}
             className="group flex-1 h-12 rounded-xl text-white bg-white/[0.03] border border-white/10 hover:border-white/25 hover:bg-white/[0.08] transition-all duration-200 flex items-center justify-center cursor-pointer shadow-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-white/10 disabled:hover:bg-white/[0.03]"
-            title={captchaBlockReason || t('register.oauth.facebook')}
+            title={signupBlockReason || t('register.oauth.facebook')}
           >
             <svg className="w-6 h-6 text-slate-400 group-hover:text-[#1877F2] transition-colors duration-200 fill-current" viewBox="0 0 24 24">
               <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
@@ -221,9 +278,9 @@ export default function RegisterPage() {
           <button
             type="button"
             onClick={() => handleSocialRegister('GitHub')}
-            disabled={!captcha.isVerified}
+            disabled={Boolean(signupBlockReason)}
             className="group flex-1 h-12 rounded-xl text-white bg-white/[0.03] border border-white/10 hover:border-white/25 hover:bg-white/[0.08] transition-all duration-200 flex items-center justify-center cursor-pointer shadow-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-white/10 disabled:hover:bg-white/[0.03]"
-            title={captchaBlockReason || t('register.oauth.github')}
+            title={signupBlockReason || t('register.oauth.github')}
           >
             <svg className="w-6 h-6 text-slate-400 group-hover:text-white transition-colors duration-200 fill-current" viewBox="0 0 24 24">
               <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
@@ -295,6 +352,19 @@ export default function RegisterPage() {
             </div>
           </div>
 
+          {/* Ô đồng ý điều khoản — nửa còn lại của cổng đăng ký, cùng hạng với
+              ô CAPTCHA ngay bên dưới. Đặt TRƯỚC nó theo đúng thứ tự mà
+              `signupBlockReason` xét: đồng ý trước, xác minh sau. Hai liên kết
+              trong câu mở ra tab mới để không xoá mất những gì vừa gõ — xem
+              components/security/LegalConsent.jsx. */}
+          <div className="pt-1">
+            <LegalConsentCheckbox
+              checked={acceptedTerms}
+              onChange={setAcceptedTerms}
+              disabled={isLoading}
+            />
+          </div>
+
           {/* Ô CAPTCHA. Tự ẩn khi thiếu VITE_TURNSTILE_SITE_KEY, lúc đó
               captcha.isVerified luôn true nên form vẫn submit được. */}
           <div className="pt-1">
@@ -304,18 +374,23 @@ export default function RegisterPage() {
           {/* CTA — điểm nhấn DUY NHẤT trong toàn bộ card */}
           <button
             type="submit"
-            disabled={isLoading || !captcha.isVerified}
+            disabled={isLoading || Boolean(signupBlockReason)}
+            title={signupBlockReason || undefined}
             className="w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-base font-bold tracking-wide transition flex items-center justify-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-600/25 cursor-pointer"
           >
-            {/* Nút bị khoá cho tới khi ô xác minh render xong VÀ giải xong (xem
-                useTurnstile.isVerified). Nhãn đổi theo để lý do bị khoá đọc được
-                ngay trên nút, thay vì chỉ là một khối xám không giải thích gì. */}
+            {/* Nút bị khoá cho tới khi ĐÃ TÍCH ĐỒNG Ý và ô xác minh render xong VÀ
+                giải xong (xem `signupBlockReason` + useTurnstile.isVerified). Nhãn
+                đổi theo để lý do bị khoá đọc được ngay trên nút, thay vì chỉ là
+                một khối xám không giải thích gì; lý do đầy đủ nằm ở `title` và ở
+                câu lỗi khi người dùng cố submit. */}
             <span>
               {isLoading
                 ? t('register.submitting')
-                : captcha.isReady
-                  ? t('register.submit')
-                  : t('turnstile.loading')}
+                : !acceptedTerms
+                  ? t('legal.consent.cta')
+                  : captcha.isReady
+                    ? t('register.submit')
+                    : t('turnstile.loading')}
             </span>
             <ArrowRight className="w-5 h-5" />
           </button>

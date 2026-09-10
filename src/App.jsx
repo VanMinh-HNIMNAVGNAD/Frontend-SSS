@@ -4,6 +4,7 @@ import { AuthProvider } from './context/AuthContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { UploadProvider } from './context/UploadContext';
 import { FileProvider } from './context/FileContext';
+import { AiPanelProvider } from './context/AiPanelContext';
 import AppRouter from './routes/AppRouter';
 import GlobalProgressBar from './components/common/GlobalProgressBar';
 
@@ -15,6 +16,7 @@ export default function App() {
                     {/* UploadProvider phải nằm ngoài FileProvider vì FileProvider gọi useUpload() */}
                     <UploadProvider>
                         <FileProvider>
+                            <AiPanelProvider>
                             <Toaster 
                                 position="top-right" 
                                 toastOptions={{
@@ -45,6 +47,7 @@ export default function App() {
                                 vì nó dùng t(), và ngoài AppRouter để mọi route đều có. */}
                             <GlobalProgressBar />
                             <AppRouter />
+                            </AiPanelProvider>
                         </FileProvider>
                     </UploadProvider>
                 </AuthProvider>

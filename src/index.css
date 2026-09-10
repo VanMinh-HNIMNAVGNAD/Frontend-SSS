@@ -15,6 +15,39 @@ body {
 @custom-variant dark (&:where(.dark, .dark *));
 
 @layer utilities {
+  /* `animate-fade-in` và `animate-slide-left` được 11 chỗ trong ứng dụng dùng (ngăn
+     thông tin bên phải, các hộp thoại, panel AI) nhưng CHƯA TỪNG được định nghĩa —
+     Tailwind v4 không có sẵn hai tiện ích này, nên bấy lâu nay chúng là class chết và
+     mọi tấm phủ/ngăn kéo đều bật ra không có chuyển động nào. Định nghĩa ở đây, một
+     chỗ, thay vì gỡ chúng khỏi 11 nơi.
+
+     `prefers-reduced-motion` phải được tôn trọng: một ngăn kéo trượt ngang toàn màn
+     hình là đúng loại chuyển động gây khó chịu cho người nhạy cảm với chuyển động. */
+  @keyframes driverFadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  @keyframes driverSlideLeft {
+    from { opacity: 0; transform: translateX(1.5rem); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+
+  .animate-fade-in {
+    animation: driverFadeIn 0.15s ease-out;
+  }
+
+  .animate-slide-left {
+    animation: driverSlideLeft 0.2s ease-out;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-fade-in,
+    .animate-slide-left {
+      animation: none;
+    }
+  }
+
   /* Subtle Grid Overlay */
   .bg-grid-pattern {
     background-size: 32px 32px;
@@ -437,7 +470,7 @@ html {
 }
 
 .prose-ai blockquote {
-  border-left: 3px solid #a855f7;
+  border-left: 3px solid #94a3b8;
   padding: 0.1rem 0.75rem;
   margin: 0.6rem 0;
   color: inherit;

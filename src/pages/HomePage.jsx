@@ -1,13 +1,13 @@
 import { useState, useCallback } from 'react';
 import { useFiles, useClipboard, useFilePreview } from '../context/FileContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useAiPanel } from '../context/AiPanelContext';
 import FileSkeleton from '../components/common/FileSkeleton';
 import FileThumbnail from '../components/file-manager/FileThumbnail';
 import StarButton from '../components/common/StarButton';
 import ContextMenu from '../components/file-manager/ContextMenu';
 import RenameModal from '../components/file-manager/RenameModal';
 import ShareModal from '../components/file-manager/ShareModal';
-import GeminiModal from '../components/file-manager/GeminiModal';
 import { getFileIcon } from '../utils/getFileIcon';
 import {
     HardDrive,
@@ -186,13 +186,14 @@ export default function HomePage() {
     // Context menu state
     const [contextMenu, setContextMenu] = useState({ isOpen: false, x: 0, y: 0, item: null });
 
+    // Panel AI mount MỘT bản duy nhất ở `AiPanelProvider`: view chỉ nói "mở cho mục này".
+    // Nhờ vậy nút "Hỏi AI" trong cửa sổ xem trước — vốn không phải con của view này — gọi
+    // được đúng panel đó thay vì phải có bản riêng.
+    const { openAi } = useAiPanel();
+
     // Modals state
     const [renameItemTarget, setRenameItemTarget] = useState(null);
     const [shareItemTarget, setShareItemTarget] = useState(null);
-    const [geminiItemTarget, setGeminiItemTarget] = useState(null);
-    // Lệnh nhanh chọn từ menu con "Hỏi AI" — khung chat tự chạy nó ngay khi mở.
-    // null = mở khung trống để người dùng tự gõ.
-    const [geminiAction, setGeminiAction] = useState(null);
 
     const openContextMenu = useCallback((e, item) => {
         e.preventDefault();
@@ -432,10 +433,7 @@ export default function HomePage() {
                 canPaste={clipboard?.items?.length > 0}
                 isPasting={isPasting}
                 onShare={(item) => setShareItemTarget(item)}
-                onGemini={(item, action) => {
-                    setGeminiItemTarget(item);
-                    setGeminiAction(action || null);
-                }}
+                onGemini={openAi}
                 onToggleStar={(item) => toggleStar(item.id)}
                 onMoveToTrash={(item) => moveToTrash(item.id)}
                 onRestore={(item) => restoreFromTrash(item.id)}
@@ -457,18 +455,6 @@ export default function HomePage() {
                 onClose={() => setShareItemTarget(null)}
             />
 
-            {/* Dựng MỚI mỗi lần mở (và `key` theo mục) thay vì để sẵn một instance ẩn:
-                hội thoại, lệnh nhanh đang chạy và request đang bay đều thuộc về đúng
-                một mục — mở mục khác là bắt đầu sạch, không sót lại câu trả lời cũ. */}
-            {geminiItemTarget && (
-                <GeminiModal
-                    key={geminiItemTarget.id}
-                    isOpen
-                    item={geminiItemTarget}
-                    initialAction={geminiAction}
-                    onClose={() => setGeminiItemTarget(null)}
-                />
-            )}
         </div>
     );
 }

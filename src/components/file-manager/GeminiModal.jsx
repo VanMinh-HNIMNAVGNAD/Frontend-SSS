@@ -5,8 +5,6 @@ import {
     Sparkles,
     X,
     Send,
-    Bot,
-    User as UserIcon,
     Copy,
     Check,
     Square,
@@ -66,6 +64,78 @@ const QUICK_ACTIONS = [
 // Số lượt gửi kèm làm lịch sử. Cắt ở đây chứ không gửi cả hội thoại: backend chặn
 // cứng ở 20 lượt (ArrayMaxSize), gửi thừa sẽ ăn 400 giữa cuộc trò chuyện.
 const MAX_HISTORY_TURNS = 16;
+
+/**
+ * Giây → "45 giây" / "10 phút" / "1 giờ 2 phút" (hoặc bản tiếng Anh).
+ *
+ * Không làm tròn về phút vô điều kiện như bản cũ: `Math.round(30 / 60)` cho ra 1, tức một
+ * clip 30 giây bị hiện thành "1 phút" — sai, và sai ở đúng chỗ giao diện đang cố nói cho
+ * người dùng biết AI thật sự xem được bao nhiêu.
+ *
+ * Đơn vị nằm ở đây chứ không trong `locales/*.js` vì nó là một chuỗi ĐƯỢC GHÉP (số + đơn
+ * vị + có thể hai cụm), không phải một câu dịch được; để trong locale thì phải bày ra sáu
+ * khoá chỉ để nói "phút".
+ */
+function formatClock(seconds, language) {
+    const en = language === 'en';
+    const total = Math.max(0, Math.round(Number(seconds) || 0));
+    if (total < 60) return en ? `${total} sec` : `${total} giây`;
+    const minutes = Math.round(total / 60);
+    if (minutes < 60) return en ? `${minutes} min` : `${minutes} phút`;
+    const hours = Math.floor(minutes / 60);
+    const rest = minutes % 60;
+    if (!rest) return en ? `${hours} h` : `${hours} giờ`;
+    return en ? `${hours} h ${rest} min` : `${hours} giờ ${rest} phút`;
+}
+
+/**
+ * Widget "Search Suggestions" của Google, dựng trong SHADOW DOM.
+ *
+ * Vì sao phải hiện: đó là điều khoản sử dụng của Grounding with Google Search — dùng
+ * grounding thì phải hiện các chip gợi ý tìm kiếm của Google kèm liên kết.
+ *
+ * Vì sao shadow DOM chứ không phải `dangerouslySetInnerHTML` như phần markdown: HTML này
+ * mang theo một khối `<style>` KHÔNG có phạm vi, khai các tên class rất chung —
+ * `.container`, `.chip`, `.carousel`, `.headline`, `.gradient`. Nhét thẳng vào trang là
+ * những luật đó áp lên MỌI phần tử khác cùng tên class ở bất kỳ đâu trong ứng dụng. Đã dò
+ * ngày 10/09/2026: hiện không có chỗ nào trùng — nhưng `container` là một utility của
+ * Tailwind, nên "không trùng" là may mắn của hôm nay chứ không phải một bảo đảm. Shadow
+ * DOM biến việc cách ly thành chuyện cấu trúc: style bên trong không thoát ra, style bên
+ * ngoài không lọt vào, và widget trông đúng như Google thiết kế.
+ *
+ * Nội dung đã kiểm trên phản hồi thật: chỉ `<style> <div> <a> <svg> <path> <circle>`,
+ * KHÔNG có `<script>`, không có handler `on*`. Nguồn của nó là phản hồi Vertex qua backend
+ * của mình, không phải nội dung tệp người dùng tải lên — nên nó không nằm trong đường tiêm
+ * lệnh mà luật AN TOÀN đang chặn.
+ *
+ * Việc duy nhất mình sửa sau khi dựng: thêm `target="_blank"` cho mấy thẻ `<a>`. Google
+ * không đặt sẵn, mà panel này thường mở đè lên cửa sổ xem trước — bấm một chip mà điều
+ * hướng cả trang thì người dùng mất luôn tài liệu đang đọc và cả hội thoại.
+ */
+function SearchSuggestions({ html }) {
+    const hostRef = useRef(null);
+
+    useEffect(() => {
+        const host = hostRef.current;
+        if (!host || !html) return;
+
+        const root = host.shadowRoot ?? host.attachShadow({ mode: 'open' });
+        root.innerHTML = html;
+        root.querySelectorAll('a').forEach((a) => {
+            a.setAttribute('target', '_blank');
+            a.setAttribute('rel', 'noopener noreferrer');
+        });
+
+        return () => {
+            // Dọn khi bong bóng bị thay (dọn hội thoại, mở cuộc khác): shadow root gắn với
+            // phần tử host nên React không tự dọn giúp phần bên trong nó.
+            root.innerHTML = '';
+        };
+    }, [html]);
+
+    if (!html) return null;
+    return <div ref={hostRef} className="mt-2" />;
+}
 
 /**
  * Câu trả lời của model là markdown do máy sinh ra — escape HTML TRƯỚC khi parse.
@@ -181,10 +251,15 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                         // Ngữ cảnh tới TRƯỚC chữ đầu tiên, nên bong bóng của AI ra đời
                         // ở đây — đã có sẵn dòng "AI đọc được gì" ngay từ lúc rỗng,
                         // thay vì dán thêm vào sau khi người dùng đọc xong câu trả lời.
-                        onMeta: ({ context, model, grounded }) => {
+                        // `meta` KHÔNG mang tin về việc tra cứu web: Vertex chỉ trả
+                        // `groundingMetadata` ở một chunk gần cuối, nên sự thật đó chỉ có
+                        // ở sự kiện `done`. Bản cũ gán thẳng cờ "đã bật công cụ" vào bong
+                        // bóng ngay tại đây, và đó là gốc của cái chip "Tra cứu web" hiện
+                        // trên mọi câu trả lời kể cả lượt không hề search.
+                        onMeta: ({ context, model }) => {
                             setMessages((prev) => [
                                 ...prev,
-                                { sender: 'ai', text: '', context, model, grounded, streaming: true },
+                                { sender: 'ai', text: '', context, model, streaming: true },
                             ]);
                         },
                         // NỐI vào phần đã có. `streaming` là cờ nhận dạng bong bóng đang
@@ -211,7 +286,12 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                         context: res.context,
                         model: res.model,
                         grounded: res.grounded,
+                        webSearch: res.webSearch,
                         tokens: res.quota?.lastRequestTokens,
+                        // Câu trả lời chạm trần `maxOutputTokens` thì nó đứt giữa câu, và
+                        // trong chuỗi chữ không có gì nói ra điều đó. Backend biết
+                        // (`finishReason`), nên nó nói — xem `truncated` ở `settle()`.
+                        truncated: res.truncated,
                     };
                     const last = prev[prev.length - 1];
                     return last?.streaming ? [...prev.slice(0, -1), bubble] : [...prev, bubble];
@@ -435,12 +515,12 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                     context.chars != null
                         ? t('ai.context.fileText', { chars: context.chars.toLocaleString() })
                         : t('ai.context.fileTextPlain'),
-                tone: 'text-emerald-600 dark:text-emerald-400',
+                tone: 'text-gray-500 dark:text-gray-400',
             },
             'file-binary': {
                 icon: FileSearch,
                 text: t('ai.context.binary'),
-                tone: 'text-emerald-600 dark:text-emerald-400',
+                tone: 'text-gray-500 dark:text-gray-400',
             },
             'file-video': {
                 icon: FileVideo,
@@ -449,11 +529,33 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                 // câu trả lời sai nếu giao diện không nói ra giới hạn đó. Tin nhắn nạp từ
                 // lịch sử không có `seconds` (bảng ai_message chỉ lưu `context_mode`) nên
                 // vẫn cần câu không kèm số.
-                text:
-                    context.seconds != null
-                        ? t('ai.context.video', { minutes: Math.round(context.seconds / 60) })
-                        : t('ai.context.videoPlain'),
-                tone: 'text-emerald-600 dark:text-emerald-400',
+                //
+                // Ba câu chứ không phải một, vì `seconds` giờ nói đúng phần HÌNH và có
+                // thể nhỏ hơn 60 (clip ngắn):
+                //  • cả video nằm trong cửa sổ → "đã xem toàn bộ", đừng nói "phần đầu"
+                //    cho một clip 30 giây mà AI đã xem hết.
+                //  • video dài hơn cửa sổ → phải nói CẢ hai số (xem 10 phút của 62
+                //    phút), vì thiếu số thứ hai thì người dùng không biết mình đang đọc
+                //    một câu trả lời dựa trên một phần sáu tài liệu. Và phải nói phần
+                //    tiếng có thể vượt ra ngoài cửa sổ hình: AI trả lời được về phút thứ
+                //    40 nhờ nghe, không nói ra thì câu đó trông như bịa.
+                //  • không đo được thời lượng → chỉ có một số, câu cũ.
+                text: (() => {
+                    const seen = context.seconds;
+                    const total = context.durationSeconds;
+                    if (seen == null) return t('ai.context.videoPlain');
+                    if (total != null && total <= seen) {
+                        return t('ai.context.videoWhole', { duration: formatClock(total, language) });
+                    }
+                    if (total != null) {
+                        return t('ai.context.videoWindow', {
+                            seen: formatClock(seen, language),
+                            total: formatClock(total, language),
+                        });
+                    }
+                    return t('ai.context.video', { minutes: Math.round(seen / 60) });
+                })(),
+                tone: 'text-gray-500 dark:text-gray-400',
             },
             'folder-listing': {
                 icon: FolderSearch,
@@ -461,7 +563,7 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                     context.childCount != null
                         ? t('ai.context.folder', { count: context.childCount })
                         : t('ai.context.folderPlain'),
-                tone: 'text-emerald-600 dark:text-emerald-400',
+                tone: 'text-gray-500 dark:text-gray-400',
             },
             metadata: {
                 icon: Info,
@@ -472,8 +574,9 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
         const entry = map[context.mode];
         if (!entry) return null;
         const Icon = entry.icon;
+        const sourceCount = msg?.webSearch?.sources?.length ?? 0;
         return (
-            <div className="mt-2 pt-2 border-t border-gray-200/70 dark:border-gray-700/60 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
+            <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-800 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
                 <span className={`flex items-center gap-1.5 min-w-0 ${entry.tone}`}>
                     <Icon className="w-3 h-3 shrink-0" />
                     <span className="truncate">
@@ -481,9 +584,18 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                         {context.truncated ? ` · ${t('ai.context.truncated')}` : ''}
                     </span>
                 </span>
+                {/* Chỉ hiện khi lượt này THẬT SỰ tra cứu (backend đọc `groundingMetadata`
+                    rồi mới bật cờ), và kèm số nguồn để nó là một con số kiểm lại được chứ
+                    không phải một cái nhãn.
+                    Lưu ý: câu trả lời cũ trong lịch sử được ghi từ trước bản sửa này mang
+                    cờ theo nghĩa cũ ("đã bật"), nên chip ở đó vẫn có thể hiện sai — dữ
+                    liệu đã ghi thì không sửa lại được. */}
                 {msg?.grounded && (
-                    <span className="flex items-center gap-1 text-sky-600 dark:text-sky-400 shrink-0">
-                        <Globe className="w-3 h-3" /> {t('ai.context.grounded')}
+                    <span className="flex items-center gap-1 text-gray-500 dark:text-gray-400 shrink-0">
+                        <Globe className="w-3 h-3" />
+                        {sourceCount > 0
+                            ? t('ai.context.groundedCount', { count: sourceCount })
+                            : t('ai.context.grounded')}
                     </span>
                 )}
                 {/* Token của ĐÚNG lượt này: người dùng thấy ngay câu hỏi nào đắt, thay vì
@@ -492,6 +604,71 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                     <span className="text-gray-400 dark:text-gray-500 shrink-0 font-mono">
                         {t('ai.tokensUsed', { tokens: msg.tokens.toLocaleString() })}
                     </span>
+                )}
+            </div>
+        );
+    };
+
+    /**
+     * Nguồn web mà Gemini THẬT SỰ đọc cho câu trả lời này.
+     *
+     * Đây là phần khiến việc tra cứu kiểm chứng được. Trước đây giao diện chỉ có một chip
+     * "Tra cứu web" lấy từ cờ "đã bật công cụ" — không truy vấn, không nguồn, hiện trên cả
+     * những lượt mô hình không hề search. Người dùng không thể phân biệt thật với bịa, nên
+     * kết luận rằng nó bịa; và họ đúng ở chỗ cái chip đó không chứng minh được gì.
+     *
+     * Hiện cả CÂU TRUY VẤN chứ không chỉ danh sách nguồn: truy vấn là thứ cho biết mô hình
+     * đã hiểu vấn đề theo hướng nào, và là thứ người dùng tự gõ lại vào Google được để đối
+     * chiếu. Liên kết mở tab mới kèm `noreferrer` — đây là URL từ bên thứ ba.
+     */
+    const renderWebSources = (msg) => {
+        const sources = msg?.webSearch?.sources ?? [];
+        const queries = msg?.webSearch?.queries ?? [];
+        const suggestionsHtml = msg?.webSearch?.suggestionsHtml ?? null;
+        // `suggestionsHtml` phải nằm trong điều kiện này. Thiếu nó thì một lượt có widget
+        // mà (vì lý do nào đó) không có truy vấn lẫn nguồn sẽ bị chặn ở đây, và mình bỏ
+        // qua đúng cái thứ Google BẮT BUỘC phải hiện.
+        if (sources.length === 0 && queries.length === 0 && !suggestionsHtml) return null;
+
+        return (
+            <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-800">
+                <p className="flex items-center gap-1.5 text-[11px] font-medium text-gray-600 dark:text-gray-300">
+                    <Globe className="w-3 h-3 shrink-0" />
+                    {t('ai.sources.title')}
+                </p>
+
+                {queries.length > 0 && (
+                    <p className="mt-1 text-[11px] text-gray-500 dark:text-gray-400 break-words">
+                        {t('ai.sources.queries')}{' '}
+                        {queries.map((q, i) => (
+                            <span key={q}>
+                                {i > 0 && ' · '}
+                                <span className="italic">“{q}”</span>
+                            </span>
+                        ))}
+                    </p>
+                )}
+
+                {/* Bắt buộc theo điều khoản của Google, đặt ngay dưới danh sách nguồn. */}
+                <SearchSuggestions html={suggestionsHtml} />
+
+                {sources.length > 0 && (
+                    <ol className="mt-1 space-y-0.5">
+                        {sources.map((src, i) => (
+                            <li key={src.uri} className="flex gap-1.5 text-[11px] min-w-0">
+                                <span className="text-gray-400 dark:text-gray-500 shrink-0">{i + 1}.</span>
+                                <a
+                                    href={src.uri}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    title={src.uri}
+                                    className="text-blue-600 dark:text-blue-400 hover:underline truncate"
+                                >
+                                    {src.title}
+                                </a>
+                            </li>
+                        ))}
+                    </ol>
                 )}
             </div>
         );
@@ -517,44 +694,58 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
     const inputLocked = aiDisabled || quotaBlocked;
 
     return (
-        <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-fade-in cursor-pointer"
-            onClick={onClose}
-        >
+        // Hai hình dạng trong MỘT cây DOM, đổi bằng breakpoint chứ không bằng JS:
+        //
+        //  • Từ `sm` trở lên — CỘT PHẢI. Vỏ ngoài chỉ chiếm dải bên phải (`sm:left-auto`)
+        //    nên phần màn hình còn lại vẫn bấm được: đó là điều kiện để vừa đọc câu trả
+        //    lời vừa cuộn tài liệu trong cửa sổ xem trước phía dưới. Cũng vì thế mà KHÔNG
+        //    có lớp phủ tối ở đây — phủ lên thì chính thứ người dùng đang hỏi bị che.
+        //  • Dưới `sm` — GIỮA MÀN HÌNH. Màn 360px mà cắt ra một cột 420px thì không còn
+        //    chỗ cho tài liệu lẫn câu trả lời, nên trên điện thoại nó quay lại làm hộp
+        //    thoại có lớp phủ như cũ.
+        //
+        // `z-[60]` chứ không phải `z-50`: cửa sổ xem trước đang ở `z-50`, và panel này
+        // phải nằm TRÊN nó mới mở được từ trong đó.
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:left-auto sm:inset-y-0 sm:right-0 sm:p-0 sm:items-stretch sm:justify-end">
+            {/* Lớp phủ CHỈ trên điện thoại. `sm:hidden` chứ không phải đổi màu: ở cột phải
+                nó vẫn sẽ ăn mọi cú bấm ra ngoài panel. */}
             <div
-                className="relative bg-white dark:bg-[#1e1e1e] dark:text-gray-100 rounded-2xl shadow-2xl w-full max-w-2xl border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col h-[620px] max-h-[90vh] cursor-default"
-                onClick={(e) => e.stopPropagation()}
+                className="absolute inset-0 bg-black/50 backdrop-blur-xs animate-fade-in cursor-pointer sm:hidden"
+                onClick={onClose}
+                aria-hidden="true"
+            />
+
+            <div
+                className="relative flex flex-col overflow-hidden cursor-default bg-white dark:bg-[#1e1e1e] dark:text-gray-100
+                           w-full max-w-lg h-[85vh] rounded-2xl border border-gray-200 dark:border-gray-800 shadow-2xl animate-fade-in
+                           sm:h-full sm:max-w-none sm:w-[26rem] lg:w-[30rem] sm:rounded-none sm:border-y-0 sm:border-r-0 sm:animate-slide-left"
                 role="dialog"
-                aria-modal="true"
+                aria-modal="false"
                 aria-label={t('ai.title')}
             >
-                {/* ── Đầu khung ── */}
-                <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 dark:border-gray-800 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10">
-                    <div className="flex items-center gap-3 min-w-0">
-                        <div className="p-2 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 text-white shadow-md shrink-0">
-                            <Sparkles className="w-5 h-5" />
-                        </div>
+                {/* ── Đầu khung ──
+                    Một dòng, chữ xám, không nền gradient. Panel rộng 416px thì mỗi thứ
+                    trang trí đều lấy chỗ của nội dung; và ba nút biểu tượng cạnh nhau mà
+                    mỗi nút một màu hover khác nhau thì trông như ba mức nguy hiểm khác
+                    nhau, trong khi chúng chỉ là ba việc bình thường. */}
+                <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-800">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                        <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
                         <div className="min-w-0">
-                            <h3 className="font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                            <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 leading-tight">
                                 {t('ai.title')}
-                                {status?.model && (
-                                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-900/60 dark:text-purple-300 font-semibold font-mono">
-                                        {status.model}
-                                    </span>
-                                )}
                             </h3>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                                {isFolder ? t('ai.subject.folder') : t('ai.subject.file')}{' '}
-                                <span className="font-medium text-gray-700 dark:text-gray-200">{item.name}</span>
+                            <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate" title={item.name}>
+                                {item.name}
                             </p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-1 shrink-0">
+                    <div className="flex items-center gap-0.5 shrink-0">
                         <button
                             onClick={openHistory}
                             title={t('ai.history.open')}
                             aria-label={t('ai.history.open')}
-                            className="p-1.5 rounded-full text-gray-400 hover:text-purple-600 dark:hover:text-purple-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+                            className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100 transition-colors cursor-pointer"
                         >
                             <History className="w-4 h-4" />
                         </button>
@@ -569,16 +760,19 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                                     setConversationId(null);
                                 }}
                                 title={t('ai.clear')}
-                                className="p-1.5 rounded-full text-gray-400 hover:text-rose-600 dark:hover:text-rose-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+                                aria-label={t('ai.clear')}
+                                className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100 transition-colors cursor-pointer"
                             >
                                 <Trash2 className="w-4 h-4" />
                             </button>
                         )}
                         <button
                             onClick={onClose}
-                            className="p-1.5 rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+                            title={t('common.close')}
+                            aria-label={t('common.close')}
+                            className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100 transition-colors cursor-pointer"
                         >
-                            <X className="w-5 h-5" />
+                            <X className="w-4 h-4" />
                         </button>
                     </div>
                 </div>
@@ -589,7 +783,7 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                     phải trừ nhẩm "còn 7 lượt" ra khỏi "thanh đã đầy 80%". Số token thật
                     vẫn có, nằm ở tooltip cho ai cần đối chiếu. */}
                 {quota && !aiDisabled && (
-                    <div className="px-5 py-2 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-[#1e1e1e]">
+                    <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-800">
                         <div className="flex items-center justify-between gap-3 text-[11px]">
                             <span
                                 className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400 min-w-0"
@@ -598,7 +792,7 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                                     limit: quota.limit.toLocaleString(),
                                 })}
                             >
-                                <Gauge className="w-3.5 h-3.5 shrink-0 text-purple-500" />
+                                <Gauge className="w-3.5 h-3.5 shrink-0" />
                                 <span className="truncate">
                                     {quotaBlocked
                                         ? t('ai.quota.empty')
@@ -621,7 +815,7 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                                         ? 'bg-rose-500'
                                         : usedPercent >= 80
                                           ? 'bg-amber-500'
-                                          : 'bg-gradient-to-r from-blue-500 to-purple-500'
+                                          : 'bg-gray-400 dark:bg-gray-500'
                                 }`}
                                 style={{ width: `${usedPercent}%` }}
                             />
@@ -630,7 +824,7 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                 )}
 
                 {/* ── Khu hội thoại ── */}
-                <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/60 dark:bg-[#18191a]">
+                <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
                     {aiDisabled ? (
                         <div className="h-full flex flex-col items-center justify-center text-center px-8 gap-2">
                             <AlertTriangle className="w-8 h-8 text-amber-500" />
@@ -639,9 +833,7 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                         </div>
                     ) : quotaBlocked && messages.length === 0 ? (
                         <div className="h-full flex flex-col items-center justify-center text-center px-8 gap-3">
-                            <div className="p-3 rounded-2xl bg-amber-100 dark:bg-amber-500/15">
-                                <Gauge className="w-6 h-6 text-amber-600 dark:text-amber-400" />
-                            </div>
+                            <Gauge className="w-6 h-6 text-amber-600 dark:text-amber-400" />
                             <p className="font-semibold text-gray-800 dark:text-gray-200">{t('ai.quota.blockedTitle')}</p>
                             <p className="text-xs text-gray-500 dark:text-gray-400 max-w-sm">
                                 {t('ai.quota.blockedDesc', {
@@ -653,65 +845,67 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                     ) : messages.length === 0 && !isThinking ? (
                         // Màn hình trống có ích: nói rõ AI sẽ đọc được gì ở mục này và
                         // mời chọn một lệnh, thay vì một lời chào không mang thông tin.
-                        <div className="h-full flex flex-col items-center justify-center text-center px-8 gap-3">
-                            <div className="p-3 rounded-2xl bg-purple-100 dark:bg-purple-500/15">
-                                <Sparkles className="w-6 h-6 text-purple-600 dark:text-purple-400" />
-                            </div>
+                        <div className="h-full flex flex-col items-center justify-center text-center px-6 gap-2.5">
+                            <Sparkles className="w-6 h-6 text-gray-400 dark:text-gray-500" />
                             <p className="font-semibold text-gray-800 dark:text-gray-200">
                                 {isFolder ? t('ai.empty.folder') : t('ai.empty.file')}
                             </p>
                             <p className="text-xs text-gray-500 dark:text-gray-400 max-w-sm">{t('ai.empty.hint')}</p>
                         </div>
                     ) : (
+                        // Không còn avatar hai bên. Trong một cột rộng 416px, hai vòng
+                        // tròn 32px cộng khoảng cách ăn mất một phần tám bề ngang mà chẳng
+                        // nói thêm điều gì: vị trí trái/phải và nền bong bóng đã đủ để biết
+                        // ai đang nói. Câu trả lời của AI cũng bỏ luôn khung bong bóng —
+                        // nó là đoạn văn dài, đóng khung lại thì thành hộp trong hộp.
                         messages.map((msg, idx) => (
-                            <div key={idx} className={`flex gap-2.5 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                {msg.sender === 'ai' && (
-                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-                                        <Bot className="w-4 h-4" />
+                            <div key={idx} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                {msg.sender === 'ai' ? (
+                                    <div className="group w-full text-[13px] leading-relaxed text-gray-800 dark:text-gray-200">
+                                        <div
+                                            className="prose-ai"
+                                            dangerouslySetInnerHTML={{ __html: renderMarkdown(msg.text) }}
+                                        />
+                                        {/* Câu trả lời bị cắt vì chạm trần: nói ra ngay dưới
+                                            chỗ nó đứt. Không nói thì người đọc tưởng AI kết
+                                            luận như vậy, trong khi nó mới đang nói dở. */}
+                                        {msg.truncated && (
+                                            <p className="mt-2 flex items-start gap-1.5 text-[11px] text-amber-700 dark:text-amber-400">
+                                                <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-px" />
+                                                <span>{t('ai.truncated')}</span>
+                                            </p>
+                                        )}
+                                        {renderWebSources(msg)}
+                                        {renderContextNote(msg.context, msg)}
+                                        <button
+                                            onClick={() => handleCopy(msg.text, idx)}
+                                            className="mt-2 inline-flex items-center gap-1 text-[11px] text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity cursor-pointer"
+                                        >
+                                            {copiedIndex === idx ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                                            {copiedIndex === idx ? t('ai.copied') : t('ai.copy')}
+                                        </button>
                                     </div>
-                                )}
-                                <div
-                                    className={`group max-w-[85%] px-4 py-3 rounded-2xl text-[13px] leading-relaxed ${
-                                        msg.sender === 'user'
-                                            ? 'bg-blue-600 text-white rounded-br-none shadow-xs'
-                                            : 'bg-white dark:bg-[#282a2c] text-gray-800 dark:text-gray-200 border border-gray-200/80 dark:border-gray-700 rounded-bl-none shadow-xs'
-                                    }`}
-                                >
-                                    {msg.sender === 'ai' ? (
-                                        <>
-                                            <div
-                                                className="prose-ai"
-                                                dangerouslySetInnerHTML={{ __html: renderMarkdown(msg.text) }}
-                                            />
-                                            {renderContextNote(msg.context, msg)}
-                                            <button
-                                                onClick={() => handleCopy(msg.text, idx)}
-                                                className="mt-2 inline-flex items-center gap-1 text-[11px] text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity cursor-pointer"
-                                            >
-                                                {copiedIndex === idx ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                                                {copiedIndex === idx ? t('ai.copied') : t('ai.copy')}
-                                            </button>
-                                        </>
-                                    ) : (
+                                ) : (
+                                    <div className="max-w-[85%] px-3.5 py-2 rounded-2xl rounded-br-sm bg-blue-600 text-white text-[13px] leading-relaxed">
                                         <span className="whitespace-pre-wrap">{msg.text}</span>
-                                    )}
-                                </div>
-                                {msg.sender === 'user' && (
-                                    <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-700 text-gray-700 dark:text-gray-200 flex items-center justify-center shrink-0">
-                                        <UserIcon className="w-4 h-4" />
                                     </div>
                                 )}
                             </div>
                         ))
                     )}
 
+                    {/* Khoảng im lặng trước chữ đầu tiên dài hơn trước, vì ngân sách suy
+                        luận giờ là ĐỘNG (đo được 1.200-1.800 token suy luận, tức 6-10 giây
+                        chưa có chữ nào). Nên dòng này phải nói đúng việc đang diễn ra —
+                        "đang suy luận" — chứ không phải một spinner trống làm người dùng
+                        tưởng máy treo. */}
                     {isThinking && (
-                        <div className="flex items-center gap-2 text-xs text-purple-600 dark:text-purple-400 font-medium py-2 pl-1">
-                            <Loader2 className="w-4 h-4 animate-spin" />
+                        <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
                             {t('ai.thinking')}
                             <button
                                 onClick={() => abortRef.current?.abort()}
-                                className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+                                className="ml-auto inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
                             >
                                 <Square className="w-3 h-3" /> {t('ai.stop')}
                             </button>
@@ -719,7 +913,7 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                     )}
 
                     {error && (
-                        <div className="flex items-start gap-2 text-xs text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800/60 rounded-xl px-3 py-2.5">
+                        <div className="flex items-start gap-2 text-xs text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-900/60 rounded-lg px-3 py-2.5">
                             <AlertTriangle className="w-4 h-4 shrink-0 mt-px" />
                             <div className="min-w-0">
                                 <p className="break-words">{error}</p>
@@ -736,7 +930,7 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
 
                 {/* ── Lệnh nhanh ── */}
                 {!inputLocked && (
-                    <div className="px-3 py-2 bg-white dark:bg-[#1e1e1e] border-t border-gray-100 dark:border-gray-800 flex gap-2 overflow-x-auto text-xs">
+                    <div className="px-4 py-2.5 border-t border-gray-200 dark:border-gray-800 flex gap-2 overflow-x-auto text-xs">
                         {quickActions.map((action) => {
                             const Icon = action.icon;
                             const labelKey = !isFolder && action.fileLabelKey ? action.fileLabelKey : action.labelKey;
@@ -745,9 +939,9 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                                     key={action.id}
                                     disabled={isThinking}
                                     onClick={() => send({ action: action.id })}
-                                    className="px-3 py-1 bg-gray-100 dark:bg-gray-800 hover:bg-purple-50 dark:hover:bg-purple-900/30 text-gray-700 dark:text-gray-300 rounded-full shrink-0 transition-colors border border-gray-200 dark:border-gray-700 flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="px-2.5 py-1.5 text-gray-700 dark:text-gray-300 rounded-lg shrink-0 transition-colors border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    <Icon className="w-3.5 h-3.5 text-purple-500" />
+                                    <Icon className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
                                     {t(labelKey)}
                                 </button>
                             );
@@ -757,14 +951,14 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
 
                 {/* ── Hết hạn mức: mời nâng cấp thay vì để một ô nhập bấm vào chỉ ra lỗi ── */}
                 {quotaBlocked && !aiDisabled && (
-                    <div className="p-3 bg-white dark:bg-[#1e1e1e] border-t border-gray-100 dark:border-gray-800 flex items-center justify-between gap-3">
+                    <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-800 flex items-center justify-between gap-3">
                         <p className="text-[11px] text-gray-500 dark:text-gray-400 min-w-0">
                             {t('ai.quota.upgradeHint')}
                         </p>
                         <Link
                             to="/app/billing"
                             onClick={onClose}
-                            className="shrink-0 px-3 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium text-xs shadow-xs transition-all flex items-center gap-1.5"
+                            className="shrink-0 px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs transition-colors flex items-center gap-1.5"
                         >
                             {t('ai.quota.upgradeCta')}
                             <ArrowUpRight className="w-3.5 h-3.5" />
@@ -776,7 +970,7 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                 <form
                     onSubmit={handleSubmit}
                     hidden={quotaBlocked && !aiDisabled}
-                    className="p-3 bg-white dark:bg-[#1e1e1e] border-t border-gray-100 dark:border-gray-800"
+                    className="px-4 py-3 border-t border-gray-200 dark:border-gray-800"
                 >
                     <div className="flex gap-2">
                         <input
@@ -786,17 +980,27 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                             disabled={inputLocked}
                             onChange={(e) => setPrompt(e.target.value)}
                             placeholder={isFolder ? t('ai.placeholder.folder') : t('ai.placeholder.file')}
-                            className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#282a2c] text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 outline-none text-[13px] disabled:opacity-50"
+                            className="flex-1 min-w-0 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#282a2c] text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none text-[13px] disabled:opacity-50"
                         />
+                        {/* Nút gửi là chỗ DUY NHẤT trong panel dùng màu đặc. Mọi nút khác để
+                            xám: một màn hình mà nút nào cũng nổi thì không nút nào nổi, và
+                            người dùng phải đọc từng cái mới biết đâu là việc chính. */}
                         <button
                             type="submit"
                             disabled={!prompt.trim() || isThinking || inputLocked}
-                            className="px-4 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium rounded-xl shadow-xs disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-1 text-xs cursor-pointer"
+                            title={t('ai.send')}
+                            aria-label={t('ai.send')}
+                            className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center cursor-pointer"
                         >
                             <Send className="w-4 h-4" />
                         </button>
                     </div>
-                    <p className="mt-1.5 px-1 text-[11px] text-gray-400 dark:text-gray-500">{t('ai.disclaimer')}</p>
+                    {/* Tên model về đây thay vì đứng thành một chip màu trên đầu khung: nó
+                        là chú thích, không phải nhan đề. */}
+                    <p className="mt-2 text-[11px] text-gray-400 dark:text-gray-500 truncate">
+                        {t('ai.disclaimer')}
+                        {status?.model && <span className="font-mono"> · {status.model}</span>}
+                    </p>
                 </form>
 
                 {/* ── Lịch sử trò chuyện ──
@@ -806,7 +1010,7 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                     mọi cuộc, và nội dung một cuộc khi bấm vào. */}
                 {historyOpen && (
                     <div className="absolute inset-0 z-10 flex flex-col bg-white dark:bg-[#1e1e1e] animate-fade-in">
-                        <div className="flex items-center justify-between gap-2 px-4 py-3.5 border-b border-gray-100 dark:border-gray-800 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10">
+                        <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-800">
                             <div className="flex items-center gap-2 min-w-0">
                                 {viewing ? (
                                     <button
@@ -817,7 +1021,7 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                                         <ChevronLeft className="w-4 h-4" />
                                     </button>
                                 ) : (
-                                    <History className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />
+                                    <History className="w-4 h-4 text-gray-500 dark:text-gray-400 shrink-0" />
                                 )}
                                 <div className="min-w-0">
                                     <h4 className="font-bold text-gray-900 dark:text-gray-100 text-sm truncate">
@@ -867,7 +1071,7 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                                             <div
                                                 className={`max-w-[85%] px-3.5 py-2.5 rounded-2xl text-[13px] ${
                                                     m.role === 'user'
-                                                        ? 'bg-gradient-to-br from-blue-600 to-purple-600 text-white'
+                                                        ? 'bg-blue-600 text-white'
                                                         : 'bg-gray-100 dark:bg-[#282a2c] text-gray-800 dark:text-gray-200'
                                                 }`}
                                             >
@@ -933,7 +1137,7 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                                         <button
                                             onClick={() => loadHistory(historyList.nextBefore)}
                                             disabled={historyLoading}
-                                            className="w-full mt-1 py-2 text-[11px] font-medium text-purple-600 dark:text-purple-400 hover:bg-gray-100 dark:hover:bg-[#282a2c] rounded-xl transition-colors cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5"
+                                            className="w-full mt-1 py-2 text-[11px] font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#282a2c] rounded-lg transition-colors cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5"
                                         >
                                             {historyLoading && <Loader2 className="w-3 h-3 animate-spin" />}
                                             {t('ai.history.loadMore')}
@@ -951,7 +1155,7 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                                 {viewing.fileId === item.id ? (
                                     <button
                                         onClick={continueConversation}
-                                        className="w-full py-2 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-xs font-medium transition-all cursor-pointer"
+                                        className="w-full py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium transition-colors cursor-pointer"
                                     >
                                         {t('ai.history.continue')}
                                     </button>

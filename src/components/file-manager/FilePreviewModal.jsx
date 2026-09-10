@@ -16,13 +16,15 @@ import {
   ChevronRight,
   AlertTriangle,
   VolumeX,
-  EyeOff
+  EyeOff,
+  Sparkles
 } from 'lucide-react';
 import { useFiles } from '../../context/FileContext';
 import { useLanguage } from '../../context/LanguageContext';
 import useMediaSupport from '../../hooks/useMediaSupport';
 import useFragmentedMp4, { supportsFragmentedMp4 } from '../../hooks/useFragmentedMp4';
 import { storageApi } from '../../services/api';
+import { useAiPanel } from '../../context/AiPanelContext';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { marked } from 'marked';
@@ -341,6 +343,9 @@ function MediaSupportNotice({ diagnosis, fileName, onDownload, t, inline = false
 export default function FilePreviewModal({ item, onClose }) {
   const { t } = useLanguage();
   const { getPreviewUrl, getFileTextContent } = useFiles();
+  // Panel AI dùng chung với menu chuột phải (`AiPanelProvider`). `aiItem` ở đây KHÔNG phải
+  // để hiển thị gì — nó là thứ cho biết panel đang đè lên trên, dùng ở nhánh phím tắt.
+  const { openAi, aiItem } = useAiPanel();
   const [url, setUrl] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -424,6 +429,20 @@ export default function FilePreviewModal({ item, onClose }) {
 
   useEffect(() => {
     const handleKeyDown = (e) => {
+      // Panel AI mở ĐÈ lên cửa sổ này thì nó sở hữu bàn phím. Không có nhánh này thì một
+      // phím Escape đóng CẢ HAI (hai listener cùng nghe trên window), và người dùng chỉ
+      // muốn đóng panel lại mất luôn cửa sổ xem trước phía dưới.
+      if (aiItem) return;
+
+      // Đang gõ trong một ô nhập thì mọi phím tắt một chữ phải im. `r` là phím xoay ảnh,
+      // nên thiếu nhánh này thì gõ chữ "r" ở bất kỳ ô nào cũng xoay tệp đang xem — trước
+      // đây không ai gặp vì cửa sổ này không có ô nhập nào, giờ thì panel AI nằm ngay trên.
+      const el = e.target;
+      const typing =
+        el instanceof HTMLElement &&
+        (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
+      if (typing) return;
+
       if (e.key === 'Escape') onClose && onClose();
       if (e.key === '=' || e.key === '+') handleZoomIn();
       if (e.key === '-') handleZoomOut();
@@ -431,7 +450,7 @@ export default function FilePreviewModal({ item, onClose }) {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onClose]);
+  }, [onClose, aiItem]);
 
   const handleZoomIn = () => setZoom((prev) => Math.min(prev + 0.25, 3));
   const handleZoomOut = () => setZoom((prev) => Math.max(prev - 0.25, 0.5));
@@ -700,7 +719,16 @@ export default function FilePreviewModal({ item, onClose }) {
   if (!item) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-slate-950/90 backdrop-blur-xl animate-in fade-in duration-200 text-white select-none">
+    // Panel AI mở ra ở cột phải và ĐÈ lên cửa sổ này. Không nhường chỗ thì nó che đúng
+    // góc chứa thanh công cụ — kể cả nút Đóng — nên người dùng phải đóng panel mới đóng
+    // được cửa sổ xem trước. Chừa ra đúng bề rộng của panel (26rem, 30rem từ `lg`) là hai
+    // thứ đứng cạnh nhau: tài liệu bên trái, câu trả lời bên phải, không cái nào che cái
+    // nào. Chỉ từ `sm` trở lên — trên điện thoại panel là hộp thoại giữa màn hình.
+    <div
+      className={`fixed inset-0 z-50 flex flex-col bg-slate-950/90 backdrop-blur-xl animate-in fade-in duration-200 text-white select-none transition-[padding] duration-200 ${
+        aiItem ? 'sm:pr-[26rem] lg:pr-[30rem]' : ''
+      }`}
+    >
       {/* Top Floating Header & Controls */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-slate-900/60 backdrop-blur-md">
         <div className="flex items-center gap-3 min-w-0">
@@ -759,6 +787,19 @@ export default function FilePreviewModal({ item, onClose }) {
               <div className="w-px h-5 bg-white/10 mx-1" />
             </>
           )}
+
+          {/* Hỏi AI ngay tại chỗ: trước đây muốn hỏi về tệp đang xem thì phải đóng cửa sổ
+              này, tìm lại tệp trong danh sách rồi bấm chuột phải. Panel AI mở ra ở cạnh
+              phải và ĐÈ lên chứ không đóng cửa sổ xem trước, nên vẫn nhìn được tài liệu
+              trong lúc đọc câu trả lời — đó mới là điểm của cái nút này. */}
+          <button
+            onClick={() => openAi(item, 'chat')}
+            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold transition-all cursor-pointer"
+            title={t('preview.askAi')}
+          >
+            <Sparkles className="w-4 h-4" />
+            <span className="hidden sm:inline">{t('preview.askAi')}</span>
+          </button>
 
           <button
             onClick={handleDownload}

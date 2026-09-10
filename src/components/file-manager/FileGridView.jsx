@@ -253,6 +253,9 @@ export default function FileGridView() {
                     onUploadFolder={() => folderInputRef.current?.click()}
                     onCreateFolder={handleCreateFolderPrompt}
                     isBuildingTree={isBuildingTree}
+                    onPaste={(targetParentId) => pasteItems(targetParentId)}
+                    canPaste={clipboard.items.length > 0}
+                    isPasting={isPasting}
                 />
             </div>
         );

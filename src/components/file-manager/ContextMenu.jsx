@@ -194,8 +194,19 @@ export default function ContextMenu({
 
     if (!item && !hasBlankAreaActions) return null;
 
-    // ── Menu cho vùng nền trống: tải tệp/thư mục lên, tạo thư mục mới ──
+    // ── Menu cho vùng nền trống: tải tệp/thư mục lên, tạo thư mục mới, dán ──
     if (!item) {
+        // Dán vào chỗ trống = dán vào thư mục ĐANG mở (`onPaste(undefined)` để
+        // FileContext tự lấy `currentFolderId`). Đây là lối vào quan trọng nhất của
+        // lệnh dán mà trước đây không có: một thư mục đích RỖNG thì không còn tệp
+        // nào để bấm chuột phải lên, nên người dùng không có cách nào dán bằng menu.
+        //
+        // Chỉ mở ở hai tab có khái niệm "thư mục đang mở". Ở Có gắn sao / Gần đây /
+        // Thùng rác / Nội dung rác, `currentFolderId` là null nên lệnh dán sẽ ném tệp
+        // vào gốc My Drive — một nơi người dùng không hề nhìn thấy trên màn hình đó.
+        const canPasteHere =
+            canPaste && !isTrashTab && !isSpamTab && ['my-drive', 'shared-drives'].includes(activeTab);
+
         return (
             <div
                 ref={menuRef}
@@ -229,6 +240,23 @@ export default function ContextMenu({
                     label={t('menu.newFolder')}
                     onClick={() => { onCreateFolder?.(); closeMenu(); }}
                 />
+
+                {canPasteHere && (
+                    <>
+                        <MenuSeparator />
+
+                        <MenuRow
+                            tone="accent"
+                            disabled={isPasting}
+                            icon={isPasting
+                                ? <Loader2 className="w-4 h-4 text-blue-600 dark:text-blue-400 animate-spin" />
+                                : <FolderInput className="w-4 h-4 text-blue-600 dark:text-blue-400" />}
+                            label={t('menu.paste')}
+                            shortcut="Ctrl+V"
+                            onClick={() => { onPaste?.(undefined); closeMenu(); }}
+                        />
+                    </>
+                )}
             </div>
         );
     }

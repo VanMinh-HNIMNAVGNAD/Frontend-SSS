@@ -576,6 +576,50 @@ export function FileProvider({ children }) {
   }, [flushListCache]);
 
   /**
+   * Đánh dấu HẾT HẠN mọi khung nhìn đã lưu của một số thư mục.
+   *
+   * Vì sao cần: `readListCache` + ngưỡng `LIST_REVALIDATE_AFTER_MS` khiến
+   * `fetchFiles()` KHÔNG gọi server trong 60 giây đầu sau lượt tải thật. Phần lớn
+   * thao tác không vướng vào đó vì chúng sửa `items` tại chỗ (đổi tên, gắn sao,
+   * xoá) — nhưng di chuyển / sao chép thì không: chúng đổi nội dung của thư mục
+   * NGUỒN và thư mục ĐÍCH ở phía server rồi trông cậy hoàn toàn vào `fetchFiles()`
+   * để vẽ lại. Gặp đúng ô cache còn tươi thì lượt gọi ấy thoát sớm, và người dùng
+   * thấy dán xong mà màn hình không đổi gì.
+   *
+   * Đẩy lùi `cachedAt` thay vì xoá hẳn ô cache: xoá sẽ dựng lại skeleton cho một
+   * màn hình vốn đang có nội dung gần đúng. Lùi đúng bằng ngưỡng revalidate thì
+   * bản đã lưu vẫn được vẽ ngay, nhưng lượt gọi nền LUÔN chạy để sửa lại.
+   *
+   * @param {Array<string|null>} folderIds  id thư mục bị ảnh hưởng; `null` = gốc.
+   */
+  const staleListViewsForFolders = useCallback((folderIds) => {
+    const affected = new Set(folderIds.map((id) => id ?? null));
+    if (affected.size === 0) return;
+
+    const cache = listCacheRef.current;
+    const staleAt = Date.now() - LIST_REVALIDATE_AFTER_MS;
+
+    for (const [key, value] of cache) {
+      let folderId;
+      try {
+        ({ folderId } = JSON.parse(key));
+      } catch {
+        continue; // Khoá lạ (bản cache của phiên bản cũ) — bỏ qua, TTL sẽ dọn
+      }
+      if (!affected.has(folderId ?? null)) continue;
+      if (value.cachedAt <= staleAt) continue; // Đã quá hạn sẵn
+
+      cache.set(key, { ...value, cachedAt: staleAt });
+      // Ghi xuống đĩa nữa, nếu không thì F5 sẽ nạp lại đúng bản vừa bị làm cũ.
+      dirtyListKeysRef.current.add(key);
+    }
+
+    if (dirtyListKeysRef.current.size > 0 && !persistTimerRef.current) {
+      persistTimerRef.current = setTimeout(flushListCache, LIST_PERSIST_DEBOUNCE_MS);
+    }
+  }, [flushListCache]);
+
+  /**
    * Nạp bộ đệm từ đĩa, một lần cho mỗi lần mở trang.
    *
    * Chỉ đọc, không lọc gì thêm: `readNamespace` đã bỏ qua bản hết hạn và đã giới
@@ -1902,6 +1946,21 @@ export function FileProvider({ children }) {
 
       // Đồng bộ lại danh sách tệp & thông số lưu trữ (tách riêng khỏi catch dán)
       if (fulfilledCount > 0) {
+        // BẮT BUỘC đứng trước `fetchFiles()`. Dán là thao tác DUY NHẤT đổi nội
+        // dung thư mục mà không tự sửa `items` tại chỗ — nó trông cậy hoàn toàn
+        // vào lượt đồng bộ ngay dưới. Mà lượt đó sẽ thoát sớm nếu ô cache của
+        // khung nhìn còn trong ngưỡng `LIST_REVALIDATE_AFTER_MS`, tức là suốt 60
+        // giây đầu sau khi mở thư mục — đúng khoảng thời gian người ta thực sự
+        // cắt/dán. Kết quả: server đã chuyển tệp xong mà màn hình không đổi gì.
+        //
+        // Đích luôn bị ảnh hưởng. Nguồn thì chỉ khi CẮT — sao chép không lấy gì
+        // ra khỏi thư mục cũ.
+        const affectedFolders = [destId];
+        if (currentClip.mode === 'cut') {
+          affectedFolders.push(...toProcess.map((entry) => entry.parentId ?? null));
+        }
+        staleListViewsForFolders(affectedFolders);
+
         try {
           await fetchFiles();
           await fetchAnalytics();
@@ -1910,7 +1969,7 @@ export function FileProvider({ children }) {
         }
       }
     },
-    [clearClipboard, fetchFiles, fetchAnalytics, t]
+    [clearClipboard, fetchFiles, fetchAnalytics, staleListViewsForFolders, t]
   );
 
   // ── Global Keyboard Shortcuts Listener ──

@@ -460,35 +460,35 @@ export default function BillingAndQuota() {
           </div>
 
           {/* Section Switcher & Button Làm mới */}
-          <div className="flex items-center gap-2.5 sm:gap-3 shrink-0 flex-wrap sm:flex-nowrap w-full sm:w-auto">
-            <div className="flex bg-white dark:bg-[#282a2c] p-1.5 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm shrink-0 flex-1 sm:flex-none">
-              <button
-                onClick={() => setActiveSection('pricing')}
-                className={`flex-1 sm:flex-none px-4 sm:px-5 py-2.5 sm:py-2 text-[15px] font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 ${
-                  activeSection === 'pricing'
-                    ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-gray-900/5 dark:ring-white/10'
-                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-white/5'
-                }`}
-              >
-                <Sparkles className="w-4 h-4" /> {t('billing.tab.pricing')}
-              </button>
-              <button
-                onClick={() => setActiveSection('history')}
-                className={`flex-1 sm:flex-none px-4 sm:px-5 py-2.5 sm:py-2 text-[15px] font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 ${
-                  activeSection === 'history'
-                    ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-gray-900/5 dark:ring-white/10'
-                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-white/5'
-                }`}
-              >
-                <History className="w-4 h-4" /> {t('billing.tab.history')}
-              </button>
-            </div>
+          <div className="flex items-center bg-white dark:bg-[#282a2c] p-1.5 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm shrink-0 w-full sm:w-auto overflow-x-auto">
+            <button
+              onClick={() => setActiveSection('pricing')}
+              className={`flex-1 sm:flex-none px-4 sm:px-5 py-2.5 sm:py-2 text-[15px] font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 whitespace-nowrap ${
+                activeSection === 'pricing'
+                  ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-gray-900/5 dark:ring-white/10'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-white/5'
+              }`}
+            >
+              <Sparkles className="w-4 h-4" /> {t('billing.tab.pricing')}
+            </button>
+            <button
+              onClick={() => setActiveSection('history')}
+              className={`flex-1 sm:flex-none px-4 sm:px-5 py-2.5 sm:py-2 text-[15px] font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 whitespace-nowrap ${
+                activeSection === 'history'
+                  ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-gray-900/5 dark:ring-white/10'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-white/5'
+              }`}
+            >
+              <History className="w-4 h-4" /> {t('billing.tab.history')}
+            </button>
+
+            <div className="w-px h-5 bg-gray-200 dark:bg-gray-700 mx-1 shrink-0" />
 
             <button
               onClick={handleRefresh}
               disabled={isSyncing || (activeSection === 'history' && txLoading)}
               title={t('billing.quota.syncTitle')}
-              className="px-4 py-2.5 sm:py-2 rounded-2xl bg-white dark:bg-[#282a2c] border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 font-bold text-[14px] transition-all inline-flex items-center justify-center gap-2 shrink-0 cursor-pointer shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 sm:flex-none px-4 sm:px-5 py-2.5 sm:py-2 text-[15px] font-bold rounded-xl text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-white/5 active:bg-gray-100 dark:active:bg-gray-700 transition-all cursor-pointer flex items-center justify-center gap-2 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <RefreshCw className={`w-4 h-4 ${isSyncing || (activeSection === 'history' && txLoading) ? 'animate-spin' : ''}`} />
               <span>{t('info.refresh') || 'Làm mới'}</span>

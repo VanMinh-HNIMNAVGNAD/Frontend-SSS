@@ -1161,6 +1161,20 @@ function errorFromPayload(payload, fallbackMessage) {
   return err;
 }
 
+/**
+ * Bao lâu KHÔNG nhận được byte nào thì coi dòng SSE đã chết.
+ *
+ * Backend gửi `: ping` mỗi 15 giây (`SSE_PING_MS`), nên 40 giây im lặng không thể là
+ * "đang nghĩ lâu" — nó là một socket đã đứt mà trình duyệt chưa báo. Đây là tình huống
+ * của Android: tab bị đóng băng trong đa nhiệm, socket chết, và nếu không có đồng hồ này
+ * thì `reader.read()` treo tới khi TCP tự bỏ cuộc hàng phút sau.
+ */
+const SSE_STALL_MS = 40 * 1000;
+/** Số lần nối lại tối đa cho MỘT lượt hỏi. */
+const MAX_SSE_RESUMES = 5;
+/** Giãn cách giữa các lần nối lại (ms). Lần cuối lặp lại giá trị cuối cùng. */
+const SSE_RESUME_BACKOFF_MS = [500, 1000, 2000, 3000, 3000];
+
 /** Lỗi "người dùng bấm Dừng", mang đúng `name`/`code` mà axios dùng. */
 function canceledError() {
   const err = new Error('Đã huỷ');
@@ -1176,19 +1190,23 @@ function canceledError() {
  * của axios (`_retried`): nếu lần thứ hai vẫn 401 thì vấn đề không phải token hết hạn,
  * và thử lại tiếp chỉ là spam chính mình.
  */
-async function postSse(path, payload, { signal, onEvent }) {
+async function postSse(path, payload, { signal, onEvent, onActivity, method = 'POST' }) {
   const open = async () => {
     const token = localStorage.getItem('accessToken');
     return fetch(`${API_BASE_URL}${path}`, {
-      method: 'POST',
+      method,
       credentials: 'include',
       signal,
       headers: {
-        'Content-Type': 'application/json',
         Accept: 'text/event-stream',
+        ...(payload !== null && payload !== undefined
+          ? { 'Content-Type': 'application/json' }
+          : {}),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
-      body: JSON.stringify(payload),
+      ...(payload !== null && payload !== undefined
+        ? { body: JSON.stringify(payload) }
+        : {}),
     });
   };
 
@@ -1240,6 +1258,10 @@ async function postSse(path, payload, { signal, onEvent }) {
     for (;;) {
       const { done, value } = await reader.read();
       if (done) break;
+      // MỌI byte đều tính là dấu hiệu dòng còn sống, kể cả `: ping` (backend gửi mỗi 15
+      // giây) — chính nhịp đó là thứ phân biệt "đang nghĩ lâu" với "dòng đã chết mà
+      // trình duyệt chưa biết". Xem đồng hồ canh dòng ở `askStream`.
+      onActivity?.();
       buffer += decoder.decode(value, { stream: true });
 
       // Frame SSE kết thúc bằng một dòng trắng. Giữ phần dư trong `buffer`: một frame
@@ -1348,33 +1370,123 @@ export const aiApi = {
    * model, grounded, conversationId, quota }. `answer` là câu trả lời TRỌN VẸN, nên
    * nơi gọi có thể bỏ qua `onDelta` nếu không cần hiệu ứng chữ chạy.
    */
-  askStream: async (payload, { signal, onMeta, onThought, onDelta } = {}) => {
+  askStream: async (payload, { signal, onMeta, onThought, onDelta, onRun, onResume } = {}) => {
     let result = null;
     let streamError = null;
+    let runId = null;
+    // Chỉ số sự kiện SẮP nhận. Gửi lại ở `?from=` nên lượt nối lại không phát lại thứ
+    // đã đọc (chữ không bị lặp) và cũng không nhảy cóc qua đoạn giữa.
+    let from = 0;
+    let attempts = 0;
 
-    await postSse('/ai/ask/stream', payload, {
-      signal,
-      onEvent: (name, data) => {
-        if (name === 'meta') onMeta?.(data);
-        else if (name === 'thought') onThought?.(data?.text ?? '');
-        else if (name === 'delta') onDelta?.(data?.text ?? '');
-        else if (name === 'done') result = data;
-        else if (name === 'error') streamError = errorFromPayload(data);
-      },
-    });
+    const handle = (name, data) => {
+      if (typeof data?.index === 'number') from = data.index + 1;
+      if (name === 'run') {
+        runId = data?.runId ?? runId;
+        onRun?.(runId);
+      } else if (name === 'meta') {
+        runId = data?.runId ?? runId;
+        onMeta?.(data);
+      } else if (name === 'thought') onThought?.(data?.text ?? '');
+      else if (name === 'delta') onDelta?.(data?.text ?? '');
+      else if (name === 'done') result = data;
+      else if (name === 'error') streamError = errorFromPayload(data);
+    };
+
+    for (;;) {
+      // Đã bị huỷ trước cả lượt gọi đầu (đóng khung chat ngay sau khi bấm): không gửi
+      // một request nào cả.
+      if (signal?.aborted) throw canceledError();
+
+      // Đồng hồ canh dòng chết. Không có nó thì trên Android, một socket đã chết trong
+      // lúc app nằm ở đa nhiệm vẫn "đang đọc" cho tới khi TCP tự bỏ cuộc hàng phút sau
+      // — người dùng mở lại app và nhìn con trỏ nhấp nháy vào khoảng không. Backend gửi
+      // `: ping` mỗi 15 giây, nên 40 giây im lặng là dòng đã đứt, không phải đang nghĩ.
+      const attemptCtrl = new AbortController();
+      const abortAttempt = () => attemptCtrl.abort();
+      let stalled = false;
+      let timer = null;
+      const armWatchdog = () => {
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+          stalled = true;
+          abortAttempt();
+        }, SSE_STALL_MS);
+      };
+      // Quay lại app là kiểm NGAY, không đợi hết 40 giây: khoảnh khắc người dùng mở lại
+      // chính là lúc họ nhìn vào màn hình.
+      const onVisible = () => {
+        if (document.visibilityState === 'visible') armWatchdog();
+      };
+      signal?.addEventListener('abort', abortAttempt, { once: true });
+      document.addEventListener('visibilitychange', onVisible);
+      armWatchdog();
+
+      let failure = null;
+      try {
+        if (runId === null) {
+          await postSse('/ai/ask/stream', payload, {
+            signal: attemptCtrl.signal,
+            onActivity: armWatchdog,
+            onEvent: handle,
+          });
+        } else {
+          // GET: lượt nối lại chỉ ĐỌC lại thứ backend đã sinh, không tiêu thêm token nào.
+          await postSse(`/ai/ask/stream/${runId}?from=${from}`, undefined, {
+            method: 'GET',
+            signal: attemptCtrl.signal,
+            onActivity: armWatchdog,
+            onEvent: handle,
+          });
+        }
+      } catch (err) {
+        failure = err;
+      } finally {
+        clearTimeout(timer);
+        document.removeEventListener('visibilitychange', onVisible);
+        signal?.removeEventListener('abort', abortAttempt);
+      }
+
+      // Người dùng bấm Dừng: không nối lại. Phân biệt bằng signal của NGƯỜI DÙNG, vì
+      // đồng hồ canh dòng cũng huỷ request và cũng ném ra đúng lỗi đó.
+      if (signal?.aborted) throw canceledError();
+      if (result || streamError) break;
+
+      const canResume = runId !== null && attempts < MAX_SSE_RESUMES;
+      // Lỗi CÓ mã HTTP là phán quyết của máy chủ (404 lượt chạy đã bay, 401 hết đường
+      // làm mới, 400 sai tham số) — nối lại chỉ nhận đúng câu đó lần nữa.
+      if (failure && (failure.status || !canResume)) throw failure;
+      if (!failure && !canResume) break;
+
+      attempts += 1;
+      onResume?.(attempts);
+      if (!stalled) await new Promise((r) => setTimeout(r, SSE_RESUME_BACKOFF_MS[attempts - 1] ?? 3000));
+    }
 
     if (streamError) {
       console.error('[API Error]', streamError.status, '/ai/ask/stream', streamError.message);
       throw streamError;
     }
     if (!result) {
-      // Dòng đóng mà không có `done` cũng không có `error`: dyno chết giữa lúc sinh,
-      // hoặc mạng đứt. Nói đúng như vậy — người dùng thử lại là hợp lý, khác hẳn với
-      // một lỗi có nguyên nhân rõ mà thử lại cũng vô ích.
-      throw new Error('Kết nối tới AI bị ngắt giữa lúc đang trả lời, vui lòng thử lại');
+      // Dòng đóng mà không có `done` cũng không có `error`, và đã nối lại hết số lần cho
+      // phép: dyno chết giữa lúc sinh, hoặc mạng hỏng lâu. Câu trả lời (nếu backend đã
+      // sinh xong) vẫn nằm trong Lịch sử trò chuyện — nói đúng như vậy thay vì để người
+      // dùng tưởng đã mất trắng.
+      throw new Error(
+        'Kết nối tới AI bị ngắt giữa lúc đang trả lời. Thử lại, hoặc xem Lịch sử trò chuyện — câu trả lời có thể đã được lưu.',
+      );
     }
     return result;
   },
+
+  /**
+   * Dừng THẬT một lượt hỏi đang chạy.
+   *
+   * Từ bản sửa "chuyển tab là dính error", đóng socket KHÔNG còn huỷ lượt gọi Vertex —
+   * đó là điều kiện để nối lại được sau khi app vào đa nhiệm. Nên nút Dừng phải nói ra
+   * ý định đó bằng một request riêng, chứ không thể chỉ `abort()` cái fetch.
+   */
+  cancelRun: (runId) => api.post(`/ai/runs/${runId}/cancel`),
 
   /**
    * Lịch sử: MỌI cuộc trò chuyện của mình, mới nhất trước.

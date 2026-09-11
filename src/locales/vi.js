@@ -492,6 +492,7 @@ const vi = {
   'ai.empty.folder': 'Hỏi AI bất cứ điều gì về thư mục này',
   'ai.empty.hint': 'Chọn một lệnh nhanh bên dưới, hoặc gõ câu hỏi của bạn. AI đọc nội dung tệp văn bản, mã nguồn, ảnh, PDF và danh sách mục con của thư mục.',
   'ai.thinking': 'Đang đọc và suy luận…',
+  'ai.reconnecting': 'Mất kết nối — đang nối lại, câu trả lời vẫn đang được tạo…',
   'ai.reasoning': 'Đang suy luận',
   'ai.send': 'Gửi',
   'ai.truncated': 'Câu trả lời bị cắt vì đã chạm giới hạn độ dài. Hỏi lại vào một phần cụ thể để có câu trọn vẹn.',

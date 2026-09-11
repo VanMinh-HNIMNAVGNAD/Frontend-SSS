@@ -198,6 +198,11 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
     const [viewing, setViewing] = useState(null);
 
     const abortRef = useRef(null);
+    // `runId` của lượt đang chạy. Từ bản sửa "chuyển tab là dính error", đóng socket
+    // KHÔNG còn huỷ lượt gọi Vertex — đó là điều kiện để nối lại được sau khi app vào
+    // đa nhiệm. Nên nút Dừng phải nói ra ý định đó bằng một request riêng.
+    const runIdRef = useRef(null);
+    const [reconnecting, setReconnecting] = useState(false);
     const scrollRef = useRef(null);
     const inputRef = useRef(null);
 
@@ -248,6 +253,15 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                     },
                     {
                         signal: controller.signal,
+                        // Về TRƯỚC `meta` (backend phát ngay khi mở dòng), nên kể cả lượt
+                        // hỏi video — nơi phần dựng ngữ cảnh mất 2-3 phút — vẫn nối lại
+                        // được nếu mạng đứt trong lúc chờ.
+                        onRun: (runId) => {
+                            runIdRef.current = runId;
+                        },
+                        // Đang nối lại: nói ra thay vì để con trỏ nhấp nháy im lặng. Đây
+                        // chính là khoảnh khắc người dùng vừa mở lại app từ đa nhiệm.
+                        onResume: () => setReconnecting(true),
                         // Ngữ cảnh tới TRƯỚC chữ đầu tiên, nên bong bóng của AI ra đời
                         // ở đây — đã có sẵn dòng "AI đọc được gì" ngay từ lúc rỗng,
                         // thay vì dán thêm vào sau khi người dùng đọc xong câu trả lời.
@@ -281,6 +295,7 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                         // chảy: không có nó thì một lượt hỏi mới (hoặc một lần dọn lỗi)
                         // có thể ghi chữ vào đúng bong bóng đã hoàn tất của lượt trước.
                         onDelta: (chunk) => {
+                            setReconnecting(false);
                             setMessages((prev) => {
                                 const last = prev[prev.length - 1];
                                 if (!last?.streaming) return prev;
@@ -345,11 +360,30 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                 }
             } finally {
                 setIsThinking(false);
+                setReconnecting(false);
                 abortRef.current = null;
+                runIdRef.current = null;
             }
         },
         [item, isFolder, language, messages, conversationId, t],
     );
+
+    /**
+     * Người dùng bấm Dừng (hoặc Esc).
+     *
+     * Phải BÁO BACKEND, không chỉ `abort()` cái fetch: từ bản sửa "chuyển tab là dính
+     * error", socket đóng không còn là lệnh huỷ — đó chính là thứ cho phép nối lại sau
+     * khi app vào đa nhiệm. Thiếu request này thì Dừng chỉ tắt giao diện còn dyno vẫn
+     * sinh tiếp tới hết.
+     *
+     * Không `await`: người dùng đã bấm Dừng thì giao diện phải dừng ngay, không chờ một
+     * vòng mạng. Lỗi của chính lượt huỷ cũng không có gì để nói với họ.
+     */
+    const stopRun = useCallback(() => {
+        const runId = runIdRef.current;
+        if (runId) aiApi.cancelRun(runId).catch(() => {});
+        abortRef.current?.abort();
+    }, []);
 
     // `send` đổi tham chiếu sau mỗi lượt trả lời (nó đọc `messages`), nhưng hiệu ứng
     // khởi động bên dưới chỉ chạy đúng một lần lúc mở khung — giữ bản mới nhất qua ref
@@ -406,14 +440,14 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
         const onKeyDown = (e) => {
             if (e.key !== 'Escape') return;
             if (abortRef.current) {
-                abortRef.current.abort();
+                stopRun();
                 return;
             }
             onClose?.();
         };
         window.addEventListener('keydown', onKeyDown);
         return () => window.removeEventListener('keydown', onKeyDown);
-    }, [isOpen, onClose]);
+    }, [isOpen, onClose, stopRun]);
 
     // Luôn cuộn xuống câu mới nhất
     useEffect(() => {
@@ -945,9 +979,9 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                     {isThinking && (
                         <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
                             <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            {t('ai.thinking')}
+                            {reconnecting ? t('ai.reconnecting') : t('ai.thinking')}
                             <button
-                                onClick={() => abortRef.current?.abort()}
+                                onClick={stopRun}
                                 className="ml-auto inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
                             >
                                 <Square className="w-3 h-3" /> {t('ai.stop')}

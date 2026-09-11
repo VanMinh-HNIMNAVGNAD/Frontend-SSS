@@ -262,6 +262,13 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                         // Đang nối lại: nói ra thay vì để con trỏ nhấp nháy im lặng. Đây
                         // chính là khoảnh khắc người dùng vừa mở lại app từ đa nhiệm.
                         onResume: () => setReconnecting(true),
+                        // Nối lại XONG. Phải tắt ở đây chứ không đợi `onDelta`: với lượt
+                        // hỏi video, phần dựng ngữ cảnh mất 2–3 phút nên giữa lúc nối lại
+                        // xong và đoạn chữ đầu tiên có thể là vài phút — bản trước giữ
+                        // dòng "Mất kết nối" suốt khoảng đó, nên một cú đứt mạng chỉ một
+                        // giây đọc ra thành mất kết nối cả phút, và người dùng kết luận
+                        // đúng rằng nó đang hỏng.
+                        onAlive: () => setReconnecting(false),
                         // Ngữ cảnh tới TRƯỚC chữ đầu tiên, nên bong bóng của AI ra đời
                         // ở đây — đã có sẵn dòng "AI đọc được gì" ngay từ lúc rỗng,
                         // thay vì dán thêm vào sau khi người dùng đọc xong câu trả lời.

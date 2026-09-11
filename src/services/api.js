@@ -1365,15 +1365,25 @@ export const aiApi = {
    *                   khối tạm rồi thay bằng câu trả lời thật.
    * @param {function=} handlers.onDelta     (text) — một đoạn chữ mới, cần NỐI vào
    *                   phần đã có chứ không phải thay thế nó.
+   * @param {function=} handlers.onAlive     () — gọi ở byte ĐẦU TIÊN sau một lần đứt,
+   *                   tức lượt nối lại đã thành công. Đây là chỗ tắt dòng "Mất kết nối";
+   *                   đừng đợi `onDelta` vì lượt hỏi video có thể còn vài phút nữa mới
+   *                   có đoạn chữ đầu tiên.
    *
    * Trả về payload cuối cùng, cùng hình dạng `ask`: { answer, question, context,
    * model, grounded, conversationId, quota }. `answer` là câu trả lời TRỌN VẸN, nên
    * nơi gọi có thể bỏ qua `onDelta` nếu không cần hiệu ứng chữ chạy.
    */
-  askStream: async (payload, { signal, onMeta, onThought, onDelta, onRun, onResume } = {}) => {
+  askStream: async (
+    payload,
+    { signal, onMeta, onThought, onDelta, onRun, onResume, onAlive } = {},
+  ) => {
     let result = null;
     let streamError = null;
     let runId = null;
+    // Đang trong trạng thái "đã đứt, đang nối lại". Dùng để biết byte nào là byte ĐẦU
+    // TIÊN của lượt nối lại — xem `noteActivity`.
+    let resuming = false;
     // Chỉ số sự kiện SẮP nhận. Gửi lại ở `?from=` nên lượt nối lại không phát lại thứ
     // đã đọc (chữ không bị lặp) và cũng không nhảy cóc qua đoạn giữa.
     let from = 0;
@@ -1413,6 +1423,22 @@ export const aiApi = {
           abortAttempt();
         }, SSE_STALL_MS);
       };
+      // MỌI byte tới đều nạp lại đồng hồ, và byte đầu tiên sau một lần đứt còn là bằng
+      // chứng dòng đã sống lại — kể cả khi đó chỉ là một `: ping`.
+      //
+      // Vì sao cần báo ngược lên: nơi gọi tắt dòng "Mất kết nối" khi nhận đoạn chữ đầu
+      // tiên (`onDelta`). Với lượt hỏi video thì phần dựng ngữ cảnh mất 2–3 phút, nên
+      // giữa lúc nối lại xong và đoạn chữ đầu tiên có thể là vài PHÚT không có `delta`
+      // nào — và suốt khoảng đó người dùng đọc "Mất kết nối" trong khi thật ra dòng đã
+      // nối lại từ lâu và câu trả lời đang được sinh bình thường. `: ping` là thứ duy
+      // nhất chảy đều trong khoảng đó, nên nó phải là thứ tắt dòng cảnh báo.
+      const noteActivity = () => {
+        armWatchdog();
+        if (resuming) {
+          resuming = false;
+          onAlive?.();
+        }
+      };
       // Quay lại app là kiểm NGAY, không đợi hết 40 giây: khoảnh khắc người dùng mở lại
       // chính là lúc họ nhìn vào màn hình.
       const onVisible = () => {
@@ -1427,7 +1453,7 @@ export const aiApi = {
         if (runId === null) {
           await postSse('/ai/ask/stream', payload, {
             signal: attemptCtrl.signal,
-            onActivity: armWatchdog,
+            onActivity: noteActivity,
             onEvent: handle,
           });
         } else {
@@ -1435,7 +1461,7 @@ export const aiApi = {
           await postSse(`/ai/ask/stream/${runId}?from=${from}`, undefined, {
             method: 'GET',
             signal: attemptCtrl.signal,
-            onActivity: armWatchdog,
+            onActivity: noteActivity,
             onEvent: handle,
           });
         }
@@ -1459,6 +1485,7 @@ export const aiApi = {
       if (!failure && !canResume) break;
 
       attempts += 1;
+      resuming = true;
       onResume?.(attempts);
       if (!stalled) await new Promise((r) => setTimeout(r, SSE_RESUME_BACKOFF_MS[attempts - 1] ?? 3000));
     }

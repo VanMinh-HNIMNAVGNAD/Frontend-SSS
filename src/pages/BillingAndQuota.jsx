@@ -301,6 +301,13 @@ export default function BillingAndQuota() {
     }
   };
 
+  const handleRefresh = async () => {
+    if (activeSection === 'history') {
+      fetchTransactions();
+    }
+    await handleRecalculateQuota();
+  };
+
   /**
    * Tắt tự động gia hạn gói đang chạy.
    *
@@ -435,15 +442,15 @@ export default function BillingAndQuota() {
 
   const getProgressColor = (percent) => {
     if (percent > 90) return 'bg-rose-500';
-    if (percent > 70) return 'bg-amber-400';
-    return 'bg-emerald-400';
+    if (percent > 70) return 'bg-amber-500';
+    return 'bg-blue-600 dark:bg-blue-500';
   };
 
   return (
     <div className="flex flex-col h-full overflow-y-auto px-4 sm:px-6 lg:px-8 pb-12 custom-scrollbar bg-gray-50/30 dark:bg-white/5">
       <div className="max-w-[1440px] mx-auto w-full pt-6 sm:pt-10 space-y-10">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6">
           <div className="flex items-center gap-4 min-w-0">
             <div className="min-w-0 flex flex-col justify-center">
               <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-gray-100 truncate tracking-tight">
@@ -452,68 +459,71 @@ export default function BillingAndQuota() {
             </div>
           </div>
 
-          {/* Section Switcher */}
-          <div className="flex bg-white dark:bg-[#282a2c] p-1.5 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm shrink-0 w-full sm:w-auto">
+          {/* Section Switcher & Button Làm mới */}
+          <div className="flex items-center gap-2.5 sm:gap-3 shrink-0 flex-wrap sm:flex-nowrap w-full sm:w-auto">
+            <div className="flex bg-white dark:bg-[#282a2c] p-1.5 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm shrink-0 flex-1 sm:flex-none">
+              <button
+                onClick={() => setActiveSection('pricing')}
+                className={`flex-1 sm:flex-none px-4 sm:px-5 py-2.5 sm:py-2 text-[15px] font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                  activeSection === 'pricing'
+                    ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-gray-900/5 dark:ring-white/10'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-white/5'
+                }`}
+              >
+                <Sparkles className="w-4 h-4" /> {t('billing.tab.pricing')}
+              </button>
+              <button
+                onClick={() => setActiveSection('history')}
+                className={`flex-1 sm:flex-none px-4 sm:px-5 py-2.5 sm:py-2 text-[15px] font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                  activeSection === 'history'
+                    ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-gray-900/5 dark:ring-white/10'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-white/5'
+                }`}
+              >
+                <History className="w-4 h-4" /> {t('billing.tab.history')}
+              </button>
+            </div>
+
             <button
-              onClick={() => setActiveSection('pricing')}
-              className={`flex-1 sm:flex-none px-4 sm:px-5 py-2.5 sm:py-2 text-[15px] font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 ${
-                activeSection === 'pricing'
-                  ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-gray-900/5 dark:ring-white/10'
-                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-white/5'
-              }`}
+              onClick={handleRefresh}
+              disabled={isSyncing || (activeSection === 'history' && txLoading)}
+              title={t('billing.quota.syncTitle')}
+              className="px-4 py-2.5 sm:py-2 rounded-2xl bg-white dark:bg-[#282a2c] border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 font-bold text-[14px] transition-all inline-flex items-center justify-center gap-2 shrink-0 cursor-pointer shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Sparkles className="w-4 h-4" /> {t('billing.tab.pricing')}
-            </button>
-            <button
-              onClick={() => setActiveSection('history')}
-              className={`flex-1 sm:flex-none px-4 sm:px-5 py-2.5 sm:py-2 text-[15px] font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 ${
-                activeSection === 'history'
-                  ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-gray-900/5 dark:ring-white/10'
-                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-white/5'
-              }`}
-            >
-              <History className="w-4 h-4" /> {t('billing.tab.history')}
+              <RefreshCw className={`w-4 h-4 ${isSyncing || (activeSection === 'history' && txLoading) ? 'animate-spin' : ''}`} />
+              <span>{t('info.refresh') || 'Làm mới'}</span>
             </button>
           </div>
         </div>
 
-        {/* Storage Summary Card */}
-        <div className="bg-slate-900 rounded-3xl p-6 sm:p-8 md:p-10 text-white shadow-xl flex flex-col md:flex-row items-center justify-between gap-8 border border-slate-800 relative overflow-hidden">
-          <div className="absolute right-0 top-0 translate-x-1/3 -translate-y-1/3 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute left-0 bottom-0 -translate-x-1/3 translate-y-1/3 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-
-          <div className="relative z-10 flex-1 w-full min-w-0">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 dark:bg-white/5 rounded-lg text-blue-200 text-xs font-bold uppercase tracking-wide border border-white/10 backdrop-blur-md">
-                <HardDrive className="w-4 h-4" /> Tổng quan lưu trữ
-              </div>
-              <button
-                onClick={handleRecalculateQuota}
-                disabled={isSyncing}
-                title={t('billing.quota.syncTitle')}
-                className={`p-1.5 rounded-lg bg-white/10 dark:bg-white/5 text-blue-200 hover:bg-white/20 transition-all border border-white/10 backdrop-blur-md cursor-pointer ${
-                  isSyncing ? 'animate-spin opacity-50 cursor-not-allowed' : ''
-                }`}
-              >
-                <RefreshCw className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="flex items-baseline gap-3 mb-2 flex-wrap">
-              <h2 className="text-4xl md:text-5xl font-black tracking-tight">{formatBytes(usedBytes)}</h2>
-              <span className="text-slate-400 text-lg md:text-xl font-medium">/ {formatStorage(limitBytes)} đã dùng</span>
-            </div>
+        {/* Tổng quan lưu trữ - Bỏ background, thanh quota tràn 2 bên, thông tin đặt dưới thanh */}
+        <div className="w-full space-y-3">
+          <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300 font-bold text-sm">
+            <HardDrive className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+            <span>Tổng quan lưu trữ</span>
           </div>
 
-          <div className="relative z-10 w-full md:w-1/2 shrink-0">
-            <div className="w-full bg-slate-800 rounded-full h-3 mb-3 overflow-hidden shadow-inner border border-slate-700/50">
-              <div
-                className={`h-full rounded-full transition-all duration-700 ease-out ${getProgressColor(usedPercent)}`}
-                style={{ width: `${Math.min(100, Math.max(1, usedPercent))}%` }}
-              />
+          {/* Thanh quota để tràn sang 2 bên */}
+          <div className="w-full bg-gray-200 dark:bg-gray-700/60 rounded-full h-3 overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-700 ease-out ${getProgressColor(usedPercent)}`}
+              style={{ width: `${Math.min(100, Math.max(usedBytes > 0 ? 1 : 0, usedPercent))}%` }}
+            />
+          </div>
+
+          {/* 0 Bytes / 0 GB đã dùng: mục này để ở dưới thanh đó */}
+          <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2 pt-0.5">
+            <div className="flex items-baseline gap-2">
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-gray-100 tracking-tight">
+                {formatBytes(usedBytes)}
+              </h2>
+              <span className="text-gray-500 dark:text-gray-400 text-sm sm:text-base font-medium">
+                / {formatStorage(limitBytes)} đã dùng
+              </span>
             </div>
-            <div className="flex justify-between text-sm font-semibold text-slate-400">
+            <div className="flex items-center gap-2 text-sm font-semibold text-gray-500 dark:text-gray-400">
               <span>Đã dùng {usedPercent}%</span>
+              <span>•</span>
               <span>Trống {formatBytes(freeBytes)}</span>
             </div>
           </div>

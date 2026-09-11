@@ -81,13 +81,11 @@ export default function AppRouter() {
                 {/*
                   Điều khoản / Quyền riêng tư / Hướng dẫn xoá dữ liệu.
 
-                  BA URL NÀY KHÔNG PHẢI TRANG PHỤ: chúng dựng lên để điền vào ba ô
-                  bắt buộc của Meta khi bật Facebook Login. Đăng nhập Facebook đã gỡ
-                  11/09/2026 nhưng ba trang thì GIỮ — nghĩa vụ thông báo cho người
-                  dùng không đi kèm nhà cung cấp nào, và Google/GitHub cũng hỏi tới
-                  chúng khi xét duyệt. Đường dẫn lấy từ
-                  `constants/legal.js` chứ không gõ chuỗi ở đây, để chỗ khai báo
-                  đường dẫn và chỗ dùng nó không bao giờ lệch nhau.
+                  BA URL NÀY KHÔNG PHẢI TRANG PHỤ: nhà cung cấp OAuth nào cũng đòi
+                  đủ chúng khi xét duyệt, và đây là nghĩa vụ thông báo cho người dùng
+                  chứ không phải trang trí. Đường dẫn lấy từ `constants/legal.js` chứ
+                  không gõ chuỗi ở đây, để chỗ khai báo đường dẫn và chỗ dùng nó không
+                  bao giờ lệch nhau.
 
                   Công khai và KHÔNG bọc MainLayout: người đọc chúng phần lớn chưa
                   có tài khoản, và trang đăng ký mở chúng ra tab mới.

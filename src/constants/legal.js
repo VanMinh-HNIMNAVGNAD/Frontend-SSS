@@ -2,11 +2,9 @@
 // Trang pháp lý — đường dẫn, phiên bản, địa chỉ liên hệ
 // ─────────────────────────────────────────────────────────────────────────────
 // VÌ SAO FILE NÀY TỒN TẠI: ba trang /terms, /privacy, /data-deletion không phải
-// trang trí. Chúng dựng lên cho ba ô bắt buộc trong bảng điều khiển của Meta khi
-// bật Facebook Login. Đăng nhập Facebook đã gỡ 11/09/2026 (`.ai/facebook-login.md`)
-// — ba trang vẫn GIỮ NGUYÊN: nghĩa vụ nói cho người dùng biết mình thu thập gì và
-// xoá dữ liệu ra sao không phụ thuộc vào nhà cung cấp nào, và nhà cung cấp OAuth
-// nào cũng hỏi tới chúng khi xét duyệt.
+// trang trí. Nghĩa vụ nói cho người dùng biết mình thu thập gì và xoá dữ liệu ra
+// sao là bắt buộc, và nhà cung cấp OAuth nào cũng đòi đủ ba URL này khi xét duyệt
+// — để trống hoặc trỏ vào một URL trả 404 là hồ sơ bị treo.
 //
 // Đường dẫn khai ở ĐÂY chứ không gõ chuỗi '/privacy' rải rác trong component:
 // URL này nằm trong cấu hình ở phía nhà cung cấp OAuth, nên đổi nó là việc phải

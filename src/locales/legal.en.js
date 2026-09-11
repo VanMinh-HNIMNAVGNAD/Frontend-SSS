@@ -1,10 +1,10 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Nội dung ba tài liệu pháp lý — bản tiếng Anh
 // ─────────────────────────────────────────────────────────────────────────────
-// Bản này ra đời để nộp cho Meta xét đơn Facebook Login. Đăng nhập Facebook đã
-// gỡ ngày 11/09/2026 (xem `.ai/facebook-login.md`), nhưng bản tiếng Anh vẫn giữ:
-// nó là bản mà người dùng không đọc được tiếng Việt sẽ mở ra, và nếu sau này nộp
-// đơn cho một nhà cung cấp khác thì đây là bản họ đọc.
+// BẢN NÀY LÀ BẢN NGƯỜI KIỂM DUYỆT ĐỌC: hồ sơ xin quyền OAuth xét bằng tiếng Anh,
+// nên bản dịch này không phải "cho đủ bộ" — nó là bản mà người quyết định app có
+// được bật hay không sẽ mở ra, và cũng là bản người dùng không đọc được tiếng
+// Việt sẽ mở ra.
 //
 // PHẢI KHỚP TỪNG MỤC với `legal.vi.js` — cùng số mục, cùng thứ tự, cùng nội dung.
 // Không có script nào canh hai file này (`check-i18n.mjs` chỉ soi vi.js/en.js),

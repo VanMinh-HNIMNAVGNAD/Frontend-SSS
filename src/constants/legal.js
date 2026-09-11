@@ -2,15 +2,16 @@
 // Trang pháp lý — đường dẫn, phiên bản, địa chỉ liên hệ
 // ─────────────────────────────────────────────────────────────────────────────
 // VÌ SAO FILE NÀY TỒN TẠI: ba trang /terms, /privacy, /data-deletion không phải
-// trang trí. Chúng là ĐIỀU KIỆN BẮT BUỘC để bật Facebook Login — bảng điều khiển
-// Meta có ba ô "Privacy Policy URL", "Terms of Service URL" và "User Data
-// Deletion" mà app không qua được vòng kiểm duyệt nếu để trống hoặc điền một URL
-// trả 404. Xem `.ai/facebook-login.md` để biết điền gì vào đâu.
+// trang trí. Chúng dựng lên cho ba ô bắt buộc trong bảng điều khiển của Meta khi
+// bật Facebook Login. Đăng nhập Facebook đã gỡ 11/09/2026 (`.ai/facebook-login.md`)
+// — ba trang vẫn GIỮ NGUYÊN: nghĩa vụ nói cho người dùng biết mình thu thập gì và
+// xoá dữ liệu ra sao không phụ thuộc vào nhà cung cấp nào, và nhà cung cấp OAuth
+// nào cũng hỏi tới chúng khi xét duyệt.
 //
 // Đường dẫn khai ở ĐÂY chứ không gõ chuỗi '/privacy' rải rác trong component:
-// URL này đã nằm trong cấu hình của Meta (và của Google/GitHub sau này), nên
-// đổi nó là việc phải làm CÓ Ý THỨC ở một chỗ — sửa route mà quên sửa ô trong
-// dashboard là app bị treo kiểm duyệt mà không có lỗi nào ở phía mình.
+// URL này nằm trong cấu hình ở phía nhà cung cấp OAuth, nên đổi nó là việc phải
+// làm CÓ Ý THỨC ở một chỗ — sửa route mà quên sửa ô trong dashboard là app bị treo
+// kiểm duyệt mà không có lỗi nào ở phía mình.
 
 /**
  * Ba tài liệu pháp lý. Khoá của object này chính là `docId` mà <LegalPage />

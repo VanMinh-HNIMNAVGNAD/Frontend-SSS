@@ -64,7 +64,7 @@ const privacy = {
               'Xác thực khi đăng nhập.',
             ],
             [
-              'Đăng nhập bằng Facebook / Google / GitHub',
+              'Đăng nhập bằng Google / GitHub',
               'Mã định danh người dùng do nhà cung cấp đó cấp, địa chỉ email, tên hiển thị và ảnh đại diện.',
               'Tạo và nhận diện tài khoản mà bạn không phải đặt thêm mật khẩu.',
             ],
@@ -102,7 +102,7 @@ const privacy = {
         },
         {
           type: 'note',
-          text: 'Về đăng nhập bằng Facebook: chúng tôi chỉ yêu cầu hai quyền "email" và "public_profile". Chúng tôi KHÔNG đọc danh sách bạn bè, bài đăng, ảnh, tin nhắn của bạn, và KHÔNG bao giờ đăng bất cứ thứ gì lên tài khoản Facebook của bạn. Nếu tài khoản Facebook của bạn không cung cấp email, chúng tôi không tạo được tài khoản và sẽ mời bạn dùng cách đăng nhập khác.',
+          text: 'Về đăng nhập bằng Google hoặc GitHub: chúng tôi chỉ yêu cầu địa chỉ email và thông tin hồ sơ công khai. Chúng tôi KHÔNG đọc tệp trên Google Drive, kho mã riêng tư hay bất cứ dữ liệu nào khác của bạn ở đó, và KHÔNG bao giờ đăng hay thay đổi bất cứ thứ gì trên tài khoản đó. Nếu tài khoản của bạn không cung cấp email, chúng tôi không tạo được tài khoản và sẽ mời bạn dùng cách đăng nhập khác.',
         },
       ],
     },
@@ -248,7 +248,7 @@ const privacy = {
             'Xem danh sách thiết bị đang đăng nhập và thu hồi từng phiên hoặc tất cả phiên khác.',
             'Tắt việc người khác tìm thấy bạn qua địa chỉ email, trong Cài đặt → Quyền riêng tư & Bảo mật.',
             'Xoá vĩnh viễn tài khoản cùng toàn bộ dữ liệu — xem mục 8.',
-            'Ngắt liên kết với Facebook, Google hoặc GitHub bằng cách xoá tài khoản {service}, hoặc gỡ ứng dụng trong phần cài đặt của nhà cung cấp đó.',
+            'Ngắt liên kết với Google hoặc GitHub bằng cách xoá tài khoản {service}, hoặc gỡ ứng dụng trong phần cài đặt của nhà cung cấp đó.',
             'Rút lại sự đồng ý, phản đối việc xử lý, hoặc yêu cầu một bản sao dữ liệu của bạn — gửi yêu cầu tới {email}.',
           ],
         },
@@ -523,7 +523,7 @@ const dataDeletion = {
             'Đăng nhập vào {site}.',
             'Bấm vào ảnh đại diện của bạn ở góc trên bên phải, chọn Hồ sơ.',
             'Kéo xuống cuối, tìm phần "Xoá tài khoản".',
-            'Nhập mật khẩu để xác nhận (tài khoản đăng nhập bằng Facebook, Google hoặc GitHub thì không cần bước này), rồi xác nhận xoá.',
+            'Nhập mật khẩu để xác nhận (tài khoản đăng nhập bằng Google hoặc GitHub thì không cần bước này), rồi xác nhận xoá.',
           ],
         },
         {
@@ -537,11 +537,11 @@ const dataDeletion = {
       blocks: [
         {
           type: 'p',
-          text: 'Nếu bạn không đăng nhập được nữa — mất mật khẩu, mất quyền truy cập email, hoặc đã gỡ ứng dụng khỏi Facebook — hãy gửi thư tới {email} với tiêu đề "Yêu cầu xoá dữ liệu".',
+          text: 'Nếu bạn không đăng nhập được nữa — mất mật khẩu, mất quyền truy cập email, hoặc đã gỡ ứng dụng khỏi Google / GitHub — hãy gửi thư tới {email} với tiêu đề "Yêu cầu xoá dữ liệu".',
         },
         {
           type: 'p',
-          text: 'Trong thư, xin cho biết địa chỉ email bạn đã dùng để đăng ký và cách bạn đã đăng nhập (email và mật khẩu, hay Facebook / Google / GitHub). Chúng tôi cần xác minh bạn đúng là chủ tài khoản trước khi xoá — điều này bảo vệ bạn khỏi việc người khác xoá dữ liệu của bạn.',
+          text: 'Trong thư, xin cho biết địa chỉ email bạn đã dùng để đăng ký và cách bạn đã đăng nhập (email và mật khẩu, hay Google / GitHub). Chúng tôi cần xác minh bạn đúng là chủ tài khoản trước khi xoá — điều này bảo vệ bạn khỏi việc người khác xoá dữ liệu của bạn.',
         },
         {
           type: 'p',
@@ -550,15 +550,15 @@ const dataDeletion = {
       ],
     },
     {
-      heading: 'Gỡ quyền truy cập của Facebook',
+      heading: 'Gỡ quyền truy cập của Google / GitHub',
       blocks: [
         {
           type: 'p',
-          text: 'Xoá tài khoản {service} đã cắt liên kết giữa {service} và tài khoản Facebook của bạn. Nếu bạn muốn dọn thêm ở phía Facebook: vào Facebook → Cài đặt & quyền riêng tư → Cài đặt → Ứng dụng và trang web, chọn {service} rồi bấm Xoá.',
+          text: 'Xoá tài khoản {service} đã cắt liên kết giữa {service} và tài khoản Google hoặc GitHub của bạn. Nếu bạn muốn dọn thêm ở phía nhà cung cấp: với Google vào Tài khoản Google → Bảo mật → Ứng dụng của bên thứ ba; với GitHub vào Settings → Applications → Authorized OAuth Apps, chọn {service} rồi gỡ.',
         },
         {
           type: 'note',
-          text: 'Gỡ ứng dụng ở phía Facebook chỉ ngăn Facebook chia sẻ thêm thông tin với chúng tôi. Nó KHÔNG tự xoá tài khoản {service} của bạn — muốn xoá dữ liệu thì vẫn phải làm theo Cách 1 hoặc Cách 2 ở trên.',
+          text: 'Gỡ ứng dụng ở phía nhà cung cấp chỉ ngăn họ chia sẻ thêm thông tin với chúng tôi. Nó KHÔNG tự xoá tài khoản {service} của bạn — muốn xoá dữ liệu thì vẫn phải làm theo Cách 1 hoặc Cách 2 ở trên.',
         },
       ],
     },
@@ -568,7 +568,7 @@ const dataDeletion = {
         {
           type: 'ul',
           items: [
-            'Bản ghi tài khoản: email, nickname, mật khẩu đã băm, mã định danh từ Facebook / Google / GitHub.',
+            'Bản ghi tài khoản: email, nickname, mật khẩu đã băm, mã định danh từ Google / GitHub.',
             'Mọi tệp và mọi phiên bản cũ của tệp thuộc về bạn, xoá khỏi hệ thống lưu trữ.',
             'Ảnh đại diện và các ảnh thu nhỏ đã sinh ra.',
             'Toàn bộ phiên đăng nhập, trên mọi thiết bị.',

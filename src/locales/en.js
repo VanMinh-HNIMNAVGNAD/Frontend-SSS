@@ -347,6 +347,9 @@ const en = {
   'login.submit': 'Enter workspace',
   'login.submitting': 'Working...',
   'login.success': 'Signed in',
+  'login.oauthCancelled': 'You cancelled the sign-in. Nothing was shared.',
+  'login.oauthNoEmail':
+    'That social account does not share an email address, so it cannot be used to sign in. Please sign in with your email instead.',
   'login.oauthFailed': 'OAuth sign-in failed. Try again, or sign in with your email.',
   'login.oauthExpired': 'The OAuth sign-in expired. Please click sign in again.',
   'login.oauthUnavailable':
@@ -354,9 +357,8 @@ const en = {
   'login.accountLocked':
     'Your account has been locked. Contact an administrator to have it unlocked.',
   'login.oauth.google': 'Sign in with Google',
-  'login.oauth.facebook': 'Sign in with Facebook',
   'login.oauth.github': 'Sign in with GitHub',
-  'login.oauth.comingSoon': '{provider} sign-in is not available yet. Use Google, GitHub, Facebook or your email.',
+  'login.oauth.comingSoon': '{provider} sign-in is not available yet. Use Google, GitHub or your email.',
   'login.forgotPassword': 'Forgot your password?',
   'login.noAccount': "Don't have an account?",
   'login.registerNow': 'Sign up',
@@ -368,7 +370,6 @@ const en = {
   'register.success': 'Account created',
   'register.oauthFailed': 'OAuth sign-up failed. Try again, or create the account with your email.',
   'register.oauth.google': 'Sign up with Google',
-  'register.oauth.facebook': 'Sign up with Facebook',
   'register.oauth.github': 'Sign up with GitHub',
   'register.hasAccount': 'Already have an account?',
   'register.loginNow': 'Sign in',

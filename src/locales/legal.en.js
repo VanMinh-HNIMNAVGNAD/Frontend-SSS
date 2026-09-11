@@ -1,9 +1,10 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Nội dung ba tài liệu pháp lý — bản tiếng Anh
 // ─────────────────────────────────────────────────────────────────────────────
-// BẢN NÀY LÀ BẢN NGƯỜI KIỂM DUYỆT ĐỌC. Meta xét đơn xin quyền Facebook Login
-// bằng tiếng Anh, nên bản dịch này không phải "cho đủ bộ": nó là bản mà người
-// quyết định app có được bật hay không sẽ mở ra.
+// Bản này ra đời để nộp cho Meta xét đơn Facebook Login. Đăng nhập Facebook đã
+// gỡ ngày 11/09/2026 (xem `.ai/facebook-login.md`), nhưng bản tiếng Anh vẫn giữ:
+// nó là bản mà người dùng không đọc được tiếng Việt sẽ mở ra, và nếu sau này nộp
+// đơn cho một nhà cung cấp khác thì đây là bản họ đọc.
 //
 // PHẢI KHỚP TỪNG MỤC với `legal.vi.js` — cùng số mục, cùng thứ tự, cùng nội dung.
 // Không có script nào canh hai file này (`check-i18n.mjs` chỉ soi vi.js/en.js),
@@ -53,7 +54,7 @@ const privacy = {
               'To authenticate you at sign-in.',
             ],
             [
-              'Facebook / Google / GitHub sign-in',
+              'Google / GitHub sign-in',
               'The user identifier issued by that provider, your email address, display name and profile picture.',
               'To create and recognise your account without you setting another password.',
             ],
@@ -91,7 +92,7 @@ const privacy = {
         },
         {
           type: 'note',
-          text: 'About Facebook sign-in: we request only the "email" and "public_profile" permissions. We do NOT read your friends list, posts, photos or messages, and we never post anything to your Facebook account. If your Facebook account does not provide an email address, we cannot create an account and will ask you to use another sign-in method.',
+          text: 'About Google and GitHub sign-in: we request only your email address and public profile information. We do NOT read your Google Drive files, your private repositories or any other data held there, and we never post or change anything on that account. If your account does not provide an email address, we cannot create an account and will ask you to use another sign-in method.',
         },
       ],
     },
@@ -237,7 +238,7 @@ const privacy = {
             'See the list of signed-in devices and revoke individual sessions or all other sessions.',
             'Turn off discovery by email address, under Settings → Privacy & Security.',
             'Permanently delete your account and all its data — see section 8.',
-            'Disconnect Facebook, Google or GitHub by deleting your {service} account, or by removing the app in that provider’s own settings.',
+            'Disconnect Google or GitHub by deleting your {service} account, or by removing the app in that provider’s own settings.',
             'Withdraw consent, object to processing, or request a copy of your data — write to {email}.',
           ],
         },
@@ -512,7 +513,7 @@ const dataDeletion = {
             'Sign in at {site}.',
             'Click your profile picture in the top right corner and choose Profile.',
             'Scroll to the bottom and find the "Delete account" section.',
-            'Enter your password to confirm (accounts that sign in with Facebook, Google or GitHub skip this step), then confirm the deletion.',
+            'Enter your password to confirm (accounts that sign in with Google or GitHub skip this step), then confirm the deletion.',
           ],
         },
         {
@@ -526,11 +527,11 @@ const dataDeletion = {
       blocks: [
         {
           type: 'p',
-          text: 'If you can no longer sign in — you lost your password, lost access to your email, or already removed the app from Facebook — write to {email} with the subject "Data deletion request".',
+          text: 'If you can no longer sign in — you lost your password, lost access to your email, or already removed the app from Google / GitHub — write to {email} with the subject "Data deletion request".',
         },
         {
           type: 'p',
-          text: 'In your message, tell us the email address you registered with and how you signed in (email and password, or Facebook / Google / GitHub). We must verify that you are the account owner before deleting anything — this is what stops someone else from deleting your data.',
+          text: 'In your message, tell us the email address you registered with and how you signed in (email and password, or Google / GitHub). We must verify that you are the account owner before deleting anything — this is what stops someone else from deleting your data.',
         },
         {
           type: 'p',
@@ -539,15 +540,15 @@ const dataDeletion = {
       ],
     },
     {
-      heading: 'Removing Facebook’s access',
+      heading: 'Removing Google / GitHub access',
       blocks: [
         {
           type: 'p',
-          text: 'Deleting your {service} account already severs the link between {service} and your Facebook account. If you want to tidy up on the Facebook side as well: go to Facebook → Settings & privacy → Settings → Apps and websites, select {service}, and click Remove.',
+          text: 'Deleting your {service} account already severs the link between {service} and your Google or GitHub account. If you want to tidy up on the provider’s side as well: for Google go to your Google Account → Security → Third-party apps; for GitHub go to Settings → Applications → Authorized OAuth Apps, select {service}, and remove it.',
         },
         {
           type: 'note',
-          text: 'Removing the app on the Facebook side only stops Facebook from sharing further information with us. It does NOT delete your {service} account by itself — to delete your data you still need Option 1 or Option 2 above.',
+          text: 'Removing the app on the provider’s side only stops them from sharing further information with us. It does NOT delete your {service} account by itself — to delete your data you still need Option 1 or Option 2 above.',
         },
       ],
     },
@@ -557,7 +558,7 @@ const dataDeletion = {
         {
           type: 'ul',
           items: [
-            'The account record: email, nickname, hashed password, and the identifier from Facebook / Google / GitHub.',
+            'The account record: email, nickname, hashed password, and the identifier from Google / GitHub.',
             'Every file and every previous version of every file belonging to you, removed from the storage systems.',
             'Your profile picture and any generated thumbnails.',
             'All sign-in sessions, on every device.',

@@ -12,7 +12,7 @@ import { LEGAL_DOCS, LEGAL_PATHS } from '../../constants/legal';
  *
  * AI THẤY MÀN NÀY, và vì sao họ không thể đã đồng ý từ trước:
  *
- *   • Tài khoản tạo bằng Google / Facebook / GitHub. Luồng OAuth KHÔNG có ô tích
+ *   • Tài khoản tạo bằng Google / GitHub. Luồng OAuth KHÔNG có ô tích
  *     nào để đi qua: bấm nút là rời trang sang nhà cung cấp, không có request
  *     nào của mình đi kèm để backend kiểm `acceptedTerms` như ở luồng mật khẩu
  *     (xem `handleSocialRegister` trong RegisterPage.jsx). Đây là chỗ duy nhất

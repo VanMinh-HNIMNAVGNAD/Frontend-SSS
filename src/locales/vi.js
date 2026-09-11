@@ -350,6 +350,9 @@ const vi = {
   'login.submit': 'Vào Workspace',
   'login.submitting': 'Đang xử lý...',
   'login.success': 'Đăng nhập thành công!',
+  'login.oauthCancelled': 'Bạn đã huỷ việc đăng nhập. Không có thông tin nào được chia sẻ.',
+  'login.oauthNoEmail':
+    'Tài khoản mạng xã hội này không chia sẻ địa chỉ email nên không dùng để đăng nhập được. Vui lòng đăng nhập bằng Email.',
   'login.oauthFailed': 'Đăng nhập OAuth thất bại. Vui lòng thử lại hoặc sử dụng Email để đăng nhập.',
   // Hai lý do dưới đây thuộc BƯỚC 2 của đăng nhập OAuth (đổi mã lấy phiên), khác hẳn
   // `oauthFailed` ở bước 1 — ở bước 1 là nhà cung cấp từ chối, còn ở đây nhà cung cấp đã
@@ -361,9 +364,8 @@ const vi = {
   'login.accountLocked':
     'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên để được mở khóa.',
   'login.oauth.google': 'Đăng nhập bằng Google',
-  'login.oauth.facebook': 'Đăng nhập bằng Facebook',
   'login.oauth.github': 'Đăng nhập bằng GitHub',
-  'login.oauth.comingSoon': 'Đăng nhập bằng {provider} sắp ra mắt. Vui lòng sử dụng Google, GitHub, Facebook hoặc Email!',
+  'login.oauth.comingSoon': 'Đăng nhập bằng {provider} sắp ra mắt. Vui lòng sử dụng Google, GitHub hoặc Email!',
   'login.forgotPassword': 'Quên mật khẩu?',
   'login.noAccount': 'Chưa có tài khoản?',
   'login.registerNow': 'Đăng ký ngay',
@@ -375,7 +377,6 @@ const vi = {
   'register.success': 'Đăng ký thành công!',
   'register.oauthFailed': 'Đăng ký OAuth thất bại. Vui lòng thử lại hoặc sử dụng Email để tạo tài khoản.',
   'register.oauth.google': 'Đăng ký bằng Google',
-  'register.oauth.facebook': 'Đăng ký bằng Facebook',
   'register.oauth.github': 'Đăng ký bằng GitHub',
   'register.hasAccount': 'Đã có tài khoản?',
   'register.loginNow': 'Đăng nhập ngay',

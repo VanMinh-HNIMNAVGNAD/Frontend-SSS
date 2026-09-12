@@ -192,7 +192,7 @@ const en = {
   'menu.share': 'Share',
   'menu.details': 'Details & activity',
   'menu.moveToTrash': 'Move to trash',
-  'menu.notSpam': 'Not spam',
+  'menu.dismissSuggestion': 'Not a useful suggestion',
   'menu.notSpamRestore': 'Not spam — send back to its folder',
   'menu.star.add': 'Add to starred',
   'menu.star.remove': 'Remove from starred',
@@ -488,6 +488,12 @@ const en = {
   'ai.copy': 'Copy',
   'ai.copied': 'Copied',
   'ai.clear': 'Clear conversation',
+  'ai.dismiss': 'Dismiss',
+  'ai.copyFailed': 'Browser blocked it — select the text and press Ctrl+C',
+  'ai.quickActions': 'Quick actions',
+  'ai.clear.confirm': 'Delete?',
+  'ai.clear.confirmHint': 'Click again to clear the whole conversation on screen',
+  'ai.history.delete.confirmHint': 'Click again to permanently delete this conversation',
   'ai.placeholder.file': 'Ask anything about this file…',
   'ai.placeholder.folder': 'Ask anything about this folder…',
   'ai.disclaimer': 'AI can be wrong — double-check anything that matters.',
@@ -685,6 +691,9 @@ const en = {
   'home.recent.subtitle': '(Recently edited)',
   'home.empty.recent': 'Nothing opened recently.',
   'home.empty.shared': 'Nothing has been shared with you yet.',
+  'home.dismissed': '"{name}" is hidden from Home. The file itself stays in My Drive.',
+  'home.restoreDismissed': 'Show {count} hidden item(s)',
+  'home.restoreDismissed.hint': 'Bring every item you marked "not a useful suggestion" back to Home',
   // ── Activity log (components/file-manager/ActivityLogDrawer.jsx) ──
   'activity.group.all': 'All',
   'activity.group.upload': 'Uploads & new items',
@@ -814,6 +823,10 @@ const en = {
   'profile.defaultName': 'driveR user',
   'profile.name.placeholder': 'Your display name',
   'profile.plan.free': 'Plan: Free (default)',
+  'profile.plan.current': 'Plan: {name}',
+  'profile.plan.remaining': '{days} day(s) left',
+  'profile.plan.loading': 'Plan: loading…',
+  'profile.plan.unavailable': 'Plan: could not load',
   'profile.password.minHint': 'At least 6 characters',
   'profile.password.confirmPlaceholder': 'Re-enter the new password',
   'profile.session.lastUsed': 'Last used',
@@ -1073,6 +1086,236 @@ const en = {
   'file.paste.oneFailed': "Could not process \"{detail}\"",
   'file.paste.manyFailed': "{failed} of {total} items failed ({detail}, ...)",
   'billing.confirm.reenableTail': " and add the new cycle to your current expiry date.",
+
+  // ── User profile (UserProfileModal) ──
+  'profile.tab.info': 'Profile',
+  'profile.tab.password': 'Password',
+  'profile.tab.sessions': 'Sessions',
+  'profile.name.label': 'Display name',
+  'profile.discoverable.title': 'Let people find you by email',
+  'profile.discoverable.desc':
+    'Allow other people to find you by your email address when they want to share files with you',
+  'profile.email.label': 'Email address (cannot be changed)',
+  'profile.save': 'Save changes',
+  'profile.storage.title': 'Cloud storage',
+  'profile.storage.free': '{percent}% free',
+  'profile.password.securityHint':
+    'To keep your account safe, use a strong password of at least 6 characters and avoid reusing a password from elsewhere.',
+  'profile.password.currentLabel': 'Current password',
+  'profile.password.confirmLabel': 'Confirm new password',
+  'profile.password.submit': 'Change password',
+  'profile.sessions.title': 'Signed-in devices ({count})',
+  'profile.sessions.subtitle':
+    'Browsers and devices that currently have access to your account.',
+  'profile.sessions.revokeOthers': 'Sign out other devices',
+  'profile.sessions.empty': 'No session information yet.',
+  'profile.session.thisDevice': 'This device',
+  'profile.session.revokedBadge': 'Revoked',
+  'profile.danger.title': 'Danger zone',
+  'profile.danger.desc':
+    'Permanently delete your account along with every file and byte stored in Cloud Storage. This cannot be undone.',
+  'profile.danger.button': 'Delete account',
+  'profile.delete.step1Password': '1. Enter your current password',
+  'profile.delete.oauthConfirm':
+    'I confirm that I have backed up everything important and agree to permanently delete this {provider} account.',
+  'profile.delete.typeKeyword': 'Type {keyword} to confirm',
+  'profile.delete.confirmButton': 'Permanently delete account',
+
+
+  // ── Billing & quota page (BillingAndQuota) ──
+  'common.retry': 'Try again',
+  'billing.quota.overview': 'Storage overview',
+  'billing.quota.ofUsed': 'of {total} used',
+  'billing.quota.usedPercent': '{percent}% used',
+  'billing.quota.freeSpace': '{size} free',
+  'billing.current.remainingDays': '({days} days left)',
+  'billing.current.cancelRenewal': 'Turn off auto-renewal',
+  'billing.current.stackingNote': 'Buying again or upgrading adds the new cycle on top of the current one.',
+  'billing.plans.heading': 'Pick the storage plan that fits you',
+  'billing.plans.subheading': 'Subscribe to a longer cycle and save up to 17%.',
+  'billing.plans.noneHint': 'Please check back later or contact an administrator.',
+  'billing.tx.recentHint': 'Your 50 most recent transactions, newest first.',
+  'billing.tx.noneHint': 'Your plan upgrades will show up here.',
+  'billing.tx.recheck': 'Check again',
+  'billing.confirm.noQuote':
+    'No detailed quote yet. This is the list price — the final amount appears on the payment page.',
+  'billing.confirm.methodHint':
+    'Works with every Vietnamese banking app. The payment link stays valid for 15 minutes.',
+  'billing.confirm.creatingLink': 'Creating payment link…',
+  'billing.confirm.continue': 'Continue to payment',
+  'billing.confirm.redirectNote': "You'll be taken to payOS's secure payment page.",
+
+
+  // ── Search filter panel (SearchFilterModal) ──
+  'search.filter.title': 'driveR search filters',
+  'search.filter.type.label': 'File / Drive type',
+  'search.filter.type.all': 'All types (drives, folders, files)',
+  'search.filter.type.folder': 'Folder / Drive',
+  'search.filter.type.file': 'File',
+  'search.filter.type.pdf': 'PDF document (.pdf)',
+  'search.filter.type.image': 'Image (PNG, JPG)',
+  'search.filter.owner.label': 'Owner',
+  'search.filter.owner.anyone': 'Anyone',
+  'search.filter.owner.me': 'Owned by me',
+  'search.filter.owner.others': 'Shared by others',
+  'search.filter.location.label': 'Location',
+  'search.filter.location.anywhere': 'Anywhere in driveR',
+  'search.filter.location.myDrive': 'My Drive',
+  'search.filter.location.sharedWithMe': 'Shared with me',
+  'search.filter.location.sharedDrives': 'Shared drives',
+  'search.filter.location.spam': 'Spam',
+  'search.filter.location.trash': 'Trash',
+  'search.filter.apply': 'Apply filters',
+
+
+  // ── Activity log drawer (ActivityLogDrawer) ──
+  'activity.drawer.title': 'Activity log',
+  'activity.desc.uploadFile': 'Uploaded {name}',
+  'activity.desc.createFolder': 'Created folder {name}',
+  'activity.desc.star': 'Added {name} to starred',
+  'activity.desc.unstar': 'Removed {name} from starred',
+  'activity.desc.trash': 'Moved {name} to trash',
+  'activity.desc.restore': 'Restored {name} from trash',
+  'activity.desc.deleteForever': 'Permanently deleted {name}',
+  'activity.desc.emptyTrash': 'Emptied the trash: {count} items deleted',
+  'activity.desc.copy': 'Created a copy {name}',
+  'activity.desc.freed': '({size} freed)',
+  'activity.empty.title': 'No activity yet',
+  'activity.empty.hint': 'Uploads, edits, moves and shares will be recorded here.',
+  'activity.filtered.title': 'No matching activity',
+  'activity.filtered.hint': 'Nothing in this filter group.',
+  'activity.filtered.showAll': 'Show all ({count})',
+
+
+  // ── Shared drives page (SharedDrivesPage) ──
+  'drives.subtitle':
+    'Shared storage for teams & projects — files belong to the whole group instead of one person.',
+  'drives.createNew': 'Create',
+  'drives.createFirst': 'Create your first shared drive',
+  'drives.emptyHint':
+    'A shared drive lets your department or project team keep and manage documents in one place. The files belong to the group, so nothing is lost when a member leaves.',
+  'drives.name.label': 'Shared drive name',
+  'drives.description.label': 'Description',
+  'drives.description.optionalLabel': 'Description (optional)',
+  'drives.saveChanges': 'Save changes',
+
+
+  // ── Public share link page (SharePage) ──
+  'sharePage.backHome': 'Back to home',
+  'sharePage.text.unreadable': "Can't read this content. Download the file to view it.",
+  'sharePage.sourceLabel': 'Source',
+  'sharePage.password.hint':
+    'Enter the password to preview, download or browse this shared folder.',
+  'sharePage.expiresOn': 'Expires {date}',
+  'sharePage.protected': 'Password protected',
+  'sharePage.cta.question': 'Want to store and share files for free?',
+  'sharePage.cta.register': 'Sign up for driveR',
+  'preview.audio.label': 'Audio • {size}',
+
+
+  // ── File details drawer (FileInfoDrawer) ──
+  'info.access.heading': 'Access & group',
+  'info.access.manage': 'Manage',
+  'info.desc.heading': 'Description',
+  'info.desc.saved': 'Saved',
+  'info.activity.loadFailed': "Couldn't load the activity log",
+  'info.activity.actor': 'By:',
+  'info.versions.heading': 'File version history',
+  'info.activity.emptyHint': 'No recorded changes for this file yet.',
+  'info.versions.label': 'Version v{number}',
+
+
+  // ── Forgot password (ForgotPasswordPage) ──
+  'forgot.emailStepHint':
+    "Enter your email. If an account exists, we'll send a 6-digit verification code to that inbox.",
+  'forgot.rememberPassword': 'Remembered your password?',
+  'forgot.setNewFor': 'Set a new password for',
+  'forgot.confirmLabel': 'Re-enter the password',
+  'forgot.signOutWarning': 'Once changed, every signed-in device will be signed out.',
+  'forgot.redirecting': 'Taking you to the sign-in page...',
+
+  // ── Quick cleanup (QuickCleanupModal) ──
+  'cleanup.emptyTrash': 'Empty the trash ({count} files)',
+  'cleanup.reclaimable': '{size} MB can be reclaimed right away',
+  'cleanup.largeFiles': '{count} largest files worth reviewing',
+  'cleanup.scanning': 'Scanning the whole drive...',
+  'cleanup.noLargeFiles': '🎉 No file of yours is over 10 MB!',
+
+
+  // ── Color picker (ColorPickerPanel) ──
+  'color.pick': 'Pick a color',
+  'color.default': 'default',
+  'color.custom': 'Custom',
+  'color.hexAria': 'Hex color code',
+  'color.apply': 'Apply',
+  'color.reset': 'Reset to default color',
+
+  // ── Shared drive sharing (ShareDriveModal) ──
+  'driveShare.addMember': 'Add a member',
+  'driveShare.adminOnly': 'Only an Admin of this drive can add or remove members.',
+  'driveShare.members': 'Members ({count})',
+  'driveShare.changeRoleHint':
+    'To change someone\u2019s role, remove them from the list and add them again with the new role.',
+
+  // ── Resumable uploads bar (ResumeUploads) ──
+  'resume.pending': '{count} uploads left unfinished',
+  'resume.hint':
+    'Pick the same file again to resume from where it stopped — browsers cannot keep file contents across a page reload.',
+  'resume.pickAgain': 'Pick the file again',
+  'resume.drop': 'Discard',
+
+  // ── Rename (RenameModal) ──
+  'rename.newNameLabel': 'New name',
+
+  // ── Transaction details (TransactionDetailModal) ──
+  'tx.detail.title': 'Transaction details',
+  'tx.detail.keep': 'Keep it',
+
+  // ── Account menu (AccountModal) ──
+  'account.providerBadge': '{provider} account',
+  'account.myAccount': 'My account',
+  'account.logout': 'Sign out',
+
+
+  // ── Strings missed by the first i18n pass ──
+  'menu.changeColor': 'Change color',
+  'file.downloadNamed': 'Download ({name})',
+  'share.titleOf': 'Share "{name}"',
+  'share.peopleWithAccess': 'People with access ({count})',
+  'upload.keepUploading': 'Keep uploading',
+  'upload.renamedFrom': '↪ Renamed from "{name}"',
+  'foot.samplePath': './My Drive/Company Projects/Reports/...',
+  'otp.sentTo': 'Enter the 6-digit code we just sent to',
+  'otp.back': '← Back',
+  'billing.cancel.backToPlans': 'Back to plans',
+  'billing.cancel.backToApp': 'Back to driveR',
+  'billing.cancel.help':
+    'Trouble paying? Try again, or scan the QR code with a different banking app.',
+  'home.itemCount': '({count} items)',
+  'login.orEmail': 'OR EMAIL',
+  'notFound.title': 'Page not found',
+  'notFound.body': 'The address you asked for is unavailable or has moved somewhere new.',
+  'notFound.backHome': 'Back to home',
+
+
+  // ── Errors built outside the React tree (services/api.js) ──
+  'common.canceled': 'Canceled',
+  'ai.stream.disconnected':
+    'The connection to the AI dropped mid-answer. Try again, or check Chat history — the answer may already be saved.',
+  'color.changed': 'Color changed',
+  'color.resetDone': 'Color reset to default',
+  'color.changeFailed': "Couldn't change the color",
+
+
+  // ── File/folder card tooltips + hardcoded property labels ──
+  'card.fileOptions': 'File options',
+  'info.field.owner': 'Owner',
+  'info.field.group': 'Group',
+  'info.field.permissions': 'Permissions',
+  'auth.nickname.label': 'Nickname',
+
+  'card.sharedBadge': 'Shared',
+
 };
 
 export default en;

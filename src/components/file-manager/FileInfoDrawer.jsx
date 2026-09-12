@@ -392,7 +392,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                         {/* Access & Sharing Section */}
                         <div className="space-y-2.5">
                             <h4 className="font-bold text-gray-900 dark:text-gray-100 text-xs uppercase tracking-wider text-[11px]">
-                                Quyền truy cập & Nhóm
+                                {t('info.access.heading')}
                             </h4>
                             <div className="flex items-center justify-between p-3 rounded-2xl bg-gray-50 dark:bg-[#282a2c] border border-gray-100 dark:border-gray-800">
                                 <div className="flex items-center gap-3">
@@ -410,7 +410,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                                             onClick={() => { openPreview(item); onClose?.(); }}
                                             className="px-2.5 py-1.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-xl font-semibold flex items-center gap-1 shadow-xs transition-all cursor-pointer"
                                         >
-                                            <Eye className="w-3.5 h-3.5 text-blue-500" /> Xem trước
+                                            <Eye className="w-3.5 h-3.5 text-blue-500" /> {t('menu.preview')}
                                         </button>
                                     )}
                                     <button
@@ -427,7 +427,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                                         }}
                                         className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold flex items-center gap-1 shadow-xs transition-all cursor-pointer"
                                     >
-                                        <Share2 className="w-3.5 h-3.5" /> Quản lý
+                                        <Share2 className="w-3.5 h-3.5" /> {t('info.access.manage')}
                                     </button>
                                 </div>
                             </div>
@@ -468,7 +468,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
 
                             {/* Property item: Người sở hữu */}
                             <div className="flex justify-between py-1.5 border-b border-gray-200 dark:border-gray-800">
-                                <span className="text-gray-600 dark:text-gray-400 font-semibold">Owner</span>
+                                <span className="text-gray-600 dark:text-gray-400 font-semibold">{t('info.field.owner')}</span>
                                 <span className="font-semibold text-gray-900 dark:text-gray-100">
                                     {item.owner || t('list.owner.me')}
                                 </span>
@@ -476,7 +476,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
 
                             {/* Property item: Group */}
                             <div className="flex justify-between py-1.5 border-b border-gray-200 dark:border-gray-800">
-                                <span className="text-gray-600 dark:text-gray-400 font-semibold">Group</span>
+                                <span className="text-gray-600 dark:text-gray-400 font-semibold">{t('info.field.group')}</span>
                                 <span className="font-semibold text-gray-900 dark:text-gray-100 font-mono">
                                     {item.group || 'users'}
                                 </span>
@@ -484,7 +484,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
 
                             {/* Property item: Permissions */}
                             <div className="flex justify-between py-1.5 border-b border-gray-200 dark:border-gray-800">
-                                <span className="text-gray-600 dark:text-gray-400 font-semibold">Permissions</span>
+                                <span className="text-gray-600 dark:text-gray-400 font-semibold">{t('info.field.permissions')}</span>
                                 <span className="font-mono font-bold px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-700">
                                     {item.permissions || (isFolder ? 'rwxr-xr-x' : 'rw-r--r--')}
                                 </span>
@@ -511,11 +511,11 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                         <div className="space-y-2 pt-2">
                             <div className="flex items-center justify-between">
                                 <h4 className="font-bold text-gray-900 dark:text-gray-100 text-xs uppercase tracking-wider text-[11px]">
-                                    Mô tả
+                                    {t('info.desc.heading')}
                                 </h4>
                                 {savedDescSuccess && (
                                     <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1 text-[11px] animate-fade-in">
-                                        <Check className="w-3.5 h-3.5" /> Đã lưu
+                                        <Check className="w-3.5 h-3.5" /> {t('info.desc.saved')}
                                     </span>
                                 )}
                             </div>
@@ -541,7 +541,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                     <div className="space-y-4">
                         <div className="flex items-center justify-between">
                             <h4 className="font-bold text-gray-900 dark:text-gray-100 text-xs uppercase tracking-wider text-[11px]">
-                                Lịch sử hoạt động
+                                {t('activity.drawer.title')}
                             </h4>
                             {activityLogs.length > 0 && !loadingTab && (
                                 <button
@@ -563,7 +563,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                             <div className="p-4 rounded-2xl bg-rose-50/60 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30 text-center space-y-2">
                                 <AlertCircle className="w-6 h-6 text-rose-500 dark:text-rose-400 mx-auto" />
                                 <p className="text-xs font-semibold text-rose-800 dark:text-rose-300">
-                                    Không thể tải lịch sử hoạt động
+                                    {t('info.activity.loadFailed')}
                                 </p>
                                 <p className="text-[11px] text-rose-600 dark:text-rose-400">
                                     {activityError}
@@ -572,7 +572,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                                     onClick={fetchActivityLogs}
                                     className="inline-flex items-center gap-1.5 px-3 py-1.5 mt-1 bg-rose-100 hover:bg-rose-200 dark:bg-rose-900/40 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-200 text-xs font-semibold rounded-lg transition-colors cursor-pointer"
                                 >
-                                    <RefreshCw className="w-3.5 h-3.5" /> Thử lại
+                                    <RefreshCw className="w-3.5 h-3.5" /> {t('common.retry')}
                                 </button>
                             </div>
                         ) : activityLogs.length > 0 ? (
@@ -582,7 +582,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                                     const Icon = meta.icon;
                                     const description = renderActivityDescription(log);
                                     const dateStr = log.createdAt
-                                        ? new Date(log.createdAt).toLocaleString('vi-VN', {
+                                        ? new Date(log.createdAt).toLocaleString(locale, {
                                             hour: '2-digit',
                                             minute: '2-digit',
                                             day: '2-digit',
@@ -618,7 +618,10 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                                                 )}
                                                 {log.userId && (
                                                     <p className="text-[10px] text-gray-400 truncate">
-                                                        Người thực hiện: <span className="font-mono">{log.userId.length > 16 ? `${log.userId.slice(0, 10)}...` : log.userId}</span>
+                                                        {t('info.activity.actor')}{' '}
+                                                        <span className="font-mono">
+                                                            {log.userId.length > 16 ? `${log.userId.slice(0, 10)}...` : log.userId}
+                                                        </span>
                                                     </p>
                                                 )}
                                             </div>
@@ -633,7 +636,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                                 </div>
                                 <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">{t('info.activity.empty')}</p>
                                 <p className="text-[11px] text-gray-400 mt-1">
-                                    Chưa có ghi nhận thay đổi nào cho tệp này.
+                                    {t('info.activity.emptyHint')}
                                 </p>
                             </div>
                         )}
@@ -641,7 +644,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                 ) : (
                     <div className="space-y-4">
                         <h4 className="font-bold text-gray-900 dark:text-gray-100 text-xs uppercase tracking-wider text-[11px]">
-                            Lịch sử phiên bản tệp (File Versioning)
+                            {t('info.versions.heading')}
                         </h4>
                         {loadingTab ? (
                             <p className="text-xs text-gray-400">{t('info.versions.loading')}</p>
@@ -662,10 +665,10 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                                         <div key={v.id} className="p-3 rounded-2xl bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 flex items-center justify-between">
                                             <div>
                                                 <div className="font-bold text-gray-900 dark:text-gray-100 text-xs">
-                                                    Phiên bản v{v.versionNumber}
+                                                    {t('info.versions.label', { number: v.versionNumber })}
                                                 </div>
                                                 <div className="text-[10px] text-gray-400 font-mono">
-                                                    {new Date(v.createdAt).toLocaleString('vi-VN')} • {formatBytes(v.sizeBytes)}
+                                                    {new Date(v.createdAt).toLocaleString(locale)} • {formatBytes(v.sizeBytes)}
                                                 </div>
                                             </div>
                                         </div>

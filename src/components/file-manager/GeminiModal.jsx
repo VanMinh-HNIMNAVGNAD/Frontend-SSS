@@ -25,12 +25,15 @@ import {
     Globe,
     History,
     ChevronLeft,
+    ChevronDown,
+    ChevronUp,
     MessageSquare,
     ArrowUpRight,
 } from 'lucide-react';
 
 import { aiApi } from '../../services/api';
 import { useLanguage } from '../../context/LanguageContext';
+import { localeTagOf } from '../../utils/locale';
 
 /**
  * Khung trò chuyện với trợ lý AI cho MỘT tệp/thư mục.
@@ -170,6 +173,10 @@ function dropPendingTurn(prev) {
 
 export default function GeminiModal({ isOpen, item, initialAction = null, onClose }) {
     const { t, language } = useLanguage();
+    // Một chỗ duy nhất quyết định thẻ BCP-47, thay cho `language === 'en' ? ... : ...`
+    // rải rác: hai nhánh đó đã trôi khỏi `localeTagOf` (en-GB thay vì en-US) và sẽ còn
+    // trôi tiếp mỗi lần thêm ngôn ngữ.
+    const locale = localeTagOf(language);
 
     const [messages, setMessages] = useState([]);
     const [prompt, setPrompt] = useState('');
@@ -189,6 +196,22 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
     // tiên khiến backend tạo cuộc mới rồi trả id về, các câu sau nối vào đúng id đó.
     const [conversationId, setConversationId] = useState(null);
     const [historyOpen, setHistoryOpen] = useState(false);
+
+    // ── Xác nhận hai bước cho hai nút phá huỷ ──
+    // Cả "dọn hội thoại" lẫn "xoá một cuộc trong lịch sử" trước đây là MỘT cú bấm, không
+    // hỏi lại, không hoàn tác được. Hai nút đó lại nằm cạnh những nút vô hại (Lịch sử,
+    // Đóng) và cùng một cỡ, cùng một màu xám — bấm trượt một ô là mất cả cuộc trò chuyện.
+    // Dùng bước xác nhận NGAY TRÊN NÚT thay vì một hộp thoại: panel này rộng 416px và
+    // thường mở đè lên cửa sổ xem trước, chồng thêm một lớp modal nữa là che nốt phần
+    // còn lại của màn hình.
+    const [confirmClear, setConfirmClear] = useState(false);
+    const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+
+    // Hàng lệnh nhanh. Trước đây nó là một dải chip cuộn ngang nằm thường trực trên ô
+    // nhập — chiếm một hàng vĩnh viễn kể cả giữa một cuộc trò chuyện dài, mà đúng lúc nó
+    // hữu ích nhất (khung còn trống) thì lại là dải chip nhỏ nhất trên màn hình. Nay:
+    // lưới nút lớn ở màn hình trống, và một nút bật/tắt ở ô nhập cho lúc đang trò chuyện.
+    const [quickOpen, setQuickOpen] = useState(false);
     // Đặt tên `historyList` chứ không `history`: trong `send()` đã có biến cục bộ tên
     // `history` (mấy lượt gửi kèm cho Gemini), trùng tên là bẫy đọc nhầm.
     const [historyList, setHistoryList] = useState({ items: [], nextBefore: null });
@@ -198,6 +221,12 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
     const [viewing, setViewing] = useState(null);
 
     const abortRef = useRef(null);
+    // Lượt hỏi gần nhất, để nút "Thử lại" gửi lại được ĐÚNG câu đó. Nút đó trước đây chỉ
+    // gọi `setError(null)` rồi focus vào ô nhập — mà `dropPendingTurn` đã bỏ bong bóng câu
+    // hỏi khỏi màn hình rồi, nên "thử lại" thực chất là "xoá dòng đỏ đi và tự gõ lại từ
+    // đầu". Với một lệnh nhanh thì còn tệ hơn: câu lệnh thật nằm ở backend, người dùng
+    // không có cách nào gõ lại nó.
+    const lastRequestRef = useRef(null);
     // `runId` của lượt đang chạy. Từ bản sửa "chuyển tab là dính error", đóng socket
     // KHÔNG còn huỷ lượt gọi Vertex — đó là điều kiện để nối lại được sau khi app vào
     // đa nhiệm. Nên nút Dừng phải nói ra ý định đó bằng một request riêng.
@@ -217,6 +246,7 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
     const send = useCallback(
         async ({ action = 'chat', text = '' }) => {
             if (!item) return;
+            lastRequestRef.current = { action, text };
             const controller = new AbortController();
             abortRef.current = controller;
 
@@ -456,6 +486,20 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
         return () => window.removeEventListener('keydown', onKeyDown);
     }, [isOpen, onClose, stopRun]);
 
+    // Bước xác nhận tự huỷ sau 4 giây. Không có nó thì một nút đang ở trạng thái "Xoá?"
+    // sẽ nằm im như vậy vô thời hạn, và cú bấm vô tình nào sau đó cũng thành cú thứ hai.
+    useEffect(() => {
+        if (!confirmClear) return undefined;
+        const timer = setTimeout(() => setConfirmClear(false), 4000);
+        return () => clearTimeout(timer);
+    }, [confirmClear]);
+
+    useEffect(() => {
+        if (!confirmDeleteId) return undefined;
+        const timer = setTimeout(() => setConfirmDeleteId(null), 4000);
+        return () => clearTimeout(timer);
+    }, [confirmDeleteId]);
+
     // Luôn cuộn xuống câu mới nhất
     useEffect(() => {
         scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
@@ -469,6 +513,32 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
         if (!text || isThinking) return;
         setPrompt('');
         send({ action: 'chat', text });
+    };
+
+    /** Gửi LẠI đúng lượt vừa hỏng, kể cả khi đó là một lệnh nhanh không gõ lại được. */
+    const retryLast = () => {
+        setError(null);
+        const last = lastRequestRef.current;
+        if (!last || isThinking) {
+            inputRef.current?.focus();
+            return;
+        }
+        send(last);
+    };
+
+    /** Dọn khung chat. Chỉ chạy ở cú bấm THỨ HAI — xem `confirmClear`. */
+    const clearConversation = () => {
+        if (!confirmClear) {
+            setConfirmClear(true);
+            return;
+        }
+        setConfirmClear(false);
+        setMessages([]);
+        setError(null);
+        // Bỏ luôn liên kết cuộc cũ: người dùng vừa dọn sạch khung chat thì câu sau là một
+        // cuộc mới, chứ không âm thầm ghi tiếp vào cuộc đã bị dọn khỏi màn hình.
+        setConversationId(null);
+        lastRequestRef.current = null;
     };
 
     /** Một trang danh sách. `before` = null là tải lại từ đầu, khác null là tải thêm. */
@@ -509,6 +579,11 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
     };
 
     const removeConversation = async (id) => {
+        if (confirmDeleteId !== id) {
+            setConfirmDeleteId(id);
+            return;
+        }
+        setConfirmDeleteId(null);
         try {
             await aiApi.deleteConversation(id);
             setHistoryList((prev) => ({ ...prev, items: prev.items.filter((c) => c.id !== id) }));
@@ -553,8 +628,12 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
             setCopiedIndex(index);
             setTimeout(() => setCopiedIndex(null), 1500);
         } catch {
-            // Trình duyệt chặn clipboard (không phải HTTPS) — im lặng bỏ qua,
-            // người dùng vẫn bôi đen chép tay được.
+            // Trình duyệt chặn clipboard (trang không phải HTTPS, hoặc quyền bị từ chối).
+            // Bản trước nuốt lỗi im lặng: người dùng bấm Sao chép, không có gì đổi, rồi
+            // dán ra thứ họ chép từ lúc nào đó trước đó — tưởng là đã chép được. Nói ra
+            // bằng chính cái nút đó, và gợi ý đường còn lại (bôi đen + Ctrl+C).
+            setCopiedIndex(`failed:${index}`);
+            setTimeout(() => setCopiedIndex(null), 2500);
         }
     };
 
@@ -569,7 +648,7 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                 // thì dùng câu không kèm số.
                 text:
                     context.chars != null
-                        ? t('ai.context.fileText', { chars: context.chars.toLocaleString() })
+                        ? t('ai.context.fileText', { chars: context.chars.toLocaleString(locale) })
                         : t('ai.context.fileTextPlain'),
                 tone: 'text-gray-500 dark:text-gray-400',
             },
@@ -658,7 +737,7 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                     chỉ thấy tổng hạn mức tụt xuống mà không biết vì sao. */}
                 {msg?.tokens > 0 && (
                     <span className="text-gray-400 dark:text-gray-500 shrink-0 font-mono">
-                        {t('ai.tokensUsed', { tokens: msg.tokens.toLocaleString() })}
+                        {t('ai.tokensUsed', { tokens: msg.tokens.toLocaleString(locale) })}
                     </span>
                 )}
             </div>
@@ -730,6 +809,14 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
         );
     };
 
+    /**
+     * Nhãn của một lệnh nhanh. Thư mục và tệp dùng chung `id` nhưng có lệnh cần chữ khác
+     * ("Viết lại nội dung" cho tệp / "Đề xuất cách sắp xếp" cho thư mục), nên chỗ nào vẽ
+     * nút cũng phải qua đây — hai nơi tự chọn khoá dịch là hai nơi sớm muộn chọn khác nhau.
+     */
+    const quickActionLabel = (action) =>
+        t((!isFolder && action.fileLabelKey) || action.labelKey);
+
     const aiDisabled = status?.enabled === false;
     // Phần trăm ĐÃ DÙNG. `limit` có thể là 0 (gói bị khoá AI) — chia cho 0 ra Infinity
     // nên chặn ở đây, coi như đã dùng hết.
@@ -740,7 +827,7 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
         : 0;
     // Ngày cấp lại, hiển thị theo giờ VN vì chu kỳ hạn mức tính theo múi giờ đó.
     const resetLabel = quota?.resetAt
-        ? new Date(quota.resetAt).toLocaleDateString(language === 'en' ? 'en-GB' : 'vi-VN', {
+        ? new Date(quota.resetAt).toLocaleDateString(locale, {
               day: '2-digit',
               month: '2-digit',
               year: 'numeric',
@@ -805,21 +892,23 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                         >
                             <History className="w-4 h-4" />
                         </button>
+                        {/* Cú bấm đầu mở ra chữ "Xoá?" — nút nở rộng ra và đổi sang màu
+                            cảnh báo, tức là nó KHÔNG còn nằm đúng chỗ cũ nữa: cú bấm thứ
+                            hai phải là một cú bấm có chủ ý, không phải cú bấm trượt tiếp
+                            theo. */}
                         {messages.length > 0 && (
                             <button
-                                onClick={() => {
-                                    setMessages([]);
-                                    setError(null);
-                                    // Bỏ luôn liên kết cuộc cũ: người dùng vừa dọn sạch
-                                    // khung chat thì câu sau là một cuộc mới, chứ không
-                                    // âm thầm ghi tiếp vào cuộc đã bị dọn khỏi màn hình.
-                                    setConversationId(null);
-                                }}
-                                title={t('ai.clear')}
-                                aria-label={t('ai.clear')}
-                                className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100 transition-colors cursor-pointer"
+                                onClick={clearConversation}
+                                title={confirmClear ? t('ai.clear.confirmHint') : t('ai.clear')}
+                                aria-label={confirmClear ? t('ai.clear.confirmHint') : t('ai.clear')}
+                                className={`rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 ${
+                                    confirmClear
+                                        ? 'px-2.5 py-1.5 text-[11px] font-medium text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-900/30 border border-rose-200 dark:border-rose-900/60'
+                                        : 'p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100'
+                                }`}
                             >
-                                <Trash2 className="w-4 h-4" />
+                                <Trash2 className="w-4 h-4 shrink-0" />
+                                {confirmClear && t('ai.clear.confirm')}
                             </button>
                         )}
                         <button
@@ -844,8 +933,8 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                             <span
                                 className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400 min-w-0"
                                 title={t('ai.quota.tooltip', {
-                                    used: quota.used.toLocaleString(),
-                                    limit: quota.limit.toLocaleString(),
+                                    used: quota.used.toLocaleString(locale),
+                                    limit: quota.limit.toLocaleString(locale),
                                 })}
                             >
                                 <Gauge className="w-3.5 h-3.5 shrink-0" />
@@ -899,14 +988,41 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                             </p>
                         </div>
                     ) : messages.length === 0 && !isThinking ? (
-                        // Màn hình trống có ích: nói rõ AI sẽ đọc được gì ở mục này và
-                        // mời chọn một lệnh, thay vì một lời chào không mang thông tin.
-                        <div className="h-full flex flex-col items-center justify-center text-center px-6 gap-2.5">
-                            <Sparkles className="w-6 h-6 text-gray-400 dark:text-gray-500" />
-                            <p className="font-semibold text-gray-800 dark:text-gray-200">
-                                {isFolder ? t('ai.empty.folder') : t('ai.empty.file')}
-                            </p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 max-w-sm">{t('ai.empty.hint')}</p>
+                        // Màn hình trống có ích: nói rõ AI sẽ đọc được gì ở mục này, rồi
+                        // BÀY THẲNG các lệnh ra thành lưới nút lớn.
+                        //
+                        // Trước đây màn hình này chỉ có một icon và hai dòng chữ, còn các
+                        // lệnh nằm ở một dải chip cuộn ngang sát đáy panel — chữ 12px,
+                        // viền xám, cùng cỡ với mọi thứ khác. Tức là đúng vào lúc người
+                        // dùng KHÔNG có gì để đọc và cần được mời làm một việc, thứ duy
+                        // nhất có thể bấm lại là thứ nhỏ nhất và khuất nhất trên màn hình,
+                        // và lệnh thứ tư trở đi còn nằm ngoài mép phải.
+                        <div className="h-full flex flex-col items-center justify-center px-4 gap-3">
+                            <div className="text-center">
+                                <Sparkles className="w-6 h-6 text-gray-400 dark:text-gray-500 mx-auto" />
+                                <p className="mt-2 font-semibold text-gray-800 dark:text-gray-200">
+                                    {isFolder ? t('ai.empty.folder') : t('ai.empty.file')}
+                                </p>
+                                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{t('ai.empty.hint')}</p>
+                            </div>
+
+                            {/* `sm:grid-cols-2`: dưới 416px thì một cột, để nhãn dài
+                                ("Đề xuất cách sắp xếp") không bị cắt giữa chừng. */}
+                            <div className="w-full max-w-sm grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                {quickActions.map((action) => {
+                                    const Icon = action.icon;
+                                    return (
+                                        <button
+                                            key={action.id}
+                                            onClick={() => send({ action: action.id })}
+                                            className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-[13px] text-gray-800 dark:text-gray-200 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors cursor-pointer text-left"
+                                        >
+                                            <Icon className="w-4 h-4 shrink-0 text-blue-600 dark:text-blue-400" />
+                                            <span className="min-w-0 truncate">{quickActionLabel(action)}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
                         </div>
                     ) : (
                         // Không còn avatar hai bên. Trong một cột rộng 416px, hai vòng
@@ -961,12 +1077,31 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                                         )}
                                         {renderWebSources(msg)}
                                         {renderContextNote(msg.context, msg)}
+                                        {/* LUÔN hiện, không còn `opacity-0 group-hover`.
+                                            Trên màn cảm ứng không có trạng thái rê chuột,
+                                            nên nút ẩn theo hover là nút KHÔNG TỒN TẠI với
+                                            người dùng điện thoại — mà panel này có hẳn một
+                                            bố cục riêng cho khổ màn hình đó. */}
                                         <button
                                             onClick={() => handleCopy(msg.text, idx)}
-                                            className="mt-2 inline-flex items-center gap-1 text-[11px] text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity cursor-pointer"
+                                            className={`mt-2 inline-flex items-center gap-1 text-[11px] transition-colors cursor-pointer ${
+                                                copiedIndex === `failed:${idx}`
+                                                    ? 'text-rose-600 dark:text-rose-400'
+                                                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+                                            }`}
                                         >
-                                            {copiedIndex === idx ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                                            {copiedIndex === idx ? t('ai.copied') : t('ai.copy')}
+                                            {copiedIndex === `failed:${idx}` ? (
+                                                <AlertTriangle className="w-3 h-3" />
+                                            ) : copiedIndex === idx ? (
+                                                <Check className="w-3 h-3" />
+                                            ) : (
+                                                <Copy className="w-3 h-3" />
+                                            )}
+                                            {copiedIndex === `failed:${idx}`
+                                                ? t('ai.copyFailed')
+                                                : copiedIndex === idx
+                                                  ? t('ai.copied')
+                                                  : t('ai.copy')}
                                         </button>
                                     </div>
                                 ) : (
@@ -983,16 +1118,14 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                         chưa có chữ nào). Nên dòng này phải nói đúng việc đang diễn ra —
                         "đang suy luận" — chứ không phải một spinner trống làm người dùng
                         tưởng máy treo. */}
+                    {/* Chỉ còn dòng trạng thái. Nút Dừng đã chuyển xuống ô nhập: ở đây nó
+                        nằm trong vùng CUỘN, nên chỉ cần người dùng kéo lên đọc lại đoạn
+                        trước là nút biến khỏi màn hình — đúng lúc câu trả lời đang dài ra
+                        và họ muốn dừng nhất. Ô nhập thì luôn đứng yên ở đáy panel. */}
                     {isThinking && (
                         <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
                             <Loader2 className="w-3.5 h-3.5 animate-spin" />
                             {reconnecting ? t('ai.reconnecting') : t('ai.thinking')}
-                            <button
-                                onClick={stopRun}
-                                className="ml-auto inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
-                            >
-                                <Square className="w-3 h-3" /> {t('ai.stop')}
-                            </button>
                         </div>
                     )}
 
@@ -1001,32 +1134,49 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                             <AlertTriangle className="w-4 h-4 shrink-0 mt-px" />
                             <div className="min-w-0">
                                 <p className="break-words">{error}</p>
-                                <button
-                                    onClick={() => { setError(null); inputRef.current?.focus(); }}
-                                    className="mt-1 inline-flex items-center gap-1 font-medium hover:underline cursor-pointer"
-                                >
-                                    <RefreshCw className="w-3 h-3" /> {t('ai.retry')}
-                                </button>
+                                <div className="mt-1.5 flex items-center gap-3">
+                                    <button
+                                        onClick={retryLast}
+                                        disabled={isThinking}
+                                        className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-medium transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        <RefreshCw className="w-3 h-3" /> {t('ai.retry')}
+                                    </button>
+                                    {/* Đường ra thứ hai. Trước đây chỉ có một nút, và nó
+                                        vừa mang nhãn "Thử lại" vừa làm việc đóng dòng lỗi —
+                                        người muốn bỏ qua không có nút nào để bấm, người
+                                        muốn thử lại thì bấm xong chẳng có gì được gửi. */}
+                                    <button
+                                        onClick={() => { setError(null); inputRef.current?.focus(); }}
+                                        className="font-medium hover:underline cursor-pointer"
+                                    >
+                                        {t('ai.dismiss')}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     )}
                 </div>
 
-                {/* ── Lệnh nhanh ── */}
-                {!inputLocked && (
-                    <div className="px-4 py-2.5 border-t border-gray-200 dark:border-gray-800 flex gap-2 overflow-x-auto text-xs">
+                {/* ── Lệnh nhanh giữa cuộc trò chuyện ──
+                    Chỉ hiện khi được MỞ, và chỉ khi khung đã có nội dung: lúc khung còn
+                    trống thì lưới nút ở giữa màn hình đã làm đúng việc này rồi, bày thêm
+                    một dải chip nữa ngay bên dưới là hai bộ nút giống hệt nhau trên cùng
+                    một màn hình. Bọc ngang (`flex-wrap`) chứ không cuộn ngang: dải cuộn cũ
+                    giấu lệnh thứ tư và thứ năm ra ngoài mép phải mà không có dấu hiệu gì. */}
+                {!inputLocked && quickOpen && messages.length > 0 && (
+                    <div className="px-4 pt-2.5 border-t border-gray-200 dark:border-gray-800 flex flex-wrap gap-1.5 text-xs">
                         {quickActions.map((action) => {
                             const Icon = action.icon;
-                            const labelKey = !isFolder && action.fileLabelKey ? action.fileLabelKey : action.labelKey;
                             return (
                                 <button
                                     key={action.id}
                                     disabled={isThinking}
-                                    onClick={() => send({ action: action.id })}
-                                    className="px-2.5 py-1.5 text-gray-700 dark:text-gray-300 rounded-lg shrink-0 transition-colors border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                    onClick={() => { send({ action: action.id }); setQuickOpen(false); }}
+                                    className="px-2.5 py-1.5 text-gray-700 dark:text-gray-300 rounded-lg transition-colors border border-gray-200 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-gray-50 dark:hover:bg-gray-800/60 flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    <Icon className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
-                                    {t(labelKey)}
+                                    <Icon className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                                    {quickActionLabel(action)}
                                 </button>
                             );
                         })}
@@ -1051,12 +1201,39 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                 )}
 
                 {/* ── Ô nhập ── */}
+                {/* Đường kẻ ngăn vẽ ở hàng lệnh nhanh khi hàng đó đang mở, chứ không vẽ
+                    cả hai: hai đường kẻ ôm lấy dải chip biến nó thành một khối riêng nằm
+                    lửng giữa panel, trong khi nó thuộc về ô nhập ngay bên dưới. */}
                 <form
                     onSubmit={handleSubmit}
                     hidden={quotaBlocked && !aiDisabled}
-                    className="px-4 py-3 border-t border-gray-200 dark:border-gray-800"
+                    className={`px-4 py-3 ${
+                        !inputLocked && quickOpen && messages.length > 0
+                            ? ''
+                            : 'border-t border-gray-200 dark:border-gray-800'
+                    }`}
                 >
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 items-center">
+                        {/* Mở/đóng hàng lệnh nhanh. Ở đây chứ không phải một dải chip
+                            thường trực: giữa một cuộc trò chuyện, mỗi hàng cố định là một
+                            hàng câu trả lời bị đẩy ra khỏi tầm nhìn. */}
+                        {!inputLocked && messages.length > 0 && (
+                            <button
+                                type="button"
+                                onClick={() => setQuickOpen((open) => !open)}
+                                title={t('ai.quickActions')}
+                                aria-label={t('ai.quickActions')}
+                                aria-expanded={quickOpen}
+                                className={`shrink-0 p-2 rounded-lg border transition-colors cursor-pointer ${
+                                    quickOpen
+                                        ? 'border-blue-500 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10'
+                                        : 'border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                                }`}
+                            >
+                                {quickOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+                            </button>
+                        )}
+
                         <input
                             ref={inputRef}
                             type="text"
@@ -1066,18 +1243,37 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                             placeholder={isFolder ? t('ai.placeholder.folder') : t('ai.placeholder.file')}
                             className="flex-1 min-w-0 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#282a2c] text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none text-[13px] disabled:opacity-50"
                         />
-                        {/* Nút gửi là chỗ DUY NHẤT trong panel dùng màu đặc. Mọi nút khác để
-                            xám: một màn hình mà nút nào cũng nổi thì không nút nào nổi, và
-                            người dùng phải đọc từng cái mới biết đâu là việc chính. */}
-                        <button
-                            type="submit"
-                            disabled={!prompt.trim() || isThinking || inputLocked}
-                            title={t('ai.send')}
-                            aria-label={t('ai.send')}
-                            className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center cursor-pointer"
-                        >
-                            <Send className="w-4 h-4" />
-                        </button>
+
+                        {/* MỘT nút ở vị trí này, hai vai trò loại trừ nhau: đang rảnh thì
+                            Gửi, đang chạy thì Dừng. Bản trước để nút Gửi mờ đi trong suốt
+                            lượt trả lời còn nút Dừng thì nằm lẫn trong vùng cuộn — nên ở
+                            đúng khoảnh khắc duy nhất người dùng muốn bấm một cái gì đó,
+                            chỗ họ nhìn vào lại là một nút đã tắt.
+
+                            Vẫn là chỗ DUY NHẤT trong panel dùng màu đặc: một màn hình mà
+                            nút nào cũng nổi thì không nút nào nổi. */}
+                        {isThinking ? (
+                            <button
+                                type="button"
+                                onClick={stopRun}
+                                title={t('ai.stop')}
+                                aria-label={t('ai.stop')}
+                                className="shrink-0 px-3 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg transition-colors flex items-center gap-1.5 text-[13px] font-medium cursor-pointer"
+                            >
+                                <Square className="w-3.5 h-3.5" />
+                                {t('ai.stop')}
+                            </button>
+                        ) : (
+                            <button
+                                type="submit"
+                                disabled={!prompt.trim() || inputLocked}
+                                title={t('ai.send')}
+                                aria-label={t('ai.send')}
+                                className="shrink-0 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center cursor-pointer"
+                            >
+                                <Send className="w-4 h-4" />
+                            </button>
+                        )}
                     </div>
                     {/* Tên model về đây thay vì đứng thành một chip màu trên đầu khung: nó
                         là chú thích, không phải nhan đề. */}
@@ -1199,20 +1395,42 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                                                         {t('ai.history.messages', { count: c.messageCount })}
                                                     </span>
                                                     <span className="shrink-0 hidden sm:inline">
-                                                        {new Date(c.updatedAt).toLocaleDateString(
-                                                            language === 'en' ? 'en-GB' : 'vi-VN',
-                                                            { day: '2-digit', month: '2-digit', year: 'numeric' },
-                                                        )}
+                                                        {new Date(c.updatedAt).toLocaleDateString(locale, {
+                                                            day: '2-digit',
+                                                            month: '2-digit',
+                                                            year: 'numeric',
+                                                        })}
                                                     </span>
                                                 </p>
                                             </button>
+                                            {/* Cùng cơ chế hai bước với nút dọn hội thoại
+                                                ở đầu khung. Ở đây còn cần hơn: nút xoá nằm
+                                                ngay cạnh vùng bấm để MỞ cuộc đó ra đọc, nên
+                                                bấm trượt vài pixel là xoá vĩnh viễn đúng
+                                                cuộc mình vừa định mở. Không còn ẩn theo
+                                                hover trên desktop — một nút xoá nhấp nháy
+                                                hiện ra dưới con trỏ là cách chắc chắn để
+                                                bấm nhầm. */}
                                             <button
                                                 onClick={() => removeConversation(c.id)}
-                                                title={t('ai.history.delete')}
-                                                aria-label={t('ai.history.delete')}
-                                                className="mr-2 p-1.5 rounded-full text-gray-400 hover:text-rose-600 dark:hover:text-rose-300 hover:bg-white dark:hover:bg-gray-800 transition-colors cursor-pointer shrink-0 sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100"
+                                                title={
+                                                    confirmDeleteId === c.id
+                                                        ? t('ai.history.delete.confirmHint')
+                                                        : t('ai.history.delete')
+                                                }
+                                                aria-label={
+                                                    confirmDeleteId === c.id
+                                                        ? t('ai.history.delete.confirmHint')
+                                                        : t('ai.history.delete')
+                                                }
+                                                className={`mr-2 rounded-full transition-colors cursor-pointer shrink-0 flex items-center gap-1 ${
+                                                    confirmDeleteId === c.id
+                                                        ? 'px-2 py-1 text-[11px] font-medium text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-900/30 border border-rose-200 dark:border-rose-900/60'
+                                                        : 'p-1.5 text-gray-400 hover:text-rose-600 dark:hover:text-rose-300 hover:bg-white dark:hover:bg-gray-800'
+                                                }`}
                                             >
-                                                <Trash2 className="w-3.5 h-3.5" />
+                                                <Trash2 className="w-3.5 h-3.5 shrink-0" />
+                                                {confirmDeleteId === c.id && t('ai.clear.confirm')}
                                             </button>
                                         </div>
                                     ))}

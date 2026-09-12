@@ -75,7 +75,7 @@ export default function AccountModal({ isOpen, onClose }) {
                     <h4 className="font-semibold text-gray-900 dark:text-gray-100 truncate">{user?.fullName || t('profile.defaultName')}</h4>
                     <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.email || 'user@driver.com'}</p>
                     <span className="inline-flex items-center gap-1 mt-1 text-[11px] font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-500/15 px-2 py-0.5 rounded-full">
-                        <ShieldCheck className="w-3 h-3" /> Tài khoản {getProviderBadge(user?.provider)}
+                        <ShieldCheck className="w-3 h-3" /> {t('account.providerBadge', { provider: getProviderBadge(user?.provider) })}
                     </span>
                 </div>
             </div>
@@ -89,14 +89,14 @@ export default function AccountModal({ isOpen, onClose }) {
                     className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-colors text-left cursor-pointer"
                 >
                     <UserIcon className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                    Tài khoản của tôi
+                    {t('account.myAccount')}
                 </button>
                 <button
                     onClick={handleLogout}
                     className="w-full flex items-center gap-3 px-3 py-2 text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/15 rounded-xl transition-colors text-left font-medium cursor-pointer"
                 >
                     <LogOut className="w-4 h-4 text-rose-600 dark:text-rose-400" />
-                    Đăng xuất
+                    {t('account.logout')}
                 </button>
             </div>
 

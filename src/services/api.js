@@ -17,6 +17,9 @@ import {
 } from '../utils/ttlCache';
 import { recordRequestStart, recordRequestEnd } from '../utils/requestMetrics';
 import { createBatchLoader } from '../utils/batchLoader';
+// api.js chạy NGOÀI cây React nên không gọi được `useLanguage()`. Những câu dự
+// phòng dưới đây vẫn hiện thẳng lên toast, nên chúng phải theo ngôn ngữ đang chọn.
+import { tOutsideReact } from '../utils/translate';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -441,7 +444,7 @@ api.interceptors.response.use(
       data?.message ||
       (Array.isArray(data?.details) ? data.details : null) ||
       error.message ||
-      'Đã có lỗi xảy ra';
+      tOutsideReact('common.genericError');
     const message = Array.isArray(raw)
       ? raw
           .map((item) => (typeof item === 'string' ? item : (item?.errors || []).join(' ')))
@@ -1153,7 +1156,9 @@ export const billingApi = {
  */
 function errorFromPayload(payload, fallbackMessage) {
   const status = payload?.statusCode ?? payload?.status;
-  const err = new Error(payload?.message || fallbackMessage || 'Đã có lỗi xảy ra');
+  const err = new Error(
+    payload?.message || fallbackMessage || tOutsideReact('common.genericError'),
+  );
   err.status = status;
   err.errorCode = payload?.errorCode ?? payload?.error;
   err.details = payload?.details;
@@ -1177,7 +1182,7 @@ const SSE_RESUME_BACKOFF_MS = [500, 1000, 2000, 3000, 3000];
 
 /** Lỗi "người dùng bấm Dừng", mang đúng `name`/`code` mà axios dùng. */
 function canceledError() {
-  const err = new Error('Đã huỷ');
+  const err = new Error(tOutsideReact('common.canceled'));
   err.name = 'CanceledError';
   err.code = 'ERR_CANCELED';
   return err;
@@ -1499,9 +1504,7 @@ export const aiApi = {
       // phép: dyno chết giữa lúc sinh, hoặc mạng hỏng lâu. Câu trả lời (nếu backend đã
       // sinh xong) vẫn nằm trong Lịch sử trò chuyện — nói đúng như vậy thay vì để người
       // dùng tưởng đã mất trắng.
-      throw new Error(
-        'Kết nối tới AI bị ngắt giữa lúc đang trả lời. Thử lại, hoặc xem Lịch sử trò chuyện — câu trả lời có thể đã được lưu.',
-      );
+      throw new Error(tOutsideReact('ai.stream.disconnected'));
     }
     return result;
   },

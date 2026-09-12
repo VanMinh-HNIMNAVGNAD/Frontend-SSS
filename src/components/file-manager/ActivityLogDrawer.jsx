@@ -335,7 +335,9 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
 
                 return (
                     <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                        Tải lên tệp <span className="font-semibold text-gray-900 dark:text-gray-100">{name}</span>
+                        {tRich(t('activity.desc.uploadFile'), {
+                            name: <span className="font-semibold text-gray-900 dark:text-gray-100">{name}</span>,
+                        })}
                         {size && <span className="text-gray-500 dark:text-gray-400"> ({size})</span>}
                         {provider && (
                             <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
@@ -349,7 +351,9 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                 const name = d.folderName || d.name || t('activity.fallback.newFolder');
                 return (
                     <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                        Tạo thư mục mới <span className="font-semibold text-gray-900 dark:text-gray-100">{name}</span>
+                        {tRich(t('activity.desc.createFolder'), {
+                            name: <span className="font-semibold text-gray-900 dark:text-gray-100">{name}</span>,
+                        })}
                     </div>
                 );
             }
@@ -399,15 +403,9 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                 const isStarred = d.isStarred;
                 return (
                     <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                        {isStarred ? (
-                            <>
-                                Đã thêm <span className="font-semibold text-gray-900 dark:text-gray-100">{name}</span> vào mục gắn dấu sao
-                            </>
-                        ) : (
-                            <>
-                                Đã bỏ gắn dấu sao của <span className="font-semibold text-gray-900 dark:text-gray-100">{name}</span>
-                            </>
-                        )}
+                        {tRich(t(isStarred ? 'activity.desc.star' : 'activity.desc.unstar'), {
+                            name: <span className="font-semibold text-gray-900 dark:text-gray-100">{name}</span>,
+                        })}
                     </div>
                 );
             }
@@ -415,7 +413,9 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                 const name = d.fileName || t('activity.fallback.file');
                 return (
                     <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                        Chuyển <span className="font-semibold text-gray-900 dark:text-gray-100">{name}</span> vào thùng rác
+                        {tRich(t('activity.desc.trash'), {
+                            name: <span className="font-semibold text-gray-900 dark:text-gray-100">{name}</span>,
+                        })}
                     </div>
                 );
             }
@@ -423,7 +423,9 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                 const name = d.fileName || t('activity.fallback.file');
                 return (
                     <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                        Khôi phục <span className="font-semibold text-gray-900 dark:text-gray-100">{name}</span> từ thùng rác
+                        {tRich(t('activity.desc.restore'), {
+                            name: <span className="font-semibold text-gray-900 dark:text-gray-100">{name}</span>,
+                        })}
                     </div>
                 );
             }
@@ -444,8 +446,15 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                 const freed = d.freedBytes ? formatBytes(d.freedBytes) : null;
                 return (
                     <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                        Đã xóa vĩnh viễn <span className="font-semibold text-gray-900 dark:text-gray-100">{name}</span>
-                        {freed && <span className="text-rose-600 dark:text-rose-400 font-medium"> (Giải phóng {freed})</span>}
+                        {tRich(t('activity.desc.deleteForever'), {
+                            name: <span className="font-semibold text-gray-900 dark:text-gray-100">{name}</span>,
+                        })}
+                        {freed && (
+                            <span className="text-rose-600 dark:text-rose-400 font-medium">
+                                {' '}
+                                {t('activity.desc.freed', { size: freed })}
+                            </span>
+                        )}
                     </div>
                 );
             }
@@ -454,8 +463,13 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                 const freed = d.freedBytes ? formatBytes(d.freedBytes) : null;
                 return (
                     <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                        Đã dọn sạch thùng rác: xóa {count} mục
-                        {freed && <span className="text-rose-600 dark:text-rose-400 font-medium"> (Giải phóng {freed})</span>}
+                        {t('activity.desc.emptyTrash', { count })}
+                        {freed && (
+                            <span className="text-rose-600 dark:text-rose-400 font-medium">
+                                {' '}
+                                {t('activity.desc.freed', { size: freed })}
+                            </span>
+                        )}
                     </div>
                 );
             }
@@ -465,7 +479,9 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                 const size = d.sizeBytes ? formatBytes(d.sizeBytes) : null;
                 return (
                     <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                        Tạo bản sao mới <span className="font-semibold text-gray-900 dark:text-gray-100">{name}</span>
+                        {tRich(t('activity.desc.copy'), {
+                            name: <span className="font-semibold text-gray-900 dark:text-gray-100">{name}</span>,
+                        })}
                         {size && <span className="text-gray-500 dark:text-gray-400"> ({size})</span>}
                     </div>
                 );
@@ -552,7 +568,7 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                             </div>
                             <div className="min-w-0">
                                 <h2 className="font-bold text-base text-gray-900 dark:text-gray-100 truncate">
-                                    Lịch sử hoạt động
+                                    {t('activity.drawer.title')}
                                 </h2>
                                 <p className="text-xs text-gray-500 dark:text-gray-400 font-medium truncate flex items-center gap-1.5 mt-0.5">
                                     {fileId ? (
@@ -663,10 +679,10 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                                 <History className="w-7 h-7" />
                             </div>
                             <h3 className="font-bold text-sm text-gray-800 dark:text-gray-200">
-                                Chưa có hoạt động nào
+                                {t('activity.empty.title')}
                             </h3>
                             <p className="text-xs text-gray-500 dark:text-gray-400 max-w-xs mx-auto">
-                                Các thao tác tải lên, chỉnh sửa, di chuyển và chia sẻ sẽ được ghi lại tại đây.
+                                {t('activity.empty.hint')}
                             </p>
                         </div>
                     )}
@@ -678,16 +694,16 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                                 <Filter className="w-6 h-6" />
                             </div>
                             <h3 className="font-bold text-sm text-gray-800 dark:text-gray-200">
-                                Không có hoạt động phù hợp
+                                {t('activity.filtered.title')}
                             </h3>
                             <p className="text-xs text-gray-500 dark:text-gray-400">
-                                Không tìm thấy hoạt động nào thuộc nhóm bộ lọc này.
+                                {t('activity.filtered.hint')}
                             </p>
                             <button
                                 onClick={() => setSelectedGroup('all')}
                                 className="px-3.5 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-semibold text-xs transition-colors cursor-pointer"
                             >
-                                Xem tất cả ({logs.length})
+                                {t('activity.filtered.showAll', { count: logs.length })}
                             </button>
                         </div>
                     )}

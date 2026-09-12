@@ -144,7 +144,7 @@ const FolderTableRow = memo(function FolderTableRow({
             {/* Type Column */}
             <td className="py-3.5 px-3 hidden lg:table-cell">
                 <span className="px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-500/15 text-amber-800 dark:text-amber-300 font-semibold text-[11px] border border-amber-200 dark:border-amber-800/60">
-                    Thư mục
+                    {t('list.group.folders')}
                 </span>
             </td>
 

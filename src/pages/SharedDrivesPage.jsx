@@ -232,7 +232,7 @@ export default function SharedDrivesPage() {
                                     {currentDrive?.name || t('drives.contentTitle')}
                                 </h1>
                                 <span className="px-2 py-0.5 text-[10px] font-bold bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 rounded-md border border-indigo-100 dark:border-indigo-800/60">
-                                    Không gian nhóm
+                                    {t('drives.groupSpace')}
                                 </span>
                             </div>
                             {currentDrive?.description ? (
@@ -288,11 +288,11 @@ export default function SharedDrivesPage() {
                         <div className="flex items-center gap-2 flex-wrap">
                             <h1 className="text-2xl font-black text-gray-900 dark:text-gray-100 tracking-tight">{t('drives.title')}</h1>
                             <span className="px-2 py-0.5 text-[11px] font-bold bg-indigo-100 dark:bg-indigo-500/15 text-indigo-800 dark:text-indigo-300 rounded-md border border-indigo-200 dark:border-indigo-800/60">
-                                Không gian nhóm
+                                {t('drives.groupSpace')}
                             </span>
                         </div>
                         <p className="text-xs text-gray-600 dark:text-gray-400 font-medium mt-1 leading-relaxed">
-                            Không gian lưu trữ tập thể cho đội ngũ &amp; dự án — Tệp thuộc về cả nhóm thay vì một cá nhân riêng lẻ.
+                            {t('drives.subtitle')}
                         </p>
                     </div>
                 </div>
@@ -302,7 +302,7 @@ export default function SharedDrivesPage() {
                     className="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold transition-all shadow-xs shrink-0 cursor-pointer"
                 >
                     <Plus className="w-4 h-4" />
-                    Tạo mới
+                    {t('drives.createNew')}
                 </button>
             </div>
 
@@ -319,14 +319,14 @@ export default function SharedDrivesPage() {
                     </div>
                     <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1.5">{t('drives.empty')}</h3>
                     <p className="text-sm text-gray-600 dark:text-gray-400 max-w-md mb-6 leading-relaxed">
-                        Bộ nhớ dùng chung giúp phòng ban hoặc nhóm dự án của bạn lưu trữ và quản lý tài liệu tại một nơi tập trung. Tài liệu thuộc sở hữu của cả nhóm và không bị mất khi có thành viên rời đi.
+                        {t('drives.emptyHint')}
                     </p>
                     <button
                         onClick={() => setIsCreateModalOpen(true)}
                         className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold transition-all shadow-xs flex items-center gap-2 cursor-pointer"
                     >
                         <Plus className="w-4 h-4" />
-                        Tạo Bộ nhớ nhóm đầu tiên
+                        {t('drives.createFirst')}
                     </button>
                 </div>
             ) : (
@@ -427,7 +427,7 @@ export default function SharedDrivesPage() {
                             <div className="space-y-4">
                                 <div>
                                     <label className="block text-[11px] font-bold text-slate-500 dark:text-gray-400 mb-1.5 uppercase tracking-wider">
-                                        Tên bộ nhớ nhóm <span className="text-rose-500">*</span>
+                                        {t('drives.name.label')} <span className="text-rose-500">*</span>
                                     </label>
                                     <input
                                         type="text"
@@ -440,7 +440,7 @@ export default function SharedDrivesPage() {
                                 </div>
                                 <div>
                                     <label className="block text-[11px] font-bold text-slate-500 dark:text-gray-400 mb-1.5 uppercase tracking-wider">
-                                        Mô tả (Không bắt buộc)
+                                        {t('drives.description.optionalLabel')}
                                     </label>
                                     <textarea
                                         value={newDriveDesc}
@@ -465,7 +465,7 @@ export default function SharedDrivesPage() {
                                     className="px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-all shadow-sm flex items-center gap-2"
                                 >
                                     {isCreating && <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-                                    Tạo mới
+                                    {t('drives.createNew')}
                                 </button>
                             </div>
                         </form>
@@ -485,7 +485,7 @@ export default function SharedDrivesPage() {
                 <form onSubmit={handleRenameSubmit} className="space-y-4">
                     <div>
                         <label className="block text-[11px] font-bold text-slate-500 dark:text-gray-400 mb-1.5 uppercase tracking-wider">
-                            Tên bộ nhớ nhóm <span className="text-rose-500">*</span>
+                            {t('drives.name.label')} <span className="text-rose-500">*</span>
                         </label>
                         <input
                             type="text"
@@ -498,7 +498,7 @@ export default function SharedDrivesPage() {
                     </div>
                     <div>
                         <label className="block text-[11px] font-bold text-slate-500 dark:text-gray-400 mb-1.5 uppercase tracking-wider">
-                            Mô tả
+                            {t('drives.description.label')}
                         </label>
                         <textarea
                             value={renameDesc}
@@ -514,7 +514,7 @@ export default function SharedDrivesPage() {
                             onClick={() => setRenameTarget(null)}
                             className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl transition-colors cursor-pointer"
                         >
-                            Hủy
+                            {t('common.cancel')}
                         </button>
                         <button
                             type="submit"
@@ -522,7 +522,7 @@ export default function SharedDrivesPage() {
                             className="px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-all shadow-sm flex items-center gap-2 cursor-pointer"
                         >
                             {isSavingRename && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                            Lưu thay đổi
+                            {t('drives.saveChanges')}
                         </button>
                     </div>
                 </form>
@@ -565,7 +565,7 @@ export default function SharedDrivesPage() {
                             onClick={() => setDeleteTarget(null)}
                             className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl transition-colors cursor-pointer"
                         >
-                            Hủy
+                            {t('common.cancel')}
                         </button>
                         <button
                             type="button"

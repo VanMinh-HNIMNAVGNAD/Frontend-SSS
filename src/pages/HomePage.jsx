@@ -1,7 +1,14 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
+import toast from 'react-hot-toast';
 import { useFiles, useClipboard, useFilePreview } from '../context/FileContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useAiPanel } from '../context/AiPanelContext';
+import { useAuth } from '../context/AuthContext';
+import {
+    clearDismissedSuggestions,
+    dismissSuggestion,
+    readDismissedSuggestions,
+} from '../constants/homeSuggestions';
 import FileSkeleton from '../components/common/FileSkeleton';
 import FileThumbnail from '../components/file-manager/FileThumbnail';
 import StarButton from '../components/common/StarButton';
@@ -18,7 +25,8 @@ import {
     List,
     LayoutGrid,
     Home,
-    File
+    File,
+    EyeOff
 } from 'lucide-react';
 
 // getFileIcon() có thể ném lỗi với item thiếu `name`/`mimeType` (dữ liệu cũ) —
@@ -183,6 +191,27 @@ export default function HomePage() {
 
     const { openPreview, openInfoDrawer } = useFilePreview();
 
+    const { user } = useAuth();
+
+    // Các mục người dùng đã bấm "Không phải mục đề xuất hữu ích".
+    //
+    // Khoá theo `user.id` nên phải đọc LẠI khi id đổi: `AuthContext` giữ nguyên cây
+    // component khi đăng nhập tài khoản khác trong cùng tab, nên state khởi tạo một
+    // lần sẽ mang theo danh sách ẩn của người trước sang hồ sơ người sau.
+    //
+    // Đặt lại NGAY TRONG LÚC RENDER chứ không qua useEffect: effect chạy SAU khi
+    // React đã vẽ xong, tức có đúng một khung hình trang chủ của người mới bị lọc
+    // bằng danh sách ẩn của người cũ. Đây là mẫu "điều chỉnh state khi prop đổi"
+    // mà React khuyến nghị — React bỏ kết quả render dở và chạy lại ngay, không
+    // có DOM nào được đụng tới. (Cũng là lý do `react-hooks/set-state-in-effect`
+    // không kêu ở đây, trong khi bản useEffect thì có.)
+    const [dismissed, setDismissed] = useState(() => readDismissedSuggestions(user?.id));
+    const [dismissedOwner, setDismissedOwner] = useState(user?.id);
+    if (dismissedOwner !== user?.id) {
+        setDismissedOwner(user?.id);
+        setDismissed(readDismissedSuggestions(user?.id));
+    }
+
     // Context menu state
     const [contextMenu, setContextMenu] = useState({ isOpen: false, x: 0, y: 0, item: null });
 
@@ -230,6 +259,24 @@ export default function HomePage() {
         }
     }, [getDownloadUrl, t]);
 
+    /**
+     * "Không phải mục đề xuất hữu ích" — ẩn mục khỏi Trang chủ.
+     *
+     * CHỈ ẩn khỏi trang này. Tệp không bị xoá, không vào thùng rác, vẫn nằm nguyên
+     * trong Drive của tôi — nên câu thông báo phải nói ra điều đó, kèm lối hiện lại.
+     * Một dòng lệnh làm thứ gì đó biến mất mà không nói nó đi đâu thì người dùng
+     * sẽ đoán là đã xoá.
+     */
+    const handleDismissSuggestion = useCallback((item) => {
+        if (!item?.id) return;
+        setDismissed((prev) => dismissSuggestion(user?.id, item.id, prev));
+        toast.success(t('home.dismissed', { name: item.name }));
+    }, [user?.id, t]);
+
+    const handleRestoreDismissed = useCallback(() => {
+        setDismissed(clearDismissedSuggestions(user?.id));
+    }, [user?.id]);
+
     // Mở bằng BẤM ĐÚP (giống MyDrive/FileListView) — trước đây một cú click đã mở
     // luôn nên rất dễ mở nhầm tệp khi chỉ muốn bấm ngôi sao hay quét chọn.
     const handleItemOpen = useCallback((item) => {
@@ -241,21 +288,28 @@ export default function HomePage() {
         }
     }, [setActiveTab, openFolder, openPreview]);
 
+    // Ba mục dưới đây đều lọc `dismissed` TRƯỚC khi `slice(0, 6)`, không phải sau:
+    // cắt trước rồi mới bỏ mục ẩn thì ẩn một mục là mất luôn một ô trong hàng, và
+    // người dùng thấy trang chủ ngắn dần đi thay vì mục tiếp theo dâng lên.
+    const visible = useMemo(
+        () => items.filter((item) => !item.isTrash && !item.isSpam && !dismissed.has(item.id)),
+        [items, dismissed],
+    );
+
     // 1. Mục của tôi (My Drive) - Top 5-6
-    const myDriveItems = items
-        .filter(item => !item.isTrash && !item.isSpam && !item.isSharedDrive && !item.isSharedWithMe)
+    const myDriveItems = visible
+        .filter(item => !item.isSharedDrive && !item.isSharedWithMe)
         .sort((a, b) => (b.accessCount || 0) - (a.accessCount || 0))
         .slice(0, 6);
 
     // 2. Đã mở gần đây (Recent) - Top 5-6
-    const recentItems = items
-        .filter(item => !item.isTrash && !item.isSpam)
+    const recentItems = [...visible]
         .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
         .slice(0, 6);
 
     // 3. Được chia sẻ với tôi (Shared with me) - Top 5-6
-    const sharedItems = items
-        .filter(item => !item.isTrash && !item.isSpam && item.isSharedWithMe)
+    const sharedItems = visible
+        .filter(item => item.isSharedWithMe)
         .slice(0, 6);
 
     if (isLoading) {
@@ -289,27 +343,44 @@ export default function HomePage() {
                     <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">{t('home.title')}</h1>
                 </div>
 
-                <div className="flex items-center bg-gray-200/90 dark:bg-gray-700 rounded-full p-0.5 border border-gray-300 dark:border-gray-700">
-                    <button
-                        onClick={() => setViewMode('list')}
-                        title={t('view.list')}
-                        className={`p-1.5 rounded-full transition-colors ${viewMode === 'list'
-                                ? 'bg-white dark:bg-[#282a2c] shadow-xs text-blue-700 dark:text-blue-400 font-bold'
-                                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
-                            }`}
-                    >
-                        <List className="w-4 h-4" />
-                    </button>
-                    <button
-                        onClick={() => setViewMode('grid')}
-                        title={t('view.grid')}
-                        className={`p-1.5 rounded-full transition-colors ${viewMode === 'grid'
-                                ? 'bg-white dark:bg-[#282a2c] shadow-xs text-blue-700 dark:text-blue-400 font-bold'
-                                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
-                            }`}
-                    >
-                        <LayoutGrid className="w-4 h-4" />
-                    </button>
+                <div className="flex items-center gap-2">
+                    {/* Lối ra cho danh sách ẩn. Chỉ hiện khi thật sự có gì đang bị ẩn —
+                        một nút "hiện lại" đứng thường trực trong khi không có gì để hiện
+                        lại chỉ làm người dùng đi tìm thứ không tồn tại. Đặt ở đây chứ
+                        không nhét vào modal Cài đặt: nó nói về đúng trang đang mở. */}
+                    {dismissed.size > 0 && (
+                        <button
+                            onClick={handleRestoreDismissed}
+                            title={t('home.restoreDismissed.hint')}
+                            className="flex items-center gap-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 px-2.5 py-1.5 rounded-full border border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                        >
+                            <EyeOff className="w-3.5 h-3.5" />
+                            {t('home.restoreDismissed', { count: dismissed.size })}
+                        </button>
+                    )}
+
+                    <div className="flex items-center bg-gray-200/90 dark:bg-gray-700 rounded-full p-0.5 border border-gray-300 dark:border-gray-700">
+                        <button
+                            onClick={() => setViewMode('list')}
+                            title={t('view.list')}
+                            className={`p-1.5 rounded-full transition-colors ${viewMode === 'list'
+                                    ? 'bg-white dark:bg-[#282a2c] shadow-xs text-blue-700 dark:text-blue-400 font-bold'
+                                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+                                }`}
+                        >
+                            <List className="w-4 h-4" />
+                        </button>
+                        <button
+                            onClick={() => setViewMode('grid')}
+                            title={t('view.grid')}
+                            className={`p-1.5 rounded-full transition-colors ${viewMode === 'grid'
+                                    ? 'bg-white dark:bg-[#282a2c] shadow-xs text-blue-700 dark:text-blue-400 font-bold'
+                                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+                                }`}
+                        >
+                            <LayoutGrid className="w-4 h-4" />
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -359,7 +430,7 @@ export default function HomePage() {
                         onClick={() => setActiveTab('recent')}
                         className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 flex items-center gap-1 hover:underline transition-all"
                     >
-                        Xem tất cả <ArrowRight className="w-3.5 h-3.5" />
+                        {t('home.viewAll')} <ArrowRight className="w-3.5 h-3.5" />
                     </button>
                 </div>
                 {viewMode === 'grid' ? (
@@ -387,13 +458,15 @@ export default function HomePage() {
                     <div className="flex items-center gap-2">
                         <Users className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                         <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{t('page.sharedWithMe.title')}</h2>
-                        <span className="text-xs text-gray-400 dark:text-gray-500 font-normal">({sharedItems.length} mục)</span>
+                        <span className="text-xs text-gray-400 dark:text-gray-500 font-normal">
+                            {t('home.itemCount', { count: sharedItems.length })}
+                        </span>
                     </div>
                     <button
                         onClick={() => setActiveTab('shared-with-me')}
                         className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 flex items-center gap-1 hover:underline transition-all"
                     >
-                        Xem tất cả <ArrowRight className="w-3.5 h-3.5" />
+                        {t('home.viewAll')} <ArrowRight className="w-3.5 h-3.5" />
                     </button>
                 </div>
                 {viewMode === 'grid' ? (
@@ -439,6 +512,7 @@ export default function HomePage() {
                 onRestore={(item) => restoreFromTrash(item.id)}
                 onDeletePermanently={(item) => deletePermanently(item.id)}
                 onShowInfo={(item, tab) => openInfoDrawer(item, tab)}
+                onDismissSuggestion={handleDismissSuggestion}
             />
 
             {/* Modals */}

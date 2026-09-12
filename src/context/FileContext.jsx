@@ -1599,17 +1599,17 @@ export function FileProvider({ children }) {
 
     try {
       await filesApi.updateColor(id, color);
-      toast.success(color ? 'Đã đổi màu' : 'Đã đặt lại màu mặc định');
+      toast.success(t(color ? 'color.changed' : 'color.resetDone'));
       return { ok: true };
     } catch (err) {
       // Rollback về màu cũ
       setItems((prev) =>
         prev.map((item) => (item.id === id ? { ...item, customColor: prevColor } : item)),
       );
-      toast.error(err.message || 'Không thể đổi màu');
+      toast.error(err.message || t('color.changeFailed'));
       return { ok: false, error: err };
     }
-  }, [items]);
+  }, [items, t]);
 
   /**
    * Ba hàm thùng rác dưới đây dùng chung một hợp đồng với `toggleStar`:

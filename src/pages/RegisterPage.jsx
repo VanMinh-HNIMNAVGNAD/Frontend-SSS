@@ -282,7 +282,7 @@ export default function RegisterPage() {
           </div>
           <div className="relative flex justify-center text-xs uppercase">
             <span className="bg-slate-900/90 px-3 text-slate-400 font-bold tracking-wider">
-              HOẶC EMAIL
+              {t('login.orEmail')}
             </span>
           </div>
         </div>
@@ -295,7 +295,7 @@ export default function RegisterPage() {
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="text-sm text-slate-300 block mb-2 font-bold">Nickname</label>
+            <label className="text-sm text-slate-300 block mb-2 font-bold">{t('auth.nickname.label')}</label>
             <div className="relative">
               <User className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
               <input

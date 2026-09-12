@@ -73,19 +73,19 @@ export default function BillingCancel() {
             to="/app/billing"
             className="w-full py-3.5 px-4 rounded-xl bg-gray-900 dark:bg-blue-600 hover:bg-black dark:hover:bg-blue-500 text-white font-bold text-[15px] shadow-lg transition-all flex items-center justify-center gap-2"
           >
-            <ArrowLeft className="w-4 h-4" /> Quay lại trang Gói dịch vụ
+            <ArrowLeft className="w-4 h-4" /> {t('billing.cancel.backToPlans')}
           </Link>
           <Link
             to="/app"
             className="w-full py-3 px-4 rounded-xl bg-white dark:bg-transparent text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-white/5 font-bold text-[15px] transition-all flex items-center justify-center gap-2"
           >
-            Về driveR
+            {t('billing.cancel.backToApp')}
           </Link>
         </div>
 
         <p className="mt-6 text-[13px] text-gray-400 dark:text-gray-500 flex items-center justify-center gap-1.5">
           <LifeBuoy className="w-3.5 h-3.5 shrink-0" />
-          Gặp vấn đề khi thanh toán? Thử lại hoặc dùng app ngân hàng khác để quét QR.
+          {t('billing.cancel.help')}
         </p>
       </div>
     </div>

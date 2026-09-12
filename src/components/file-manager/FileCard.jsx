@@ -4,6 +4,7 @@ import { useFileThumbnail, getFileTypeCategory } from '../../hooks/useFileThumbn
 import { useInViewport } from '../../hooks/useInViewport';
 import StarButton from '../common/StarButton';
 import { getCardColorVars } from '../../utils/fileColors';
+import { useLanguage } from '../../context/LanguageContext';
 import { 
     FileText, 
     FileSpreadsheet, 
@@ -56,6 +57,7 @@ function getCatIcon(cat, size = 'w-5 h-5') {
 }
 
 function FileCard({ file, onDoubleClick, onContextMenu, onStarToggle, onOpenInfo, isSelected, isCut = false, onToggleSelect, onSelectRange }) {
+    const { t } = useLanguage();
     const cat = getFileTypeCategory(file?.name);
 
     // Màu hiệu lực: customColor (DB) nếu có, ngược lại màu theo phần mở rộng
@@ -144,7 +146,7 @@ function FileCard({ file, onDoubleClick, onContextMenu, onStarToggle, onOpenInfo
                         onClick={(e) => onContextMenu && onContextMenu(e, file)}
                         onDoubleClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
                         className="p-1 rounded-full transition-colors text-[var(--fc-muted-l)] dark:text-[var(--fc-muted-d)] hover:text-[var(--fc-ink-l)] dark:hover:text-[var(--fc-ink-d)] hover:bg-white/60 dark:hover:bg-white/10"
-                        title="Tuy chon tep"
+                        title={t('card.fileOptions')}
                     >
                         <MoreVertical className="w-4 h-4" />
                     </button>

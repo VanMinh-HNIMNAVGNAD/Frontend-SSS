@@ -195,7 +195,7 @@ const vi = {
   'menu.share': 'Chia sẻ',
   'menu.details': 'Xem chi tiết & hoạt động',
   'menu.moveToTrash': 'Chuyển vào thùng rác',
-  'menu.notSpam': 'Không phải mục đề xuất hữu ích',
+  'menu.dismissSuggestion': 'Không phải mục đề xuất hữu ích',
   'menu.notSpamRestore': 'Không phải rác — trả về thư mục cũ',
   'menu.star.add': 'Thêm vào mục gắn sao',
   'menu.star.remove': 'Bỏ khỏi mục gắn sao',
@@ -502,6 +502,12 @@ const vi = {
   'ai.copy': 'Sao chép',
   'ai.copied': 'Đã chép',
   'ai.clear': 'Xoá hội thoại',
+  'ai.dismiss': 'Bỏ qua',
+  'ai.copyFailed': 'Trình duyệt chặn — hãy bôi đen rồi Ctrl+C',
+  'ai.quickActions': 'Lệnh nhanh',
+  'ai.clear.confirm': 'Xoá?',
+  'ai.clear.confirmHint': 'Bấm lần nữa để xoá toàn bộ hội thoại đang hiện',
+  'ai.history.delete.confirmHint': 'Bấm lần nữa để xoá vĩnh viễn cuộc trò chuyện này',
   'ai.placeholder.file': 'Hỏi bất cứ điều gì về tệp này…',
   'ai.placeholder.folder': 'Hỏi bất cứ điều gì về thư mục này…',
   'ai.disclaimer': 'AI có thể trả lời sai — hãy tự kiểm tra những thông tin quan trọng.',
@@ -701,6 +707,9 @@ const vi = {
   'home.recent.subtitle': '(Chỉnh sửa gần đây)',
   'home.empty.recent': 'Chưa có tệp nào mở gần đây.',
   'home.empty.shared': 'Chưa có tệp nào được chia sẻ với bạn.',
+  'home.dismissed': 'Đã ẩn "{name}" khỏi Trang chủ. Tệp vẫn nằm nguyên trong Drive của tôi.',
+  'home.restoreDismissed': 'Hiện lại {count} mục đã ẩn',
+  'home.restoreDismissed.hint': 'Đưa mọi mục bạn đã đánh dấu "không phải đề xuất hữu ích" trở lại Trang chủ',
   // ── Lịch sử hoạt động (components/file-manager/ActivityLogDrawer.jsx) ──
   'activity.group.all': 'Tất cả',
   'activity.group.upload': 'Tải lên & Tạo mới',
@@ -830,6 +839,10 @@ const vi = {
   'profile.defaultName': 'Người dùng driveR',
   'profile.name.placeholder': 'Nhập tên hiển thị của bạn',
   'profile.plan.free': 'Gói cước: Miễn phí (Mặc định)',
+  'profile.plan.current': 'Gói cước: {name}',
+  'profile.plan.remaining': 'còn {days} ngày',
+  'profile.plan.loading': 'Gói cước: đang tải…',
+  'profile.plan.unavailable': 'Gói cước: chưa đọc được',
   'profile.password.minHint': 'Tối thiểu 6 ký tự',
   'profile.password.confirmPlaceholder': 'Nhập lại mật khẩu mới',
   'profile.session.lastUsed': 'Dùng gần nhất',
@@ -1088,6 +1101,237 @@ const vi = {
   'file.paste.oneFailed': "Không xử lý được \"{detail}\"",
   'file.paste.manyFailed': "Có {failed}/{total} mục xử lý thất bại ({detail}, ...)",
   'billing.confirm.reenableTail': " và cộng chu kỳ mới vào ngày hết hạn hiện tại.",
+
+  // ── Hồ sơ người dùng (UserProfileModal) ──
+  'profile.tab.info': 'Thông tin',
+  'profile.tab.password': 'Mật khẩu',
+  'profile.tab.sessions': 'Phiên đăng nhập',
+  'profile.name.label': 'Tên hiển thị',
+  'profile.discoverable.title': 'Hiển thị thông tin cá nhân qua Email',
+  'profile.discoverable.desc':
+    'Cho phép người khác tìm thấy bạn bằng email khi họ muốn chia sẻ tệp',
+  'profile.email.label': 'Địa chỉ Email (không thể thay đổi)',
+  'profile.save': 'Lưu thông tin',
+  'profile.storage.title': 'Dung lượng lưu trữ Cloud',
+  'profile.storage.free': '{percent}% còn trống',
+  'profile.password.securityHint':
+    'Để bảo vệ tài khoản, hãy sử dụng mật khẩu mạnh có tối thiểu 6 ký tự và tránh sử dụng lại mật khẩu ở nơi khác.',
+  'profile.password.currentLabel': 'Mật khẩu hiện tại',
+  'profile.password.confirmLabel': 'Xác nhận mật khẩu mới',
+  'profile.password.submit': 'Đổi mật khẩu',
+  'profile.sessions.title': 'Thiết bị đang đăng nhập ({count})',
+  'profile.sessions.subtitle':
+    'Danh sách các trình duyệt và thiết bị có quyền truy cập vào tài khoản của bạn.',
+  'profile.sessions.revokeOthers': 'Đăng xuất thiết bị khác',
+  'profile.sessions.empty': 'Chưa có thông tin phiên đăng nhập.',
+  'profile.session.thisDevice': 'Thiết bị này',
+  'profile.session.revokedBadge': 'Đã thu hồi',
+  'profile.danger.title': 'Vùng nguy hiểm (Danger Zone)',
+  'profile.danger.desc':
+    'Xoá vĩnh viễn tài khoản và toàn bộ tệp tin, dữ liệu lưu trữ trên Cloud Storage. Hành động này không thể hoàn tác.',
+  'profile.danger.button': 'Xoá tài khoản',
+  'profile.delete.step1Password': '1. Nhập mật khẩu hiện tại của bạn',
+  'profile.delete.oauthConfirm':
+    'Tôi xác nhận rằng tôi đã sao lưu toàn bộ dữ liệu quan trọng và đồng ý xoá vĩnh viễn tài khoản {provider}.',
+  'profile.delete.typeKeyword': 'Gõ chữ {keyword} để xác nhận',
+  'profile.delete.confirmButton': 'Xoá vĩnh viễn tài khoản',
+
+
+  // ── Trang Gói dịch vụ & dung lượng (BillingAndQuota) ──
+  'common.retry': 'Thử lại',
+  'billing.quota.overview': 'Tổng quan lưu trữ',
+  'billing.quota.ofUsed': '/ {total} đã dùng',
+  'billing.quota.usedPercent': 'Đã dùng {percent}%',
+  'billing.quota.freeSpace': 'Trống {size}',
+  'billing.current.remainingDays': '(còn {days} ngày)',
+  'billing.current.cancelRenewal': 'Hủy tự động gia hạn',
+  'billing.current.stackingNote': 'Mua lại gói hoặc nâng cấp gói sẽ cộng dồn chu kỳ!',
+  'billing.plans.heading': 'Chọn gói lưu trữ phù hợp với bạn',
+  'billing.plans.subheading': 'Đăng ký chu kỳ dài hạn để nhận ưu đãi giảm giá lên tới 17%.',
+  'billing.plans.noneHint': 'Vui lòng quay lại sau hoặc liên hệ quản trị viên.',
+  'billing.tx.recentHint': '50 giao dịch gần nhất của bạn, mới nhất trước.',
+  'billing.tx.noneHint': 'Các lần nâng cấp gói của bạn sẽ xuất hiện ở đây.',
+  'billing.tx.recheck': 'Kiểm tra lại',
+  'billing.confirm.noQuote':
+    'Chưa lấy được báo giá chi tiết. Đây là giá niêm yết — số tiền cuối cùng sẽ hiển thị ở trang thanh toán.',
+  'billing.confirm.methodHint':
+    'Mở được bằng app của mọi ngân hàng Việt Nam. Link thanh toán có hiệu lực 15 phút.',
+  'billing.confirm.creatingLink': 'Đang tạo link thanh toán…',
+  'billing.confirm.continue': 'Tiếp tục tới trang thanh toán',
+  'billing.confirm.redirectNote': 'Bạn sẽ được chuyển sang trang thanh toán bảo mật của payOS.',
+
+
+  // ── Bảng bộ lọc tìm kiếm (SearchFilterModal) ──
+  'search.filter.title': 'Bộ lọc tìm kiếm driveR',
+  'search.filter.type.label': 'Loại tệp / Driver',
+  'search.filter.type.all': 'Tất cả loại (Driver, thư mục, tệp)',
+  'search.filter.type.folder': 'Thư mục / Driver',
+  'search.filter.type.file': 'Tệp tin',
+  'search.filter.type.pdf': 'Tài liệu PDF (.pdf)',
+  'search.filter.type.image': 'Hình ảnh (PNG, JPG)',
+  'search.filter.owner.label': 'Người sở hữu',
+  'search.filter.owner.anyone': 'Bất kỳ ai',
+  'search.filter.owner.me': 'Tôi sở hữu',
+  'search.filter.owner.others': 'Được chia sẻ bởi người khác',
+  'search.filter.location.label': 'Vị trí',
+  'search.filter.location.anywhere': 'Bất kỳ đâu trong driveR',
+  'search.filter.location.myDrive': 'Driver riêng của tôi',
+  'search.filter.location.sharedWithMe': 'Được chia sẻ với tôi',
+  'search.filter.location.sharedDrives': 'Driver đã chia sẻ',
+  'search.filter.location.spam': 'Nội dung rác',
+  'search.filter.location.trash': 'Thùng rác',
+  'search.filter.apply': 'Áp dụng bộ lọc',
+
+
+  // ── Ngăn Lịch sử hoạt động (ActivityLogDrawer) ──
+  'activity.drawer.title': 'Lịch sử hoạt động',
+  'activity.desc.uploadFile': 'Tải lên tệp {name}',
+  'activity.desc.createFolder': 'Tạo thư mục mới {name}',
+  'activity.desc.star': 'Đã thêm {name} vào mục gắn dấu sao',
+  'activity.desc.unstar': 'Đã bỏ gắn dấu sao của {name}',
+  'activity.desc.trash': 'Chuyển {name} vào thùng rác',
+  'activity.desc.restore': 'Khôi phục {name} từ thùng rác',
+  'activity.desc.deleteForever': 'Đã xóa vĩnh viễn {name}',
+  'activity.desc.emptyTrash': 'Đã dọn sạch thùng rác: xóa {count} mục',
+  'activity.desc.copy': 'Tạo bản sao mới {name}',
+  'activity.desc.freed': '(Giải phóng {size})',
+  'activity.empty.title': 'Chưa có hoạt động nào',
+  'activity.empty.hint':
+    'Các thao tác tải lên, chỉnh sửa, di chuyển và chia sẻ sẽ được ghi lại tại đây.',
+  'activity.filtered.title': 'Không có hoạt động phù hợp',
+  'activity.filtered.hint': 'Không tìm thấy hoạt động nào thuộc nhóm bộ lọc này.',
+  'activity.filtered.showAll': 'Xem tất cả ({count})',
+
+
+  // ── Trang Bộ nhớ dùng chung (SharedDrivesPage) ──
+  'drives.subtitle':
+    'Không gian lưu trữ tập thể cho đội ngũ & dự án — tệp thuộc về cả nhóm thay vì một cá nhân riêng lẻ.',
+  'drives.createNew': 'Tạo mới',
+  'drives.createFirst': 'Tạo Bộ nhớ nhóm đầu tiên',
+  'drives.emptyHint':
+    'Bộ nhớ dùng chung giúp phòng ban hoặc nhóm dự án của bạn lưu trữ và quản lý tài liệu tại một nơi tập trung. Tài liệu thuộc sở hữu của cả nhóm và không bị mất khi có thành viên rời đi.',
+  'drives.name.label': 'Tên bộ nhớ nhóm',
+  'drives.description.label': 'Mô tả',
+  'drives.description.optionalLabel': 'Mô tả (không bắt buộc)',
+  'drives.saveChanges': 'Lưu thay đổi',
+
+
+  // ── Trang xem link chia sẻ công khai (SharePage) ──
+  'sharePage.backHome': 'Quay về trang chủ',
+  'sharePage.text.unreadable': 'Không thể đọc nội dung. Vui lòng tải xuống để xem.',
+  'sharePage.sourceLabel': 'Mã nguồn',
+  'sharePage.password.hint':
+    'Vui lòng nhập mật khẩu để xem trước, tải xuống hoặc duyệt thư mục chia sẻ.',
+  'sharePage.expiresOn': 'Hết hạn {date}',
+  'sharePage.protected': 'Được bảo vệ',
+  'sharePage.cta.question': 'Bạn muốn lưu trữ và chia sẻ file miễn phí?',
+  'sharePage.cta.register': 'Đăng ký driveR',
+  'preview.audio.label': 'Âm thanh • {size}',
+
+
+  // ── Ngăn thông tin chi tiết (FileInfoDrawer) ──
+  'info.access.heading': 'Quyền truy cập & Nhóm',
+  'info.access.manage': 'Quản lý',
+  'info.desc.heading': 'Mô tả',
+  'info.desc.saved': 'Đã lưu',
+  'info.activity.loadFailed': 'Không thể tải lịch sử hoạt động',
+  'info.activity.actor': 'Người thực hiện:',
+  'info.activity.emptyHint': 'Chưa có ghi nhận thay đổi nào cho tệp này.',
+  'info.versions.heading': 'Lịch sử phiên bản tệp (File Versioning)',
+  'info.versions.label': 'Phiên bản v{number}',
+
+
+  // ── Quên mật khẩu (ForgotPasswordPage) ──
+  'forgot.emailStepHint':
+    'Nhập email của bạn. Nếu tài khoản tồn tại, chúng tôi sẽ gửi mã xác minh 6 chữ số tới hộp thư đó.',
+  'forgot.rememberPassword': 'Nhớ ra mật khẩu rồi?',
+  'forgot.setNewFor': 'Đặt mật khẩu mới cho',
+  'forgot.confirmLabel': 'Nhập lại mật khẩu',
+  'forgot.signOutWarning': 'Sau khi đổi, mọi thiết bị đang đăng nhập sẽ bị đăng xuất.',
+  'forgot.redirecting': 'Đang chuyển sang trang đăng nhập...',
+
+  // ── Dọn dẹp nhanh (QuickCleanupModal) ──
+  'cleanup.emptyTrash': 'Dọn sạch Thùng rác ({count} tệp)',
+  'cleanup.reclaimable': 'Có thể thu hồi ngay {size} MB',
+  'cleanup.largeFiles': '{count} tệp lớn nhất nên xem xét xóa',
+  'cleanup.scanning': 'Đang quét toàn bộ drive...',
+  'cleanup.noLargeFiles': '🎉 Bạn chưa có tệp lớn nào vượt quá 10MB!',
+
+
+  // ── Bảng chọn màu (ColorPickerPanel) ──
+  'color.pick': 'Chọn màu',
+  'color.default': 'mặc định',
+  'color.custom': 'Tuỳ chỉnh',
+  'color.hexAria': 'Mã màu hex',
+  'color.apply': 'Áp dụng',
+  'color.reset': 'Đặt lại màu mặc định',
+
+  // ── Chia sẻ bộ nhớ nhóm (ShareDriveModal) ──
+  'driveShare.addMember': 'Thêm thành viên',
+  'driveShare.adminOnly': 'Chỉ Quản trị viên của bộ nhớ này mới thêm hoặc gỡ được thành viên.',
+  'driveShare.members': 'Thành viên ({count})',
+  'driveShare.changeRoleHint':
+    'Muốn đổi vai trò của một người đã có trong danh sách: gỡ họ ra rồi thêm lại với vai trò mới.',
+
+  // ── Thanh tải lên dở dang (ResumeUploads) ──
+  'resume.pending': 'Còn {count} tệp tải dở',
+  'resume.hint':
+    'Chọn lại đúng tệp là tải tiếp từ chỗ đang dở — trình duyệt không giữ được nội dung tệp sau khi tải lại trang.',
+  'resume.pickAgain': 'Chọn lại tệp',
+  'resume.drop': 'Bỏ',
+
+  // ── Đổi tên (RenameModal) ──
+  'rename.newNameLabel': 'Tên mới',
+
+  // ── Chi tiết giao dịch (TransactionDetailModal) ──
+  'tx.detail.title': 'Chi tiết giao dịch',
+  'tx.detail.keep': 'Giữ lại',
+
+  // ── Menu tài khoản (AccountModal) ──
+  'account.providerBadge': 'Tài khoản {provider}',
+  'account.myAccount': 'Tài khoản của tôi',
+  'account.logout': 'Đăng xuất',
+
+
+  // ── Chuỗi lẻ đã bị bỏ sót trong lượt phủ i18n đầu tiên ──
+  'menu.changeColor': 'Đổi màu',
+  'file.downloadNamed': 'Tải về tệp ({name})',
+  'share.titleOf': 'Chia sẻ "{name}"',
+  'share.peopleWithAccess': 'Người có quyền truy cập ({count})',
+  'upload.keepUploading': 'Tiếp tục tải',
+  'upload.renamedFrom': '↪ Đã đổi tên từ "{name}"',
+  'foot.samplePath': './Drive của tôi/Dự án Công ty/Báo cáo/...',
+  'otp.sentTo': 'Nhập mã 6 chữ số vừa gửi tới',
+  'otp.back': '← Quay lại',
+  'billing.cancel.backToPlans': 'Quay lại trang Gói dịch vụ',
+  'billing.cancel.backToApp': 'Về driveR',
+  'billing.cancel.help':
+    'Gặp vấn đề khi thanh toán? Thử lại hoặc dùng app ngân hàng khác để quét QR.',
+  'home.itemCount': '({count} mục)',
+  'login.orEmail': 'HOẶC EMAIL',
+  'notFound.title': 'Trang không tồn tại',
+  'notFound.body': 'Đường dẫn bạn yêu cầu không khả dụng hoặc đã được di chuyển sang một vị trí mới.',
+  'notFound.backHome': 'Quay lại Trang chủ',
+
+
+  // ── Câu lỗi dựng ngoài cây React (services/api.js) ──
+  'common.canceled': 'Đã huỷ',
+  'ai.stream.disconnected':
+    'Kết nối tới AI bị ngắt giữa lúc đang trả lời. Thử lại, hoặc xem Lịch sử trò chuyện — câu trả lời có thể đã được lưu.',
+  'color.changed': 'Đã đổi màu',
+  'color.resetDone': 'Đã đặt lại màu mặc định',
+  'color.changeFailed': 'Không thể đổi màu',
+
+
+  // ── Tooltip trên thẻ tệp/thư mục + nhãn thuộc tính còn ghi cứng ──
+  'card.fileOptions': 'Tuỳ chọn tệp',
+  'info.field.owner': 'Người sở hữu',
+  'info.field.group': 'Nhóm',
+  'info.field.permissions': 'Quyền',
+  'auth.nickname.label': 'Nickname',
+
+  'card.sharedBadge': 'Được chia sẻ',
+
 };
 
 export default vi;

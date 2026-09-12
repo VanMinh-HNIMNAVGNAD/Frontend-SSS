@@ -140,7 +140,7 @@ export default memo(function UploadProgress({ queue, onDismissError, onRetry }) 
                             className="px-2 py-1 mr-1 rounded-full text-[11px] font-semibold bg-white/10 hover:bg-rose-500/80 text-slate-200 hover:text-white transition-colors cursor-pointer"
                             title={t('upload.cancelN', { count: cancellableCount })}
                         >
-                            Huỷ tất cả
+                            {t('upload.cancelAll')}
                         </button>
                     )}
                     <button
@@ -243,7 +243,7 @@ export default memo(function UploadProgress({ queue, onDismissError, onRetry }) 
 
                     <div className="flex items-center justify-end gap-2">
                         <Button variant="secondary" onClick={closeCancelPrompt}>
-                            Tiếp tục tải
+                            {t('upload.keepUploading')}
                         </Button>
                         <Button variant="danger" onClick={confirmCancel}>
                             {cancelTarget?.kind === 'all' ? t('upload.cancelAll') : t('upload.cancelThis')}
@@ -346,7 +346,7 @@ const FileJobRow = memo(function FileJobRow({ job, jobId, onDismissError, onRetr
                     {/* Thông báo đổi tên do trùng */}
                     {status === 'done' && job.renamedFrom && (
                         <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-1 truncate" title={t('upload.originalName', { name: job.renamedFrom })}>
-                            ↪ Đã đổi tên từ "{job.renamedFrom}"
+                            {t('upload.renamedFrom', { name: job.renamedFrom })}
                         </p>
                     )}
 

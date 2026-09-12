@@ -265,7 +265,7 @@ export default function LoginPage() {
           </div>
           <div className="relative flex justify-center text-xs uppercase">
             <span className="bg-slate-900/90 px-3 text-slate-400 font-bold tracking-wider">
-              HOẶC EMAIL
+              {t('login.orEmail')}
             </span>
           </div>
         </div>

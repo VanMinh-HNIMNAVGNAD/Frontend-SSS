@@ -172,7 +172,7 @@ export default function TransactionDetailModal({ transaction, onClose, onCancell
             <Receipt className="w-6 h-6" />
           </div>
           <h3 className="text-2xl font-black text-gray-900 dark:text-gray-100 mb-3 tracking-tight">
-            Chi tiết giao dịch
+            {t('tx.detail.title')}
           </h3>
           <span
             className={`inline-flex items-center gap-1.5 px-3 py-1 text-[13px] font-bold rounded-full border whitespace-nowrap ${status.tone}`}
@@ -237,7 +237,7 @@ export default function TransactionDetailModal({ transaction, onClose, onCancell
                     disabled={isCancelling}
                     className="flex-1 py-2.5 rounded-xl bg-white dark:bg-[#282a2c] border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 font-bold text-[14px] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Giữ lại
+                    {t('tx.detail.keep')}
                   </button>
                   <button
                     onClick={handleCancelInvoice}
@@ -270,7 +270,7 @@ export default function TransactionDetailModal({ transaction, onClose, onCancell
             onClick={onClose}
             className="w-full py-3 rounded-xl bg-white dark:bg-[#282a2c] border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 font-bold text-[14px] transition-all cursor-pointer"
           >
-            Đóng
+            {t('common.close')}
           </button>
         )}
       </div>

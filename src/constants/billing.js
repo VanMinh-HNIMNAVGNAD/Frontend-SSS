@@ -34,10 +34,17 @@ import {
 // ─────────────────────────────── Định dạng số ───────────────────────────────
 
 /** VND nguyên, không phần thập phân: `price_monthly` / `price_yearly` là numeric(12,0). */
-// Đơn vị vẫn là VND ở mọi ngôn ngữ (payOS chỉ nhận VND) nhưng cách nhóm chữ số
-// theo locale: 1.000.000 đ (vi) vs 1,000,000 đ (en).
+// Đơn vị vẫn là VND ở mọi ngôn ngữ (payOS chỉ nhận VND), nhưng cả cách nhóm chữ số
+// LẪN vị trí ký hiệu tiền đều do locale quyết định: '1.000.000 ₫' (vi) vs
+// '₫1,000,000' (en). Trước đây hậu tố ' đ' được ghép cứng vào chuỗi nên bản English
+// hiện một ký hiệu tiếng Việt ở cuối số — cùng nhóm lỗi "còn set cứng" với các câu
+// chữ, chỉ khó thấy hơn. `Intl` tự biết quy ước của từng locale, khỏi if/else.
 export const formatVnd = (amount, locale = 'vi-VN') =>
-  `${new Intl.NumberFormat(locale).format(Number(amount) || 0)} đ`;
+  new Intl.NumberFormat(locale, {
+    style: 'currency',
+    currency: 'VND',
+    maximumFractionDigits: 0,
+  }).format(Number(amount) || 0);
 
 /**
  * `endDate` (ISO từ API) -> `"01/09/2026"`. Chuỗi rỗng nếu thiếu/không parse được, để chỗ gọi

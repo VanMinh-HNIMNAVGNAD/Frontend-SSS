@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { localeTagOf } from '../../utils/locale';
+import tRich from '../../utils/tRich';
 import {
   X,
   User as UserIcon,
@@ -26,7 +27,7 @@ import {
   Clock,
   ShieldAlert,
 } from 'lucide-react';
-import { userApi } from '../../services/api';
+import { billingApi, userApi } from '../../services/api';
 
 /**
  * Helper phân tích User-Agent để hiển thị icon và tên thiết bị thân thiện
@@ -124,6 +125,18 @@ export default function UserProfileModal({ isOpen, onClose }) {
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
+  // Gói cước đang chạy, cho dòng chú thích dưới thanh dung lượng.
+  //
+  // BA trạng thái, không phải hai — và đó là điểm của biến này. Trước đây chỗ đó
+  // hard-code `t('profile.plan.free')`, nên người đã mua Pro/Plus/Max vẫn đọc được
+  // "Gói cước: Miễn phí (Mặc định)" ngay bên cạnh một thanh dung lượng 100 GB.
+  //   'loading' → chưa hỏi xong
+  //   'error'   → hỏi mà không trả lời được (mất mạng, 500). KHÔNG được rơi về
+  //               "Miễn phí": im lặng đoán sai đúng là cái lỗi đang sửa.
+  //   null      → server ĐÃ trả lời và câu trả lời là "chưa từng mua gói nào"
+  //   {..}      → gói thật, lấy `planName` từ GET /billing/subscription
+  const [subscription, setSubscription] = useState('loading');
+
   // Tab 2: Password State
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -196,6 +209,25 @@ export default function UserProfileModal({ isOpen, onClose }) {
         })
         .catch((err) => {
           console.error('[UserProfileModal] Failed to get latest user profile:', err);
+        });
+
+      // Gói cước KHÔNG nằm trong /users/me (không có join sang storage_plans ở
+      // endpoint nóng đó), nên phải hỏi riêng. Cố ý không cache: hỏi lại mỗi lần
+      // mở modal là đủ rẻ, và người vừa thanh toán xong mở hồ sơ ra xem thì phải
+      // thấy gói mới chứ không phải bản cũ 15 phút.
+      setSubscription('loading');
+      billingApi
+        .getMySubscription()
+        .then((data) => {
+          if (!isMountedRef.current) return;
+          // `null` từ API = chưa từng mua gói. Giữ nguyên null, đừng đổi thành
+          // 'error' — hai chuyện đó hiện ra hai câu khác nhau.
+          setSubscription(data ?? null);
+        })
+        .catch((err) => {
+          if (!isMountedRef.current) return;
+          console.error('[UserProfileModal] Failed to get subscription:', err);
+          setSubscription('error');
         });
     }
   }, [isOpen, user]);
@@ -405,6 +437,21 @@ export default function UserProfileModal({ isOpen, onClose }) {
   const storageLimitGB = user?.storageInfo?.limitGB || (Number(user?.storageLimitBytes || 2147483648) / (1024 * 1024 * 1024)).toFixed(2);
   const storagePercentage = user?.storageInfo?.percentage ?? Math.min(100, Math.round((Number(user?.storageUsedBytes || 0) / Number(user?.storageLimitBytes || 2147483648)) * 100));
 
+  // Nhãn gói cước dưới thanh dung lượng. Mỗi trạng thái của `subscription` ra một
+  // câu riêng — kể cả trạng thái "không hỏi được", vốn là chỗ dễ bị lười nhất: rơi
+  // về câu "Miễn phí" ở đó là dựng lại đúng cái lỗi đang sửa, chỉ khó thấy hơn.
+  const planLabel = (() => {
+    if (subscription === 'loading') return t('profile.plan.loading');
+    if (subscription === 'error') return t('profile.plan.unavailable');
+    if (!subscription?.planName) return t('profile.plan.free');
+    const name = t('profile.plan.current', { name: subscription.planName });
+    // `remainingDays` chỉ nói thêm khi nó là một con số dương thật. 0 hoặc âm là
+    // gói đã hết hạn mà bản ghi chưa kịp đóng — nói "còn 0 ngày" thì vô nghĩa.
+    return subscription.remainingDays > 0
+      ? `${name} · ${t('profile.plan.remaining', { days: subscription.remainingDays })}`
+      : name;
+  })();
+
   const initialLetter = (user?.fullName || user?.email || 'U').charAt(0).toUpperCase();
 
   // Kiểm tra điều kiện enable nút Xoá tài khoản
@@ -455,7 +502,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
             }`}
           >
             <UserIcon className="w-4 h-4" />
-            Thông tin
+            {t('profile.tab.info')}
           </button>
 
           {user.provider === 'local' && (
@@ -468,7 +515,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
               }`}
             >
               <KeyRound className="w-4 h-4" />
-              Mật khẩu
+              {t('profile.tab.password')}
             </button>
           )}
 
@@ -481,7 +528,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
             }`}
           >
             <Laptop className="w-4 h-4" />
-            Phiên đăng nhập
+            {t('profile.tab.sessions')}
           </button>
         </div>
 
@@ -549,7 +596,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
               <form onSubmit={handleUpdateProfile} className="space-y-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
-                    Tên hiển thị
+                    {t('profile.name.label')}
                   </label>
                   <div className="relative">
                     <UserIcon className="w-4 h-4 text-gray-400 dark:text-gray-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -579,10 +626,10 @@ export default function UserProfileModal({ isOpen, onClose }) {
                       id="discoverable-label"
                       className="text-sm font-bold text-gray-800 dark:text-gray-200"
                     >
-                      Hiển thị thông tin cá nhân qua Email
+                      {t('profile.discoverable.title')}
                     </p>
                     <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">
-                      Cho phép người khác tìm thấy bạn bằng email khi họ muốn chia sẻ tệp
+                      {t('profile.discoverable.desc')}
                     </p>
                   </div>
                   <button
@@ -608,7 +655,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
 
                 <div>
                   <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
-                    Địa chỉ Email (Không thể thay đổi)
+                    {t('profile.email.label')}
                   </label>
                   <div className="relative">
                     <Mail className="w-4 h-4 text-gray-400 dark:text-gray-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -632,7 +679,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                     ) : (
                       <Save className="w-4 h-4" />
                     )}
-                    Lưu thông tin
+                    {t('profile.save')}
                   </button>
                 </div>
               </form>
@@ -642,7 +689,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                 <div className="flex items-center justify-between text-xs font-bold">
                   <span className="flex items-center gap-1.5 text-gray-800 dark:text-gray-200">
                     <HardDrive className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                    Dung lượng lưu trữ Cloud
+                    {t('profile.storage.title')}
                   </span>
                   <span className="text-gray-600 dark:text-gray-300">
                     {storageUsedGB} GB / {storageLimitGB} GB ({storagePercentage}%)
@@ -661,8 +708,8 @@ export default function UserProfileModal({ isOpen, onClose }) {
                   />
                 </div>
                 <div className="flex justify-between items-center text-[11px] text-gray-500 dark:text-gray-400">
-                  <span>{t('profile.plan.free')}</span>
-                  <span>{100 - storagePercentage}% còn trống</span>
+                  <span className="truncate" title={planLabel}>{planLabel}</span>
+                  <span>{t('profile.storage.free', { percent: 100 - storagePercentage })}</span>
                 </div>
               </div>
             </div>
@@ -674,13 +721,13 @@ export default function UserProfileModal({ isOpen, onClose }) {
               <div className="p-3 bg-amber-50 dark:bg-amber-500/15 rounded-xl border border-amber-200/80 dark:border-amber-800/60 text-amber-800 dark:text-amber-200 text-xs flex items-start gap-2">
                 <ShieldCheck className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
                 <span>
-                  Để bảo vệ tài khoản, hãy sử dụng mật khẩu mạnh có tối thiểu 6 ký tự và tránh sử dụng lại mật khẩu ở nơi khác.
+                  {t('profile.password.securityHint')}
                 </span>
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
-                  Mật khẩu hiện tại
+                  {t('profile.password.currentLabel')}
                 </label>
                 <div className="relative">
                   <Lock className="w-4 h-4 text-gray-400 dark:text-gray-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -697,7 +744,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
 
               <div>
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
-                  Mật khẩu mới
+                  {t('auth.password.newLabel')}
                 </label>
                 <div className="relative">
                   <Lock className="w-4 h-4 text-gray-400 dark:text-gray-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -715,7 +762,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
 
               <div>
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
-                  Xác nhận mật khẩu mới
+                  {t('profile.password.confirmLabel')}
                 </label>
                 <div className="relative">
                   <Lock className="w-4 h-4 text-gray-400 dark:text-gray-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -742,7 +789,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                   ) : (
                     <Save className="w-4 h-4" />
                   )}
-                  Đổi mật khẩu
+                  {t('profile.password.submit')}
                 </button>
               </div>
             </form>
@@ -754,10 +801,10 @@ export default function UserProfileModal({ isOpen, onClose }) {
               <div className="flex items-center justify-between">
                 <div>
                   <h4 className="text-xs font-bold text-gray-900 dark:text-gray-100 uppercase tracking-wider">
-                    Thiết bị đang đăng nhập ({sessions.length})
+                    {t('profile.sessions.title', { count: sessions.length })}
                   </h4>
                   <p className="text-[11px] text-gray-500 dark:text-gray-400">
-                    Danh sách các trình duyệt và thiết bị có quyền truy cập vào tài khoản của bạn.
+                    {t('profile.sessions.subtitle')}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -781,7 +828,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                       ) : (
                         <LogOut className="w-3.5 h-3.5" />
                       )}
-                      Đăng xuất thiết bị khác
+                      {t('profile.sessions.revokeOthers')}
                     </button>
                   )}
                 </div>
@@ -815,7 +862,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                 </div>
               ) : sessions.length === 0 ? (
                 <div className="py-10 text-center text-gray-500 dark:text-gray-400 text-xs border border-dashed border-gray-200 dark:border-gray-700 rounded-2xl">
-                  Chưa có thông tin phiên đăng nhập.
+                  {t('profile.sessions.empty')}
                 </div>
               ) : (
                 <div className="space-y-2.5">
@@ -849,12 +896,12 @@ export default function UserProfileModal({ isOpen, onClose }) {
                               </span>
                               {sess.isCurrent && (
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-100 text-emerald-700 dark:text-emerald-300 rounded-full text-[10px] font-bold">
-                                  <CheckCircle2 className="w-3 h-3" /> Thiết bị này
+                                  <CheckCircle2 className="w-3 h-3" /> {t('profile.session.thisDevice')}
                                 </span>
                               )}
                               {sess.isRevoked && (
                                 <span className="inline-flex items-center px-2 py-0.5 bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full text-[10px] font-medium">
-                                  Đã thu hồi
+                                  {t('profile.session.revokedBadge')}
                                 </span>
                               )}
                             </div>
@@ -919,10 +966,10 @@ export default function UserProfileModal({ isOpen, onClose }) {
                 </div>
                 <div className="flex-1">
                   <h5 className="text-xs font-bold text-rose-900 dark:text-rose-200 uppercase tracking-wider">
-                    Vùng nguy hiểm (Danger Zone)
+                    {t('profile.danger.title')}
                   </h5>
                   <p className="text-[11px] text-rose-700 dark:text-rose-300 mt-0.5 leading-relaxed">
-                    Xoá vĩnh viễn tài khoản và toàn bộ tệp tin, dữ liệu lưu trữ trên Cloud Storage. Hành động này không thể hoàn tác.
+                    {t('profile.danger.desc')}
                   </p>
                 </div>
                 <button
@@ -930,7 +977,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                   className="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 shrink-0 cursor-pointer"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
-                  Xoá tài khoản
+                  {t('profile.danger.button')}
                 </button>
               </div>
             </div>
@@ -976,7 +1023,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
               {user.provider === 'local' ? (
                 <div>
                   <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
-                    1. Nhập mật khẩu hiện tại của bạn
+                    {t('profile.delete.step1Password')}
                   </label>
                   <input
                     type="password"
@@ -995,14 +1042,19 @@ export default function UserProfileModal({ isOpen, onClose }) {
                     className="mt-0.5 w-4 h-4 text-rose-600 rounded-sm"
                   />
                   <span>
-                    Tôi xác nhận rằng tôi đã sao lưu toàn bộ dữ liệu quan trọng và đồng ý xoá vĩnh viễn tài khoản {user.provider}.
+                    {t('profile.delete.oauthConfirm', { provider: user.provider })}
                   </span>
                 </label>
               )}
 
               <div>
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
-                  {user.provider === 'local' ? '2. ' : ''}Gõ chữ <span className="text-rose-600 dark:text-rose-400 font-mono font-black">DELETE</span> để xác nhận
+                  {user.provider === 'local' ? '2. ' : ''}
+                  {tRich(t('profile.delete.typeKeyword'), {
+                    keyword: (
+                      <span className="text-rose-600 dark:text-rose-400 font-mono font-black">DELETE</span>
+                    ),
+                  })}
                 </label>
                 <input
                   type="text"
@@ -1022,7 +1074,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                 onClick={() => setShowDeleteModal(false)}
                 className="px-4 py-2.5 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors disabled:opacity-50 cursor-pointer"
               >
-                Hủy bỏ
+                {t('common.cancel')}
               </button>
               <button
                 type="button"
@@ -1035,7 +1087,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                 ) : (
                   <Trash2 className="w-4 h-4" />
                 )}
-                Xoá vĩnh viễn tài khoản
+                {t('profile.delete.confirmButton')}
               </button>
             </div>
           </div>

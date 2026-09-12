@@ -123,7 +123,7 @@ export default function RenameModal({ isOpen, item, onClose, onRename }) {
                 <form onSubmit={handleSubmit} className="p-6">
                     <div className="mb-6">
                         <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
-                            Tên mới
+                            {t('rename.newNameLabel')}
                         </label>
                         {/* Ô nhập chỉ nhận PHẦN TÊN; phần mở rộng nằm ngoài ô, không sửa được */}
                         <div className={`flex items-center w-full rounded-xl border bg-white dark:bg-[#1e1e1e] text-sm transition-all focus-within:ring-2 ${
@@ -168,7 +168,7 @@ export default function RenameModal({ isOpen, item, onClose, onRename }) {
                             disabled={isSubmitting}
                             className="px-4 py-2 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors cursor-pointer"
                         >
-                            Hủy
+                            {t('common.cancel')}
                         </button>
                         <button
                             type="submit"

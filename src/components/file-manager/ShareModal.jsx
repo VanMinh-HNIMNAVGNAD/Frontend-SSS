@@ -230,7 +230,7 @@ export default function ShareModal({ isOpen, item, onClose }) {
                         <div className="p-1.5 rounded-lg bg-blue-600/10 dark:bg-blue-500/15">
                             <UserPlus className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                         </div>
-                        <span className="truncate max-w-[320px]">Chia sẻ "{item.name}"</span>
+                        <span className="truncate max-w-[320px]">{t('share.titleOf', { name: item.name })}</span>
                     </div>
                     <button
                         onClick={onClose}
@@ -301,7 +301,7 @@ export default function ShareModal({ isOpen, item, onClose }) {
                     {/* People with access */}
                     <div>
                         <h4 className="font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3 text-[11px]">
-                            Người có quyền truy cập ({members.length})
+                            {t('share.peopleWithAccess', { count: members.length })}
                         </h4>
                         <div className="space-y-1 max-h-[220px] overflow-y-auto pr-1">
                             {isLoadingMembers ? (

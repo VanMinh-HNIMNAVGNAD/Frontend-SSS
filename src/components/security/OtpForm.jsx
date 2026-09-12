@@ -131,7 +131,7 @@ export default function OtpForm({
       <div className="flex flex-col items-center text-center gap-2">
         <MailCheck className="w-10 h-10 text-blue-400" />
         <p className="text-sm font-medium text-slate-300">
-          Nhập mã 6 chữ số vừa gửi tới
+          {t('otp.sentTo')}
           <br />
           <span className="font-bold text-white break-all">{email}</span>
         </p>
@@ -191,7 +191,7 @@ export default function OtpForm({
             disabled={busy}
             className="text-slate-400 hover:text-white transition disabled:opacity-50 cursor-pointer"
           >
-            ← Quay lại
+            {t('otp.back')}
           </button>
         ) : (
           <span />

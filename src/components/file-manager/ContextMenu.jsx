@@ -549,7 +549,7 @@ export default function ContextMenu({
                         <div className="relative">
                             <MenuRow
                                 icon={<Palette className="w-4 h-4 text-gray-700 dark:text-gray-300" />}
-                                label="Đổi màu"
+                                label={t('menu.changeColor')}
                                 onClick={() => setColorPickerFor((v) => (v === item.id ? null : item.id))}
                                 trailing={
                                     <span className="shrink-0 flex items-center gap-1.5">
@@ -591,11 +591,15 @@ export default function ContextMenu({
                         <MenuRowLocked label={t('menu.moveToTrash')} hint={t('menu.viewerOnly')} />
                     )}
 
-                    {/* 13. Không phải mục đề xuất hữu ích */}
+                    {/* 13. Không phải mục đề xuất hữu ích — chỉ ẩn khỏi Trang chủ.
+                         Khoá dịch trước đây là `menu.notSpam`, dùng lại từ nhóm Nội
+                         dung rác: bản tiếng Việt đã được sửa thành câu đúng nhưng bản
+                         tiếng Anh vẫn đọc là "Not spam", tức người chọn English được
+                         mời gỡ một tệp khỏi thư mục rác mà nó chưa từng nằm trong đó. */}
                     {activeTab === 'home' && (
                         <MenuRow
                             icon={<ThumbsDown className="w-4 h-4 text-gray-500 dark:text-gray-400" />}
-                            label={t('menu.notSpam')}
+                            label={t('menu.dismissSuggestion')}
                             onClick={() => { onDismissSuggestion?.(item); closeMenu(); }}
                         />
                     )}

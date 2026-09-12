@@ -657,11 +657,11 @@ export default function FilePreviewModal({ item, onClose }) {
         .then((text) => {
           if (!isMounted) return;
           const content = text?.content !== undefined ? text.content : (typeof text === 'string' ? text : '');
-          if (content && !content.startsWith('// Không thể tải trực tiếp') && !content.startsWith('// Lỗi khi đọc')) {
-            setTextContent(content);
-          } else {
-            setTextContent(content || t('preview.text.loadFailed'));
-          }
+          const isBackendPlaceholder =
+            !content ||
+            content.startsWith('// Không thể tải trực tiếp') ||
+            content.startsWith('// Lỗi khi đọc');
+          setTextContent(isBackendPlaceholder ? t('preview.text.loadFailed') : content);
         })
         .catch(() => {
           if (isMounted) setTextContent(t('preview.text.loadFailedCode'));
@@ -925,7 +925,7 @@ export default function FilePreviewModal({ item, onClose }) {
                     {item.name}
                   </h4>
                   <p className="text-xs text-slate-400">
-                    Âm thanh • {formatBytes(item.sizeBytes)}
+                    {t('preview.audio.label', { size: formatBytes(item.sizeBytes) })}
                   </p>
                 </div>
                 <div className="w-full bg-slate-950/60 p-3 rounded-2xl border border-white/5">
@@ -991,7 +991,7 @@ export default function FilePreviewModal({ item, onClose }) {
                         onClick={handleDownload}
                         className="px-4 py-2 bg-white/10 hover:bg-white/20 text-xs font-semibold rounded-xl text-white transition-all"
                       >
-                        Tải tệp về máy để xem
+                        {t('preview.downloadToView')}
                       </button>
                     </div>
                   ) : (
@@ -1025,7 +1025,7 @@ export default function FilePreviewModal({ item, onClose }) {
                             mdViewMode === 'preview' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'
                           }`}
                         >
-                          Xem trước
+                          {t('sharePage.previewLabel')}
                         </button>
                         <button
                           onClick={() => setMdViewMode('source')}
@@ -1033,7 +1033,7 @@ export default function FilePreviewModal({ item, onClose }) {
                             mdViewMode === 'source' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'
                           }`}
                         >
-                          Mã nguồn
+                          {t('sharePage.sourceLabel')}
                         </button>
                       </div>
                     )}
@@ -1130,7 +1130,7 @@ export default function FilePreviewModal({ item, onClose }) {
                   onClick={handleDownload}
                   className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-xs font-semibold rounded-xl text-white shadow-lg transition-all"
                 >
-                  Tải xuống tệp gốc
+                  {t('preview.downloadOriginal')}
                 </button>
               </div>
             )}

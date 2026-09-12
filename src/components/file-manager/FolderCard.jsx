@@ -2,8 +2,10 @@ import { memo } from 'react';
 import { Folder, MoreVertical, Users, CheckSquare, Square } from 'lucide-react';
 import StarButton from '../common/StarButton';
 import { getCardColorVars } from '../../utils/fileColors';
+import { useLanguage } from '../../context/LanguageContext';
 
 function FolderCard({ folder, onDoubleClick, onContextMenu, onStarToggle, isSelected, isCut = false, onToggleSelect, onSelectRange }) {
+    const { t } = useLanguage();
     // Cả thẻ ăn theo màu hiệu lực (customColor, hoặc xám mặc định của thư mục):
     // nền, viền, tên và icon đều đọc từ cùng một bộ biến CSS đã cân tương phản.
     // Chi tiết xem đầu file FileCard.jsx và utils/fileColors.js.
@@ -58,7 +60,7 @@ function FolderCard({ folder, onDoubleClick, onContextMenu, onStarToggle, isSele
                     </span>
                     {folder.isShared && (
                         <span className="text-[11px] flex items-center gap-1 text-[var(--fc-muted-l)] dark:text-[var(--fc-muted-d)]">
-                            <Users className="w-3 h-3 text-blue-500" /> Duoc chia se
+                            <Users className="w-3 h-3 text-blue-500" /> {t('card.sharedBadge')}
                         </span>
                     )}
                 </div>
@@ -77,7 +79,7 @@ function FolderCard({ folder, onDoubleClick, onContextMenu, onStarToggle, isSele
                     onClick={(e) => onContextMenu && onContextMenu(e, folder)}
                     onDoubleClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
                     className="p-1 rounded-full transition-colors text-[var(--fc-muted-l)] dark:text-[var(--fc-muted-d)] hover:text-[var(--fc-ink-l)] dark:hover:text-[var(--fc-ink-d)] hover:bg-white/60 dark:hover:bg-white/10"
-                    title="Tuy chon khac"
+                    title={t('home.moreActions')}
                 >
                     <MoreVertical className="w-4 h-4" />
                 </button>

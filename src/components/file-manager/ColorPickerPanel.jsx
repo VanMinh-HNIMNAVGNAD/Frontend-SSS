@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import { RotateCcw, Check, Pipette } from 'lucide-react';
 import { getDefaultColor } from '../../utils/fileColors';
+import { useLanguage } from '../../context/LanguageContext';
 
 /**
  * Bảng 30 màu preset được chọn lọc kỹ.
@@ -96,6 +97,7 @@ function hsvToHex({ h, s, v }) {
  * @param {Function} onCloseMenu   - đóng cả context menu (sau khi đã áp dụng màu)
  */
 export default function ColorPickerPanel({ item, currentColor, onSelectColor, onClose, onCloseMenu }) {
+    const { t } = useLanguage();
     const panelRef = useRef(null);
 
     // Màu mặc định (khi không có customColor)
@@ -251,10 +253,10 @@ export default function ColorPickerPanel({ item, currentColor, onSelectColor, on
             {/* Tiêu đề */}
             <div className="flex items-center justify-between mb-2">
                 <span className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Chọn màu
+                    {t('color.pick')}
                 </span>
                 <span className="font-mono text-[10px] text-gray-400 dark:text-gray-500">
-                    {activeColor ?? 'mặc định'}
+                    {activeColor ?? t('color.default')}
                 </span>
             </div>
 
@@ -288,7 +290,7 @@ export default function ColorPickerPanel({ item, currentColor, onSelectColor, on
             <div className="flex items-center gap-1.5 mb-2">
                 <Pipette className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500 shrink-0" />
                 <span className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Tuỳ chỉnh
+                    {t('color.custom')}
                 </span>
             </div>
 
@@ -345,7 +347,7 @@ export default function ColorPickerPanel({ item, currentColor, onSelectColor, on
                     }}
                     spellCheck={false}
                     maxLength={7}
-                    aria-label="Mã màu hex"
+                    aria-label={t('color.hexAria')}
                     className="flex-1 min-w-0 px-2 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-transparent font-mono text-[12px] text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <button
@@ -353,7 +355,7 @@ export default function ColorPickerPanel({ item, currentColor, onSelectColor, on
                     disabled={!hasDraft}
                     className="shrink-0 px-2.5 py-1.5 rounded-lg text-[12px] font-semibold bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
-                    Áp dụng
+                    {t('color.apply')}
                 </button>
             </div>
 
@@ -366,7 +368,7 @@ export default function ColorPickerPanel({ item, currentColor, onSelectColor, on
                         className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-[12px] text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
                     >
                         <RotateCcw className="w-3.5 h-3.5 text-gray-500 shrink-0" />
-                        <span className="flex-1 text-left truncate">Đặt lại màu mặc định</span>
+                        <span className="flex-1 text-left truncate">{t('color.reset')}</span>
                         <span
                             className="w-4 h-4 rounded-full border border-gray-300 dark:border-gray-600 shrink-0"
                             style={{ backgroundColor: defaultColor }}

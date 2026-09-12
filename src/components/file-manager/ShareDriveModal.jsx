@@ -137,7 +137,7 @@ export default function ShareDriveModal({ isOpen, drive, onClose, onChanged }) {
                 {isAdmin ? (
                     <form onSubmit={handleAddMember} className="space-y-2">
                         <label className="block text-[11px] font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">
-                            Thêm thành viên
+                            {t('driveShare.addMember')}
                         </label>
                         <div className="flex flex-col sm:flex-row gap-2">
                             <input
@@ -168,14 +168,14 @@ export default function ShareDriveModal({ isOpen, drive, onClose, onChanged }) {
                     </form>
                 ) : (
                     <div className="px-3 py-2.5 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-gray-700 text-xs text-slate-500 dark:text-gray-400">
-                        Chỉ Quản trị viên của bộ nhớ này mới thêm hoặc gỡ được thành viên.
+                        {t('driveShare.adminOnly')}
                     </div>
                 )}
 
                 {/* Danh sách thành viên */}
                 <div>
                     <h4 className="text-[11px] font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider mb-2">
-                        Thành viên ({members.length})
+                        {t('driveShare.members', { count: members.length })}
                     </h4>
                     <div className="space-y-1 max-h-[260px] overflow-y-auto pr-1">
                         {isLoading ? (
@@ -242,7 +242,7 @@ export default function ShareDriveModal({ isOpen, drive, onClose, onChanged }) {
                 {/* Chưa có API đổi role cho member sẵn có — nói thẳng thay vì để người dùng đi tìm */}
                 {isAdmin && members.length > 0 && (
                     <p className="text-[11px] text-slate-400 leading-relaxed">
-                        Muốn đổi vai trò của một người đã có trong danh sách: gỡ họ ra rồi thêm lại với vai trò mới.
+                        {t('driveShare.changeRoleHint')}
                     </p>
                 )}
 

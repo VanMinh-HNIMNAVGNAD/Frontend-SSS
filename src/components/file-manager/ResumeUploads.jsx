@@ -103,7 +103,7 @@ export default function ResumeUploads() {
       <div className="flex items-center justify-between px-4 py-3 bg-amber-500/95 text-white">
         <div className="flex items-center gap-2 text-xs font-semibold">
           <RotateCcw className="w-4 h-4" />
-          <span>Còn {sessions.length} tệp tải dở</span>
+          <span>{t('resume.pending', { count: sessions.length })}</span>
         </div>
         <button
           onClick={() => setDismissed(true)}
@@ -115,7 +115,7 @@ export default function ResumeUploads() {
       </div>
 
       <p className="px-4 pt-3 text-[11px] leading-relaxed text-gray-500 dark:text-gray-400">
-        Chọn lại đúng tệp là tải tiếp từ chỗ đang dở — trình duyệt không giữ được nội dung tệp sau khi tải lại trang.
+        {t('resume.hint')}
       </p>
 
       {error && (
@@ -154,14 +154,14 @@ export default function ResumeUploads() {
                   className="flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-semibold bg-blue-50 dark:bg-blue-500/15 text-blue-600 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-500/25 transition-colors cursor-pointer"
                 >
                   <FileUp className="w-3 h-3" />
-                  Chọn lại tệp
+                  {t('resume.pickAgain')}
                 </button>
                 <button
                   onClick={() => handleDiscard(session)}
                   className="px-2 py-1 rounded-full text-[11px] font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
                   title={t('resume.dropSession')}
                 >
-                  Bỏ
+                  {t('resume.drop')}
                 </button>
               </div>
             </div>

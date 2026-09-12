@@ -1,30 +1,16 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 
-import en from '../locales/en';
-import vi from '../locales/vi';
+import {
+  DEFAULT_LANGUAGE,
+  LS_LANGUAGE,
+  SUPPORTED_LANGUAGES,
+  readSavedLanguage,
+  translate,
+} from '../utils/translate';
 
-// ── Khoá localStorage — dùng ĐÚNG khoá mà SettingsModal.jsx đang ghi từ trước,
-// để lựa chọn ngôn ngữ cũ của người dùng không bị mất khi chuyển sang Context ──
-const LS_LANGUAGE = 'driveR_settings_language';
-
-const SUPPORTED = ['vi', 'en'];
-const DEFAULT_LANGUAGE = 'vi';
-
-/** Đọc ngôn ngữ đã lưu; giá trị lạ hoặc chưa từng lưu thì trả về 'vi' */
-function readSavedLanguage() {
-  try {
-    const saved = localStorage.getItem(LS_LANGUAGE);
-    return SUPPORTED.includes(saved) ? saved : DEFAULT_LANGUAGE;
-  } catch {
-    // Trình duyệt chặn storage (chế độ ẩn danh, iframe...) — vẫn chạy được với mặc định
-    return DEFAULT_LANGUAGE;
-  }
-}
-
-// ── Từ điển dịch: mỗi ngôn ngữ một file trong `src/locales/` ──
-// Thêm ngôn ngữ mới = thêm 1 file + 1 dòng ở đây và trong SUPPORTED, không cần
-// sửa provider. Khoá phẳng dạng "namespace.key" cho dễ tra và dễ grep.
-const translations = { vi, en };
+// ── Từ điển, danh sách ngôn ngữ và hàm tra khoá nằm ở `utils/translate.js` ──
+// Tách ra vì `services/api.js` cũng cần dịch mà không gọi hook được: nó chạy
+// ngoài cây React. Provider này chỉ còn lo phần trạng thái + đồng bộ <html lang>.
 
 const LanguageContext = createContext(null);
 
@@ -33,7 +19,7 @@ export function LanguageProvider({ children }) {
 
   const changeLanguage = useCallback((next) => {
     // Chốt cửa ở đây: giá trị không hỗ trợ sẽ bị bỏ qua thay vì làm rỗng toàn bộ UI
-    if (!SUPPORTED.includes(next)) return;
+    if (!SUPPORTED_LANGUAGES.includes(next)) return;
     setLanguage(next);
     try {
       localStorage.setItem(LS_LANGUAGE, next);
@@ -65,19 +51,7 @@ export function LanguageProvider({ children }) {
    *
    * Gọi t(key) không kèm tham số vẫn chạy y như trước.
    */
-  const t = useCallback(
-    (key, params) => {
-      const template =
-        translations[language]?.[key] ?? translations[DEFAULT_LANGUAGE]?.[key] ?? key;
-      if (!params) return template;
-      // Thiếu tham số thì GIỮ NGUYÊN {tên} để lỗi nhìn thấy được, thay vì in ra
-      // 'undefined' — cùng tinh thần với việc trả về chính khoá khi thiếu bản dịch
-      return template.replace(/\{(\w+)\}/g, (match, name) =>
-        Object.prototype.hasOwnProperty.call(params, name) ? String(params[name]) : match
-      );
-    },
-    [language]
-  );
+  const t = useCallback((key, params) => translate(language, key, params), [language]);
 
   const value = useMemo(
     () => ({ language, changeLanguage, t }),
@@ -94,3 +68,5 @@ export function useLanguage() {
   }
   return context;
 }
+
+export { DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES };

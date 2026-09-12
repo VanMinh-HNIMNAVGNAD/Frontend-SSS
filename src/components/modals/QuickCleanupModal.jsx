@@ -81,8 +81,12 @@ export default function QuickCleanupModal({ isOpen, onClose }) {
             <div className="flex items-center gap-2.5">
               <Trash2 className="w-5 h-5 text-amber-600 dark:text-amber-400" />
               <div>
-                <div className="text-xs font-bold text-gray-900 dark:text-gray-100">Dọn sạch Thùng rác ({trashItems.length} tệp)</div>
-                <div className="text-[11px] text-gray-500 dark:text-gray-400">Có thể thu hồi ngay {trashMB} MB</div>
+                <div className="text-xs font-bold text-gray-900 dark:text-gray-100">
+                  {t('cleanup.emptyTrash', { count: trashItems.length })}
+                </div>
+                <div className="text-[11px] text-gray-500 dark:text-gray-400">
+                  {t('cleanup.reclaimable', { size: trashMB })}
+                </div>
               </div>
             </div>
             <button
@@ -98,17 +102,17 @@ export default function QuickCleanupModal({ isOpen, onClose }) {
         {/* Suggestion 2: Large Files */}
         <div className="space-y-3">
           <h4 className="text-xs font-bold text-gray-900 dark:text-gray-100 uppercase tracking-wider flex items-center justify-between">
-            <span>{(largeFiles || []).length} tệp lớn nhất nên xem xét xóa</span>
+            <span>{t('cleanup.largeFiles', { count: (largeFiles || []).length })}</span>
             <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">{'>'} 10 MB</span>
           </h4>
 
           {largeFiles === null ? (
             <div className="p-4 text-center border border-dashed border-gray-200 dark:border-gray-700 rounded-2xl text-xs text-gray-500 dark:text-gray-400">
-              Đang quét toàn bộ drive...
+              {t('cleanup.scanning')}
             </div>
           ) : largeFiles.length === 0 ? (
             <div className="p-4 text-center border border-dashed border-gray-200 dark:border-gray-700 rounded-2xl text-xs text-gray-500 dark:text-gray-400">
-              🎉 Bạn chưa có tệp lớn nào vượt quá 10MB!
+              {t('cleanup.noLargeFiles')}
             </div>
           ) : (
             <div className="max-h-48 overflow-y-auto space-y-2 pr-1">
@@ -145,7 +149,7 @@ export default function QuickCleanupModal({ isOpen, onClose }) {
             onClick={onClose}
             className="px-5 py-2 text-xs font-bold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors"
           >
-            Đóng
+            {t('common.close')}
           </button>
         </div>
       </div>

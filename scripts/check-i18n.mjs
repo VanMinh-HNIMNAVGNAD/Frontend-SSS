@@ -86,7 +86,9 @@ for (const file of walk(SRC_DIR)) {
     .readFileSync(file, 'utf8')
     .replace(/\/\*[\s\S]*?\*\//g, '')
     .replace(/^\s*\/\/.*$/gm, '');
-  for (const match of code.matchAll(/\bt\(\s*'([\w.]+)'/g)) {
+  // `tOutsideReact('...')` là cùng một tra cứu, chỉ dành cho mã ngoài cây React
+  // (services/api.js) — phải soi luôn, không thì nhóm khoá đó không ai canh.
+  for (const match of code.matchAll(/\b(?:t|tOutsideReact)\(\s*'([\w.]+)'/g)) {
     const key = match[1];
     if (viKeys.has(key)) continue;
     if (!unknown.has(key)) unknown.set(key, new Set());

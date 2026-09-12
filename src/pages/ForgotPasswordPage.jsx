@@ -154,19 +154,18 @@ export default function ForgotPasswordPage() {
         {step === 'email' && (
           <form onSubmit={handleRequestOtp} className="space-y-5">
             <p className="text-sm font-medium text-slate-400 text-center">
-              Nhập email của bạn. Nếu tài khoản tồn tại, chúng tôi sẽ gửi mã xác minh 6 chữ
-              số tới hộp thư đó.
+              {t('forgot.emailStepHint')}
             </p>
 
             <div>
-              <label className="text-sm text-slate-300 block mb-2 font-bold">Email</label>
+              <label className="text-sm text-slate-300 block mb-2 font-bold">{t('auth.email.label')}</label>
               <div className="relative">
                 <Mail className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@gmail.com"
+                  placeholder={t('auth.email.placeholder')}
                   required
                   autoFocus
                   className={inputClass}
@@ -197,9 +196,9 @@ export default function ForgotPasswordPage() {
             </button>
 
             <div className="text-center text-sm font-medium text-slate-400 pt-2">
-              Nhớ ra mật khẩu rồi?{' '}
+              {t('forgot.rememberPassword')}{' '}
               <Link to="/login" className="text-blue-400 hover:underline font-bold">
-                Đăng nhập
+                {t('common.login')}
               </Link>
             </div>
           </form>
@@ -231,7 +230,7 @@ export default function ForgotPasswordPage() {
             <div className="flex flex-col items-center text-center gap-2 mb-1">
               <ShieldCheck className="w-10 h-10 text-emerald-400" />
               <p className="text-sm font-medium text-slate-300">
-                Đặt mật khẩu mới cho
+                {t('forgot.setNewFor')}
                 <br />
                 <span className="font-bold text-white break-all">{email}</span>
               </p>
@@ -255,7 +254,7 @@ export default function ForgotPasswordPage() {
 
             <div>
               <label className="text-sm text-slate-300 block mb-2 font-bold">
-                Nhập lại mật khẩu
+                {t('forgot.confirmLabel')}
               </label>
               <div className="relative">
                 <Lock className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
@@ -271,7 +270,7 @@ export default function ForgotPasswordPage() {
             </div>
 
             <p className="text-xs font-medium text-slate-500 text-center">
-              Sau khi đổi, mọi thiết bị đang đăng nhập sẽ bị đăng xuất.
+              {t('forgot.signOutWarning')}
             </p>
 
             <button
@@ -293,7 +292,7 @@ export default function ForgotPasswordPage() {
             </div>
             <p className="text-base font-bold text-emerald-300">{t('forgot.done')}</p>
             <p className="text-sm font-medium text-slate-400">
-              Đang chuyển sang trang đăng nhập...
+              {t('forgot.redirecting')}
             </p>
           </div>
         )}

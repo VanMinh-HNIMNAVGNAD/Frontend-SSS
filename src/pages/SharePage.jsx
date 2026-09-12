@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
+import { localeTagOf } from '../utils/locale';
 import { sharingApi } from '../services/api';
 import { API_BASE_URL } from '../constants/api';
 import { formatBytes } from '../utils/formatFileSize';
@@ -89,7 +90,7 @@ function SharePageError({ message, onGoHome }) {
         onClick={onGoHome}
         className="px-6 py-2.5 rounded-full bg-indigo-600 hover:bg-indigo-500 text-sm font-medium transition-colors cursor-pointer"
       >
-        Quay về trang chủ
+        {t('sharePage.backHome')}
       </button>
     </div>
   );
@@ -257,7 +258,7 @@ function PdfCanvasViewer({ url, zoom: externalZoom, rotation: externalRotation }
               onClick={() => setCurrentPage((p) => Math.min(numPages, p + 1))}
               disabled={currentPage >= numPages}
               className="p-1.5 rounded-full hover:bg-white/10 text-white disabled:opacity-30 transition-colors cursor-pointer"
-              title="Trang sau"
+              title={t('preview.page.next')}
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
@@ -390,7 +391,7 @@ function CodeTextPreview({ url, name }) {
   if (error) {
     return (
       <div className="text-white/30 text-sm text-center h-40 flex items-center justify-center">
-        Không thể đọc nội dung. Vui lòng tải xuống để xem.
+        {t('sharePage.text.unreadable')}
       </div>
     );
   }
@@ -426,7 +427,7 @@ function CodeTextPreview({ url, name }) {
                   mdViewMode === 'preview' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
-                Xem trước
+                {t('sharePage.previewLabel')}
               </button>
               <button
                 onClick={() => setMdViewMode('source')}
@@ -434,7 +435,7 @@ function CodeTextPreview({ url, name }) {
                   mdViewMode === 'source' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
-                Mã nguồn
+                {t('sharePage.sourceLabel')}
               </button>
             </div>
           )}
@@ -743,7 +744,7 @@ function ChildFilePreviewModal({
                 onClick={handleDownloadClick}
                 className="px-4 py-2 bg-white/10 hover:bg-white/20 text-xs font-semibold rounded-xl text-white transition-all cursor-pointer"
               >
-                Tải tệp về máy để xem
+                {t('preview.downloadToView')}
               </button>
             )}
           </div>
@@ -782,7 +783,9 @@ function ChildFilePreviewModal({
                   <h4 className="font-bold text-white text-base truncate px-2" title={file.name}>
                     {file.name}
                   </h4>
-                  <p className="text-xs text-slate-400">Âm thanh • {formatBytes(file.sizeBytes)}</p>
+                  <p className="text-xs text-slate-400">
+                    {t('preview.audio.label', { size: formatBytes(file.sizeBytes) })}
+                  </p>
                 </div>
                 <div className="w-full bg-slate-950/60 p-3 rounded-2xl border border-white/5">
                   <audio src={previewUrl} controls className="w-full" />
@@ -816,7 +819,7 @@ function ChildFilePreviewModal({
                     onClick={handleDownloadClick}
                     className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold rounded-xl text-white shadow-lg transition-all cursor-pointer"
                   >
-                    Tải xuống tệp gốc 
+                    {t('preview.downloadOriginal')}
                   </button>
                 )}
               </div>
@@ -836,7 +839,7 @@ function ChildFilePreviewModal({
                 onClick={handleDownloadClick}
                 className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold rounded-xl text-white shadow-lg transition-all cursor-pointer"
               >
-                Tải xuống tệp gốc
+                {t('preview.downloadOriginal')}
               </button>
             )}
           </div>
@@ -860,7 +863,8 @@ function ChildFilePreviewModal({
 
 // ─── Folder Browser — bảng danh sách file con ────────────────────────────────
 function FolderBrowser({ token, rootFolderName, isDownloadAllowed, onOpenFile, shareAuthToken }) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const locale = localeTagOf(language);
   const [stack, setStack]         = useState([{ id: null, name: rootFolderName }]); // breadcrumb stack
   const [children, setChildren]   = useState([]);
   const [loading, setLoading]     = useState(true);
@@ -1044,7 +1048,7 @@ function FolderBrowser({ token, rootFolderName, isDownloadAllowed, onOpenFile, s
               {/* Ngày */}
               <span className="text-xs text-white/25 text-right hidden sm:block whitespace-nowrap">
                 {item.updatedAt
-                  ? new Date(item.updatedAt).toLocaleDateString('vi-VN')
+                  ? new Date(item.updatedAt).toLocaleDateString(locale)
                   : '—'}
               </span>
             </div>
@@ -1074,7 +1078,8 @@ function FileTypeIcon({ mimeType, type, name }) {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function SharePage() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const locale = localeTagOf(language);
   const { token }  = useParams();
   const navigate   = useNavigate();
 
@@ -1274,7 +1279,7 @@ export default function SharePage() {
           </div>
           <h1 className="text-2xl font-semibold text-center mb-2">{t('sharePage.password.title')}</h1>
           <p className="text-sm text-white/60 text-center mb-6">
-            Vui lòng nhập mật khẩu để xem trước, tải xuống hoặc duyệt thư mục chia sẻ.
+            {t('sharePage.password.hint')}
           </p>
           <form onSubmit={handleVerifyPassword} className="space-y-4">
             <div>
@@ -1374,7 +1379,7 @@ export default function SharePage() {
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-8.69-6.44-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z" />
                   </svg>
-                  Thư mục
+                  {t('list.group.folders')}
                 </span>
               )}
               {expiresAt && (
@@ -1382,7 +1387,9 @@ export default function SharePage() {
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                   </svg>
-                  Hết hạn {new Date(expiresAt).toLocaleDateString('vi-VN')}
+                  {t('sharePage.expiresOn', {
+                    date: new Date(expiresAt).toLocaleDateString(locale),
+                  })}
                 </span>
               )}
               {hasPassword && (
@@ -1390,7 +1397,7 @@ export default function SharePage() {
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
                   </svg>
-                  Được bảo vệ
+                  {t('sharePage.protected')}
                 </span>
               )}
             </div>
@@ -1464,9 +1471,9 @@ export default function SharePage() {
         {/* Footer CTA */}
         <div className="mt-12 text-center">
           <p className="text-white/25 text-sm">
-            Bạn muốn lưu trữ và chia sẻ file miễn phí?{' '}
+            {t('sharePage.cta.question')}{' '}
             <a href="/register" className="text-indigo-400 hover:text-indigo-300 underline underline-offset-2 transition-colors">
-              Đăng ký driveR
+              {t('sharePage.cta.register')}
             </a>
           </p>
         </div>

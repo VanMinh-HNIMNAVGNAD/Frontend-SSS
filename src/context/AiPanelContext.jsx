@@ -25,6 +25,22 @@ export function AiPanelProvider({ children }) {
     const [target, setTarget] = useState(null);
 
     /**
+     * Panel đang THU NHỎ thành bong bóng.
+     *
+     * Nằm ở đây chứ không trong `GeminiModal` vì hai lý do, và cả hai đều là lỗi thật nếu
+     * để trong đó: nút AI trên thanh điều hướng phải MỞ LẠI được panel đang thu nhỏ (bấm
+     * nó khi đang thu nhỏ mà state nằm trong panel thì `openAi` đổi `target` sang cùng
+     * một key, component không dựng lại, và người dùng bấm mãi không thấy gì), còn
+     * `closeAi` thì phải dọn cờ này, nếu không lần mở sau sẽ mở ra một bong bóng.
+     *
+     * Thu nhỏ KHÔNG unmount panel: `target` giữ nguyên nên `GeminiModal` vẫn là cùng một
+     * instance, nó chỉ vẽ ra một bong bóng thay vì cả khung. Nhờ vậy hội thoại, tệp đang
+     * đính kèm và cả lượt trả lời đang chảy đều sống qua một lần thu nhỏ — đó là điểm
+     * khác duy nhất giữa "thu nhỏ" và "đóng", và cũng là lý do nó đáng có.
+     */
+    const [minimized, setMinimized] = useState(false);
+
+    /**
      * Mở panel.
      *
      * `item` CÓ THỂ null, và đó là thay đổi quan trọng nhất của bản này: nút AI trên thanh
@@ -36,20 +52,32 @@ export function AiPanelProvider({ children }) {
      * y như cũ và panel mở ra đã sẵn tệp đó trong ngữ cảnh.
      */
     const openAi = useCallback((item = null, action = null) => {
+        // Bỏ cờ thu nhỏ TRƯỚC: mở AI khi bong bóng đang nằm đó có nghĩa là "cho tôi xem
+        // lại khung chat", không phải "tạo một bong bóng thứ hai".
+        setMinimized(false);
         setTarget({ item: item ?? null, action });
     }, []);
 
-    const closeAi = useCallback(() => setTarget(null), []);
+    const closeAi = useCallback(() => {
+        setMinimized(false);
+        setTarget(null);
+    }, []);
+
+    const minimizeAi = useCallback(() => setMinimized(true), []);
+    const restoreAi = useCallback(() => setMinimized(false), []);
 
     const value = useMemo(
         () => ({
             aiItem: target?.item ?? null,
             aiAction: target?.action ?? null,
             aiOpen: target !== null,
+            aiMinimized: minimized,
             openAi,
             closeAi,
+            minimizeAi,
+            restoreAi,
         }),
-        [target, openAi, closeAi],
+        [target, minimized, openAi, closeAi, minimizeAi, restoreAi],
     );
 
     return (
@@ -69,6 +97,9 @@ export function AiPanelProvider({ children }) {
                         isOpen
                         item={target.item}
                         initialAction={target.action}
+                        minimized={minimized}
+                        onMinimize={minimizeAi}
+                        onRestore={restoreAi}
                         onClose={closeAi}
                     />
                 </Suspense>

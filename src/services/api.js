@@ -1585,6 +1585,15 @@ export const aiApi = {
   deleteConversation: (id) => api.delete(`/ai/conversations/${id}`),
 
   /**
+   * Xoá TOÀN BỘ lịch sử trò chuyện. Trả `{ deleted: n }` — số cuộc thật sự bị xoá.
+   *
+   * Lịch sử rỗng KHÔNG phải lỗi: backend trả `{ deleted: 0 }` chứ không 404, nên nơi gọi
+   * chỉ cần đổi câu thông báo chứ không phải bắt lỗi. Hạn mức token đã dùng của tháng
+   * (`ai_usage_log`) không nằm trong phạm vi xoá.
+   */
+  deleteAllConversations: () => api.delete('/ai/conversations'),
+
+  /**
    * Tải MỘT tệp từ máy vào khung hỏi AI.
    *
    * Một tệp mỗi lượt gọi, dù giao diện cho chọn tới 3. Gộp cả ba vào một request thì một

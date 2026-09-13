@@ -565,6 +565,19 @@ const vi = {
   'ai.history.deletedItem': 'Mục đã bị xoá',
   'ai.history.continue': 'Hỏi tiếp cuộc này',
   'ai.history.otherItem': 'Cuộc trò chuyện này về "{name}" — mở AI từ chính mục đó để hỏi tiếp.',
+  // ── Xoá sạch lịch sử (DELETE /ai/conversations) ──
+  // Chữ nói rõ phạm vi ngay trên nhãn ("toàn bộ", "mọi cuộc"): đây là lệnh không hoàn tác
+  // được, và người dùng phải phân biệt được nó với "Xoá hội thoại" ngay phía trên trong
+  // cùng một menu — cái kia chỉ dọn màn hình.
+  'ai.history.wipe': 'Xoá toàn bộ lịch sử chat',
+  'ai.history.wipe.confirmHint': 'Bấm lần nữa để xoá vĩnh viễn MỌI cuộc trò chuyện',
+  'ai.history.wipe.done': 'Đã xoá vĩnh viễn {count} cuộc trò chuyện',
+  'ai.history.wipe.empty': 'Không có cuộc trò chuyện nào để xoá',
+  'ai.history.wipe.failed': 'Không xoá được lịch sử trò chuyện. Thử lại sau.',
+  // ── Menu ba chấm + thu nhỏ thành bong bóng ──
+  'ai.more': 'Tuỳ chọn',
+  'ai.minimize': 'Thu nhỏ thành bong bóng',
+  'ai.restore': 'Mở lại trợ lý AI',
   // ── Hạn mức AI theo gói (backend: storage_plans.ai_token_quota) ──
   // Hiển thị PHẦN TRĂM ĐÃ DÙNG cho khớp với thanh tiến trình ngay bên dưới. Con số token
   // thật vẫn có trong tooltip cho ai cần đối chiếu hoá đơn.

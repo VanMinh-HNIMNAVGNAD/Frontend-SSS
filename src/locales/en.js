@@ -551,6 +551,16 @@ const en = {
   'ai.history.deletedItem': 'Item deleted',
   'ai.history.continue': 'Continue this chat',
   'ai.history.otherItem': 'This chat is about "{name}" — open AI from that item to continue it.',
+  // ── Wipe all history (DELETE /ai/conversations) ──
+  'ai.history.wipe': 'Delete all chat history',
+  'ai.history.wipe.confirmHint': 'Click again to permanently delete EVERY conversation',
+  'ai.history.wipe.done': 'Permanently deleted {count} conversations',
+  'ai.history.wipe.empty': 'No conversations to delete',
+  'ai.history.wipe.failed': 'Could not delete the chat history. Try again later.',
+  // ── Overflow menu + collapse to bubble ──
+  'ai.more': 'More options',
+  'ai.minimize': 'Collapse to a bubble',
+  'ai.restore': 'Reopen the AI assistant',
   // ── Per-plan AI quota (backend: storage_plans.ai_token_quota) ──
   'ai.quota.usedPercent': 'Used {percent}% of this month\'s AI quota',
   'ai.quota.empty': 'Monthly AI quota used up',

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { marked } from 'marked';
+import toast from 'react-hot-toast';
 import {
     Sparkles,
     X,
@@ -31,6 +32,9 @@ import {
     Paperclip,
     HardDrive,
     Upload,
+    MoreVertical,
+    Minus,
+    Eraser,
 } from 'lucide-react';
 
 import { aiApi } from '../../services/api';
@@ -56,6 +60,11 @@ import { localeTagOf } from '../../utils/locale';
  *  - initialAction lệnh nhanh chọn từ menu con ('summarize' | 'explain' | ...).
  *                  Có giá trị khác 'chat' thì tự chạy ngay khi mở — đó là điểm
  *                  của menu con: một cú bấm là có câu trả lời, không phải gõ gì.
+ *  - minimized     panel đang thu lại thành bong bóng: component vẽ ra một nút tròn ở
+ *                  mép phải thay cho cả khung. KHÔNG unmount (xem `AiPanelContext`) —
+ *                  cùng một instance, nên hội thoại, tệp đang đính kèm và cả lượt trả
+ *                  lời đang chảy đều sống nguyên qua một lần thu nhỏ.
+ *  - onMinimize / onRestore  đổi trạng thái trên, do `AiPanelContext` giữ.
  *  - onClose
  */
 
@@ -225,7 +234,15 @@ function dropPendingTurn(prev) {
     return next;
 }
 
-export default function GeminiModal({ isOpen, item, initialAction = null, onClose }) {
+export default function GeminiModal({
+    isOpen,
+    item,
+    initialAction = null,
+    minimized = false,
+    onMinimize,
+    onRestore,
+    onClose,
+}) {
     const { t, language } = useLanguage();
     // Một chỗ duy nhất quyết định thẻ BCP-47, thay cho `language === 'en' ? ... : ...`
     // rải rác: hai nhánh đó đã trôi khỏi `localeTagOf` (en-GB thay vì en-US) và sẽ còn
@@ -260,6 +277,23 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
     // còn lại của màn hình.
     const [confirmClear, setConfirmClear] = useState(false);
     const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+    // Xoá SẠCH mọi cuộc trò chuyện đã lưu. Tách khỏi `confirmClear` vì hai việc khác hẳn
+    // nhau về hậu quả: `confirmClear` chỉ dọn khung đang hiện (cuộc vẫn nằm trong lịch
+    // sử, mở lại đọc được), còn cái này xoá vĩnh viễn mọi cuộc trên máy chủ. Dùng chung
+    // một cờ thì một cú bấm "Xoá?" còn treo của việc nhẹ sẽ xác nhận cho việc nặng.
+    const [confirmWipe, setConfirmWipe] = useState(false);
+    const [wiping, setWiping] = useState(false);
+
+    // Menu ba chấm ở đầu khung — gom Lịch sử + hai lệnh xoá. Trước đây chúng là hai nút
+    // biểu tượng nằm cạnh nút Đóng: ba ô vuông xám giống hệt nhau, trong đó một ô xoá
+    // hội thoại. Gom vào menu thì hàng đầu khung chỉ còn việc thường dùng, và mỗi lệnh
+    // xoá được đọc bằng CHỮ trước khi bấm thay vì đoán qua hình cái thùng rác.
+    const [menuOpen, setMenuOpen] = useState(false);
+
+    // Có câu trả lời mới về trong lúc panel đang thu nhỏ — chấm báo trên bong bóng.
+    // Không có nó thì thu nhỏ giữa một lượt hỏi dài là mất dấu: bong bóng nằm im y hệt
+    // lúc chưa xong, và người dùng phải mở ra kiểm tra từng lúc.
+    const [unseenReply, setUnseenReply] = useState(false);
 
     // Hàng lệnh nhanh. Trước đây nó là một dải chip cuộn ngang nằm thường trực trên ô
     // nhập — chiếm một hàng vĩnh viễn kể cả giữa một cuộc trò chuyện dài, mà đúng lúc nó
@@ -288,6 +322,11 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
     const [reconnecting, setReconnecting] = useState(false);
     const scrollRef = useRef(null);
     const inputRef = useRef(null);
+    // Khung chat THẬT (không phải lớp vỏ `fixed inset-0`): mốc để biết một cú bấm là
+    // trong hay ngoài panel. Phải là khung trong, vì lớp vỏ phủ kín màn hình ở khổ điện
+    // thoại nên `contains()` trên nó luôn đúng và không cú bấm nào tính là "ra ngoài".
+    const panelRef = useRef(null);
+    const menuRef = useRef(null);
 
     // ── Tệp đính kèm tải từ máy ──────────────────────────────────────────
     //
@@ -614,6 +653,12 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                     const last = prev[prev.length - 1];
                     return last?.streaming ? [...prev.slice(0, -1), bubble] : [...prev, bubble];
                 });
+                // Câu trả lời về trong lúc panel đang thu nhỏ: bật chấm báo trên bong
+                // bóng. Đặt ở ĐÂY chứ không trong một effect theo dõi `messages`, vì mỗi
+                // đoạn chữ chảy về đều thay bong bóng cuối — bắt theo nội dung thì chấm
+                // sáng ngay từ chữ đầu tiên, lúc chưa có gì để đọc. Chỉ chỗ này mới biết
+                // lượt hỏi đã HOÀN TẤT.
+                if (minimized) setUnseenReply(true);
                 if (res.quota) {
                     setQuota(res.quota);
                     setQuotaBlocked(Boolean(res.quota.exhausted));
@@ -653,8 +698,35 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                 runIdRef.current = null;
             }
         },
-        [item, isFolder, language, messages, conversationId, t, readyAttachmentIds, uploading],
+        [
+            item,
+            isFolder,
+            language,
+            messages,
+            conversationId,
+            t,
+            readyAttachmentIds,
+            uploading,
+            minimized,
+        ],
     );
+
+    /**
+     * Đóng menu ba chấm VÀ dọn mọi bước xác nhận đang treo trong nó.
+     *
+     * Hai việc này không tách rời được: mở lại menu mà thấy sẵn dòng "Bấm lần nữa để
+     * xoá" thì cú bấm đầu tiên của lần sau đã là cú thứ hai, tức bước xác nhận biến mất
+     * đúng lúc nó cần có nhất.
+     *
+     * `useCallback` không deps: cả ba đều là hàm `setState`, React bảo đảm chúng không
+     * đổi. Nhờ vậy hai effect nghe `pointerdown`/`keydown` bên dưới kê được nó vào danh
+     * sách phụ thuộc mà không đăng ký lại listener sau mỗi lần render.
+     */
+    const closeMenu = useCallback(() => {
+        setMenuOpen(false);
+        setConfirmClear(false);
+        setConfirmWipe(false);
+    }, []);
 
     /**
      * Người dùng bấm Dừng (hoặc Esc).
@@ -727,10 +799,21 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
 
     // Esc để đóng. Đang chờ trả lời thì Esc DỪNG câu hỏi trước, chưa đóng khung —
     // bấm nhầm Esc mà mất luôn cả hội thoại là khó chịu.
+    //
+    // Đang thu nhỏ thì Esc KHÔNG đóng: lúc đó trên màn hình chỉ còn một bong bóng bé ở
+    // mép phải, người dùng gần như chắc chắn đang gõ Esc cho một thứ khác (đóng menu,
+    // thoát ô tìm kiếm) — và cái giá của việc đoán sai là mất cả hội thoại họ vừa cố ý
+    // giữ lại. Menu ba chấm đang mở thì Esc đóng menu trước, cùng một logic nhường bậc
+    // với nút Dừng.
     useEffect(() => {
         if (!isOpen) return;
         const onKeyDown = (e) => {
             if (e.key !== 'Escape') return;
+            if (minimized) return;
+            if (menuOpen) {
+                closeMenu();
+                return;
+            }
             if (abortRef.current) {
                 stopRun();
                 return;
@@ -739,7 +822,47 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
         };
         window.addEventListener('keydown', onKeyDown);
         return () => window.removeEventListener('keydown', onKeyDown);
-    }, [isOpen, onClose, stopRun]);
+    }, [isOpen, minimized, menuOpen, closeMenu, onClose, stopRun]);
+
+    /**
+     * Bấm ra ngoài khung chat → THU NHỎ, không đóng.
+     *
+     * `pointerdown` ở pha BẮT (capture) chứ không phải `click` ở pha nổi bọt: nhiều chỗ
+     * trong app (menu chuột phải, các dropdown) tự gỡ mình khỏi DOM ngay trong handler
+     * của chúng, nên tới lượt `click` nổi lên tới `document` thì `e.target` đã mồ côi và
+     * `contains()` trả về false — tức bấm vào một cái menu trong panel cũng bị tính là
+     * bấm ra ngoài.
+     *
+     * Nhờ đối chiếu với `panelRef`, nội dung trong shadow DOM (widget gợi ý tìm kiếm của
+     * Google) vẫn tính là bên trong: sự kiện từ shadow root được trình duyệt gán lại về
+     * chính phần tử host khi nhìn từ ngoài cây đó.
+     *
+     * KHÔNG chạy khi đang thu nhỏ — lúc đó mọi cú bấm đều là "ngoài panel", và bong bóng
+     * thì có handler riêng của nó.
+     */
+    useEffect(() => {
+        if (!isOpen || minimized) return undefined;
+        const onPointerDown = (e) => {
+            if (panelRef.current?.contains(e.target)) return;
+            onMinimize?.();
+        };
+        document.addEventListener('pointerdown', onPointerDown, true);
+        return () => document.removeEventListener('pointerdown', onPointerDown, true);
+    }, [isOpen, minimized, onMinimize]);
+
+    // Bấm ra ngoài MENU ba chấm (nhưng vẫn trong panel) thì đóng menu. Hai listener chứ
+    // không một: cái ở trên đã bỏ qua mọi cú bấm trong panel, mà menu thì cần đóng đúng
+    // ở những cú bấm đó.
+    useEffect(() => {
+        if (!menuOpen) return undefined;
+        const onPointerDown = (e) => {
+            if (menuRef.current?.contains(e.target)) return;
+            closeMenu();
+        };
+        document.addEventListener('pointerdown', onPointerDown, true);
+        return () => document.removeEventListener('pointerdown', onPointerDown, true);
+    }, [menuOpen, closeMenu]);
+
 
     // Bước xác nhận tự huỷ sau 4 giây. Không có nó thì một nút đang ở trạng thái "Xoá?"
     // sẽ nằm im như vậy vô thời hạn, và cú bấm vô tình nào sau đó cũng thành cú thứ hai.
@@ -755,12 +878,23 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
         return () => clearTimeout(timer);
     }, [confirmDeleteId]);
 
+    useEffect(() => {
+        if (!confirmWipe) return undefined;
+        const timer = setTimeout(() => setConfirmWipe(false), 4000);
+        return () => clearTimeout(timer);
+    }, [confirmWipe]);
+
     // Luôn cuộn xuống câu mới nhất
     useEffect(() => {
         scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
     }, [messages, isThinking, error]);
 
-    if (!isOpen || !item) return null;
+    // `!item` KHÔNG còn là điều kiện đóng. Đó là nguyên nhân của "bấm nút AI trên thanh
+    // điều hướng thì không có gì xảy ra": `AiPanelContext.openAi(null)` đã bỏ chặn và đã
+    // mount panel này với `item = null`, nhưng dòng này trả về null nên không có gì được
+    // vẽ ra — cái nút bấm vào đúng một khoảng trắng. Mọi thứ bên dưới đã đọc `item` qua
+    // `item?.` và qua `contextSources`, nên bỏ vế đó ra là đủ.
+    if (!isOpen) return null;
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -787,7 +921,7 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
             setConfirmClear(true);
             return;
         }
-        setConfirmClear(false);
+        closeMenu();
         setMessages([]);
         setError(null);
         // Bỏ luôn liên kết cuộc cũ: người dùng vừa dọn sạch khung chat thì câu sau là một
@@ -814,6 +948,7 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
     };
 
     const openHistory = () => {
+        closeMenu();
         setHistoryOpen(true);
         setViewing(null);
         // Tải lại mỗi lần mở: cuộc trò chuyện có thể vừa được thêm ở tab khác, và danh
@@ -848,6 +983,49 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
             if (conversationId === id) setConversationId(null);
         } catch (err) {
             setHistoryError(err?.response?.data?.message || t('ai.history.loadError'));
+        }
+    };
+
+    /**
+     * Xoá VĨNH VIỄN mọi cuộc trò chuyện đã lưu. Cú bấm thứ hai — xem `confirmWipe`.
+     *
+     * Không đụng tới hội thoại đang hiện trên màn hình, và đó là chủ ý: người dùng có thể
+     * đang đọc dở một câu trả lời vừa nhận, xoá nó khỏi màn hình là lấy đi thứ họ không
+     * yêu cầu xoá. Nhưng `conversationId` thì PHẢI bỏ — dòng tương ứng trên máy chủ đã
+     * biến mất, để nguyên thì câu hỏi tiếp theo ghi vào một id không còn tồn tại.
+     *
+     * Sổ token (`ai_usage_log`) không nằm trong phạm vi xoá: hạn mức đã dùng của tháng
+     * không phải lịch sử trò chuyện, và xoá chat để lấy lại hạn mức thì thành một đường
+     * lách hạn mức.
+     */
+    const wipeHistory = async () => {
+        if (!confirmWipe) {
+            setConfirmWipe(true);
+            return;
+        }
+        setConfirmWipe(false);
+        setWiping(true);
+        setHistoryError(null);
+        try {
+            const res = await aiApi.deleteAllConversations();
+            setHistoryList({ items: [], nextBefore: null });
+            setViewing(null);
+            setConversationId(null);
+            closeMenu();
+            toast.success(
+                res?.deleted > 0
+                    ? t('ai.history.wipe.done', { count: res.deleted })
+                    : t('ai.history.wipe.empty'),
+            );
+        } catch (err) {
+            const message = err?.response?.data?.message || t('ai.history.wipe.failed');
+            // Lỗi hiện ở CẢ hai chỗ: toast cho người đang đứng ở khung chat (menu vừa
+            // đóng, không còn gì để đọc ở đó), và dòng đỏ trong tấm lịch sử cho người
+            // đang mở nó — họ nhìn vào danh sách chứ không nhìn góc màn hình.
+            setHistoryError(message);
+            toast.error(message);
+        } finally {
+            setWiping(false);
         }
     };
 
@@ -1091,6 +1269,43 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
         : null;
     const inputLocked = aiDisabled || quotaBlocked;
 
+    /**
+     * Bong bóng của trạng thái thu nhỏ.
+     *
+     * ĐẶT Ở MÉP PHẢI, giữa chiều cao — không phải góc dưới-phải như một widget chat thông
+     * thường. Hai lý do, và lý do thứ hai mới là lý do bắt buộc:
+     *  • panel này vốn là một CỘT BÊN PHẢI trượt vào; thu về đúng cạnh đó thì cú bấm mở
+     *    lại nằm ngay chỗ khung sẽ bung ra.
+     *  • góc dưới-phải đã có chủ: `UploadProgress` là một thẻ rộng 360px đóng đinh ở
+     *    `bottom-6 right-6`. Đặt bong bóng vào đó thì trong lúc tải tệp nó nằm khuất hoàn
+     *    toàn dưới thẻ tải lên, và người dùng kết luận là bong bóng biến mất.
+     */
+    if (minimized) {
+        return (
+            <button
+                type="button"
+                onClick={() => {
+                    setUnseenReply(false);
+                    onRestore?.();
+                }}
+                title={t('ai.restore')}
+                aria-label={t('ai.restore')}
+                className="fixed right-3 top-1/2 -translate-y-1/2 z-[60] w-12 h-12 rounded-full bg-white dark:bg-[#282a2c] border border-gray-200 dark:border-gray-700 shadow-xl flex items-center justify-center text-blue-600 dark:text-blue-400 hover:scale-105 hover:border-blue-400 dark:hover:border-blue-500 transition-all cursor-pointer animate-fade-in"
+            >
+                {/* Ba trạng thái, đọc được mà không cần mở ra: đang trả lời (vòng xoay),
+                    đã có câu trả lời chưa xem (chấm xanh), và bình thường. */}
+                {isThinking ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                    <Sparkles className="w-5 h-5" />
+                )}
+                {!isThinking && unseenReply && (
+                    <span className="absolute top-0.5 right-0.5 w-2.5 h-2.5 rounded-full bg-blue-600 dark:bg-blue-400 ring-2 ring-white dark:ring-[#282a2c]" />
+                )}
+            </button>
+        );
+    }
+
     return (
         // Hai hình dạng trong MỘT cây DOM, đổi bằng breakpoint chứ không bằng JS:
         //
@@ -1106,14 +1321,20 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
         // phải nằm TRÊN nó mới mở được từ trong đó.
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:left-auto sm:inset-y-0 sm:right-0 sm:p-0 sm:items-stretch sm:justify-end">
             {/* Lớp phủ CHỈ trên điện thoại. `sm:hidden` chứ không phải đổi màu: ở cột phải
-                nó vẫn sẽ ăn mọi cú bấm ra ngoài panel. */}
+                nó vẫn sẽ ăn mọi cú bấm ra ngoài panel.
+
+                Bấm vào đây THU NHỎ chứ không đóng, cho khớp với cú bấm ra ngoài ở khổ màn
+                hình lớn: cùng một động tác thì phải cho cùng một kết quả, nếu không thì
+                trên điện thoại người dùng mất hội thoại ở đúng thao tác mà trên máy tính
+                chỉ cất nó đi. */}
             <div
                 className="absolute inset-0 bg-black/50 backdrop-blur-xs animate-fade-in cursor-pointer sm:hidden"
-                onClick={onClose}
+                onClick={onMinimize}
                 aria-hidden="true"
             />
 
             <div
+                ref={panelRef}
                 className="relative flex flex-col overflow-hidden cursor-default bg-white dark:bg-[#1e1e1e] dark:text-gray-100
                            w-full max-w-lg h-[85vh] rounded-2xl border border-gray-200 dark:border-gray-800 shadow-2xl animate-fade-in
                            sm:h-full sm:max-w-none sm:w-[26rem] lg:w-[30rem] sm:rounded-none sm:border-y-0 sm:border-r-0 sm:animate-slide-left"
@@ -1151,33 +1372,110 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                         </div>
                     </div>
                     <div className="flex items-center gap-0.5 shrink-0">
-                        <button
-                            onClick={openHistory}
-                            title={t('ai.history.open')}
-                            aria-label={t('ai.history.open')}
-                            className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100 transition-colors cursor-pointer"
-                        >
-                            <History className="w-4 h-4" />
-                        </button>
-                        {/* Cú bấm đầu mở ra chữ "Xoá?" — nút nở rộng ra và đổi sang màu
-                            cảnh báo, tức là nó KHÔNG còn nằm đúng chỗ cũ nữa: cú bấm thứ
-                            hai phải là một cú bấm có chủ ý, không phải cú bấm trượt tiếp
-                            theo. */}
-                        {messages.length > 0 && (
+                        {/* ── Menu ba chấm ──
+                            Thay cho hai nút biểu tượng cũ (Lịch sử + Thùng rác). Chúng
+                            từng đứng cạnh nút Đóng thành ba ô vuông xám cùng cỡ cùng màu,
+                            mà một trong ba xoá cả hội thoại — bấm trượt một ô là mất. Ở
+                            đây mỗi lệnh có CHỮ đọc được trước khi bấm, và lệnh xoá nằm
+                            dưới một lớp phải mở ra chứ không chờ sẵn dưới con trỏ.
+
+                            Hai bước xác nhận vẫn giữ nguyên, ngay tại dòng menu: cú bấm
+                            đầu đổi dòng đó sang màu cảnh báo và đổi chữ, cú thứ hai mới
+                            thật sự xoá. */}
+                        <div ref={menuRef} className="relative">
                             <button
-                                onClick={clearConversation}
-                                title={confirmClear ? t('ai.clear.confirmHint') : t('ai.clear')}
-                                aria-label={confirmClear ? t('ai.clear.confirmHint') : t('ai.clear')}
-                                className={`rounded-lg transition-colors cursor-pointer flex items-center gap-1.5 ${
-                                    confirmClear
-                                        ? 'px-2.5 py-1.5 text-[11px] font-medium text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-900/30 border border-rose-200 dark:border-rose-900/60'
-                                        : 'p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100'
+                                onClick={() => (menuOpen ? closeMenu() : setMenuOpen(true))}
+                                title={t('ai.more')}
+                                aria-label={t('ai.more')}
+                                aria-haspopup="menu"
+                                aria-expanded={menuOpen}
+                                className={`p-2 rounded-lg transition-colors cursor-pointer ${
+                                    menuOpen
+                                        ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
+                                        : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100'
                                 }`}
                             >
-                                <Trash2 className="w-4 h-4 shrink-0" />
-                                {confirmClear && t('ai.clear.confirm')}
+                                <MoreVertical className="w-4 h-4" />
                             </button>
-                        )}
+
+                            {menuOpen && (
+                                <div
+                                    role="menu"
+                                    className="absolute right-0 top-full mt-1 z-20 w-60 py-1 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#282a2c] shadow-xl animate-fade-in"
+                                >
+                                    <button
+                                        role="menuitem"
+                                        onClick={openHistory}
+                                        className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+                                    >
+                                        <History className="w-4 h-4 shrink-0 text-gray-400 dark:text-gray-500" />
+                                        {t('ai.history.open')}
+                                    </button>
+
+                                    {/* Chỉ có gì để dọn thì mới mời dọn. */}
+                                    {messages.length > 0 && (
+                                        <button
+                                            role="menuitem"
+                                            onClick={clearConversation}
+                                            title={confirmClear ? t('ai.clear.confirmHint') : undefined}
+                                            className={`w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-left transition-colors cursor-pointer ${
+                                                confirmClear
+                                                    ? 'font-medium text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-900/30'
+                                                    : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800'
+                                            }`}
+                                        >
+                                            <Eraser
+                                                className={`w-4 h-4 shrink-0 ${
+                                                    confirmClear ? '' : 'text-gray-400 dark:text-gray-500'
+                                                }`}
+                                            />
+                                            {confirmClear ? t('ai.clear.confirmHint') : t('ai.clear')}
+                                        </button>
+                                    )}
+
+                                    <div className="my-1 border-t border-gray-100 dark:border-gray-700" />
+
+                                    {/* Xoá SẠCH lịch sử trên máy chủ — nặng hơn hẳn hai
+                                        lệnh trên, nên nằm sau một đường kẻ và mang màu
+                                        cảnh báo ngay từ trạng thái nghỉ. */}
+                                    <button
+                                        role="menuitem"
+                                        onClick={wipeHistory}
+                                        disabled={wiping}
+                                        title={confirmWipe ? t('ai.history.wipe.confirmHint') : undefined}
+                                        className={`w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-left transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+                                            confirmWipe
+                                                ? 'font-medium text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-900/30'
+                                                : 'text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20'
+                                        }`}
+                                    >
+                                        {wiping ? (
+                                            <Loader2 className="w-4 h-4 shrink-0 animate-spin" />
+                                        ) : (
+                                            <Trash2 className="w-4 h-4 shrink-0" />
+                                        )}
+                                        <span className="min-w-0">
+                                            {confirmWipe
+                                                ? t('ai.history.wipe.confirmHint')
+                                                : t('ai.history.wipe')}
+                                        </span>
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Thu nhỏ. Bấm ra ngoài khung cũng làm đúng việc này, nhưng trên
+                            điện thoại "ngoài khung" là một dải hẹp quanh mép, nên vẫn cần
+                            một cái nút bấm trúng được. */}
+                        <button
+                            onClick={onMinimize}
+                            title={t('ai.minimize')}
+                            aria-label={t('ai.minimize')}
+                            className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100 transition-colors cursor-pointer"
+                        >
+                            <Minus className="w-4 h-4" />
+                        </button>
+
                         <button
                             onClick={onClose}
                             title={t('common.close')}

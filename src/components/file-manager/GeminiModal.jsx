@@ -11,8 +11,7 @@ import {
     RefreshCw,
     AlertTriangle,
     FileText,
-    Lightbulb,
-    Tags,
+    Image as ImageIcon,
     ListChecks,
     Wand2,
     Trash2,
@@ -54,14 +53,33 @@ import { localeTagOf } from '../../utils/locale';
  *  - onClose
  */
 
-// Các lệnh nhanh hiện thành chip trong khung chat. Trùng danh sách với menu con ở
-// ContextMenu.jsx (cùng bộ `id` mà backend hiểu) để hai chỗ không lệch nhau.
+// Các lệnh nhanh hiện thành chip trong khung chat. `id` phải nằm trong `AI_ACTIONS` của
+// backend (`dto/ask-ai.dto.ts`) — câu lệnh thật nằm ở backend, đây chỉ là cái nút.
+//
+// `kinds` là LOẠI MỤC mà chip được phép hiện. Ba lệnh phân tích chia theo loại tệp vì đó
+// là thứ quyết định mô hình thật sự nhận được gì — chữ, ảnh, hay khung hình kèm tiếng.
+// Hiện "Phân tích video" trên một tệp .docx thì cú bấm đó chắc chắn cho một câu trả lời
+// tồi VÀ vẫn trừ hạn mức của người dùng, nên lọc ở đây là lọc trước khi tiêu tiền.
+//
+// Bộ cũ ('explain' | 'keywords' | 'quiz') đã rút khỏi đây 13/09/2026 nhưng backend vẫn còn
+// nhận, để bản frontend đang chạy trên Vercel không vỡ trong khoảng giữa hai lần deploy.
 const QUICK_ACTIONS = [
-    { id: 'summarize', icon: FileText, labelKey: 'ai.action.summarize' },
-    { id: 'explain', icon: Lightbulb, labelKey: 'ai.action.explain' },
-    { id: 'keywords', icon: Tags, labelKey: 'ai.action.keywords' },
-    { id: 'quiz', icon: ListChecks, labelKey: 'ai.action.quiz', fileOnly: true },
-    { id: 'improve', icon: Wand2, labelKey: 'ai.action.improve', fileLabelKey: 'ai.action.improveFile' },
+    { id: 'document', icon: FileText, labelKey: 'ai.action.document', kinds: ['file'] },
+    { id: 'image', icon: ImageIcon, labelKey: 'ai.action.image', kinds: ['image'] },
+    { id: 'video', icon: FileVideo, labelKey: 'ai.action.video', kinds: ['video'] },
+    {
+        id: 'improve',
+        icon: Wand2,
+        labelKey: 'ai.action.improve',
+        fileLabelKey: 'ai.action.improveFile',
+        kinds: ['file', 'image', 'video', 'folder'],
+    },
+    {
+        id: 'summarize',
+        icon: ListChecks,
+        labelKey: 'ai.action.summarize',
+        kinds: ['file', 'image', 'video', 'folder'],
+    },
 ];
 
 // Số lượt gửi kèm làm lịch sử. Cắt ở đây chứ không gửi cả hội thoại: backend chặn
@@ -237,9 +255,25 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
 
     const isFolder = item?.type === 'folder';
 
+    /**
+     * Loại mục đang mở, theo đúng bốn nhánh mà backend dựng ngữ cảnh khác nhau.
+     *
+     * Khớp theo TIỀN TỐ mime chứ không theo đuôi tệp: đuôi do người dùng đặt và đổi tên
+     * được, `mimeType` là thứ backend thật sự dùng để quyết định gửi gì lên Gemini. Lệch
+     * hai chỗ này thì người dùng bấm "Phân tích video" rồi nhận về một câu trả lời chỉ
+     * dựa trên tên tệp, không hiểu vì sao.
+     */
+    const itemKind = useMemo(() => {
+        if (item?.type === 'folder') return 'folder';
+        const mime = (item?.mimeType || '').toLowerCase();
+        if (mime.startsWith('image/')) return 'image';
+        if (mime.startsWith('video/')) return 'video';
+        return 'file';
+    }, [item]);
+
     const quickActions = useMemo(
-        () => QUICK_ACTIONS.filter((a) => !(a.fileOnly && isFolder)),
-        [isFolder],
+        () => QUICK_ACTIONS.filter((a) => a.kinds.includes(itemKind)),
+        [itemKind],
     );
 
     // ── Gửi một câu hỏi ────────────────────────────────────────────────────
@@ -1006,9 +1040,14 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{t('ai.empty.hint')}</p>
                             </div>
 
-                            {/* `sm:grid-cols-2`: dưới 416px thì một cột, để nhãn dài
-                                ("Đề xuất cách sắp xếp") không bị cắt giữa chừng. */}
-                            <div className="w-full max-w-sm grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {/* MỘT CỘT ở mọi bề rộng, đổi 13/09/2026 cùng bộ chip mới.
+                                Hai cột trong `max-w-sm` cho mỗi ô ~184px, tức ~25 ký tự ở
+                                cỡ chữ 13px — nhãn dài nhất của bộ mới ("Phân tích chi tiết
+                                nội dung hình ảnh", 36 ký tự) bị `truncate` nuốt mất nửa
+                                sau, và người dùng đọc được đúng "Phân tích chi tiết nội d…".
+                                Bộ mới nhiều nhất 3 chip cho một mục nên một cột không hề
+                                làm khung dài ra như bộ 5 chip cũ. */}
+                            <div className="w-full max-w-sm grid grid-cols-1 gap-2">
                                 {quickActions.map((action) => {
                                     const Icon = action.icon;
                                     return (
@@ -1018,7 +1057,9 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                                             className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-[13px] text-gray-800 dark:text-gray-200 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors cursor-pointer text-left"
                                         >
                                             <Icon className="w-4 h-4 shrink-0 text-blue-600 dark:text-blue-400" />
-                                            <span className="min-w-0 truncate">{quickActionLabel(action)}</span>
+                                            <span className="min-w-0 truncate" title={quickActionLabel(action)}>
+                                                {quickActionLabel(action)}
+                                            </span>
                                         </button>
                                     );
                                 })}

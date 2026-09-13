@@ -480,7 +480,13 @@ const vi = {
   'ai.menu.title': 'Hỏi AI về mục này',
   'ai.menu.subtitle': 'Lệnh nhanh',
   'ai.menu.chat': 'Trò chuyện với AI…',
-  'ai.action.summarize': 'Tóm tắt nội dung',
+  // Bộ hiện hành, đúng thứ tự chip trong khung chat. Ba lệnh đầu chỉ hiện đúng loại tệp
+  // của nó — xem `QUICK_ACTIONS` ở GeminiModal.jsx.
+  'ai.action.document': 'Phân tích tài liệu',
+  'ai.action.image': 'Phân tích chi tiết nội dung hình ảnh',
+  'ai.action.video': 'Phân tích video',
+  'ai.action.summarize': 'Chỉ ra những nội dung chính',
+  // Bộ cũ: giao diện không còn mời, giữ lại cho lịch sử trò chuyện cũ và bản frontend cũ.
   'ai.action.explain': 'Giải thích chi tiết',
   'ai.action.keywords': 'Gợi ý mô tả & từ khoá',
   'ai.action.quiz': 'Tạo câu hỏi ôn tập',

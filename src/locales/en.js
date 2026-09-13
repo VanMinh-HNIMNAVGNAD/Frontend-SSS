@@ -466,7 +466,13 @@ const en = {
   'ai.menu.title': 'Ask AI about this',
   'ai.menu.subtitle': 'Quick actions',
   'ai.menu.chat': 'Chat with AI…',
-  'ai.action.summarize': 'Summarise contents',
+  // Current set, in chip order. The first three only appear for their own file type —
+  // see `QUICK_ACTIONS` in GeminiModal.jsx.
+  'ai.action.document': 'Analyse document',
+  'ai.action.image': 'Analyse image content in detail',
+  'ai.action.video': 'Analyse video',
+  'ai.action.summarize': 'Identify the key points',
+  // Legacy set: no longer offered in the UI, kept for old conversations and older clients.
   'ai.action.explain': 'Explain in detail',
   'ai.action.keywords': 'Suggest description & tags',
   'ai.action.quiz': 'Create quiz questions',

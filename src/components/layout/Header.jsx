@@ -9,6 +9,7 @@ import SearchFilterModal from './SearchFilterModal';
 import SettingsModal from './SettingsModal';
 import AccountModal from './AccountModal';
 import ActivityLogDrawer from '../file-manager/ActivityLogDrawer';
+import { useAiPanel } from '../../context/AiPanelContext';
 import { 
     Menu, 
     Search, 
@@ -22,11 +23,16 @@ import {
     Copy,
     Scissors,
     AlertCircle,
-    History
+    History,
+    Sparkles
 } from 'lucide-react';
 
 export default function Header({ toggleRightSidebar }) {
     const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
+    // Mở khung hỏi AI KHÔNG kèm mục nào — người dùng tự đính tệp từ máy trong panel.
+    // Trước bản này `openAi(null)` thoát ngay ở dòng đầu, nên cái nút dưới đây không thể
+    // tồn tại; xem `AiPanelContext`.
+    const { openAi } = useAiPanel();
     const { 
         searchQuery, 
         setSearchQuery, 
@@ -450,6 +456,34 @@ export default function Header({ toggleRightSidebar }) {
                     className="p-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                     <History className="w-5 h-5" />
+                </button>
+
+                {/* Nút Hỏi AI
+                  *
+                  * Đường vào AI duy nhất trước đây là menu chuột phải trên một tệp — tức
+                  * muốn hỏi thì phải có sẵn một tệp trong Drive và phải biết cái menu đó
+                  * có mục AI. Người dùng mới không tìm ra, và người muốn hỏi về một tệp
+                  * trên máy thì phải tải nó vào Drive trước. Nút này bỏ cả hai rào đó.
+                  *
+                  * Chặn khách chưa đăng nhập ngay tại chỗ bấm, cùng lý do với nút Lịch sử
+                  * hoạt động ở trên: hạn mức AI gắn với một tài khoản, mở panel rồi mới ăn
+                  * 401 thì người dùng thấy khung bật lên rồi trang nhảy đi.
+                  */}
+                <button
+                    onClick={() => {
+                        if (!isAuthenticated) {
+                            toast.error(t('header.ai.needLogin'));
+                            navigate('/login');
+                            return;
+                        }
+                        openAi(null);
+                    }}
+                    disabled={isAuthLoading}
+                    title={isAuthenticated ? t('header.ai') : t('header.ai.needLogin')}
+                    aria-label={isAuthenticated ? t('header.ai') : t('header.ai.needLogin')}
+                    className="p-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                    <Sparkles className="w-5 h-5" />
                 </button>
 
                 {/* Nút Cài Đặt */}

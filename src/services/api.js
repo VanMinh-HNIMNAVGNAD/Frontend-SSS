@@ -88,6 +88,10 @@ const NO_PROGRESS_BAR_PATHS = [
   // biến chỉ báo "đang xử lý" thành đèn báo luôn sáng.
   '/ai/status',
   '/ai/ask',
+  // Tải tệp đính kèm: mỗi chip trong khung chat đã có thanh tiến trình của RIÊNG nó
+  // (xem `attachments` ở GeminiModal). Thêm thanh chung ở đầu trang là hai chỉ báo cho
+  // cùng một việc, và cái ở đầu trang thì không nói được tệp nào đang lên.
+  '/ai/attachments',
 ];
 
 function tracksProgress(config) {
@@ -112,11 +116,54 @@ function releaseProgress(config) {
 }
 
 // Request Interceptor: Inject JWT Bearer Token if available
+/**
+ * Mã thiết bị — một UUID sinh ở trình duyệt, giữ trong localStorage.
+ *
+ * KHÔNG phải danh tính và KHÔNG phải bằng chứng bảo mật: xoá localStorage là có mã mới,
+ * và ai gọi API bằng script thì tự đặt header tuỳ ý. Nó là TÍN HIỆU PHỤ cho lớp chống
+ * spam ở backend (`SpamGuardService`), và giá trị thật nằm ở chỗ khác hẳn với việc "nhận
+ * ra bạn": nó cho backend đếm được có bao nhiêu thiết bị KHÁC NHAU đứng sau một địa chỉ
+ * IP, và nhờ đó NỚI trần cho một mạng wifi đông người thay vì phạt cả 20 người vì một
+ * người spam.
+ *
+ * Nói cách khác: gửi header này là thứ giúp CHÍNH người dùng khỏi bị chặn oan, không
+ * phải thứ theo dõi họ. Không có gì định danh cá nhân trong đó — một UUID ngẫu nhiên,
+ * không gắn với tài khoản, không gửi đi đâu khác.
+ *
+ * Đọc LƯỜI và bọc try/catch: chế độ riêng tư của Safari ném lỗi khi chạm localStorage,
+ * và một ngoại lệ ở đây sẽ giết mọi request của cả ứng dụng.
+ */
+const DEVICE_ID_KEY = 'driver.deviceId';
+
+function getDeviceId() {
+  try {
+    let id = localStorage.getItem(DEVICE_ID_KEY);
+    if (!id) {
+      id =
+        // `randomUUID` không có trên http:// (không phải secure context) và trên vài
+        // WebView cũ — rơi về một chuỗi ngẫu nhiên cùng bộ ký tự mà backend chấp nhận
+        // (`/^[A-Za-z0-9_-]{8,64}$/`).
+        globalThis.crypto?.randomUUID?.() ??
+        `dev-${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
+      localStorage.setItem(DEVICE_ID_KEY, id);
+    }
+    return id;
+  } catch {
+    // Không lưu được thì thôi: backend coi như không có thiết bị và áp trần CHẶT hơn —
+    // chặt hơn chứ không lỏng hơn, nên đây là phía an toàn.
+    return null;
+  }
+}
+
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('accessToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    const deviceId = getDeviceId();
+    if (deviceId) {
+      config.headers['X-Device-Id'] = deviceId;
     }
     if (tracksProgress(config)) {
       config.__progressTracked = true;
@@ -1536,6 +1583,49 @@ export const aiApi = {
 
   /** Xoá một cuộc trò chuyện. Không ảnh hưởng tới hạn mức đã dùng. */
   deleteConversation: (id) => api.delete(`/ai/conversations/${id}`),
+
+  /**
+   * Tải MỘT tệp từ máy vào khung hỏi AI.
+   *
+   * Một tệp mỗi lượt gọi, dù giao diện cho chọn tới 3. Gộp cả ba vào một request thì một
+   * lần rớt mạng ở byte cuối làm hỏng cả ba, và thanh tiến trình chung không nói được tệp
+   * nào đang lên tới đâu. Tải riêng từng tệp thì tệp hỏng chỉ mình nó phải làm lại.
+   *
+   * `onProgress` nhận 0–100. Tệp tới 25MB trên mạng di động là hàng chục giây im lặng nếu
+   * không có nó — đúng khoảng thời gian người dùng kết luận là app treo.
+   *
+   * Trả { id, name, mimeType, sizeBytes, createdAt, expiresAt, quota }. `id` chính là thứ
+   * bỏ vào `attachmentIds` của lượt hỏi.
+   */
+  uploadAttachment: (file, { conversationId, signal, onProgress } = {}) => {
+    const form = new FormData();
+    form.append('file', file);
+    if (conversationId) form.append('conversationId', conversationId);
+    return api.post('/ai/attachments', form, {
+      signal,
+      // Khai `multipart/form-data` y như `filesApi.uploadProxy` và các đường upload khác
+      // trong file này. Cần thiết vì instance `api` mặc định `Content-Type:
+      // application/json` (xem đầu file) — để nguyên mặc định đó thì body multipart đi
+      // kèm một nhãn sai. Axios tự thay giá trị này bằng bản có `boundary` khi body là
+      // FormData, nên không mất boundary.
+      headers: { 'Content-Type': 'multipart/form-data' },
+      onUploadProgress: (e) => {
+        if (!onProgress || !e.total) return;
+        onProgress(Math.min(100, Math.round((e.loaded * 100) / e.total)));
+      },
+    });
+  },
+
+  /** Tệp đính kèm của chính mình, mới nhất trước. */
+  listAttachments: (limit) => api.get('/ai/attachments', { params: limit ? { limit } : undefined }),
+
+  /**
+   * Xoá một tệp đính kèm.
+   *
+   * KHÔNG hoàn lại suất hạn mức đã dùng — hạn mức đếm theo lượt TẢI LÊN trong tháng, không
+   * theo số tệp đang giữ. Giao diện phải nói rõ điều đó trước khi xoá.
+   */
+  deleteAttachment: (id) => api.delete(`/ai/attachments/${id}`),
 };
 
 export default api;

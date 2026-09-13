@@ -28,6 +28,9 @@ import {
     ChevronUp,
     MessageSquare,
     ArrowUpRight,
+    Paperclip,
+    HardDrive,
+    Upload,
 } from 'lucide-react';
 
 import { aiApi } from '../../services/api';
@@ -46,7 +49,10 @@ import { localeTagOf } from '../../utils/locale';
  *
  * Props:
  *  - isOpen        mở/đóng
- *  - item          tệp hoặc thư mục được bấm chuột phải
+ *  - item          tệp hoặc thư mục được bấm chuột phải. CÓ THỂ null — nút AI trên thanh
+ *                  điều hướng mở panel khi chưa chọn gì, người dùng tự đính tệp từ máy
+ *                  ngay trong panel. Xem `contextSources` để biết ngữ cảnh thật của một
+ *                  lượt hỏi được gộp từ đâu.
  *  - initialAction lệnh nhanh chọn từ menu con ('summarize' | 'explain' | ...).
  *                  Có giá trị khác 'chat' thì tự chạy ngay khi mở — đó là điểm
  *                  của menu con: một cú bấm là có câu trả lời, không phải gõ gì.
@@ -85,6 +91,36 @@ const QUICK_ACTIONS = [
 // Số lượt gửi kèm làm lịch sử. Cắt ở đây chứ không gửi cả hội thoại: backend chặn
 // cứng ở 20 lượt (ArrayMaxSize), gửi thừa sẽ ăn 400 giữa cuộc trò chuyện.
 const MAX_HISTORY_TURNS = 16;
+
+/**
+ * Trần nguồn ngữ cảnh mỗi lượt hỏi — mục Drive và tệp tải từ máy CỘNG LẠI.
+ *
+ * Phải khớp `MAX_CONTEXT_SOURCES` ở `backend/src/ai/dto/ask-ai.dto.ts`. Lệch thì giao
+ * diện cho chọn nhiều hơn backend nhận, và người dùng chọn xong mới ăn 400 — mất công
+ * chọn, không hiểu vì sao. Hai con số này không tự đồng bộ được (hai repo git riêng),
+ * nên đổi một cái là phải đổi cái kia trong CÙNG một lần deploy.
+ */
+const MAX_SOURCES_PER_TURN = 3;
+
+/** Khớp `AiAttachmentService.MAX_ATTACHMENT_BYTES` (25MB). Cùng lưu ý đồng bộ như trên. */
+const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024;
+
+/**
+ * Byte → "1,4 MB". Dùng `Intl` chứ không `toFixed`: dấu thập phân của tiếng Việt là dấu
+ * phẩy, và một dòng "1.4 MB" giữa giao diện tiếng Việt đọc ra thành "một nghìn tư".
+ */
+function formatBytes(bytes, locale) {
+    const value = Number(bytes) || 0;
+    if (value < 1024) return `${value} B`;
+    const units = ['KB', 'MB', 'GB'];
+    let scaled = value / 1024;
+    let unit = 0;
+    while (scaled >= 1024 && unit < units.length - 1) {
+        scaled /= 1024;
+        unit += 1;
+    }
+    return `${scaled.toLocaleString(locale, { maximumFractionDigits: 1 })} ${units[unit]}`;
+}
 
 /**
  * Giây → "45 giây" / "10 phút" / "1 giờ 2 phút" (hoặc bản tiếng Anh).
@@ -253,6 +289,27 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
     const scrollRef = useRef(null);
     const inputRef = useRef(null);
 
+    // ── Tệp đính kèm tải từ máy ──────────────────────────────────────────
+    //
+    // Mỗi phần tử: { key, name, sizeBytes, mimeType, status, progress, id?, error? }
+    //   • `key`    id tạm sinh ở client — cần vì tệp CHƯA lên tới nơi thì chưa có `id`
+    //              của server, mà React vẫn phải khoá được từng chip để vẽ tiến trình.
+    //   • `status` 'uploading' | 'ready' | 'error'. Chỉ 'ready' mới có `id` và chỉ
+    //              những cái đó mới được gửi kèm lượt hỏi.
+    //
+    // Giữ cả tệp LỖI trong danh sách thay vì bỏ đi im lặng: người dùng chọn 3 tệp mà một
+    // cái hỏng thì họ cần thấy CÁI NÀO hỏng và vì sao, chứ không phải đếm lại xem còn
+    // mấy chip.
+    const [attachments, setAttachments] = useState([]);
+    // Hạn mức SỐ TỆP của tháng (`storage_plans.ai_file_quota`) — khác hẳn hạn mức token
+    // ở `quota`: cái kia tiêu theo lượt hỏi, cái này tiêu theo lượt tải lên.
+    const [fileQuota, setFileQuota] = useState(null);
+    // Lỗi của riêng khu đính kèm (quá 3 tệp, hết hạn mức, định dạng lạ). Tách khỏi
+    // `error` của lượt hỏi: hai thứ này xuất hiện ở hai chỗ khác nhau trên màn hình và
+    // gộp chung thì một lỗi chọn tệp sẽ xoá mất thông báo lỗi của câu trả lời đang đọc.
+    const [attachError, setAttachError] = useState(null);
+    const fileInputRef = useRef(null);
+
     const isFolder = item?.type === 'folder';
 
     /**
@@ -272,14 +329,170 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
     }, [item]);
 
     const quickActions = useMemo(
-        () => QUICK_ACTIONS.filter((a) => a.kinds.includes(itemKind)),
-        [itemKind],
+        // Không có mục nào trong Drive thì không có lệnh nhanh nào đúng: cả năm lệnh đều
+        // nói về "mục đang mở". Người dùng đính tệp từ máy xong thì gõ câu hỏi — lệnh
+        // nhanh cho tệp đính kèm là việc của một bản sau, và bày ra một nút chạy trên
+        // ngữ cảnh rỗng thì chỉ tốn hạn mức của họ.
+        () => (item ? QUICK_ACTIONS.filter((a) => a.kinds.includes(itemKind)) : []),
+        [itemKind, item],
     );
+
+    /**
+     * Ngữ cảnh THẬT của lượt hỏi kế tiếp, gộp từ hai nguồn.
+     *
+     * Đây là thứ duy nhất giao diện được phép hiện ra như "AI sẽ đọc gì": trước bản này
+     * chỉ có `item`, nên mọi chỗ đọc thẳng `item.name`. Nay một lượt hỏi có thể gồm mục
+     * trong Drive CỘNG tệp vừa tải lên, và mọi chỗ đó phải đọc qua đây — nếu không sẽ có
+     * chỗ nói "đang hỏi về a.txt" trong khi thật ra gửi cả ba tệp.
+     *
+     * Tệp đang tải dở VẪN nằm trong danh sách (để hiện thanh tiến trình) nhưng không
+     * `ready`, nên `readyAttachmentIds` bên dưới mới là thứ đi vào request.
+     */
+    const contextSources = useMemo(() => {
+        const list = [];
+        if (item) {
+            list.push({
+                key: `drive:${item.id}`,
+                origin: 'drive',
+                name: item.name,
+                sizeBytes: Number(item.sizeBytes) || 0,
+                isFolder: item.type === 'folder',
+                status: 'ready',
+            });
+        }
+        for (const a of attachments) {
+            list.push({ ...a, key: a.key, origin: 'upload', isFolder: false });
+        }
+        return list;
+    }, [item, attachments]);
+
+    const readyAttachmentIds = useMemo(
+        () => attachments.filter((a) => a.status === 'ready' && a.id).map((a) => a.id),
+        [attachments],
+    );
+
+    // Số suất còn trống trong MỘT lượt: mục Drive (nếu có) cũng ăn một suất, vì backend
+    // tính trần 3 trên TỔNG hai loại (`MAX_CONTEXT_SOURCES` ở `ask-ai.dto.ts`).
+    const slotsLeft = Math.max(0, MAX_SOURCES_PER_TURN - contextSources.length);
+    const uploading = attachments.some((a) => a.status === 'uploading');
+    // Hết hạn mức TỆP của tháng — khác hẳn `quotaBlocked` (hạn mức TOKEN). Hai thứ này độc
+    // lập: hết token thì không hỏi được câu nào, còn hết suất tệp thì vẫn hỏi bình thường
+    // về mọi thứ đã có trong Drive, chỉ không đính thêm tệp mới từ máy được.
+    //
+    // `fileQuota` là `null` khi backend chưa deploy bản có trường này — khi đó KHÔNG khoá
+    // nút: để người dùng thử và nhận lỗi thật từ server, thay vì khoá vì một trường vắng mặt.
+    const fileQuotaOut = fileQuota ? fileQuota.remaining <= 0 : false;
+
+    /**
+     * Người dùng chọn tệp từ máy.
+     *
+     * Ba thứ được kiểm NGAY ở client, và không cái nào thay cho phần kiểm ở backend — đây
+     * chỉ là để người dùng biết ngay thay vì chờ một vòng mạng rồi nhận lỗi:
+     *   1. còn chỗ trong lượt này không (trần 3 tính cả mục Drive);
+     *   2. còn hạn mức tháng không;
+     *   3. tệp có quá nặng không.
+     *
+     * Tải TUẦN TỰ từng tệp chứ không song song: ba request 25MB cùng lúc trên mạng di
+     * động thì cả ba cùng chậm và thanh tiến trình của cả ba cùng bò, trong khi tuần tự
+     * thì tệp đầu xong sớm và người dùng thấy tiến triển thật.
+     */
+    const pickFiles = useCallback(
+        async (fileList) => {
+            const files = Array.from(fileList || []);
+            if (!files.length) return;
+            setAttachError(null);
+
+            if (files.length > slotsLeft) {
+                setAttachError(
+                    t('ai.attach.tooMany', { max: MAX_SOURCES_PER_TURN, left: slotsLeft }),
+                );
+                if (slotsLeft === 0) return;
+            }
+
+            for (const file of files.slice(0, slotsLeft)) {
+                if (file.size > MAX_ATTACHMENT_BYTES) {
+                    setAttachError(
+                        t('ai.attach.tooBig', {
+                            name: file.name,
+                            max: formatBytes(MAX_ATTACHMENT_BYTES, locale),
+                        }),
+                    );
+                    continue;
+                }
+
+                const key = `up:${Date.now()}:${Math.random().toString(36).slice(2)}`;
+                setAttachments((prev) => [
+                    ...prev,
+                    {
+                        key,
+                        name: file.name,
+                        sizeBytes: file.size,
+                        mimeType: file.type,
+                        status: 'uploading',
+                        progress: 0,
+                    },
+                ]);
+
+                try {
+                    const res = await aiApi.uploadAttachment(file, {
+                        conversationId,
+                        onProgress: (progress) =>
+                            setAttachments((prev) =>
+                                prev.map((a) => (a.key === key ? { ...a, progress } : a)),
+                            ),
+                    });
+                    setAttachments((prev) =>
+                        prev.map((a) =>
+                            a.key === key
+                                ? { ...a, status: 'ready', id: res.id, progress: 100 }
+                                : a,
+                        ),
+                    );
+                    // Hạn mức mới về kèm mỗi lượt tải — không phải gọi thêm request nào.
+                    if (res.quota) setFileQuota(res.quota);
+                } catch (err) {
+                    const message =
+                        err?.response?.data?.message || err?.message || t('ai.attach.failed');
+                    setAttachments((prev) =>
+                        prev.map((a) => (a.key === key ? { ...a, status: 'error', error: message } : a)),
+                    );
+                    // Hết hạn mức thì mọi tệp còn lại trong lượt chọn này cũng sẽ hỏng y
+                    // hệt — dừng luôn thay vì bắt người dùng xem ba thông báo giống nhau.
+                    if (err?.response?.data?.error === 'AI_FILE_QUOTA_EXCEEDED') {
+                        setAttachError(message);
+                        if (err?.response?.data?.quota) setFileQuota(err.response.data.quota);
+                        break;
+                    }
+                }
+            }
+        },
+        [slotsLeft, conversationId, t, locale],
+    );
+
+    /**
+     * Bỏ một tệp khỏi lượt hỏi.
+     *
+     * Chỉ gỡ khỏi giao diện, KHÔNG gọi `DELETE /ai/attachments/:id`: suất hạn mức đã bị
+     * trừ lúc tải lên và không hoàn lại được, nên xoá hẳn trên server chẳng trả lại gì cho
+     * người dùng mà lại làm mất tệp khỏi các cuộc trò chuyện cũ đang trỏ tới nó. Tệp tự
+     * hết hạn sau 30 ngày.
+     */
+    const removeAttachment = useCallback((key) => {
+        setAttachments((prev) => prev.filter((a) => a.key !== key));
+        setAttachError(null);
+    }, []);
 
     // ── Gửi một câu hỏi ────────────────────────────────────────────────────
     const send = useCallback(
         async ({ action = 'chat', text = '' }) => {
-            if (!item) return;
+            // Bản trước `if (!item) return` — tức không có mục là không hỏi được gì. Nay
+            // điều kiện là "có CÁI GÌ ĐÓ để gửi": một mục Drive, một tệp vừa đính, hoặc
+            // một câu hỏi gõ tay (hỏi chay về chính driveR vẫn trả lời được — xem ghi chú
+            // tình huống 'none' ở `ai-rules.ts`).
+            if (!item && !readyAttachmentIds.length && action === 'chat' && !text.trim()) return;
+            // Còn tệp đang tải dở thì chờ: gửi lúc này là gửi thiếu đúng cái tệp người
+            // dùng vừa chọn, và câu trả lời sẽ nói về hai tệp trong khi họ đính ba.
+            if (uploading) return;
             lastRequestRef.current = { action, text };
             const controller = new AbortController();
             abortRef.current = controller;
@@ -308,7 +521,11 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
 
                 const res = await aiApi.askStream(
                     {
-                        itemId: item.id,
+                        // `itemId` (số ít) chứ không gộp vào `itemIds`: menu chuột phải là
+                        // đường phổ biến nhất và backend nhận cả hai, nên giữ nguyên hình
+                        // dạng cũ cho đường cũ là ít rủi ro nhất.
+                        ...(item ? { itemId: item.id } : {}),
+                        ...(readyAttachmentIds.length ? { attachmentIds: readyAttachmentIds } : {}),
                         action,
                         ...(action === 'chat' ? { prompt: text } : {}),
                         ...(history.length ? { history } : {}),
@@ -436,7 +653,7 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                 runIdRef.current = null;
             }
         },
-        [item, isFolder, language, messages, conversationId, t],
+        [item, isFolder, language, messages, conversationId, t, readyAttachmentIds, uploading],
     );
 
     /**
@@ -475,6 +692,10 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
         const start = (nextStatus) => {
             if (cancelled) return;
             setStatus(nextStatus);
+            // Backend cũ (chưa deploy bản này) không có trường `fileQuota` — khi đó khu
+            // đính kèm vẫn hiện, chỉ không có dòng "còn N tệp tháng này". Lỗi thật (nếu
+            // gói này chưa bật) sẽ hiện ra ở lượt tải đầu tiên, kèm nguyên nhân.
+            if (nextStatus?.fileQuota) setFileQuota(nextStatus.fileQuota);
             if (nextStatus?.quota) {
                 setQuota(nextStatus.quota);
                 setQuotaBlocked(Boolean(nextStatus.quota.exhausted));
@@ -912,8 +1133,20 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                             <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 leading-tight">
                                 {t('ai.title')}
                             </h3>
-                            <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate" title={item.name}>
-                                {item.name}
+                            {/* Dòng phụ nói ĐÚNG ngữ cảnh của lượt hỏi kế tiếp, không
+                                phải mỗi tên mục Drive: từ khi đính kèm được tệp từ máy,
+                                "đang hỏi về a.txt" là một câu sai khi người dùng vừa thả
+                                thêm hai tệp nữa vào. Nhiều nguồn thì đếm; chưa có nguồn
+                                nào thì mời đính kèm chứ không để trống một dòng. */}
+                            <p
+                                className="text-[11px] text-gray-500 dark:text-gray-400 truncate"
+                                title={contextSources.map((c) => c.name).join(', ')}
+                            >
+                                {contextSources.length === 0
+                                    ? t('ai.context.none')
+                                    : contextSources.length === 1
+                                      ? contextSources[0].name
+                                      : t('ai.context.count', { count: contextSources.length })}
                             </p>
                         </div>
                     </div>
@@ -1035,10 +1268,56 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                             <div className="text-center">
                                 <Sparkles className="w-6 h-6 text-gray-400 dark:text-gray-500 mx-auto" />
                                 <p className="mt-2 font-semibold text-gray-800 dark:text-gray-200">
-                                    {isFolder ? t('ai.empty.folder') : t('ai.empty.file')}
+                                    {item
+                                        ? isFolder
+                                            ? t('ai.empty.folder')
+                                            : t('ai.empty.file')
+                                        : t('ai.empty.blank')}
                                 </p>
-                                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{t('ai.empty.hint')}</p>
+                                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                    {item ? t('ai.empty.hint') : t('ai.empty.blankHint')}
+                                </p>
                             </div>
+
+                            {/* Mở từ thanh điều hướng: chưa có mục nào nên không có lệnh
+                                nhanh nào đúng (xem `quickActions`). Thay vào đó là MỘT nút
+                                lớn làm đúng việc người dùng cần làm tiếp — đính tệp. Bày
+                                một màn hình trống kèm một dòng "hãy đính kèm tệp" mà không
+                                có nút nào thì lời mời đó bắt họ tự đi tìm cái kẹp giấy. */}
+                            {!item && (
+                                <div className="w-full max-w-sm">
+                                    <button
+                                        onClick={() => fileInputRef.current?.click()}
+                                        disabled={slotsLeft === 0 || uploading || fileQuotaOut}
+                                        className="w-full flex items-center justify-center gap-2 px-3 py-3 rounded-xl border border-dashed border-gray-300 dark:border-gray-600 text-[13px] font-medium text-gray-700 dark:text-gray-300 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                                    >
+                                        <Paperclip className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                                        {t('ai.attach.cta')}
+                                    </button>
+                                    {fileQuota && (
+                                        // Hết suất thì nói LÝ DO bằng chữ, không chỉ làm mờ
+                                        // cái nút: một nút mờ không tự giải thích, và người
+                                        // dùng sẽ bấm mãi rồi kết luận là app hỏng.
+                                        <p
+                                            className={`mt-2 text-center text-[11px] ${
+                                                fileQuotaOut
+                                                    ? 'text-amber-600 dark:text-amber-400'
+                                                    : 'text-gray-400 dark:text-gray-500'
+                                            }`}
+                                        >
+                                            {fileQuotaOut
+                                                ? t('ai.attach.quotaOut', { limit: fileQuota.limit })
+                                                : `${t('ai.attach.quota', {
+                                                      remaining: fileQuota.remaining,
+                                                      limit: fileQuota.limit,
+                                                  })} · ${t('ai.attach.limits', {
+                                                      max: MAX_SOURCES_PER_TURN,
+                                                      size: formatBytes(MAX_ATTACHMENT_BYTES, locale),
+                                                  })}`}
+                                        </p>
+                                    )}
+                                </div>
+                            )}
 
                             {/* MỘT CỘT ở mọi bề rộng, đổi 13/09/2026 cùng bộ chip mới.
                                 Hai cột trong `max-w-sm` cho mỗi ô ~184px, tức ~25 ký tự ở
@@ -1241,6 +1520,91 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                     </div>
                 )}
 
+                {/* ── Chip ngữ cảnh: những gì AI sẽ đọc ở lượt hỏi kế tiếp ──
+                    Nằm NGAY TRÊN ô nhập, không nằm ở đầu khung: đây là thứ người dùng
+                    phải liếc thấy đúng lúc sắp bấm Gửi. Đặt ở đầu khung thì trong một
+                    cuộc trò chuyện dài nó cuộn khuất, và người ta gửi mà không biết đang
+                    gửi kèm những gì.
+
+                    Hiện CẢ tệp đang tải dở và tệp lỗi — xem `attachments`: giấu đi thì
+                    người dùng đếm lại chip và không hiểu tệp thứ ba đi đâu mất. */}
+                {!aiDisabled && !quotaBlocked && (contextSources.length > 0 || attachError) && (
+                    <div className="px-4 pt-2.5">
+                        {contextSources.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5">
+                                {contextSources.map((src) => {
+                                    const failed = src.status === 'error';
+                                    const busy = src.status === 'uploading';
+                                    const Icon = src.origin === 'drive'
+                                        ? (src.isFolder ? FolderSearch : HardDrive)
+                                        : Upload;
+                                    return (
+                                        <span
+                                            key={src.key}
+                                            title={
+                                                failed
+                                                    ? src.error
+                                                    : `${src.name}${src.sizeBytes ? ` · ${formatBytes(src.sizeBytes, locale)}` : ''}`
+                                            }
+                                            className={`group relative inline-flex items-center gap-1.5 max-w-[14rem] pl-2 pr-1.5 py-1 rounded-lg border text-[11px] overflow-hidden ${
+                                                failed
+                                                    ? 'border-rose-200 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300'
+                                                    : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#282a2c] text-gray-700 dark:text-gray-300'
+                                            }`}
+                                        >
+                                            {/* Thanh tiến trình vẽ NGAY TRONG chip thay vì
+                                                một thanh riêng: chip là thứ đại diện cho
+                                                tệp đó, nên tiến trình của nó phải nằm trên
+                                                chính nó — ba tệp ba thanh rời thì không
+                                                biết thanh nào của tệp nào. */}
+                                            {busy && (
+                                                <span
+                                                    className="absolute inset-y-0 left-0 bg-blue-500/15 transition-all"
+                                                    style={{ width: `${src.progress ?? 0}%` }}
+                                                    aria-hidden="true"
+                                                />
+                                            )}
+                                            <span className="relative flex items-center gap-1.5 min-w-0">
+                                                {busy ? (
+                                                    <Loader2 className="w-3 h-3 shrink-0 animate-spin text-blue-600 dark:text-blue-400" />
+                                                ) : failed ? (
+                                                    <AlertTriangle className="w-3 h-3 shrink-0" />
+                                                ) : (
+                                                    <Icon className="w-3 h-3 shrink-0 text-gray-400 dark:text-gray-500" />
+                                                )}
+                                                <span className="truncate">{src.name}</span>
+                                            </span>
+                                            {/* Mục Drive KHÔNG có nút gỡ: nó là thứ người
+                                                dùng bấm chuột phải để mở panel này, gỡ nó
+                                                ra thì panel còn lại là gì? Đóng khung rồi
+                                                mở lại từ tệp khác là thao tác đúng, và nó
+                                                cũng dựng lại hội thoại cho sạch. */}
+                                            {src.origin === 'upload' && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeAttachment(src.key)}
+                                                    title={t('ai.attach.remove')}
+                                                    aria-label={t('ai.attach.remove', { name: src.name })}
+                                                    className="relative shrink-0 p-0.5 rounded text-gray-400 hover:text-rose-600 dark:hover:text-rose-300 hover:bg-white dark:hover:bg-gray-800 transition-colors cursor-pointer"
+                                                >
+                                                    <X className="w-3 h-3" />
+                                                </button>
+                                            )}
+                                        </span>
+                                    );
+                                })}
+                            </div>
+                        )}
+
+                        {attachError && (
+                            <p className="mt-1.5 flex items-start gap-1.5 text-[11px] text-rose-600 dark:text-rose-400">
+                                <AlertTriangle className="w-3 h-3 shrink-0 mt-0.5" />
+                                <span className="min-w-0 break-words">{attachError}</span>
+                            </p>
+                        )}
+                    </div>
+                )}
+
                 {/* ── Ô nhập ── */}
                 {/* Đường kẻ ngăn vẽ ở hàng lệnh nhanh khi hàng đó đang mở, chứ không vẽ
                     cả hai: hai đường kẻ ôm lấy dải chip biến nó thành một khối riêng nằm
@@ -1275,13 +1639,60 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                             </button>
                         )}
 
+                        {/* Đính tệp từ máy. `multiple` nhưng vẫn chặn ở `slotsLeft` —
+                            trình duyệt không có cách nào giới hạn số tệp trong hộp chọn,
+                            nên chọn 10 tệp là chuyện bình thường và `pickFiles` phải xử lý
+                            được. `accept` nêu đúng bộ định dạng backend nhận
+                            (`classifyAiMedia`), để hộp chọn tệp làm mờ sẵn thứ chắc chắn
+                            bị từ chối thay vì để người dùng chọn rồi mới biết. */}
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            multiple
+                            accept="text/*,image/*,video/*,.pdf,.md,.csv,.json,.xml,.yml,.yaml,.log,.sql,.js,.jsx,.ts,.tsx,.py,.java,.c,.cpp,.cs,.go,.rs,.php,.rb,.sh"
+                            className="hidden"
+                            onChange={(e) => {
+                                pickFiles(e.target.files);
+                                // Dọn `value`: chọn LẠI đúng tệp vừa gỡ ra sẽ không bắn sự
+                                // kiện `change` nếu giá trị không đổi, và người dùng bấm
+                                // mãi không thấy gì xảy ra.
+                                e.target.value = '';
+                            }}
+                        />
+                        <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={inputLocked || slotsLeft === 0 || uploading || fileQuotaOut}
+                            title={
+                                fileQuotaOut
+                                    ? t('ai.attach.quotaOut', { limit: fileQuota?.limit ?? 0 })
+                                    : slotsLeft === 0
+                                      ? t('ai.attach.full', { max: MAX_SOURCES_PER_TURN })
+                                      : t('ai.attach.add', { left: slotsLeft })
+                            }
+                            aria-label={t('ai.attach.add', { left: slotsLeft })}
+                            className="shrink-0 p-2 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                            {uploading ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                                <Paperclip className="w-4 h-4" />
+                            )}
+                        </button>
+
                         <input
                             ref={inputRef}
                             type="text"
                             value={prompt}
                             disabled={inputLocked}
                             onChange={(e) => setPrompt(e.target.value)}
-                            placeholder={isFolder ? t('ai.placeholder.folder') : t('ai.placeholder.file')}
+                            placeholder={
+                                contextSources.length === 0
+                                    ? t('ai.placeholder.empty')
+                                    : isFolder
+                                      ? t('ai.placeholder.folder')
+                                      : t('ai.placeholder.file')
+                            }
                             className="flex-1 min-w-0 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#282a2c] text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none text-[13px] disabled:opacity-50"
                         />
 
@@ -1307,7 +1718,9 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                         ) : (
                             <button
                                 type="submit"
-                                disabled={!prompt.trim() || inputLocked}
+                                // Khoá thêm khi đang tải tệp: gửi lúc này là gửi thiếu
+                                // đúng cái tệp người dùng vừa chọn.
+                                disabled={!prompt.trim() || inputLocked || uploading}
                                 title={t('ai.send')}
                                 aria-label={t('ai.send')}
                                 className="shrink-0 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center cursor-pointer"
@@ -1495,7 +1908,12 @@ export default function GeminiModal({ isOpen, item, initialAction = null, onClos
                             tệp khác sẽ ra hội thoại nửa đầu nói tệp này, nửa sau tệp kia. */}
                         {viewing && (
                             <div className="px-3 py-2.5 border-t border-gray-100 dark:border-gray-800">
-                                {viewing.fileId === item.id ? (
+                                {/* `item?.id` chứ không `item.id`: panel mở từ thanh điều
+                                    hướng không có mục nào, và `null === null` sẽ cho phép
+                                    nối tiếp MỌI cuộc cũ — kể cả cuộc về một tệp khác.
+                                    `viewing.fileId` cũng null ở những cuộc hỏi chay, nên
+                                    phải đòi có mục thật thì mới so sánh. */}
+                                {item && viewing.fileId === item.id ? (
                                     <button
                                         onClick={continueConversation}
                                         className="w-full py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium transition-colors cursor-pointer"

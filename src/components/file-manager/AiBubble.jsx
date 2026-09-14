@@ -92,6 +92,30 @@ function pointToPos(x, y, vw, vh) {
     return { edge, ratio: clamp(ratio, 0, 1) };
 }
 
+/**
+ * Icon của bong bóng, chia làm BỐN GÓC PHẦN TƯ đổi màu lệch pha nhau.
+ *
+ * Bốn bản sao chồng lên nhau, mỗi bản bị `clip-path` cắt còn một phần tư và vào vòng
+ * cầu vồng ở một pha khác (xem `.ai-bubble-quad*` trong src/index.css). Dựng bằng bốn
+ * bản sao thay vì tô bốn màu vào một icon vì `color` là MỘT giá trị cho cả phần tử —
+ * muốn bốn màu cùng lúc thì phải có bốn phần tử.
+ *
+ * Lúc đang nghĩ, `spinning` cho vòng xoay quay BÊN TRONG lớp cắt: bốn góc màu đứng yên
+ * tại chỗ còn nét vòng xoay chạy xuyên qua chúng, nên vẫn đọc ra là "đang chạy" chứ
+ * không thành bốn mảnh rời quay theo nhau.
+ */
+function RainbowIcon({ Icon, spinning }) {
+    return (
+        <span className="relative block w-7 h-7">
+            {['tl', 'tr', 'br', 'bl'].map((quadrant) => (
+                <span key={quadrant} className={`ai-bubble-quad ai-bubble-quad-${quadrant}`}>
+                    <Icon className={`w-7 h-7 ${spinning ? 'animate-spin' : ''}`} />
+                </span>
+            ))}
+        </span>
+    );
+}
+
 export default function AiBubble({ isThinking, unseenReply, label, onRestore }) {
     const [pos, setPos] = useState(readStoredPos);
     const [viewport, setViewport] = useState(() => ({
@@ -208,14 +232,9 @@ export default function AiBubble({ isThinking, unseenReply, label, onRestore }) 
             {/* Ba trạng thái, đọc được mà không cần mở ra: đang trả lời (vòng xoay),
                 đã có câu trả lời chưa xem (chấm xanh), và bình thường.
 
-                `ai-bubble-rainbow` (src/index.css) đổi `color` qua bảy sắc cầu vồng, và
-                icon thừa hưởng bằng `currentColor` — nên vòng xoay lúc đang nghĩ cũng
-                đổi màu y hệt, không cần lớp thứ hai. */}
-            {isThinking ? (
-                <Loader2 className="w-7 h-7 animate-spin ai-bubble-rainbow" />
-            ) : (
-                <Sparkles className="w-7 h-7 ai-bubble-rainbow" />
-            )}
+                `RainbowIcon` lo phần bốn góc đổi màu — dùng chung cho cả hai icon, nên
+                vòng xoay lúc đang nghĩ cũng cầu vồng y hệt lúc đứng yên. */}
+            <RainbowIcon Icon={isThinking ? Loader2 : Sparkles} spinning={isThinking} />
             {!isThinking && unseenReply && (
                 <span className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-blue-600 dark:bg-blue-400 ring-2 ring-white dark:ring-[#282a2c]" />
             )}

@@ -548,15 +548,38 @@ html {
   100% { color: #ef4444; } /* khép vòng về đỏ, không giật ở mối nối */
 }
 
-.ai-bubble-rainbow {
+/* BỐN GÓC PHẦN TƯ, mỗi góc một màu khác nhau tại mọi thời điểm.
+
+   Cách làm: xếp chồng BỐN BẢN SAO của cùng một icon, mỗi bản bị `clip-path` cắt còn một
+   phần tư. Không cắt icon thành bốn hình riêng vì icon lucide là một (hoặc vài) `path`
+   liền — chẻ path ra là phải sửa lại mỗi khi đổi icon, còn cắt bằng clip thì icon nào
+   cũng dùng được y nguyên.
+
+   Lệch màu nhau nhờ `animation-delay` ÂM: mỗi bản vào giữa vòng chạy ngay từ khung hình
+   đầu tiên, cách nhau đúng 1/4 chu kỳ (7s / 4 = 1.75s). Delay dương thì ba bản kia sẽ
+   đứng im ở màu đầu tiên tới tận 5.25s rồi mới nhúc nhích.
+
+   Mỗi mảnh chờm ra 0.5px (`calc(50% - 0.5px)`) thay vì cắt đúng 50%: cắt khít thì tại
+   đường ranh, nét vẽ bị khử răng cưa ở cả hai phía đều chỉ còn nửa độ đậm, thành một
+   khe sáng hình chữ thập vắt ngang icon. Chờm lên nhau thì chỗ đó do một màu đè lên màu
+   kia — không có khe. */
+.ai-bubble-quad {
+  position: absolute;
+  inset: 0;
   animation: aiBubbleRainbow 7s linear infinite;
 }
 
-/* Tắt cho người bật "giảm chuyển động": màu nhấp nháy liên tục ở rìa tầm nhìn là đúng
-   loại kích thích gây khó chịu. Bỏ animation thì icon về màu xanh của `text-blue-600`
-   trên nút — trạng thái không mất đi chút nào vì nó vốn được báo bằng icon và chấm. */
+.ai-bubble-quad-tl { clip-path: inset(0 calc(50% - 0.5px) calc(50% - 0.5px) 0); animation-delay: 0s; }
+.ai-bubble-quad-tr { clip-path: inset(0 0 calc(50% - 0.5px) calc(50% - 0.5px)); animation-delay: -1.75s; }
+.ai-bubble-quad-br { clip-path: inset(calc(50% - 0.5px) 0 0 calc(50% - 0.5px)); animation-delay: -3.5s; }
+.ai-bubble-quad-bl { clip-path: inset(calc(50% - 0.5px) calc(50% - 0.5px) 0 0); animation-delay: -5.25s; }
+
+/* Tắt cho người bật "giảm chuyển động": bốn mảng màu nhấp nháy lệch pha ở rìa tầm nhìn
+   là đúng loại kích thích gây khó chịu. Bỏ animation thì cả bốn mảnh về màu xanh của
+   `text-blue-600` trên nút và ghép lại thành đúng một icon liền — trạng thái không mất
+   chút nào vì nó vốn được báo bằng icon và chấm, không phải bằng màu. */
 @media (prefers-reduced-motion: reduce) {
-  .ai-bubble-rainbow {
+  .ai-bubble-quad {
     animation: none;
   }
 }

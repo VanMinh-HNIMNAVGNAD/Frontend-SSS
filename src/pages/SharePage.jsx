@@ -30,7 +30,7 @@ const PREVIEW_DOCX  = (mime, name) =>
   /\.(docx|doc)$/i.test(name ?? '');
 const PREVIEW_TEXT  = (mime, name) =>
   mime?.startsWith('text/') ||
-  /\.(js|jsx|ts|tsx|py|html|css|json|sql|md|txt|xml|yaml|yml|sh|env|conf|log|c|cpp|h|hpp|java|go|rs|kt|php|vue|svelte|cs)$/i.test(name ?? '');
+  /\.(js|jsx|ts|tsx|py|html|css|json|sql|md|markdown|txt|text|rst|adoc|xml|yaml|yml|sh|env|conf|log|csv|tsv|ini|toml|properties|c|cpp|h|hpp|java|go|rs|kt|php|vue|svelte|cs)$/i.test(name ?? '');
 const isMarkdownFile = (name = '') => /\.(md|markdown)$/i.test(name ?? '');
 
 // ─── Helper: icon MIME ────────────────────────────────────────────────────────

@@ -27,9 +27,11 @@ import { storageApi } from '../../services/api';
 import { useAiPanel } from '../../context/AiPanelContext';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { vs } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { marked } from 'marked';
 import mammoth from 'mammoth';
 import * as pdfjsLib from 'pdfjs-dist';
+import useTheme from '../../hooks/useTheme';
 
 // Khởi tạo Worker an toàn cho PDF.js
 if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
@@ -343,6 +345,7 @@ function MediaSupportNotice({ diagnosis, fileName, onDownload, t, inline = false
 export default function FilePreviewModal({ item, onClose }) {
   const { t } = useLanguage();
   const { getPreviewUrl, getFileTextContent } = useFiles();
+  const { isDark } = useTheme();
   // Panel AI dùng chung với menu chuột phải (`AiPanelProvider`). `aiItem` ở đây KHÔNG phải
   // để hiển thị gì — nó là thứ cho biết panel đang đè lên trên, dùng ở nhánh phím tắt.
   const { openAi, aiItem } = useAiPanel();
@@ -498,11 +501,12 @@ export default function FilePreviewModal({ item, onClose }) {
   const isAudio = mime.startsWith('audio/') || /\.(mp3|wav|ogg|m4a)$/i.test(name);
   const isPdf = mime.includes('pdf') || /\.pdf$/i.test(name);
   const isMd = isMarkdownFile(name) || mime === 'text/markdown';
-  const isCodeOrText = item ? isTextLikeFile(name, item.mimeType) && Number(item.sizeBytes) <= PREVIEW_MAX_BYTES : false;
+  const itemSizeBytes = Number(item?.sizeBytes ?? item?.size ?? 0);
+  const isCodeOrText = item ? isTextLikeFile(name, item.mimeType) && itemSizeBytes <= PREVIEW_MAX_BYTES : false;
   const isDocx = item ? (
     (mime === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
       mime === 'application/msword' ||
-      /\.docx$/i.test(name)) && Number(item.sizeBytes) <= PREVIEW_MAX_BYTES
+      /\.docx$/i.test(name)) && itemSizeBytes <= PREVIEW_MAX_BYTES
   ) : false;
 
   // Chẩn đoán codec cho thẻ <video>/<audio> — xem `hooks/useMediaSupport.js` để biết
@@ -725,21 +729,21 @@ export default function FilePreviewModal({ item, onClose }) {
     // thứ đứng cạnh nhau: tài liệu bên trái, câu trả lời bên phải, không cái nào che cái
     // nào. Chỉ từ `sm` trở lên — trên điện thoại panel là hộp thoại giữa màn hình.
     <div
-      className={`fixed inset-0 z-50 flex flex-col bg-slate-950/90 backdrop-blur-xl animate-in fade-in duration-200 text-white select-none transition-[padding] duration-200 ${
+      className={`fixed inset-0 z-50 flex flex-col bg-white/95 dark:bg-slate-950/90 backdrop-blur-xl animate-in fade-in duration-200 text-slate-900 dark:text-white select-none transition-[padding] duration-200 ${
         aiItem ? 'sm:pr-[26rem] lg:pr-[30rem]' : ''
       }`}
     >
       {/* Top Floating Header & Controls */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-slate-900/60 backdrop-blur-md">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-white/10 bg-white/85 dark:bg-slate-900/60 backdrop-blur-md">
         <div className="flex items-center gap-3 min-w-0">
           <div className="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center border border-blue-500/30 shrink-0">
             {isImage ? <FileImage className="w-5 h-5" /> : isVideo ? <FileVideo className="w-5 h-5" /> : isAudio ? <FileAudio className="w-5 h-5" /> : <FileText className="w-5 h-5" />}
           </div>
           <div className="min-w-0">
-            <h3 className="text-sm font-semibold text-white truncate max-w-md" title={item.name}>
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-white truncate max-w-md" title={item.name}>
               {item.name}
             </h3>
-            <div className="flex items-center gap-2 text-xs text-slate-400">
+            <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
               <span>{formatBytes(item.sizeBytes)}</span>
               <span>•</span>
               <span className="capitalize">{item.storageProvider?.replace('_', ' ') || 'Google Cloud'}</span>
@@ -754,7 +758,7 @@ export default function FilePreviewModal({ item, onClose }) {
               <button
                 onClick={handleZoomOut}
                 disabled={zoom <= 0.5}
-                className="p-2 rounded-xl bg-white/10 hover:bg-white/20 disabled:opacity-30 text-white transition-all cursor-pointer"
+                className="p-2 rounded-xl bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 disabled:opacity-30 text-slate-700 dark:text-white transition-all cursor-pointer"
                 title={t('preview.zoomOut')}
               >
                 <ZoomOut className="w-4 h-4" />
@@ -772,7 +776,7 @@ export default function FilePreviewModal({ item, onClose }) {
               </button>
               <button
                 onClick={handleRotate}
-                className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all cursor-pointer"
+                className="p-2 rounded-xl bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-slate-700 dark:text-white transition-all cursor-pointer"
                 title={t('preview.rotate')}
               >
                 <RotateCw className="w-4 h-4" />
@@ -811,7 +815,7 @@ export default function FilePreviewModal({ item, onClose }) {
 
           <button
             onClick={onClose}
-            className="p-2 rounded-xl bg-white/10 hover:bg-rose-500/80 text-white transition-all ml-2 cursor-pointer"
+            className="p-2 rounded-xl bg-slate-100 dark:bg-white/10 hover:bg-rose-500/80 text-slate-700 dark:text-white transition-all ml-2 cursor-pointer"
             title={t('preview.close')}
           >
             <X className="w-5 h-5" />
@@ -970,8 +974,8 @@ export default function FilePreviewModal({ item, onClose }) {
             )}
 
             {isDocx && (
-              <div className="w-full h-full max-w-5xl rounded-2xl overflow-hidden bg-[#0d1117] border border-white/10 shadow-2xl flex flex-col">
-                <div className="px-4 py-2.5 bg-slate-900 border-b border-white/10 text-xs font-mono text-slate-400 flex items-center justify-between">
+              <div className="w-full h-full max-w-5xl rounded-2xl overflow-hidden bg-white dark:bg-[#0d1117] border border-slate-200 dark:border-white/10 shadow-2xl flex flex-col">
+                <div className="px-4 py-2.5 bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-white/10 text-xs font-mono text-slate-600 dark:text-slate-400 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block" />
                     <span className="font-semibold text-slate-200">{item.name}</span>
@@ -1009,7 +1013,7 @@ export default function FilePreviewModal({ item, onClose }) {
                 <div className="px-4 py-2.5 bg-slate-900 border-b border-white/10 text-xs font-mono text-slate-400 flex items-center justify-between">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className={`w-2.5 h-2.5 rounded-full inline-block shrink-0 ${isMd ? 'bg-sky-400' : 'bg-emerald-500'}`} />
-                    <span className="font-semibold text-slate-200 truncate">{item.name}</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200 truncate">{item.name}</span>
                     {isMd && (
                       <span className="text-[10px] px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 font-mono hidden sm:inline-block">
                         Markdown
@@ -1022,7 +1026,7 @@ export default function FilePreviewModal({ item, onClose }) {
                         <button
                           onClick={() => setMdViewMode('preview')}
                           className={`px-2 py-1 rounded text-[11px] font-sans font-medium transition-colors cursor-pointer ${
-                            mdViewMode === 'preview' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'
+                            mdViewMode === 'preview' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                           }`}
                         >
                           {t('sharePage.previewLabel')}
@@ -1030,7 +1034,7 @@ export default function FilePreviewModal({ item, onClose }) {
                         <button
                           onClick={() => setMdViewMode('source')}
                           className={`px-2 py-1 rounded text-[11px] font-sans font-medium transition-colors cursor-pointer ${
-                            mdViewMode === 'source' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'
+                            mdViewMode === 'source' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                           }`}
                         >
                           {t('sharePage.sourceLabel')}
@@ -1039,14 +1043,14 @@ export default function FilePreviewModal({ item, onClose }) {
                     )}
                     <button
                       onClick={handleCopyText}
-                      className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-[11px] font-sans font-semibold text-slate-200 transition-colors cursor-pointer"
+                      className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-[11px] font-sans font-semibold text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
                     >
                       {copied ? t('preview.copied') : t('preview.copy')}
                     </button>
                     <span className="hidden sm:inline">UTF-8 • {formatBytes(item.sizeBytes)}</span>
                   </div>
                 </div>
-                <div className="flex-1 overflow-auto text-xs text-slate-200 selection:bg-blue-500/40">
+                <div className="flex-1 overflow-auto text-xs text-slate-700 dark:text-slate-200 selection:bg-blue-500/40">
                   {isLoadingText ? (
                     <div className="flex flex-col items-center justify-center gap-3 text-slate-400 py-20">
                       <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
@@ -1102,9 +1106,9 @@ export default function FilePreviewModal({ item, onClose }) {
                           };
                           return map[ext] || 'text';
                         })()}
-                        style={vscDarkPlus}
+                        style={isDark ? vscDarkPlus : vs}
                         showLineNumbers={true}
-                        customStyle={{ margin: 0, padding: '1rem', background: 'transparent', minHeight: '100%' }}
+                        customStyle={{ margin: 0, padding: '1rem', background: 'transparent', minHeight: '100%', color: isDark ? '#e2e8f0' : '#1e293b' }}
                         wrapLines={true}
                       >
                         {textContent}
@@ -1139,7 +1143,7 @@ export default function FilePreviewModal({ item, onClose }) {
       </div>
 
       {/* Bottom Info Bar */}
-      <div className="px-6 py-3 bg-slate-900/60 border-t border-white/10 flex items-center justify-end text-xs text-slate-400">
+      <div className="px-6 py-3 bg-white/85 dark:bg-slate-900/60 border-t border-slate-200 dark:border-white/10 flex items-center justify-end text-xs text-slate-500 dark:text-slate-400">
         <div className="flex items-center gap-4">
           <span>{t('preview.shortcuts')}</span>
         </div>

@@ -529,3 +529,34 @@ html {
 
 .dark .prose-ai a { color: #93c5fd; }
 .dark .prose-ai code { background: rgba(255, 255, 255, 0.12); }
+
+/* ── Icon cầu vồng của bong bóng trợ lý AI (components/file-manager/AiBubble.jsx) ──
+   Đổi `color` chứ không đổi `background`: icon lucide vẽ bằng `currentColor`, nên một
+   khai báo này phủ cả icon Sparkles lẫn vòng xoay Loader2 mà không cần lớp thứ hai.
+
+   Bảy chặng đúng bằng bảy sắc; `linear` để trình duyệt nội suy liên tục giữa hai chặng,
+   nhờ vậy màu TRÔI chứ không nhảy nấc. 7s là nhịp đủ chậm để không cướp sự chú ý khỏi
+   nội dung — bong bóng này nằm đè lên màn hình làm việc suốt phiên. */
+@keyframes aiBubbleRainbow {
+  0%   { color: #ef4444; } /* đỏ */
+  14%  { color: #f97316; } /* cam */
+  28%  { color: #eab308; } /* vàng */
+  43%  { color: #22c55e; } /* lục */
+  57%  { color: #3b82f6; } /* lam */
+  71%  { color: #6366f1; } /* chàm */
+  86%  { color: #a855f7; } /* tím */
+  100% { color: #ef4444; } /* khép vòng về đỏ, không giật ở mối nối */
+}
+
+.ai-bubble-rainbow {
+  animation: aiBubbleRainbow 7s linear infinite;
+}
+
+/* Tắt cho người bật "giảm chuyển động": màu nhấp nháy liên tục ở rìa tầm nhìn là đúng
+   loại kích thích gây khó chịu. Bỏ animation thì icon về màu xanh của `text-blue-600`
+   trên nút — trạng thái không mất đi chút nào vì nó vốn được báo bằng icon và chấm. */
+@media (prefers-reduced-motion: reduce) {
+  .ai-bubble-rainbow {
+    animation: none;
+  }
+}

@@ -37,6 +37,7 @@ import {
     Eraser,
 } from 'lucide-react';
 
+import AiBubble from './AiBubble';
 import { aiApi } from '../../services/api';
 import { useLanguage } from '../../context/LanguageContext';
 import { localeTagOf } from '../../utils/locale';
@@ -60,8 +61,8 @@ import { localeTagOf } from '../../utils/locale';
  *  - initialAction lệnh nhanh chọn từ menu con ('summarize' | 'explain' | ...).
  *                  Có giá trị khác 'chat' thì tự chạy ngay khi mở — đó là điểm
  *                  của menu con: một cú bấm là có câu trả lời, không phải gõ gì.
- *  - minimized     panel đang thu lại thành bong bóng: component vẽ ra một nút tròn ở
- *                  mép phải thay cho cả khung. KHÔNG unmount (xem `AiPanelContext`) —
+ *  - minimized     panel đang thu lại thành bong bóng: component vẽ ra `AiBubble` — một
+ *                  nút tròn kéo được quanh bốn cạnh — thay cho cả khung. KHÔNG unmount (xem `AiPanelContext`) —
  *                  cùng một instance, nên hội thoại, tệp đang đính kèm và cả lượt trả
  *                  lời đang chảy đều sống nguyên qua một lần thu nhỏ.
  *  - onMinimize / onRestore  đổi trạng thái trên, do `AiPanelContext` giữ.
@@ -1272,37 +1273,29 @@ export default function GeminiModal({
     /**
      * Bong bóng của trạng thái thu nhỏ.
      *
-     * ĐẶT Ở MÉP PHẢI, giữa chiều cao — không phải góc dưới-phải như một widget chat thông
-     * thường. Hai lý do, và lý do thứ hai mới là lý do bắt buộc:
+     * Vị trí mặc định là MÉP PHẢI, giữa chiều cao — không phải góc dưới-phải như một
+     * widget chat thông thường. Hai lý do, và lý do thứ hai mới là lý do bắt buộc:
      *  • panel này vốn là một CỘT BÊN PHẢI trượt vào; thu về đúng cạnh đó thì cú bấm mở
      *    lại nằm ngay chỗ khung sẽ bung ra.
      *  • góc dưới-phải đã có chủ: `UploadProgress` là một thẻ rộng 360px đóng đinh ở
      *    `bottom-6 right-6`. Đặt bong bóng vào đó thì trong lúc tải tệp nó nằm khuất hoàn
      *    toàn dưới thẻ tải lên, và người dùng kết luận là bong bóng biến mất.
+     *
+     * Nhưng mặc định chỉ là mặc định: từ nay bong bóng KÉO ĐƯỢC sang cả bốn cạnh và nhớ
+     * chỗ người dùng đã thả (xem `AiBubble`) — vì chỗ nào cũng có lúc che mất đúng thứ
+     * đang cần nhìn, và chỉ người dùng mới biết lúc đó là chỗ nào.
      */
     if (minimized) {
         return (
-            <button
-                type="button"
-                onClick={() => {
+            <AiBubble
+                isThinking={isThinking}
+                unseenReply={unseenReply}
+                label={t('ai.restore')}
+                onRestore={() => {
                     setUnseenReply(false);
                     onRestore?.();
                 }}
-                title={t('ai.restore')}
-                aria-label={t('ai.restore')}
-                className="fixed right-3 top-1/2 -translate-y-1/2 z-[60] w-12 h-12 rounded-full bg-white dark:bg-[#282a2c] border border-gray-200 dark:border-gray-700 shadow-xl flex items-center justify-center text-blue-600 dark:text-blue-400 hover:scale-105 hover:border-blue-400 dark:hover:border-blue-500 transition-all cursor-pointer animate-fade-in"
-            >
-                {/* Ba trạng thái, đọc được mà không cần mở ra: đang trả lời (vòng xoay),
-                    đã có câu trả lời chưa xem (chấm xanh), và bình thường. */}
-                {isThinking ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                    <Sparkles className="w-5 h-5" />
-                )}
-                {!isThinking && unseenReply && (
-                    <span className="absolute top-0.5 right-0.5 w-2.5 h-2.5 rounded-full bg-blue-600 dark:bg-blue-400 ring-2 ring-white dark:ring-[#282a2c]" />
-                )}
-            </button>
+            />
         );
     }
 

@@ -927,7 +927,7 @@ function FolderBrowser({ token, rootFolderName, isDownloadAllowed, onOpenFile, s
       const blobUrl = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = blobUrl;
-      a.download = `${rootFolderName || 'driveR_download'}.zip`;
+      a.download = `${rootFolderName || 'cloudSSS_download'}.zip`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -1111,7 +1111,7 @@ export default function SharePage() {
       .then((data) => {
         if (!cancelled) {
           setShareData(data);
-          document.title = `${data.file?.name ?? t('sharePage.sharedFile')} — driveR`;
+          document.title = `${data.file?.name ?? t('sharePage.sharedFile')} — cloudSSS`;
         }
       })
       .catch((err) => {
@@ -1167,7 +1167,7 @@ export default function SharePage() {
       if (url) {
         const a = document.createElement('a');
         a.href = url;
-        a.download = shareData?.file?.name || 'driveR_download';
+        a.download = shareData?.file?.name || 'cloudSSS_download';
         a.rel = 'noopener noreferrer';
         document.body.appendChild(a);
         a.click();
@@ -1218,7 +1218,7 @@ export default function SharePage() {
       if (url) {
         const a = document.createElement('a');
         a.href = url;
-        a.download = childFile.name || 'driveR_download';
+          a.download = childFile.name || 'cloudSSS_download';
         a.rel = 'noopener noreferrer';
         document.body.appendChild(a);
         a.click();

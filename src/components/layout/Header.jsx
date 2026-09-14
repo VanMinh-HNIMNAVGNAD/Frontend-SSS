@@ -260,7 +260,7 @@ export default function Header({ toggleRightSidebar }) {
                 const blobUrl = URL.createObjectURL(zipBlob);
                 const link = document.createElement('a');
                 link.href = blobUrl;
-                link.download = `driveR_download_${Date.now()}.zip`;
+                link.download = `cloudSSS_download_${Date.now()}.zip`;
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
@@ -374,7 +374,7 @@ export default function Header({ toggleRightSidebar }) {
 
     return (
         <header className="h-16 flex items-center justify-between px-3 md:px-5 bg-white dark:bg-[#1e1e1e] border-b border-gray-200 dark:border-gray-700 shrink-0 gap-3 transition-colors duration-200 shadow-2xs">
-            {/* LOGO & Web Title "driveR" */}
+            {/* LOGO & Web Title "cloudSSS" */}
             <div className="flex items-center gap-2 shrink-0">
                 {/* Nút Toggle Sidebar */}
                 <button
@@ -385,14 +385,15 @@ export default function Header({ toggleRightSidebar }) {
                     <Menu className="w-5 h-5 text-gray-800 dark:text-gray-200" />
                 </button>
 
-                {/* Tên web "driveR" (Clicking resets to My Drive) */}
+                {/* Tên web "cloudSSS" (Clicking resets to My Drive) */}
                 <div 
                     onClick={handleLogoClick}
                     className="flex items-center cursor-pointer select-none pr-2 group"
                     title={t('header.logo.title')}
                 >
+                    <img src="/icon/cloudSSS.svg?v=1" alt="" className="w-8 h-8 mr-1" />
                     <span className="text-xl font-extrabold tracking-tight text-gray-900 dark:text-gray-100 font-sans">
-                        drive<span className="text-blue-600 dark:text-blue-400 font-black text-2xl">R</span>
+                        cloud<span className="text-blue-600 dark:text-blue-400 font-black text-2xl">SSS</span>
                     </span>
                 </div>
             </div>

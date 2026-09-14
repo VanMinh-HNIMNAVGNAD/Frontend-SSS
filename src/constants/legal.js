@@ -79,7 +79,7 @@ export const LEGAL_CONTACT_EMAIL =
   (import.meta.env.VITE_LEGAL_CONTACT_EMAIL || '').trim() || 'privacy@drwkmxjennie.fun';
 
 /** Tên dịch vụ và pháp nhân vận hành, dùng xuyên suốt cả ba tài liệu. */
-export const SERVICE_NAME = 'driveR';
+export const SERVICE_NAME = 'cloudSSS';
 export const SERVICE_URL = 'https://drwkmxjennie.fun';
 
 /**

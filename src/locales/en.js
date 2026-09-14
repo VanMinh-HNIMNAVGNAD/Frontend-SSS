@@ -62,7 +62,7 @@ const en = {
   // 6. Shortcuts tab
   'settings.shortcut.title': 'Keyboard Shortcuts',
   'settings.shortcuts.enable.title': 'Enable keyboard shortcuts',
-  'settings.shortcuts.enable.desc': 'Let you drive driveR from the keyboard instead of the mouse',
+  'settings.shortcuts.enable.desc': 'Let you drive cloudSSS from the keyboard instead of the mouse',
   'settings.shortcuts.platform.label': 'Shortcuts shown for your OS:',
   'settings.shortcuts.platform.hint': 'When a row lists several combos, any one of them works.',
 
@@ -114,12 +114,12 @@ const en = {
   'header.sidebar.expand': 'Expand sidebar',
   'header.sidebar.collapse': 'Collapse sidebar',
   'header.logo.title': 'Back to My Drive',
-  'header.search.placeholder': 'Search files, folders and drives in driveR...',
+  'header.search.placeholder': 'Search files, folders and drives in cloudSSS...',
   'header.search.filter': 'Advanced search filters',
   'header.activityLog': 'Activity history',
   'header.ai': 'Ask the AI assistant',
   'header.ai.needLogin': 'Sign in to use the AI assistant',
-  'header.settings': 'driveR settings',
+  'header.settings': 'cloudSSS settings',
   'header.account': 'Account details',
   // Button labels that carry a shortcut — kept inside the translation, not
   // concatenated in JSX
@@ -344,7 +344,7 @@ const en = {
   'auth.captcha.requiredResend': 'Complete the CAPTCHA below, then tap resend.',
   'auth.captcha.loading': 'Please wait for the security check to finish loading.',
   'auth.captcha.expired': 'The CAPTCHA expired — refreshing...',
-  'login.title': 'Sign in to driveR',
+  'login.title': 'Sign in to cloudSSS',
   'login.otpTitle': 'Verify your sign-in',
   'login.submit': 'Enter workspace',
   'login.submitting': 'Working...',
@@ -365,7 +365,7 @@ const en = {
   'login.noAccount': "Don't have an account?",
   'login.registerNow': 'Sign up',
   'login.failed': 'Sign-in failed',
-  'register.title': 'Create your driveR account',
+  'register.title': 'Create your cloudSSS account',
   'register.otpTitle': 'Verify your email',
   'register.submit': 'Create account',
   'register.submitting': 'Creating your account...',
@@ -383,8 +383,8 @@ const en = {
   // liên kết BẮT BUỘC phải có, và check-i18n.mjs sẽ báo lệch placeholder.
   'legal.terms': 'Terms of Service',
   'legal.privacy': 'Privacy Policy',
-  'legal.consent.checkbox': 'I have read and agree to driveR’s {terms} and {privacy}.',
-  'legal.consent.notice': 'By continuing, you agree to driveR’s {terms} and {privacy}.',
+  'legal.consent.checkbox': 'I have read and agree to cloudSSS’s {terms} and {privacy}.',
+  'legal.consent.notice': 'By continuing, you agree to cloudSSS’s {terms} and {privacy}.',
   'legal.consent.required': 'Please read and tick the box to accept the Terms of Service and Privacy Policy.',
   'legal.consent.cta': 'Please accept the terms',
   'legal.back': 'Back',
@@ -399,7 +399,7 @@ const en = {
   // Xem chú thích ở khối tương ứng trong `vi.js`.
   'legal.gate.title': 'Please accept our terms',
   'legal.gate.body':
-    'driveR now has Terms of Service and a Privacy Policy. To keep using this account, please read and accept both documents below. You only need to do this once.',
+    'cloudSSS now has Terms of Service and a Privacy Policy. To keep using this account, please read and accept both documents below. You only need to do this once.',
   'legal.gate.accept': 'I agree, continue',
   'legal.gate.submitting': 'Saving...',
   'legal.gate.decline': 'Sign out',
@@ -505,7 +505,7 @@ const en = {
   'ai.placeholder.file': 'Ask anything about this file…',
   // ── Attachments uploaded from the user's computer (ai_attachments, migration 029) ──
   'ai.empty.blank': 'Ask AI about your files',
-  'ai.empty.blankHint': 'Attach a file from your computer for AI to read, or right-click an item in your Drive and choose Ask AI. You can also just ask how driveR works.',
+  'ai.empty.blankHint': 'Attach a file from your computer for AI to read, or right-click an item in your Drive and choose Ask AI. You can also just ask how cloudSSS works.',
   'ai.context.none': 'No file attached yet',
   'ai.context.count': '{count} files attached',
   'ai.attach.cta': 'Choose files from your computer',
@@ -855,7 +855,7 @@ const en = {
   'profile.subtitle': 'Manage your details, security and sessions',
   'profile.avatar.clickToChange': 'Click to change your avatar',
   'profile.avatar.upload': 'Upload a picture',
-  'profile.defaultName': 'driveR user',
+  'profile.defaultName': 'cloudSSS user',
   'profile.name.placeholder': 'Your display name',
   'profile.plan.free': 'Plan: Free (default)',
   'profile.plan.current': 'Plan: {name}',
@@ -968,7 +968,7 @@ const en = {
   'billing.renewal.confirm': 'Confirm stopping',
   'billing.renewal.cancelling': 'Cancelling...',
   'billing.renewal.keep': 'Keep it',
-  'billing.renewal.warn': 'You keep the full quota until {date}. After that the limit returns to the default, and you would need to buy the plan again. driveR never charges you automatically — every payment is a VietQR transfer you make yourself.',
+  'billing.renewal.warn': 'You keep the full quota until {date}. After that the limit returns to the default, and you would need to buy the plan again. cloudSSS never charges you automatically — every payment is a VietQR transfer you make yourself.',
   'billing.pay.noLink': 'The payment gateway returned no checkout link',
   'billing.pay.badCycle': 'This plan cannot be bought with the selected cycle',
   'billing.pay.linkFailed': 'Could not create the checkout link',
@@ -1057,7 +1057,7 @@ const en = {
   'payResult.retryUpgrade': "Try upgrading again",
   'payResult.recheck': "Re-check",
   'payResult.backToBilling': "Back to billing",
-  'payResult.backToApp': "Back to driveR",
+  'payResult.backToApp': "Back to cloudSSS",
   'payResult.field.orderCode': "Order code",
   'payResult.field.plan': "Plan",
   'payResult.field.cycle': "Billing cycle",
@@ -1182,7 +1182,7 @@ const en = {
 
 
   // ── Search filter panel (SearchFilterModal) ──
-  'search.filter.title': 'driveR search filters',
+  'search.filter.title': 'cloudSSS search filters',
   'search.filter.type.label': 'File / Drive type',
   'search.filter.type.all': 'All types (drives, folders, files)',
   'search.filter.type.folder': 'Folder / Drive',
@@ -1194,7 +1194,7 @@ const en = {
   'search.filter.owner.me': 'Owned by me',
   'search.filter.owner.others': 'Shared by others',
   'search.filter.location.label': 'Location',
-  'search.filter.location.anywhere': 'Anywhere in driveR',
+  'search.filter.location.anywhere': 'Anywhere in cloudSSS',
   'search.filter.location.myDrive': 'My Drive',
   'search.filter.location.sharedWithMe': 'Shared with me',
   'search.filter.location.sharedDrives': 'Shared drives',
@@ -1244,7 +1244,7 @@ const en = {
   'sharePage.expiresOn': 'Expires {date}',
   'sharePage.protected': 'Password protected',
   'sharePage.cta.question': 'Want to store and share files for free?',
-  'sharePage.cta.register': 'Sign up for driveR',
+  'sharePage.cta.register': 'Sign up for cloudSSS',
   'preview.audio.label': 'Audio • {size}',
 
 
@@ -1323,7 +1323,7 @@ const en = {
   'otp.sentTo': 'Enter the 6-digit code we just sent to',
   'otp.back': '← Back',
   'billing.cancel.backToPlans': 'Back to plans',
-  'billing.cancel.backToApp': 'Back to driveR',
+  'billing.cancel.backToApp': 'Back to cloudSSS',
   'billing.cancel.help':
     'Trouble paying? Try again, or scan the QR code with a different banking app.',
   'home.itemCount': '({count} items)',

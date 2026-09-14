@@ -65,7 +65,7 @@ const vi = {
   // 6. Tab Phím tắt
   'settings.shortcut.title': 'Danh sách phím tắt',
   'settings.shortcuts.enable.title': 'Sử dụng phím tắt nhanh',
-  'settings.shortcuts.enable.desc': 'Cho phép dùng bàn phím để thao tác nhanh trên driveR',
+  'settings.shortcuts.enable.desc': 'Cho phép dùng bàn phím để thao tác nhanh trên cloudSSS',
   'settings.shortcuts.platform.label': 'Phím tắt theo hệ điều hành:',
   'settings.shortcuts.platform.hint': 'Khi nhiều tổ hợp cùng dòng, bạn dùng tổ hợp nào cũng được.',
 
@@ -118,12 +118,12 @@ const vi = {
   'header.sidebar.expand': 'Mở rộng sidebar',
   'header.sidebar.collapse': 'Thu gọn sidebar',
   'header.logo.title': 'Về trang Driver riêng của tôi',
-  'header.search.placeholder': 'Tìm kiếm tệp, thư mục, driver trong driveR...',
+  'header.search.placeholder': 'Tìm kiếm tệp, thư mục, driver trong cloudSSS...',
   'header.search.filter': 'Bộ lọc tìm kiếm nâng cao',
   'header.activityLog': 'Lịch sử hoạt động',
   'header.ai': 'Hỏi trợ lý AI',
   'header.ai.needLogin': 'Đăng nhập để dùng trợ lý AI',
-  'header.settings': 'Cài đặt driveR',
+  'header.settings': 'Cài đặt cloudSSS',
   'header.account': 'Thông tin tài khoản',
   // Nhãn nút có kèm phím tắt — để nguyên trong bản dịch, không ghép ngoài JSX
   'header.action.cut': 'Cắt (Ctrl+X)',
@@ -347,7 +347,7 @@ const vi = {
   'auth.captcha.requiredResend': 'Vui lòng hoàn tất xác minh CAPTCHA bên dưới rồi bấm gửi lại.',
   'auth.captcha.loading': 'Vui lòng chờ ô xác minh CAPTCHA tải xong.',
   'auth.captcha.expired': 'Mã xác minh đã hết hạn, đang làm mới...',
-  'login.title': 'Đăng nhập driveR',
+  'login.title': 'Đăng nhập cloudSSS',
   'login.otpTitle': 'Xác minh đăng nhập',
   'login.submit': 'Vào Workspace',
   'login.submitting': 'Đang xử lý...',
@@ -372,7 +372,7 @@ const vi = {
   'login.noAccount': 'Chưa có tài khoản?',
   'login.registerNow': 'Đăng ký ngay',
   'login.failed': 'Đăng nhập thất bại',
-  'register.title': 'Đăng ký driveR',
+  'register.title': 'Đăng ký cloudSSS',
   'register.otpTitle': 'Xác minh email',
   'register.submit': 'Tạo Tài Khoản',
   'register.submitting': 'Đang tạo tài khoản...',
@@ -394,8 +394,8 @@ const vi = {
   // ngôn ngữ khác nhau, và check-i18n.mjs cũng canh đúng bộ chỗ trống này.
   'legal.terms': 'Điều khoản sử dụng',
   'legal.privacy': 'Chính sách quyền riêng tư',
-  'legal.consent.checkbox': 'Tôi đã đọc và đồng ý với {terms} và {privacy} của driveR.',
-  'legal.consent.notice': 'Khi tiếp tục, bạn đồng ý với {terms} và {privacy} của driveR.',
+  'legal.consent.checkbox': 'Tôi đã đọc và đồng ý với {terms} và {privacy} của cloudSSS.',
+  'legal.consent.notice': 'Khi tiếp tục, bạn đồng ý với {terms} và {privacy} của cloudSSS.',
   'legal.consent.required': 'Vui lòng đọc và tích vào ô đồng ý với Điều khoản sử dụng và Chính sách quyền riêng tư.',
   'legal.consent.cta': 'Hãy tích vào ô đồng ý',
   'legal.back': 'Quay lại',
@@ -411,7 +411,7 @@ const vi = {
   // được) và mọi tài khoản có trước 10/09/2026 (migration 027 cố ý không backfill).
   'legal.gate.title': 'Vui lòng đồng ý với điều khoản',
   'legal.gate.body':
-    'driveR đã có Điều khoản sử dụng và Chính sách quyền riêng tư. Để tiếp tục dùng tài khoản này, bạn cần đọc và đồng ý với hai tài liệu dưới đây. Bạn chỉ phải làm việc này một lần.',
+    'cloudSSS đã có Điều khoản sử dụng và Chính sách quyền riêng tư. Để tiếp tục dùng tài khoản này, bạn cần đọc và đồng ý với hai tài liệu dưới đây. Bạn chỉ phải làm việc này một lần.',
   'legal.gate.accept': 'Tôi đồng ý và tiếp tục',
   'legal.gate.submitting': 'Đang ghi nhận...',
   'legal.gate.decline': 'Đăng xuất',
@@ -519,7 +519,7 @@ const vi = {
   'ai.placeholder.file': 'Hỏi bất cứ điều gì về tệp này…',
   // ── Đính kèm tệp từ máy (bảng ai_attachments, migration 029) ──
   'ai.empty.blank': 'Hỏi AI về tệp của bạn',
-  'ai.empty.blankHint': 'Đính kèm tệp từ máy để AI đọc, hoặc bấm chuột phải vào một mục trong Drive rồi chọn Hỏi AI. Bạn cũng hỏi được ngay về cách dùng driveR.',
+  'ai.empty.blankHint': 'Đính kèm tệp từ máy để AI đọc, hoặc bấm chuột phải vào một mục trong Drive rồi chọn Hỏi AI. Bạn cũng hỏi được ngay về cách dùng cloudSSS.',
   'ai.context.none': 'Chưa đính kèm tệp nào',
   'ai.context.count': '{count} tệp đang đính kèm',
   'ai.attach.cta': 'Chọn tệp từ máy',
@@ -874,7 +874,7 @@ const vi = {
   'profile.subtitle': 'Quản lý thông tin, bảo mật và các phiên đăng nhập',
   'profile.avatar.clickToChange': 'Nhấn để đổi ảnh đại diện',
   'profile.avatar.upload': 'Tải ảnh lên',
-  'profile.defaultName': 'Người dùng driveR',
+  'profile.defaultName': 'Người dùng cloudSSS',
   'profile.name.placeholder': 'Nhập tên hiển thị của bạn',
   'profile.plan.free': 'Gói cước: Miễn phí (Mặc định)',
   'profile.plan.current': 'Gói cước: {name}',
@@ -987,7 +987,7 @@ const vi = {
   'billing.renewal.confirm': 'Xác nhận hẹn dừng',
   'billing.renewal.cancelling': 'Đang hủy…',
   'billing.renewal.keep': 'Giữ lại',
-  'billing.renewal.warn': 'Bạn vẫn dùng đủ dung lượng đến hết ngày {date}. Sau đó hạn mức trở về mức mặc định. Để dùng tiếp, bạn cần mua lại gói. driveR không tự trừ tiền của bạn — mọi lượt thanh toán đều do bạn chủ động quét mã VietQR.',
+  'billing.renewal.warn': 'Bạn vẫn dùng đủ dung lượng đến hết ngày {date}. Sau đó hạn mức trở về mức mặc định. Để dùng tiếp, bạn cần mua lại gói. cloudSSS không tự trừ tiền của bạn — mọi lượt thanh toán đều do bạn chủ động quét mã VietQR.',
   'billing.pay.noLink': 'Cổng thanh toán không trả về link thanh toán',
   'billing.pay.badCycle': 'Không thể thanh toán gói này với chu kỳ đã chọn',
   'billing.pay.linkFailed': 'Không tạo được link thanh toán',
@@ -1075,7 +1075,7 @@ const vi = {
   'payResult.retryUpgrade': "Thử nâng cấp lại",
   'payResult.recheck': "Kiểm tra lại",
   'payResult.backToBilling': "Quay lại trang Gói dịch vụ",
-  'payResult.backToApp': "Về driveR",
+  'payResult.backToApp': "Về cloudSSS",
   'payResult.field.orderCode': "Mã giao dịch",
   'payResult.field.plan': "Gói",
   'payResult.field.cycle': "Kỳ thanh toán",
@@ -1200,7 +1200,7 @@ const vi = {
 
 
   // ── Bảng bộ lọc tìm kiếm (SearchFilterModal) ──
-  'search.filter.title': 'Bộ lọc tìm kiếm driveR',
+  'search.filter.title': 'Bộ lọc tìm kiếm cloudSSS',
   'search.filter.type.label': 'Loại tệp / Driver',
   'search.filter.type.all': 'Tất cả loại (Driver, thư mục, tệp)',
   'search.filter.type.folder': 'Thư mục / Driver',
@@ -1212,7 +1212,7 @@ const vi = {
   'search.filter.owner.me': 'Tôi sở hữu',
   'search.filter.owner.others': 'Được chia sẻ bởi người khác',
   'search.filter.location.label': 'Vị trí',
-  'search.filter.location.anywhere': 'Bất kỳ đâu trong driveR',
+  'search.filter.location.anywhere': 'Bất kỳ đâu trong cloudSSS',
   'search.filter.location.myDrive': 'Driver riêng của tôi',
   'search.filter.location.sharedWithMe': 'Được chia sẻ với tôi',
   'search.filter.location.sharedDrives': 'Driver đã chia sẻ',
@@ -1263,7 +1263,7 @@ const vi = {
   'sharePage.expiresOn': 'Hết hạn {date}',
   'sharePage.protected': 'Được bảo vệ',
   'sharePage.cta.question': 'Bạn muốn lưu trữ và chia sẻ file miễn phí?',
-  'sharePage.cta.register': 'Đăng ký driveR',
+  'sharePage.cta.register': 'Đăng ký cloudSSS',
   'preview.audio.label': 'Âm thanh • {size}',
 
 
@@ -1342,7 +1342,7 @@ const vi = {
   'otp.sentTo': 'Nhập mã 6 chữ số vừa gửi tới',
   'otp.back': '← Quay lại',
   'billing.cancel.backToPlans': 'Quay lại trang Gói dịch vụ',
-  'billing.cancel.backToApp': 'Về driveR',
+  'billing.cancel.backToApp': 'Về cloudSSS',
   'billing.cancel.help':
     'Gặp vấn đề khi thanh toán? Thử lại hoặc dùng app ngân hàng khác để quét QR.',
   'home.itemCount': '({count} mục)',

@@ -584,7 +584,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                     </h4>
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 dark:text-blue-300 rounded-full text-[10px] font-bold">
                       <ShieldCheck className="w-3 h-3" />
-                      {user.provider === 'local' ? 'driveR' : user.provider}
+                      {user.provider === 'local' ? 'cloudSSS' : user.provider}
                     </span>
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">{user.email}</p>

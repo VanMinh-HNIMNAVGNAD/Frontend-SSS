@@ -26,6 +26,7 @@ import {
     History,
     Sparkles
 } from 'lucide-react';
+import cloudLogo from '../../assets/icon/cloud-acceleration-svgrepo-com.svg';
 
 export default function Header({ toggleRightSidebar }) {
     const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
@@ -391,7 +392,7 @@ export default function Header({ toggleRightSidebar }) {
                     className="flex items-center cursor-pointer select-none pr-2 group"
                     title={t('header.logo.title')}
                 >
-                    <img src="/icon/cloudSSS.svg?v=1" alt="" className="w-8 h-8 mr-1" />
+                    <img src={cloudLogo} alt="" className="w-8 h-8 mr-1" />
                     <span className="text-xl font-extrabold tracking-tight text-gray-900 dark:text-gray-100 font-sans">
                         cloud<span className="text-blue-600 dark:text-blue-400 font-black text-2xl">SSS</span>
                     </span>

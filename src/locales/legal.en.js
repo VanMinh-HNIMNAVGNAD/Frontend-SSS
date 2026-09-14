@@ -65,13 +65,13 @@ const privacy = {
             ],
             [
               'Sharing data',
-              'Which files you shared with whom, view or edit permissions, the share links you create, and members of shared drives.',
+              'Which files you shared with whom, view or edit permissions, the share links you create, and members of shared cloudSSS spaces.',
               'To enforce exactly the access you configured.',
             ],
             [
               'Activity log',
               'Actions on files (upload, rename, move, delete, share, restore) with timestamps.',
-              'So you can trace who did what to a file in a shared drive, and so we can investigate incidents.',
+              'So you can trace who did what to a file in a shared cloudSSS space, and so we can investigate incidents.',
             ],
             [
               'Sign-in sessions',
@@ -575,7 +575,7 @@ const dataDeletion = {
           type: 'ul',
           items: [
             'Payment transaction records — accounting and tax law require us to keep them for a set period. These records are no longer used to identify you within the service.',
-            'Files that other people copied into their own drives before you deleted yours — that copy belongs to them, and we do not delete other people’s data.',
+            'Files that other people copied into their own cloudSSS spaces before you deleted yours — that copy belongs to them, and we do not delete other people’s data.',
             'System backups and server logs may still contain older data for a short time before being overwritten on their normal cycle.',
           ],
         },

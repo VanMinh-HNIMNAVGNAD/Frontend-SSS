@@ -75,7 +75,7 @@ function SharePageError({ message, onGoHome }) {
   return (
     <div className="min-h-screen bg-[#0f1117] text-white flex flex-col items-center justify-center px-4">
       <a href="/" className="mb-10 text-2xl font-bold tracking-tight select-none">
-        drive<span className="text-indigo-400">R</span>
+        cloud<span className="text-indigo-400">SSS</span>
       </a>
       <div className="w-20 h-20 rounded-full bg-rose-500/10 flex items-center justify-center mb-6 ring-1 ring-rose-500/30">
         <svg className="w-10 h-10 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -1320,7 +1320,7 @@ export default function SharePage() {
         <div className="max-w-5xl mx-auto flex items-center justify-between gap-3">
           {/* Logo */}
           <a href="/" className="text-lg font-bold tracking-tight shrink-0 select-none hover:opacity-80 transition-opacity">
-            drive<span className="text-indigo-400">R</span>
+            cloud<span className="text-indigo-400">SSS</span>
           </a>
 
           {/* Người chia sẻ */}

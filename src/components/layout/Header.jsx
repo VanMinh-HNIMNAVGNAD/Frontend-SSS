@@ -374,7 +374,7 @@ export default function Header({ toggleRightSidebar }) {
     }
 
     return (
-        <header className="h-16 flex items-center justify-between px-3 md:px-5 bg-white dark:bg-[#1e1e1e] border-b border-gray-200 dark:border-gray-700 shrink-0 gap-3 transition-colors duration-200 shadow-2xs">
+        <header className="h-16 flex items-center justify-between px-3 md:px-5 bg-[var(--app-surface)] border-b border-[var(--app-border)] shrink-0 gap-3 transition-colors duration-200 shadow-2xs">
             {/* LOGO & Web Title "cloudSSS" */}
             <div className="flex items-center gap-2 shrink-0">
                 {/* Nút Toggle Sidebar */}
@@ -401,7 +401,7 @@ export default function Header({ toggleRightSidebar }) {
 
             {/* VÙNG TÌM KIẾM TO + BỘ LỌC TÌM KIẾM */}
             <div className="flex-1 max-w-2xl relative mx-2">
-                <div className="flex items-center bg-gray-100/90 dark:bg-white/5 hover:bg-gray-200/70 dark:hover:bg-white/10 focus-within:bg-white dark:focus-within:bg-[#282a2c] border border-gray-200/90 dark:border-transparent focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100 dark:focus-within:ring-0 focus-within:shadow-md rounded-full px-4 py-2 transition-all duration-200">
+                <div className="flex items-center bg-gray-100/90 dark:bg-white/5 hover:bg-gray-200/70 dark:hover:bg-white/10 focus-within:bg-white dark:focus-within:bg-[var(--app-surface)] border border-gray-200/90 dark:border-transparent focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100 dark:focus-within:ring-0 focus-within:shadow-md rounded-full px-4 py-2 transition-all duration-200">
                     <Search className="w-5 h-5 text-gray-600 dark:text-gray-400 mr-3 shrink-0" />
                     <input
                         id="global-search-input"

@@ -83,7 +83,7 @@ export default function Sidebar() {
         />
       )}
       <aside
-        className={`bg-[#f0f4f9] dark:bg-[#1e1e1e] border-r border-gray-200 dark:border-gray-700 flex flex-col pt-3 select-none transition-all duration-300 ease-in-out shrink-0 h-full 
+        className={`bg-[var(--app-sidebar)] border-r border-[var(--app-border)] flex flex-col pt-3 select-none transition-all duration-300 ease-in-out shrink-0 h-full 
           fixed lg:relative z-50 lg:z-0 top-0 left-0
           ${isSidebarCollapsed ? '-translate-x-full lg:translate-x-0 lg:w-20 px-2' : 'translate-x-0 w-72 lg:w-64 px-3'}
         `}

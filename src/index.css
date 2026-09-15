@@ -14,6 +14,48 @@ body {
    ghi, là nơi duy nhất quản lý lựa chọn Sáng/Tối/Hệ thống */
 @custom-variant dark (&:where(.dark, .dark *));
 
+:root {
+  color-scheme: light;
+  --app-bg: #f3f6fa;
+  --app-surface: #ffffff;
+  --app-sidebar: #eef3f8;
+  --app-border: #dbe3ec;
+  --app-ink: #172033;
+  --app-muted: #64748b;
+}
+
+.dark {
+  color-scheme: dark;
+  --app-bg: #25272a;
+  --app-surface: #303236;
+  --app-sidebar: #292c30;
+  --app-border: #454950;
+  --app-ink: #f1f5f9;
+  --app-muted: #aeb7c4;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+  background: var(--app-bg);
+  color: var(--app-ink);
+}
+
+/* Giữ các modal/drawer cũ đồng bộ trong khi chúng vẫn dùng utility màu hex. */
+.dark [class~="dark:bg-[#282a2c]"],
+.dark [class~="dark:bg-[#282a2c]/95"] {
+  background-color: var(--app-surface) !important;
+}
+
+.dark [class~="dark:bg-[#1e1e1e]"] {
+  background-color: var(--app-bg) !important;
+}
+
+body {
+  margin: 0;
+}
+
 @layer utilities {
   /* `animate-fade-in` và `animate-slide-left` được 11 chỗ trong ứng dụng dùng (ngăn
      thông tin bên phải, các hộp thoại, panel AI) nhưng CHƯA TỪNG được định nghĩa —

@@ -210,7 +210,7 @@ export default function MainLayout() {
     );
 
     return (
-        <div className="flex h-screen w-full bg-[#f0f4f9] dark:bg-[#1e1e1e] text-gray-900 dark:text-gray-100 font-sans overflow-hidden relative">
+        <div className="flex h-screen w-full bg-[var(--app-bg)] text-[var(--app-ink)] font-sans overflow-hidden relative">
             {/* Input ẩn phục vụ phím tắt Ctrl + Win + U */}
             <input
                 type="file"
@@ -225,7 +225,7 @@ export default function MainLayout() {
             <Sidebar />
 
             {/* Khu vực nội dung chính */}
-            <div className="flex-1 flex flex-col bg-[#f8fafd] dark:bg-[#1e1e1e] overflow-hidden min-w-0 lg:border-l lg:border-gray-200 dark:lg:border-gray-700">
+            <div className="flex-1 flex flex-col bg-[var(--app-bg)] overflow-hidden min-w-0 lg:border-l lg:border-[var(--app-border)]">
                 {/* Header Navbar */}
                 <Header 
                     toggleRightSidebar={() => setIsRightSidebarOpen(!isRightSidebarOpen)} 

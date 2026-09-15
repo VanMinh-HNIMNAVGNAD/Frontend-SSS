@@ -31,16 +31,16 @@ export default function Modal({
 
     return (
         <div 
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-200 cursor-pointer"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/45 dark:bg-black/55 backdrop-blur-xs animate-in fade-in duration-200 cursor-pointer"
             onClick={onClose}
         >
             <div
-                className={`w-full ${maxWidth} bg-white dark:bg-[#282a2c] rounded-3xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden transform transition-all duration-200 scale-100 animate-in zoom-in-95 cursor-default`}
+                className={`w-full ${maxWidth} bg-[var(--app-surface)] rounded-3xl shadow-2xl border border-[var(--app-border)] overflow-hidden transform transition-all duration-200 scale-100 animate-in zoom-in-95 cursor-default`}
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
                 {(title || showCloseButton) && (
-                    <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-white/5">
+                    <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--app-border)] bg-black/[0.025] dark:bg-white/[0.045]">
                         <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">{title}</h3>
                         {showCloseButton && (
                             <button

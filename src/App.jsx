@@ -23,8 +23,9 @@ export default function App() {
                                     duration: 3500,
                                     style: {
                                         borderRadius: '12px',
-                                        background: '#1e293b',
-                                        color: '#fff',
+                                        background: 'var(--app-surface)',
+                                        color: 'var(--app-ink)',
+                                        border: '1px solid var(--app-border)',
                                         fontSize: '13px',
                                         fontWeight: '500',
                                         boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',

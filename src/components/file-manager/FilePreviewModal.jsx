@@ -763,13 +763,13 @@ export default function FilePreviewModal({ item, onClose }) {
               >
                 <ZoomOut className="w-4 h-4" />
               </button>
-              <span className="text-xs font-mono px-2 py-1 bg-white/10 rounded-lg text-slate-300 min-w-[50px] text-center">
+              <span className="text-xs font-mono px-2 py-1 bg-slate-100 dark:bg-white/10 rounded-lg text-slate-700 dark:text-slate-300 min-w-[50px] text-center">
                 {Math.round(zoom * 100)}%
               </span>
               <button
                 onClick={handleZoomIn}
                 disabled={zoom >= 3}
-                className="p-2 rounded-xl bg-white/10 hover:bg-white/20 disabled:opacity-30 text-white transition-all cursor-pointer"
+                className="p-2 rounded-xl bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 disabled:opacity-30 text-slate-700 dark:text-white transition-all cursor-pointer"
                 title={t('preview.zoomIn')}
               >
                 <ZoomIn className="w-4 h-4" />
@@ -783,12 +783,12 @@ export default function FilePreviewModal({ item, onClose }) {
               </button>
               <button
                 onClick={handleReset}
-                className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all cursor-pointer"
+                className="p-2 rounded-xl bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-slate-700 dark:text-white transition-all cursor-pointer"
                 title={t('preview.resetZoom')}
               >
                 <Maximize2 className="w-4 h-4" />
               </button>
-              <div className="w-px h-5 bg-white/10 mx-1" />
+              <div className="w-px h-5 bg-slate-200 dark:bg-white/10 mx-1" />
             </>
           )}
 
@@ -798,7 +798,7 @@ export default function FilePreviewModal({ item, onClose }) {
               trong lúc đọc câu trả lời — đó mới là điểm của cái nút này. */}
           <button
             onClick={() => openAi(item, 'chat')}
-            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold transition-all cursor-pointer"
+            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 dark:bg-blue-500/20 dark:hover:bg-blue-500/30 border border-blue-200 dark:border-blue-400/40 text-blue-700 dark:text-blue-100 text-xs font-semibold shadow-sm transition-all cursor-pointer"
             title={t('preview.askAi')}
           >
             <Sparkles className="w-4 h-4" />
@@ -1009,8 +1009,8 @@ export default function FilePreviewModal({ item, onClose }) {
             )}
 
             {isCodeOrText && (
-              <div className="w-full h-full max-w-5xl rounded-2xl overflow-hidden bg-[#0d1117] border border-white/10 shadow-2xl flex flex-col">
-                <div className="px-4 py-2.5 bg-slate-900 border-b border-white/10 text-xs font-mono text-slate-400 flex items-center justify-between">
+              <div className="w-full h-full max-w-5xl rounded-2xl overflow-hidden bg-white dark:bg-[#0d1117] border border-slate-200 dark:border-white/10 shadow-2xl flex flex-col">
+                <div className="px-4 py-2.5 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-white/10 text-xs font-mono text-slate-600 dark:text-slate-400 flex items-center justify-between">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className={`w-2.5 h-2.5 rounded-full inline-block shrink-0 ${isMd ? 'bg-sky-400' : 'bg-emerald-500'}`} />
                     <span className="font-semibold text-slate-800 dark:text-slate-200 truncate">{item.name}</span>
@@ -1022,11 +1022,11 @@ export default function FilePreviewModal({ item, onClose }) {
                   </div>
                   <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                     {isMd && (
-                      <div className="flex items-center bg-slate-800 p-0.5 rounded-lg border border-white/10">
+                      <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-white/10">
                         <button
                           onClick={() => setMdViewMode('preview')}
                           className={`px-2 py-1 rounded text-[11px] font-sans font-medium transition-colors cursor-pointer ${
-                            mdViewMode === 'preview' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                            mdViewMode === 'preview' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                           }`}
                         >
                           {t('sharePage.previewLabel')}
@@ -1034,7 +1034,7 @@ export default function FilePreviewModal({ item, onClose }) {
                         <button
                           onClick={() => setMdViewMode('source')}
                           className={`px-2 py-1 rounded text-[11px] font-sans font-medium transition-colors cursor-pointer ${
-                            mdViewMode === 'source' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                            mdViewMode === 'source' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                           }`}
                         >
                           {t('sharePage.sourceLabel')}
@@ -1043,7 +1043,7 @@ export default function FilePreviewModal({ item, onClose }) {
                     )}
                     <button
                       onClick={handleCopyText}
-                      className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-[11px] font-sans font-semibold text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
+                      className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 border border-slate-200 dark:border-transparent text-[11px] font-sans font-semibold text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
                     >
                       {copied ? t('preview.copied') : t('preview.copy')}
                     </button>

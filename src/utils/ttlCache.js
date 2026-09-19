@@ -1,4 +1,5 @@
 import { clearThumbnails } from './thumbnailStore';
+import { clearThumbnailCache } from './serviceWorker';
 import {
   readCached,
   writeCached,
@@ -293,6 +294,10 @@ export function resetSharedCaches() {
   // tệp của một người dùng cụ thể, để lại trên máy dùng chung là để nó loé lên
   // trong phiên của người kế tiếp. Không await: đăng xuất không được phép chờ đĩa.
   void clearThumbnails();
+  // Lớp THỨ HAI giữ đúng những byte ấy: cache của Service Worker (`public/sw.js`).
+  // Xoá cùng lúc, cùng một lý do — bỏ sót nó là mở lại đúng lỗ hổng mà dòng trên
+  // vừa đóng, chỉ khác chỗ lưu.
+  void clearThumbnailCache();
   // Cùng lý do, cho lớp bền dùng chung: danh sách tệp, nội dung xem trước, danh
   // sách Bộ nhớ dùng chung. `clear()` của từng bộ ở trên chỉ xoá namespace của
   // NGƯỜI DÙNG HIỆN TẠI, mà lúc đăng xuất token có thể đã bị gỡ khỏi localStorage

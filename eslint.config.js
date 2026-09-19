@@ -18,4 +18,11 @@ export default defineConfig([
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
   },
+  {
+    // Service Worker chạy trong ngữ cảnh riêng: có `self`, `caches`, `clients`,
+    // không có `window` lẫn `document`. Không khai ở đây thì `no-undef` báo đỏ
+    // mọi API của nó — và tệ hơn, nó sẽ KHÔNG báo khi ta lỡ dùng `window`.
+    files: ['public/sw.js'],
+    languageOptions: { globals: globals.serviceworker },
+  },
 ])

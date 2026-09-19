@@ -114,6 +114,109 @@ export function recordThumbnailBytes(bytes) {
   thumbnailBytes += Number(bytes) || 0;
 }
 
+// ── Đo byte và 200/304 của API, bằng Resource Timing ─────────────────────────
+
+/**
+ * Vì sao phải đi đường vòng qua Resource Timing thay vì đọc từ axios.
+ *
+ * Hai lý do, và cái thứ hai mới là cái quyết định:
+ *
+ *  1. axios (XHR) không cho biết một response tốn bao nhiêu byte trên dây.
+ *     `content-length` thì thường vắng mặt vì response đã đi qua `compression()`
+ *     và được gửi theo lối chunked.
+ *  2. **Ứng dụng KHÔNG BAO GIỜ nhìn thấy `304`.** Trình duyệt tự gửi
+ *     `If-None-Match`, tự nhận 304, rồi đưa cho XHR một `200` dựng lại từ bộ đệm.
+ *     Nên đếm `status` ở tầng axios sẽ báo 100% là 200 kể cả khi ETag đang chạy
+ *     hoàn hảo — đúng loại phép đo tệ nhất: nó không im lặng, nó nói sai.
+ *
+ * Resource Timing thì thấy cả ba trạng thái. Điều kiện: backend phải gửi
+ * `Timing-Allow-Origin` (đã thêm ở `main.ts`), nếu không mọi con số đều bị che
+ * thành 0 và bảng dưới đây sẽ nói thẳng là nó mù.
+ */
+const apiByEndpoint = new Map(); // key -> { responses, network, revalidated, cached, blind, bodyBytes, wireBytes, totalMs }
+
+/** Bỏ qua mọi entry sinh ra trước lần `reset()` gần nhất. */
+let metricsSince = 0;
+
+function apiEntryFor(key) {
+  let entry = apiByEndpoint.get(key);
+  if (!entry) {
+    entry = {
+      responses: 0,
+      network: 0,
+      revalidated: 0,
+      cached: 0,
+      blind: 0,
+      bodyBytes: 0,
+      wireBytes: 0,
+      savedBytes: 0,
+      totalMs: 0,
+    };
+    apiByEndpoint.set(key, entry);
+  }
+  return entry;
+}
+
+/**
+ * Một lượt response thuộc loại nào.
+ *
+ *  • `cached`      — không đi mạng chút nào (`transferSize === 0` mà vẫn có thân).
+ *  • `revalidated` — ĐÃ đi mạng, nhưng server trả 304 nên chỉ có header đi qua dây.
+ *                    Đây chính là con số mà ETag sinh ra để tạo.
+ *  • `network`     — 200 thật, tải cả thân về.
+ *  • `blind`       — không đọc được gì (thiếu `Timing-Allow-Origin`).
+ *
+ * Dấu hiệu của 304 là `transferSize < encodedBodySize`, KHÔNG phải
+ * `encodedBodySize === 0`.
+ *
+ * Bản đầu của hàm này dùng điều kiện sau và nó sai, theo kiểu tệ nhất: bảng đo báo
+ * "0 lượt 304" trong khi log của server cho thấy mọi lượt đều trả 304. Lý do là
+ * `encodedBodySize` mô tả THÂN CỦA RESPONSE, kể cả khi thân ấy được dựng lại từ bộ
+ * đệm và không tốn một byte mạng nào — còn `transferSize` mới là số byte thật sự đi
+ * qua dây (với 304 thì chỉ vài trăm byte header). Phát hiện bằng cách chạy thật
+ * trong Chrome; xem `35.5` trong `.ai/task-ledger.md`.
+ */
+function classifyResource(entry) {
+  const { transferSize = 0, encodedBodySize = 0, decodedBodySize = 0 } = entry;
+  if (transferSize === 0) return decodedBodySize > 0 ? 'cached' : 'blind';
+  if (encodedBodySize > 0 && transferSize < encodedBodySize) return 'revalidated';
+  return 'network';
+}
+
+function noteResource(entry) {
+  if (entry.startTime < metricsSince) return;
+  if (entry.initiatorType !== 'xmlhttprequest' && entry.initiatorType !== 'fetch') return;
+  if (!entry.name.includes('/api/')) return;
+
+  const key = `GET ${normalizePath(entry.name.replace(/^https?:\/\/[^/]+/, ''))}`;
+  const row = apiEntryFor(key);
+  const kind = classifyResource(entry);
+
+  row.responses += 1;
+  row.totalMs += entry.duration;
+  row.wireBytes += entry.transferSize || 0;
+  row[kind] += 1;
+
+  if (kind === 'network') row.bodyBytes += entry.encodedBodySize || 0;
+  // Một lượt 304 cho biết CHÍNH XÁC phần đã tiết kiệm: thân mà client không phải
+  // tải (`encodedBodySize`), trừ đi phần header đã thật sự đi (`transferSize`).
+  // Không cần ước lượng bằng trung bình như bản đầu.
+  if (kind === 'revalidated') {
+    row.savedBytes += Math.max(0, (entry.encodedBodySize || 0) - (entry.transferSize || 0));
+  }
+}
+
+if (metricsEnabled && typeof PerformanceObserver !== 'undefined') {
+  try {
+    new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) noteResource(entry);
+    }).observe({ type: 'resource', buffered: true });
+  } catch {
+    // Trình duyệt không hỗ trợ `type`/`buffered` — bảng API sẽ rỗng, phần còn lại
+    // của công cụ đo vẫn chạy.
+  }
+}
+
 function formatBytes(n) {
   if (n < 1024) return `${n} B`;
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
@@ -123,6 +226,10 @@ function formatBytes(n) {
 export function reset() {
   byEndpoint.clear();
   recentExact.clear();
+  apiByEndpoint.clear();
+  // Mốc này là thứ giữ cho `buffered: true` của PerformanceObserver không kéo lại
+  // cả những lượt gọi từ trước lúc đo.
+  metricsSince = typeof performance !== 'undefined' ? performance.now() : 0;
   thumbnailBytes = 0;
   thumbnailFetches = 0;
   return 'đã về 0 — giờ thực hiện thao tác cần đo, rồi gọi __driver.report()';
@@ -162,8 +269,50 @@ export function bytes() {
   return { fetches: thumbnailFetches, bytes: thumbnailBytes, human: formatBytes(thumbnailBytes) };
 }
 
+/**
+ * Bảng đo của ETag: byte, 200 vs 304, và thời gian.
+ *
+ * CỐ Ý tách hẳn khỏi `bytes()` (byte ảnh thumbnail). Hai phép đo trả lời hai câu
+ * hỏi khác nhau, và trộn chúng lại thì không con số nào còn dùng để ra quyết định
+ * được nữa: một thay đổi làm giảm byte thumbnail có thể đồng thời làm tăng số lượt
+ * gọi API, mà tổng gộp lại vẫn đẹp.
+ *
+ * Cột `đã tiết kiệm` là số ĐO, không phải ước lượng: mỗi lượt 304 tự nói ra phần
+ * thân mà client không phải tải (`encodedBodySize`) và phần header đã thật sự đi
+ * (`transferSize`); hiệu của chúng là byte tiết kiệm được.
+ */
+export function api() {
+  const rows = [...apiByEndpoint.entries()]
+    .map(([endpoint, e]) => ({
+      endpoint,
+      responses: e.responses,
+      '200': e.network,
+      '304': e.revalidated,
+      'từ cache': e.cached,
+      'không đọc được': e.blind,
+      'thân TB (200)': formatBytes(e.network ? Math.round(e.bodyBytes / e.network) : 0),
+      'byte qua dây': formatBytes(e.wireBytes),
+      'đã tiết kiệm': formatBytes(e.savedBytes),
+      'thời gian TB': `${Math.round(e.totalMs / Math.max(1, e.responses))} ms`,
+    }))
+    .sort((a, b) => b.responses - a.responses);
+
+  const blind = rows.reduce((sum, r) => sum + r['không đọc được'], 0);
+  if (blind > 0) {
+    console.warn(
+      `[driver] ${blind} lượt không đọc được kích thước — backend chưa gửi ` +
+        '`Timing-Allow-Origin` cho origin này, xem `main.ts`.',
+    );
+  }
+  console.table(rows);
+  return rows;
+}
+
 // Cửa vào duy nhất từ Console. Gắn một lần, chỉ khi đã bật.
 if (metricsEnabled && typeof window !== 'undefined') {
-  window.__driver = { reset, report, snapshot, bytes };
-  console.info('[driver] Đang đếm request. Dùng __driver.reset() rồi __driver.report().');
+  window.__driver = { reset, report, snapshot, bytes, api };
+  console.info(
+    '[driver] Đang đếm request. Dùng __driver.reset() rồi __driver.report(); ' +
+      '__driver.api() cho bảng 200/304 và byte của API.',
+  );
 }

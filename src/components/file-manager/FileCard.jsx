@@ -163,6 +163,8 @@ function FileCard({ file, onDoubleClick, onContextMenu, onStarToggle, onOpenInfo
                     <img
                         src={thumbUrl}
                         alt={file.name}
+                        loading="lazy"
+                        decoding="async"
                         className="w-full h-full object-cover rounded-lg group-hover:scale-105 transition-transform duration-300"
                     />
 

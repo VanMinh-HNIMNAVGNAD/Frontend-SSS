@@ -110,18 +110,23 @@ export function createTtlCache({ ttlMs, maxEntries = 100, persistAs = null } = {
  * Hạn dùng MẶC ĐỊNH của những bộ đệm "nội dung", tức phần lớn app: bảng giá, danh
  * sách Bộ nhớ dùng chung, nội dung tệp xem trước, danh sách phiên bản…
  *
- * 15 phút là con số do người dùng đặt ra sau khi kiểm thử, và nó có lý: những dữ
- * liệu này chỉ đổi khi CHÍNH người đang ngồi đó làm một thao tác ghi — mà mọi
- * thao tác ghi đều tự đốt bộ đệm liên quan ngay tại chỗ (`afterFileMutation`).
+ * Những dữ liệu này chỉ đổi khi CHÍNH người đang ngồi đó làm một thao tác ghi — mà
+ * mọi thao tác ghi đều tự đốt bộ đệm liên quan ngay tại chỗ (`afterFileMutation`).
  * Nói cách khác TTL ở đây không phải để bắt kịp thay đổi của bản thân người dùng;
  * nó chỉ là trần cho thay đổi đến từ NGƯỜI KHÁC (thành viên Bộ nhớ dùng chung) hoặc
- * từ một thiết bị khác của cùng người. Chậm tối đa 15 phút với loại thay đổi đó là
- * đánh đổi đã chấp nhận, để đổi lấy việc mở lại một thư mục không tốn request nào.
+ * từ một thiết bị khác của cùng người.
+ *
+ * 60 phút (trước là 15). Đọc con số này cho đúng: KHÁC với bộ đệm danh sách trong
+ * `FileContext`, ở đây KHÔNG có lượt gọi nền nào chạy sau lưng — trong TTL là im
+ * lặng hoàn toàn. Nên 60 phút nghĩa đúng là: đồng nghiệp tải lên một phiên bản
+ * mới, và màn hình này có thể không biết cho tới một tiếng sau. Đó là một quyết
+ * định sản phẩm đã cân nhắc, không phải một con số tiện tay.
  *
  * KHÔNG áp cho các màn hình bảo mật (phiên đăng nhập, danh sách người được chia sẻ):
- * người dùng mở chúng ra chính là để xem trạng thái THẬT ngay lúc đó.
+ * người dùng mở chúng ra chính là để xem trạng thái THẬT ngay lúc đó. Và cũng không
+ * áp cho danh sách Bộ nhớ dùng chung — xem `sharedDrivesCache`.
  */
-const CONTENT_TTL_MS = 15 * 60 * 1000;
+const CONTENT_TTL_MS = 60 * 60 * 1000;
 
 /**
  * Bảng giá gói dịch vụ. Gần như tĩnh (đổi khi vận hành sửa bảng giá), nhưng
@@ -136,15 +141,21 @@ export const plansCache = createTtlCache({
 });
 
 /**
- * URL xem trước có chữ ký. Backend phát hạn 15 phút (storage.service.ts:
- * expiresIn 900) nên 10 phút là biên an toàn — hết hạn thì xin URL mới.
+ * URL xem trước có chữ ký. Backend phát hạn 1 TIẾNG cho ảnh/PDF và 4 giờ cho
+ * video/audio (`storage.service.ts`, `resolvePreviewUrlTtlSeconds`), nên 55 phút
+ * là biên an toàn cho cả hai nhánh — hết hạn thì xin URL mới.
  *
- * CỐ Ý KHÔNG lưu xuống đĩa, và cũng không nâng TTL: giá trị ở đây tự hết hạn theo
- * đồng hồ của nhà cung cấp lưu trữ chứ không theo đồng hồ của ta. Lưu bền một chữ
- * ký 15 phút chỉ để hôm sau đọc lên một cái link chết. Thứ ĐÁNG bền ở nhánh ảnh là
- * thành phẩm thumbnail, và nó đã nằm sẵn trên IndexedDB (`thumbnailStore`).
+ * Con số này BÁM THEO hạn ngắn nhất mà backend phát, không phải là một lựa chọn
+ * độc lập: để nó vượt quá hạn chữ ký là tự tay phát cho người dùng một link chết,
+ * và triệu chứng sẽ là "ảnh hiện lúc được lúc không" chứ không phải một lỗi rõ
+ * ràng. Sửa hạn ở backend thì phải sửa cả ở đây.
+ *
+ * CỐ Ý KHÔNG lưu xuống đĩa: giá trị ở đây tự hết hạn theo đồng hồ của nhà cung cấp
+ * lưu trữ chứ không theo đồng hồ của ta, nên lưu bền một chữ ký chỉ để hôm sau đọc
+ * lên một cái link chết. Thứ ĐÁNG bền ở nhánh ảnh là thành phẩm thumbnail, và nó
+ * đã nằm sẵn trên IndexedDB (`thumbnailStore`).
  */
-export const previewUrlCache = createTtlCache({ ttlMs: 10 * 60 * 1000, maxEntries: 120 });
+export const previewUrlCache = createTtlCache({ ttlMs: 55 * 60 * 1000, maxEntries: 120 });
 
 /**
  * Nội dung văn bản của tệp, cho khung xem trước code / text / markdown.
@@ -212,7 +223,13 @@ export const shareAccessCache = createTtlCache({ ttlMs: 30 * 1000, maxEntries: 2
  * `sharedDrivesApi` trong `services/api.js`), mà `clear()` nay xoá cả bản trên đĩa.
  */
 export const sharedDrivesCache = createTtlCache({
-  ttlMs: CONTENT_TTL_MS,
+  // CỐ Ý ở 15 phút, không theo `CONTENT_TTL_MS` (60 phút) như các bộ đệm nội dung
+  // khác: đây là danh sách duy nhất mà thay đổi quan trọng đến TỪ NGƯỜI KHÁC — được
+  // mời vào một drive mới, hoặc bị gỡ khỏi một drive. Không thao tác nào của chính
+  // người dùng đốt được ô đệm ấy, nên TTL là trần DUY NHẤT; và vì nó lưu bền, một
+  // lần F5 cũng không gỡ. Để 60 phút là để người được mời ngồi nhìn một danh sách
+  // thiếu mất drive vừa được mời vào.
+  ttlMs: 15 * 60 * 1000,
   maxEntries: 2,
   persistAs: 'shared-drives',
 });

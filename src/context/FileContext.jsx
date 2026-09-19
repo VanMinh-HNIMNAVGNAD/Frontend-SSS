@@ -17,6 +17,7 @@ import { buildSortedDirPaths } from '../utils/uploadTree';
 import { CHUNK_THRESHOLD, isResumableSize } from '../constants/upload';
 import { localeTagOf } from '../utils/locale';
 import { readNamespace, writeManyCached, clearPersistentCache } from '../utils/persistentCache';
+import { primeThumbnailsForUpload } from '../utils/thumbnailPrimer';
 
 const FileContext = createContext();
 
@@ -61,12 +62,20 @@ const LIST_CACHE_MAX = 60;
 /**
  * Bao lâu thì một khung nhìn đã lưu bị coi là quá cũ để dùng lại.
  *
- * Cùng một con số 15 phút với `CONTENT_TTL_MS` trong `utils/ttlCache.js`, và cùng
+ * Cùng một con số 60 phút với `CONTENT_TTL_MS` trong `utils/ttlCache.js`, và cùng
  * một lập luận: thay đổi do CHÍNH người đang ngồi đó gây ra đã được cập nhật tại
  * chỗ vào `items` rồi (đánh dấu sao, đổi tên, xoá, dán, upload xong) — TTL này chỉ
  * là trần cho thay đổi đến từ người khác hoặc từ thiết bị khác.
+ *
+ * Nâng từ 15 lên 60 phút KHÔNG kéo dài độ trễ thấy thay đổi của người khác, và đây
+ * là chỗ dễ đọc nhầm nhất trong tệp này: ngưỡng quyết định điều đó là
+ * `LIST_REVALIDATE_AFTER_MS` (60 GIÂY) — quá ngưỡng ấy thì mọi lượt vào thư mục
+ * đều có một lượt gọi nền cập nhật. TTL ở đây chỉ trả lời một câu khác: bản đã lưu
+ * còn đáng VẼ RA trong lúc chờ lượt gọi đó không, hay phải dựng skeleton. Nên cái
+ * đổi được là: quay lại một thư mục sau nửa tiếng thì thấy nội dung ngay rồi nó tự
+ * đúng lại sau một nhịp, thay vì nhìn skeleton.
  */
-const LIST_CACHE_TTL_MS = 15 * 60 * 1000;
+const LIST_CACHE_TTL_MS = 60 * 60 * 1000;
 
 /**
  * Dưới ngưỡng này thì KHÔNG gọi mạng nữa, kể cả gọi nền.
@@ -1348,11 +1357,21 @@ export function FileProvider({ children }) {
     if (silentSyncTimerRef.current) clearTimeout(silentSyncTimerRef.current);
   }, []);
 
-  /** Tệp vừa upload xong: chèn card mới, hẹn cập nhật quota + đồng bộ cuối hàng đợi */
-  const onUploadedFile = useCallback((entity) => {
+  /**
+   * Tệp vừa upload xong: chèn card mới, hẹn cập nhật quota + đồng bộ cuối hàng đợi.
+   *
+   * @param {object} entity      Hàng `files` backend vừa tạo.
+   * @param {File}   [sourceFile] Chính tệp người dùng đã chọn. Truyền vào để dựng
+   *   thumbnail NGAY TỪ BẢN TRONG RAM — không có nó thì lát nữa cái thẻ hiện ra sẽ
+   *   tải lại đúng tệp này từ cloud chỉ để thu nhỏ (xem `utils/thumbnailPrimer.js`).
+   */
+  const onUploadedFile = useCallback((entity, sourceFile) => {
     if (entity && belongsToCurrentView(entity)) {
       upsertItems(entity);
     }
+
+    // Chạy nền, không chờ, không chặn gì: đây là việc làm THÊM cho lần sau.
+    if (entity && sourceFile) primeThumbnailsForUpload(entity, sourceFile);
 
     // Tải lên xong nhưng Spam Guard gắn cờ: tệp KHÔNG hiện ở thư mục đích, nên phải
     // nói ra. Không có thông báo này thì hàng đợi báo "xong 100%" mà thư mục vẫn
@@ -2184,7 +2203,7 @@ export function FileProvider({ children }) {
           const uploadedEntity = await runChunkedUploadJob(job, signal);
           updateJob(id, { percent: 100, status: 'done' });
           setTimeout(() => removeJob(id), 5000);
-          onUploadedFile(uploadedEntity);
+          onUploadedFile(uploadedEntity, fileObj);
           return;
         }
 
@@ -2315,7 +2334,7 @@ export function FileProvider({ children }) {
         setTimeout(() => removeJob(id), 5000);
 
         // Chỉ thêm đúng card của tệp vừa xong — KHÔNG tải lại cả thư mục
-        onUploadedFile(uploadedEntity);
+        onUploadedFile(uploadedEntity, fileObj);
       } catch (err) {
         // Bị huỷ hoặc tạm dừng thì không phải lỗi: không hiện đỏ, không mời "Thử lại"
         const wasAborted =

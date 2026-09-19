@@ -9,7 +9,8 @@ import * as pdfjsLib from 'pdfjs-dist';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { marked } from 'marked';
-import mammoth from 'mammoth';
+import DocxRenderer from '../components/file-manager/DocxRenderer';
+import SheetPreview from '../components/file-manager/SheetPreview';
 
 // ─── Khởi tạo PDF.js Worker (an toàn, không trùng lặp) ───────────────────────
 if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
@@ -24,13 +25,23 @@ const PREVIEW_IMAGE = (mime, name) => mime?.startsWith('image/') || /\.(jpg|jpeg
 const PREVIEW_VIDEO = (mime, name) => mime?.startsWith('video/') || /\.(mp4|webm|mov|mkv)$/i.test(name ?? '');
 const PREVIEW_AUDIO = (mime, name) => mime?.startsWith('audio/') || /\.(mp3|wav|ogg|m4a)$/i.test(name ?? '');
 const PREVIEW_PDF   = (mime, name) => mime?.includes('pdf') || /\.pdf$/i.test(name ?? '');
+// CHỈ .docx: `.doc` là định dạng nhị phân OLE mà không trình dựng nào chạy ở trình
+// duyệt đọc được — xem chú thích ở `isWordFile` trong FilePreviewModal.jsx.
 const PREVIEW_DOCX  = (mime, name) =>
   mime === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
-  mime === 'application/msword' ||
-  /\.(docx|doc)$/i.test(name ?? '');
+  /\.docx$/i.test(name ?? '');
 const PREVIEW_TEXT  = (mime, name) =>
   mime?.startsWith('text/') ||
   /\.(js|jsx|ts|tsx|py|html|css|json|sql|md|markdown|txt|text|rst|adoc|xml|yaml|yml|sh|env|conf|log|csv|tsv|ini|toml|properties|c|cpp|h|hpp|java|go|rs|kt|php|vue|svelte|cs)$/i.test(name ?? '');
+// Xét SAU `PREVIEW_TEXT` ở mọi nơi dùng: Windows gắn mime `application/vnd.ms-excel`
+// cho cả .csv, mà .csv thì thuộc về khung văn bản.
+const PREVIEW_SHEET = (mime, name) =>
+  !PREVIEW_TEXT(mime, name) &&
+  (mime === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+    mime === 'application/vnd.ms-excel.sheet.macroenabled.12' ||
+    mime === 'application/vnd.ms-excel' ||
+    mime === 'application/vnd.oasis.opendocument.spreadsheet' ||
+    /\.(xlsx|xlsm|xltx|xls|ods)$/i.test(name ?? ''));
 const isMarkdownFile = (name = '') => /\.(md|markdown)$/i.test(name ?? '');
 
 // ─── Helper: icon MIME ────────────────────────────────────────────────────────
@@ -41,6 +52,7 @@ function mimeColor(mimeType, type, name) {
   if (PREVIEW_AUDIO(mimeType, name)) return 'text-pink-400';
   if (PREVIEW_PDF(mimeType, name)) return 'text-rose-400';
   if (PREVIEW_DOCX(mimeType, name)) return 'text-blue-400';
+  if (PREVIEW_SHEET(mimeType, name)) return 'text-green-500';
   if (PREVIEW_TEXT(mimeType, name)) return 'text-emerald-400';
   return 'text-slate-400';
 }
@@ -272,68 +284,11 @@ function PdfCanvasViewer({ url, zoom: externalZoom, rotation: externalRotation }
 }
 
 // ─── Word DOCX Preview ──────────────────────────────────────────────────────
-function DocxPreview({ url }) {
-  const { t } = useLanguage();
-  const [html, setHtml] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    if (!url) return;
-    let mounted = true;
-    setLoading(true);
-    setError(null);
-    setHtml(null);
-
-    (async () => {
-      try {
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(t('preview.docx.fetchFailed'));
-        const arrayBuffer = await res.arrayBuffer();
-        const result = await mammoth.convertToHtml({ arrayBuffer });
-        if (mounted) {
-          setHtml(result.value || `<p class="text-slate-400 italic">${t('preview.docx.empty')}</p>`);
-        }
-      } catch (err) {
-        if (mounted) {
-          console.error('[DOCX Preview Error]', err);
-          setError(err?.message || t('preview.docx.convertFailed'));
-        }
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    })();
-
-    return () => { mounted = false; };
-  }, [url, t]);
-
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center gap-3 h-64 text-white/40">
-        <svg className="w-8 h-8 animate-spin text-indigo-400" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4Z" />
-        </svg>
-        <span className="text-sm font-medium">{t('sharePage.docx.converting')}</span>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="text-rose-300 text-sm text-center py-10 bg-rose-500/10 rounded-xl border border-rose-500/20 px-6">
-        {error}
-      </div>
-    );
-  }
-
-  return (
-    <div
-      className="w-full max-w-4xl mx-auto bg-white text-slate-900 p-8 sm:p-12 rounded-xl shadow-2xl overflow-auto max-h-[65vh] prose prose-slate max-w-none text-left [&_table]:w-full [&_table]:border-collapse [&_table]:my-4 [&_td]:border [&_td]:border-slate-300 [&_td]:p-2 [&_th]:border [&_th]:border-slate-300 [&_th]:p-2 [&_th]:bg-slate-100 [&_p]:mb-3 [&_p]:leading-relaxed [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:mb-4 [&_h2]:text-xl [&_h2]:font-bold [&_h2]:mb-3 [&_h3]:text-lg [&_h3]:font-bold [&_h3]:mb-2 [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-3 [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:mb-3"
-      dangerouslySetInnerHTML={{ __html: html || '' }}
-    />
-  );
-}
+//
+// Bản cục bộ dùng `mammoth.convertToHtml` đã bị bỏ: mammoth cố ý chỉ giữ cấu trúc
+// ngữ nghĩa và vứt font, cỡ chữ, căn lề, giãn dòng, khổ giấy — nên tài liệu nào mở
+// ra cũng thành văn bản thuần. `DocxRenderer` dựng lại đúng định dạng thật và được
+// dùng chung với cửa sổ xem trước trong Drive, để hai nơi không lệch nhau nữa.
 
 // ─── Code / Text Preview ────────────────────────────────────────────────────
 function CodeTextPreview({ url, name }) {
@@ -539,7 +494,18 @@ function PreviewArea({ file, previewUrl, loadingPreview, previewBlocked }) {
     return <PdfCanvasViewer url={previewUrl} />;
   }
   if (PREVIEW_DOCX(mimeType, name)) {
-    return <DocxPreview url={previewUrl} />;
+    return (
+      <div className="w-full max-h-[70vh] overflow-auto rounded-xl bg-slate-900/60 p-4 sm:p-6">
+        <DocxRenderer url={previewUrl} />
+      </div>
+    );
+  }
+  if (PREVIEW_SHEET(mimeType, name)) {
+    return (
+      <div className="w-full h-[70vh] rounded-xl overflow-hidden border border-white/10 bg-[#0d1117] flex flex-col text-left">
+        <SheetPreview url={previewUrl} />
+      </div>
+    );
   }
   if (PREVIEW_TEXT(mimeType, name)) {
     return <CodeTextPreview url={previewUrl} name={name} />;
@@ -598,6 +564,7 @@ function ChildFilePreviewModal({
   const isAud = PREVIEW_AUDIO(mime, name);
   const isPdf = PREVIEW_PDF(mime, name);
   const isDoc = PREVIEW_DOCX(mime, name);
+  const isSheet = PREVIEW_SHEET(mime, name);
   const isTxt = PREVIEW_TEXT(mime, name);
 
   const handleDownloadClick = async () => {
@@ -800,14 +767,22 @@ function ChildFilePreviewModal({
             )}
 
             {isDoc && (
-              <DocxPreview url={previewUrl} />
+              <div className="w-full h-full max-w-5xl rounded-2xl overflow-auto bg-slate-900/60 border border-white/10 shadow-2xl p-4 sm:p-8">
+                <DocxRenderer url={previewUrl} onDownload={isDownloadAllowed ? handleDownloadClick : undefined} />
+              </div>
+            )}
+
+            {isSheet && (
+              <div className="w-full h-full max-w-6xl rounded-2xl overflow-hidden bg-[#0d1117] border border-white/10 shadow-2xl flex flex-col text-left">
+                <SheetPreview url={previewUrl} onDownload={isDownloadAllowed ? handleDownloadClick : undefined} />
+              </div>
             )}
 
             {isTxt && (
               <CodeTextPreview url={previewUrl} name={file.name} />
             )}
 
-            {!isImg && !isVid && !isAud && !isPdf && !isDoc && !isTxt && (
+            {!isImg && !isVid && !isAud && !isPdf && !isDoc && !isSheet && !isTxt && (
               <div className="p-8 bg-slate-900 border border-white/10 rounded-3xl shadow-2xl flex flex-col items-center gap-4 text-center max-w-sm">
                 <svg className="w-16 h-16 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25M9 16.5v.75m3-3v3M15 12v5.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
@@ -1131,7 +1106,8 @@ export default function SharePage() {
     const canPreview =
       PREVIEW_IMAGE(file.mimeType, file.name) || PREVIEW_VIDEO(file.mimeType, file.name) ||
       PREVIEW_AUDIO(file.mimeType, file.name) || PREVIEW_PDF(file.mimeType, file.name)   ||
-      PREVIEW_DOCX(file.mimeType, file.name)  || PREVIEW_TEXT(file.mimeType, file.name);
+      PREVIEW_DOCX(file.mimeType, file.name)  || PREVIEW_SHEET(file.mimeType, file.name) ||
+      PREVIEW_TEXT(file.mimeType, file.name);
 
     if (!canPreview) return;
 

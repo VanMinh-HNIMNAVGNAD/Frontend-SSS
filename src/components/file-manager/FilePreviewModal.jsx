@@ -7,11 +7,12 @@ import {
   RotateCw, 
   Download, 
   Maximize2, 
-  FileImage, 
-  FileVideo, 
-  FileAudio, 
-  FileText, 
-  Loader2, 
+  FileImage,
+  FileVideo,
+  FileAudio,
+  FileText,
+  FileSpreadsheet,
+  Loader2,
   ChevronLeft,
   ChevronRight,
   AlertTriangle,
@@ -19,6 +20,7 @@ import {
   EyeOff,
   Sparkles
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { useFiles } from '../../context/FileContext';
 import { useLanguage } from '../../context/LanguageContext';
 import useMediaSupport from '../../hooks/useMediaSupport';
@@ -29,9 +31,10 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { vs } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { marked } from 'marked';
-import mammoth from 'mammoth';
 import * as pdfjsLib from 'pdfjs-dist';
 import useTheme from '../../hooks/useTheme';
+import DocxRenderer from './DocxRenderer';
+import SheetPreview from './SheetPreview';
 
 // Khởi tạo Worker an toàn cho PDF.js
 if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
@@ -90,6 +93,49 @@ const isTextLikeFile = (fileName = '', mimeType = '') => {
     /\.(txt|text|md|markdown|rst|adoc|log|env|conf|cfg|ini|toml|properties|csv|tsv|json|jsonc|json5|xml|yaml|yml|js|mjs|cjs|jsx|ts|mts|cts|tsx|py|pyi|rb|pl|pm|lua|r|swift|dart|scala|groovy|kt|kts|go|rs|c|h|cc|cxx|cpp|hpp|hh|hxx|m|mm|java|cs|vb|fs|php|html|htm|css|scss|sass|less|styl|vue|svelte|astro|sql|sh|bash|zsh|fish|ps1|bat|cmd|dockerfile|dockerignore|gitignore|editorconfig|makefile|mk|cmake|gradle|tf|tfvars|hcl|graphql|gql|proto|tex|bib|diff|patch|srt|vtt|ipynb)$/i.test(lower)
   );
 };
+
+/**
+ * Word: CHỈ `.docx`, không nhận `.doc`.
+ *
+ * `.doc` (Word 97-2003) là định dạng nhị phân OLE, còn mọi trình dựng chạy ở trình
+ * duyệt — mammoth trước đây và `docx-preview` bây giờ — đều đọc OOXML, tức một tệp
+ * ZIP. Trước đây nhánh này nhận cả mime `application/msword`, nên mọi tệp `.doc`
+ * đều chạy thẳng vào khung xem trước rồi kết thúc bằng một màn hình lỗi đỏ. Không
+ * nhận nó thì người dùng nhận được thẻ "tải về để xem" ngay từ đầu — vẫn không xem
+ * được, nhưng không bắt họ chờ để rồi đọc một lỗi.
+ */
+const isWordFile = (fileName = '', mimeType = '') =>
+  (mimeType || '').toLowerCase() ===
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+  /\.docx$/i.test(fileName);
+
+const SHEET_MIME_TYPES = new Set([
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.ms-excel.sheet.macroenabled.12',
+  'application/vnd.ms-excel',
+  'application/vnd.oasis.opendocument.spreadsheet',
+]);
+
+/**
+ * Bảng tính. Lưu ý `application/vnd.ms-excel` trong danh sách trên: Windows gắn
+ * đúng mime đó cho cả tệp `.csv`, nên nơi gọi phải xét `isTextLikeFile` TRƯỚC —
+ * `.csv` thuộc về khung văn bản, và nó không có URL xem trước để mà đọc nhị phân.
+ */
+const isSpreadsheetFile = (fileName = '', mimeType = '') =>
+  SHEET_MIME_TYPES.has((mimeType || '').toLowerCase()) ||
+  /\.(xlsx|xlsm|xltx|xls|ods)$/i.test(fileName);
+
+/**
+ * `getFileTextContent` ở backend KHÔNG ném lỗi khi không đọc được object — nó trả
+ * 200 kèm một dòng chú thích thay cho nội dung (xem `storage.service.ts`). Nhận ra
+ * mấy dòng đó ở đây là cách duy nhất để không hiển thị lỗi hạ tầng như thể nó là
+ * nội dung tệp. Phải khớp từng chữ với backend.
+ */
+const BACKEND_TEXT_PLACEHOLDERS = [
+  '// Không thể tải trực tiếp',
+  '// Lỗi khi đọc',
+  '// Tệp này không tồn tại',
+];
 
 /**
  * Tệp này có cần `playbackHint` / `fmp4` từ backend không?
@@ -344,7 +390,7 @@ function MediaSupportNotice({ diagnosis, fileName, onDownload, t, inline = false
 
 export default function FilePreviewModal({ item, onClose }) {
   const { t } = useLanguage();
-  const { getPreviewUrl, getFileTextContent } = useFiles();
+  const { getPreviewUrl } = useFiles();
   const { isDark } = useTheme();
   // Panel AI dùng chung với menu chuột phải (`AiPanelProvider`). `aiItem` ở đây KHÔNG phải
   // để hiển thị gì — nó là thứ cho biết panel đang đè lên trên, dùng ở nhánh phím tắt.
@@ -463,35 +509,37 @@ export default function FilePreviewModal({ item, onClose }) {
     setRotation(0);
   };
 
+  /**
+   * Luôn tải OBJECT GỐC — kể cả tệp văn bản.
+   *
+   * Trước đây nhánh text dựng lại tệp từ chuỗi vừa hiển thị rồi `return` luôn, và
+   * cách đó hỏng theo ba đường khác nhau:
+   *
+   *   1. Đọc nội dung thất bại (tệp >10MB bị backend trả 400, mạng lỗi, object mất)
+   *      → không có chuỗi nào để dựng → bấm nút KHÔNG XẢY RA GÌ CẢ, không một lời
+   *      giải thích. Mà đó đúng là lúc người dùng cần nút này nhất.
+   *   2. Tệp không phải UTF-8 (log Windows-1258, CSV xuất từ Excel) bị ghi lại
+   *      thành UTF-8 — tải về là một tệp KHÁC với tệp đã tải lên.
+   *   3. Nó đi vòng qua `checkFileAccess(..., 'download')`, nên tệp được chia sẻ
+   *      với cờ `is_download_allowed = false` vẫn tải về được.
+   */
   const handleDownload = async () => {
-    if (isTextLikeFile(item.name, item.mimeType)) {
-      const textResponse = await storageApi.getFileTextContent(item.id).catch(() => null);
-      const fallbackContent = textResponse?.content ?? textResponse ?? textContent;
-      if (typeof fallbackContent === 'string' && fallbackContent.length > 0) {
-        const blob = new Blob([fallbackContent], { type: item.mimeType || 'text/plain;charset=utf-8' });
-        const blobUrl = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = blobUrl;
-        a.download = item.name;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 0);
-      }
+    if (!item) return;
+
+    const res = await storageApi.getDownloadUrl(item.id).catch(() => null);
+    const resolvedUrl = typeof res === 'string' ? res : res?.downloadUrl || res?.url || null;
+
+    if (!resolvedUrl) {
+      toast.error(t('preview.download.failed'));
       return;
     }
 
-    const downloadUrl = await storageApi.getDownloadUrl(item.id).catch(() => null);
-    const resolvedUrl = typeof downloadUrl === 'string' ? downloadUrl : downloadUrl?.downloadUrl;
-
-    if (resolvedUrl) {
-      const a = document.createElement('a');
-      a.href = resolvedUrl;
-      a.download = item.name;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    }
+    const a = document.createElement('a');
+    a.href = resolvedUrl;
+    a.download = item.name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   };
 
   const mime = (item?.mimeType || '').toLowerCase();
@@ -502,12 +550,24 @@ export default function FilePreviewModal({ item, onClose }) {
   const isPdf = mime.includes('pdf') || /\.pdf$/i.test(name);
   const isMd = isMarkdownFile(name) || mime === 'text/markdown';
   const itemSizeBytes = Number(item?.sizeBytes ?? item?.size ?? 0);
-  const isCodeOrText = item ? isTextLikeFile(name, item.mimeType) && itemSizeBytes <= PREVIEW_MAX_BYTES : false;
-  const isDocx = item ? (
-    (mime === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
-      mime === 'application/msword' ||
-      /\.docx$/i.test(name)) && itemSizeBytes <= PREVIEW_MAX_BYTES
-  ) : false;
+
+  /**
+   * `isTextLike` tách riêng khỏi `isCodeOrText` VÌ CỔNG RENDER bên dưới.
+   *
+   * Tệp văn bản không đi xin URL xem trước (nội dung về qua `/files/:id/content`),
+   * nên `url` của chúng luôn null. Trước đây cổng render là `(url || isCodeOrText)`,
+   * mà `isCodeOrText` lại kèm điều kiện ≤10MB — hệ quả: một tệp .md/.txt lớn hơn
+   * 10MB làm cả hai vế đều sai và cửa sổ hiện ra TRỐNG TRƠN. Thẻ "tệp quá lớn, tải
+   * về" thì nằm bên trong chính cái cổng đó nên không có đường nào hiện được.
+   */
+  const isTextLike = item ? isTextLikeFile(name, item.mimeType) : false;
+  const isCodeOrText = isTextLike && itemSizeBytes <= PREVIEW_MAX_BYTES;
+  const isDocx = item ? isWordFile(name, item.mimeType) && itemSizeBytes <= PREVIEW_MAX_BYTES : false;
+  // `!isTextLike` đứng trước: .csv mang mime `application/vnd.ms-excel` trên
+  // Windows, nhưng nó thuộc khung văn bản (xem chú thích ở `isSpreadsheetFile`).
+  const isSheet = item
+    ? !isTextLike && isSpreadsheetFile(name, item.mimeType) && itemSizeBytes <= PREVIEW_MAX_BYTES
+    : false;
 
   // Chẩn đoán codec cho thẻ <video>/<audio> — xem `hooks/useMediaSupport.js` để biết
   // vì sao "mất tiếng"/"mất hình" không sửa được ở phía web mà chỉ nói ra được.
@@ -639,6 +699,7 @@ export default function FilePreviewModal({ item, onClose }) {
 
   const [copied, setCopied] = useState(false);
   const [textContent, setTextContent] = useState(null);
+  const [textError, setTextError] = useState(null);
   const [isLoadingText, setIsLoadingText] = useState(false);
   const [mdViewMode, setMdViewMode] = useState('preview'); // 'preview' | 'source'
 
@@ -650,75 +711,51 @@ export default function FilePreviewModal({ item, onClose }) {
     }
   };
 
+  /**
+   * Gọi thẳng `storageApi` chứ không qua `getFileTextContent` của FileContext: bản
+   * ở context nuốt lỗi thành `null`, mà `null` thì ở đây không phân biệt được với
+   * một tệp rỗng thật. Trước đây cả hai cùng rơi vào một nhánh nên tệp 0 byte bị
+   * báo là "không tải được nội dung", còn lỗi hạ tầng thì bị ĐỔ VÀO Ô NỘI DUNG và
+   * hiển thị y như văn bản của tệp — kể cả nút Sao chép cũng chép câu báo lỗi đó.
+   */
   useEffect(() => {
-    if (isCodeOrText && item) {
-      let isMounted = true;
-      setIsLoadingText(true);
-      setTextContent(null);
-      setMdViewMode('preview');
-
-      getFileTextContent(item.id)
-        .then((text) => {
-          if (!isMounted) return;
-          const content = text?.content !== undefined ? text.content : (typeof text === 'string' ? text : '');
-          const isBackendPlaceholder =
-            !content ||
-            content.startsWith('// Không thể tải trực tiếp') ||
-            content.startsWith('// Lỗi khi đọc');
-          setTextContent(isBackendPlaceholder ? t('preview.text.loadFailed') : content);
-        })
-        .catch(() => {
-          if (isMounted) setTextContent(t('preview.text.loadFailedCode'));
-        })
-        .finally(() => {
-          if (isMounted) setIsLoadingText(false);
-        });
-
-      return () => {
-        isMounted = false;
-      };
-    }
-  }, [isCodeOrText, item, t]);
-
-  const [docxHtml, setDocxHtml] = useState(null);
-  const [docxLoading, setDocxLoading] = useState(false);
-  const [docxError, setDocxError] = useState(null);
-
-  useEffect(() => {
-    if (!isDocx || !url) return;
+    if (!isCodeOrText || !item) return undefined;
 
     let isMounted = true;
-    setDocxLoading(true);
-    setDocxError(null);
-    setDocxHtml(null);
+    setIsLoadingText(true);
+    setTextContent(null);
+    setTextError(null);
+    setMdViewMode('preview');
 
-    const loadDocx = async () => {
-      try {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error(t('preview.docx.fetchFailed'));
-        const arrayBuffer = await response.arrayBuffer();
-        const result = await mammoth.convertToHtml({ arrayBuffer });
-        if (isMounted) {
-          setDocxHtml(
-            result.value || `<p class="text-slate-400 italic">${t('preview.docx.empty')}</p>`,
-          );
-        }
-      } catch (err) {
-        if (isMounted) {
-          console.error('[DOCX Preview Error]', err);
-          setDocxError(err.message || t('preview.docx.convertFailed'));
-        }
-      } finally {
-        if (isMounted) setDocxLoading(false);
-      }
-    };
+    storageApi
+      .getFileTextContent(item.id)
+      .then((res) => {
+        if (!isMounted) return;
+        const content = typeof res === 'string' ? res : res?.content;
 
-    loadDocx();
+        if (typeof content !== 'string') {
+          setTextError(t('preview.text.loadFailed'));
+          return;
+        }
+        if (BACKEND_TEXT_PLACEHOLDERS.some((prefix) => content.startsWith(prefix))) {
+          setTextError(t('preview.text.loadFailed'));
+          return;
+        }
+
+        // Chuỗi rỗng đi tiếp bình thường — nhánh render lo phần "tệp không có nội dung".
+        setTextContent(content);
+      })
+      .catch(() => {
+        if (isMounted) setTextError(t('preview.text.loadFailedCode'));
+      })
+      .finally(() => {
+        if (isMounted) setIsLoadingText(false);
+      });
 
     return () => {
       isMounted = false;
     };
-  }, [isDocx, url, t]);
+  }, [isCodeOrText, item, t]);
 
   if (!item) return null;
 
@@ -737,7 +774,7 @@ export default function FilePreviewModal({ item, onClose }) {
       <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-white/10 bg-white/85 dark:bg-slate-900/60 backdrop-blur-md">
         <div className="flex items-center gap-3 min-w-0">
           <div className="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center border border-blue-500/30 shrink-0">
-            {isImage ? <FileImage className="w-5 h-5" /> : isVideo ? <FileVideo className="w-5 h-5" /> : isAudio ? <FileAudio className="w-5 h-5" /> : <FileText className="w-5 h-5" />}
+            {isImage ? <FileImage className="w-5 h-5" /> : isVideo ? <FileVideo className="w-5 h-5" /> : isAudio ? <FileAudio className="w-5 h-5" /> : isSheet ? <FileSpreadsheet className="w-5 h-5" /> : <FileText className="w-5 h-5" />}
           </div>
           <div className="min-w-0">
             <h3 className="text-sm font-semibold text-slate-900 dark:text-white truncate max-w-md" title={item.name}>
@@ -844,7 +881,10 @@ export default function FilePreviewModal({ item, onClose }) {
           </div>
         )}
 
-        {!loading && !error && (url || isCodeOrText) && (
+        {/* `isTextLike` chứ KHÔNG phải `isCodeOrText`: xem chú thích ở chỗ khai báo.
+            Tệp văn bản không bao giờ có `url`, nên dùng biến có kèm ngưỡng 10MB ở đây
+            là để một tệp .md lớn rơi ra ngoài MỌI nhánh và hiện ra khung trắng. */}
+        {!loading && !error && (url || isTextLike) && (
           <>
             {isImage && (
               <div className="w-full h-full flex items-center justify-center overflow-auto p-4 cursor-grab active:cursor-grabbing">
@@ -978,33 +1018,29 @@ export default function FilePreviewModal({ item, onClose }) {
                 <div className="px-4 py-2.5 bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-white/10 text-xs font-mono text-slate-600 dark:text-slate-400 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block" />
-                    <span className="font-semibold text-slate-200">{item.name}</span>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200">{item.name}</span>
                   </div>
                   <span>Word Document • {formatBytes(item.sizeBytes)}</span>
                 </div>
-                <div className="flex-1 overflow-auto p-4 sm:p-8 bg-slate-950/60 flex justify-center">
-                  {docxLoading ? (
-                    <div className="flex flex-col items-center justify-center gap-3 text-slate-400 py-16">
-                      <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-                      <p className="text-sm font-medium">{t('preview.docx.converting')}</p>
-                    </div>
-                  ) : docxError ? (
-                    <div className="flex flex-col items-center justify-center gap-3 p-6 text-center max-w-md my-auto">
-                      <p className="text-sm text-red-300 font-medium">{docxError}</p>
-                      <button
-                        onClick={handleDownload}
-                        className="px-4 py-2 bg-white/10 hover:bg-white/20 text-xs font-semibold rounded-xl text-white transition-all"
-                      >
-                        {t('preview.downloadToView')}
-                      </button>
-                    </div>
-                  ) : (
-                    <div
-                      className="w-full max-w-3xl bg-white text-slate-900 p-8 sm:p-12 rounded-xl shadow-2xl min-h-full h-fit prose prose-slate max-w-none docx-preview-content [&_table]:w-full [&_table]:border-collapse [&_table]:my-4 [&_td]:border [&_td]:border-slate-300 [&_td]:p-2 [&_th]:border [&_th]:border-slate-300 [&_th]:p-2 [&_th]:bg-slate-100 [&_p]:mb-3 [&_p]:leading-relaxed [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:mb-4 [&_h2]:text-xl [&_h2]:font-bold [&_h2]:mb-3 [&_h3]:text-lg [&_h3]:font-bold [&_h3]:mb-2 [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:mb-3 [&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:mb-3"
-                      dangerouslySetInnerHTML={{ __html: docxHtml || '' }}
-                    />
-                  )}
+                {/* Không còn class typography nào ở đây: `docx-preview` dựng lại
+                    font, cỡ chữ, lề và khổ giấy ĐÚNG như trong tệp, nên mọi thứ áp
+                    từ ngoài vào đều là ghi đè lên định dạng thật của tài liệu. */}
+                <div className="flex-1 overflow-auto p-4 sm:p-8 bg-slate-100 dark:bg-slate-950/60 flex justify-center">
+                  <DocxRenderer url={url} onDownload={handleDownload} />
                 </div>
+              </div>
+            )}
+
+            {isSheet && (
+              <div className="w-full h-full max-w-6xl rounded-2xl overflow-hidden bg-white dark:bg-[#0d1117] border border-slate-200 dark:border-white/10 shadow-2xl flex flex-col">
+                <div className="px-4 py-2.5 bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-white/10 text-xs font-mono text-slate-600 dark:text-slate-400 flex items-center justify-between">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block shrink-0" />
+                    <span className="font-semibold text-slate-800 dark:text-slate-200 truncate">{item.name}</span>
+                  </div>
+                  <span className="shrink-0">{t('preview.sheet.label')} • {formatBytes(item.sizeBytes)}</span>
+                </div>
+                <SheetPreview url={url} onDownload={handleDownload} />
               </div>
             )}
 
@@ -1055,6 +1091,21 @@ export default function FilePreviewModal({ item, onClose }) {
                     <div className="flex flex-col items-center justify-center gap-3 text-slate-400 py-20">
                       <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
                       <p className="text-sm font-medium">{t('preview.text.loading')}</p>
+                    </div>
+                  ) : textError ? (
+                    /* Lỗi đọc tệp là LỖI, không phải nội dung: hiện ra như một lỗi và
+                       kèm đường thoát. Trước đây câu này bị nhét vào `textContent` nên
+                       nó chạy qua Prism, được tô màu cú pháp, và bấm Sao chép thì chép
+                       đúng câu báo lỗi đó vào clipboard. */
+                    <div className="flex flex-col items-center justify-center gap-3 py-20 px-6 text-center">
+                      <AlertTriangle className="w-8 h-8 text-red-400" />
+                      <p className="text-sm text-red-500 dark:text-red-300 font-medium">{textError}</p>
+                      <button
+                        onClick={handleDownload}
+                        className="px-4 py-2 bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-xs font-semibold rounded-xl text-slate-700 dark:text-white transition-all cursor-pointer"
+                      >
+                        {t('preview.downloadToView')}
+                      </button>
                     </div>
                   ) : textContent ? (
                     isMd && mdViewMode === 'preview' ? (
@@ -1121,7 +1172,7 @@ export default function FilePreviewModal({ item, onClose }) {
               </div>
             )}
 
-            {!isImage && !isVideo && !isAudio && !isPdf && !isCodeOrText && !isDocx && (
+            {!isImage && !isVideo && !isAudio && !isPdf && !isCodeOrText && !isDocx && !isSheet && (
               <div className="p-8 bg-slate-900 border border-white/10 rounded-3xl shadow-2xl flex flex-col items-center gap-4 text-center max-w-sm">
                 <FileText className="w-16 h-16 text-blue-400" />
                 <h4 className="font-bold text-white text-sm">{item.name}</h4>

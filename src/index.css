@@ -641,3 +641,30 @@ html {
     animation: none;
   }
 }
+
+/* ── DOCX preview ─────────────────────────────────────────────────────────────
+ *
+ * `docx-preview` tự sinh toàn bộ CSS của tài liệu từ `styles.xml` — font, cỡ chữ,
+ * lề, giãn dòng, khổ giấy đều là của chính tệp. KHÔNG áp typography lên vùng này:
+ * mỗi rule thêm vào là một chỗ ghi đè lên định dạng thật, và đó đúng là thứ vừa
+ * được sửa khi bỏ mammoth.
+ *
+ * Chỉ chỉnh lại phần vỏ: wrapper mặc định của thư viện tô nền xám và chừa 30px
+ * padding cho một trình xem đứng một mình, còn ở đây nó nằm trong khung tối của
+ * cửa sổ xem trước nên nền xám đó cắt ngang bố cục.
+ */
+.docx-preview-host {
+  overflow-x: auto;
+}
+
+.docx-preview-host .docx-wrapper {
+  background: transparent;
+  padding: 0;
+  gap: 1.5rem;
+}
+
+.docx-preview-host .docx-wrapper > section.docx {
+  margin-bottom: 0;
+  border-radius: 0.5rem;
+  box-shadow: 0 12px 40px rgba(2, 6, 23, 0.35);
+}

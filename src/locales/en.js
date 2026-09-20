@@ -276,6 +276,7 @@ const en = {
   'list.group.folders': 'Folders ({count})',
   'list.group.files': 'Files ({count})',
   'list.zip.creating': 'Preparing the folder as a ZIP download...',
+  'file.download.failed': 'Could not download this file, please try again.',
   'list.share.copied': 'Share link copied',
   'list.share.copyFailed': 'Could not copy the share link',
   'list.pagination.showing': 'Showing {from} - {to} of {total} items',

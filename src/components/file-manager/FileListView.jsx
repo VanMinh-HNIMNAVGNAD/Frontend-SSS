@@ -16,6 +16,7 @@ import StarButton from '../common/StarButton';
 import FileThumbnail from './FileThumbnail';
 import { collectInputEntries } from '../../utils/uploadTree';
 import tRich from '../../utils/tRich';
+import { downloadSingleItem } from '../../utils/downloadItems';
 import {
     Folder,
     MoreVertical,
@@ -801,21 +802,7 @@ export default function FileListView() {
                 onCreateFolder={handleCreateFolderPrompt}
                 isBuildingTree={isBuildingTree}
                 onPreview={(item) => openPreview(item)}
-                onDownload={async (item) => {
-                    if (item.type === 'folder') {
-                        alert(t('list.zip.creating'));
-                        return;
-                    }
-                    const url = await getDownloadUrl(item.id);
-                    if (url) {
-                        const link = document.createElement('a');
-                        link.href = url;
-                        link.download = item.name;
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                    }
-                }}
+                onDownload={(item) => downloadSingleItem(item, getDownloadUrl, { t })}
                 onRename={(item) => setRenameItemTarget(item)}
                 onCut={(targetItem) => {
                     if (selectedIds.has(targetItem.id) && selectedIds.size > 1) {

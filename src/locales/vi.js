@@ -279,6 +279,7 @@ const vi = {
   'list.group.folders': 'Thư mục ({count})',
   'list.group.files': 'Tệp ({count})',
   'list.zip.creating': 'Đang tạo liên kết tải xuống thư mục dạng ZIP...',
+  'file.download.failed': 'Không tải được tệp này, vui lòng thử lại.',
   'list.share.copied': 'Đã sao chép liên kết chia sẻ',
   'list.share.copyFailed': 'Không thể sao chép liên kết chia sẻ',
   'list.pagination.showing': 'Hiển thị {from} - {to} trong {total} mục',

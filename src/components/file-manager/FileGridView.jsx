@@ -13,6 +13,7 @@ import RenameModal from './RenameModal';
 import ShareModal from './ShareModal';
 import { Folder, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
 import { collectInputEntries } from '../../utils/uploadTree';
+import { downloadSingleItem } from '../../utils/downloadItems';
 import tRich from '../../utils/tRich';
 
 export default function FileGridView() {
@@ -173,25 +174,12 @@ export default function FileGridView() {
         }
     }, [openFolder, openPreview]);
 
-    const handleDownloadItem = useCallback(async (item) => {
-        try {
-            if (item.type === 'folder') {
-                alert(t('list.zip.creating'));
-                return;
-            }
-            const url = await getDownloadUrl(item.id);
-            if (url) {
-                const link = document.createElement('a');
-                link.href = url;
-                link.download = item.name;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            }
-        } catch (error) {
-            console.error('Lỗi khi tải xuống:', error);
-        }
-    }, [getDownloadUrl, t]);
+    // Thư mục -> backend nén ZIP; tệp -> presigned URL. Trước đây nhánh thư mục
+    // chỉ alert('Đang tạo liên kết...') rồi return, không tải gì cả.
+    const handleDownloadItem = useCallback(
+        (item) => downloadSingleItem(item, getDownloadUrl, { t }),
+        [getDownloadUrl, t],
+    );
 
     const handleQuickCopyLink = useCallback(async (item) => {
         // Toast chờ là bắt buộc ở đây, không chỉ để cho đẹp: "sao chép liên kết" tạo một

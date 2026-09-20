@@ -16,6 +16,7 @@ import ContextMenu from '../components/file-manager/ContextMenu';
 import RenameModal from '../components/file-manager/RenameModal';
 import ShareModal from '../components/file-manager/ShareModal';
 import { getFileIcon } from '../utils/getFileIcon';
+import { downloadSingleItem } from '../utils/downloadItems';
 import {
     HardDrive,
     Clock,
@@ -239,25 +240,12 @@ export default function HomePage() {
         setContextMenu({ isOpen: false, x: 0, y: 0, item: null });
     }, []);
 
-    const handleDownloadItem = useCallback(async (item) => {
-        try {
-            if (item.type === 'folder') {
-                alert(t('list.zip.creating'));
-                return;
-            }
-            const url = await getDownloadUrl(item.id);
-            if (url) {
-                const link = document.createElement('a');
-                link.href = url;
-                link.download = item.name;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            }
-        } catch (error) {
-            console.error('Lỗi khi tải xuống:', error);
-        }
-    }, [getDownloadUrl, t]);
+    // Thư mục -> backend nén ZIP; tệp -> presigned URL. Trước đây nhánh thư mục
+    // chỉ alert rồi return, không tải gì cả.
+    const handleDownloadItem = useCallback(
+        (item) => downloadSingleItem(item, getDownloadUrl, { t }),
+        [getDownloadUrl, t],
+    );
 
     /**
      * "Không phải mục đề xuất hữu ích" — ẩn mục khỏi Trang chủ.

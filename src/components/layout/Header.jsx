@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { useFiles, useFileSelection, useClipboard } from '../../context/FileContext';
-import { filesApi } from '../../services/api';
+import { downloadItemsAsZip, triggerDownload } from '../../utils/downloadItems';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useNavigate } from 'react-router-dom';
@@ -251,26 +251,12 @@ export default function Header({ toggleRightSidebar }) {
         const folderItems = items.filter((i) => i.type === 'folder');
 
         // Có thư mục trong lựa chọn -> gói tất cả (file + toàn bộ cây thư mục con)
-        // thành 1 file ZIP duy nhất do backend nén
-        if (folderItems.length > 0) {
-            // Nén ở backend có thể mất vài giây: giữ một toast "đang tạo" rồi
-            // thay chính nó bằng kết quả (cùng `id`) để không sinh toast thứ hai.
-            const toastId = toast.loading(t('header.zip.creating'));
-            try {
-                const zipBlob = await filesApi.downloadZip(items.map((i) => i.id));
-                const blobUrl = URL.createObjectURL(zipBlob);
-                const link = document.createElement('a');
-                link.href = blobUrl;
-                link.download = `cloudSSS_download_${Date.now()}.zip`;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                URL.revokeObjectURL(blobUrl);
-                toast.success(t('header.success.zip'), { id: toastId });
-            } catch (error) {
-                console.error('[Header] ZIP download failed:', error);
-                toast.error(t('header.error.zip'), { id: toastId });
-            }
+        // thành 1 file ZIP duy nhất do backend nén.
+        // Nhiều TỆP cũng đi đường này: N lượt click <a> liên tiếp bị Chrome chặn ở
+        // lượt thứ hai ("Trang này đang cố tải nhiều tệp"), và với mỗi tệp là một
+        // lượt ký presigned URL — một tệp ZIP là một lượt tải, luôn xong.
+        if (folderItems.length > 0 || fileItems.length > 1) {
+            await downloadItemsAsZip(items, { t });
             return;
         }
 
@@ -282,12 +268,7 @@ export default function Header({ toggleRightSidebar }) {
                     errors.push({ name: item.name, reason: t('header.error.noDownloadUrl') });
                     continue;
                 }
-                const link = document.createElement('a');
-                link.href = url;
-                link.download = item.name;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
+                triggerDownload(url, item.name);
                 await new Promise((r) => setTimeout(r, 300));
             } catch (err) {
                 errors.push({ name: item.name, reason: err?.message || t('common.unknownError') });

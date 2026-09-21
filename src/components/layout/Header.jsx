@@ -44,10 +44,10 @@ export default function Header({ toggleRightSidebar }) {
         folders,
         files,
         activeTab,
-        moveToTrash,
+        moveToTrashBulk,
         restoreFromTrash,
         markNotSpam,
-        deletePermanently,
+        deletePermanentlyBulk,
         moveItem,
         copyItem,
         getDownloadUrl,
@@ -138,14 +138,51 @@ export default function Header({ toggleRightSidebar }) {
         return items.length - errors.length;
     };
 
+    /**
+     * Như `runBatch`, nhưng cho các thao tác đã có endpoint LÔ ở server: một request cho
+     * cả tập chọn, thay vì N request nối tiếp.
+     *
+     * Vì sao đáng tách ra: `runBatch` chờ xong mục này mới gửi mục kế. Mỗi lượt là 4 câu
+     * truy vấn đi từ dyno (region `us`) sang Postgres (ap-southeast-1), nên xoá 10 tệp
+     * tốn khoảng 9 giây và người dùng nhìn thấy đúng cảnh chúng rụng xuống từng cái một.
+     *
+     * Server ở đây KHÔNG ném lỗi khi một vài id hỏng — nó trả `failed: [{ id, reason }]`.
+     * Ghép lại thành tên để `showBatchResult` nói được "tệp nào", vì id thì người dùng
+     * không đọc được.
+     */
+    const runBulk = async (items, call, successKey, errorKey, partialKey) => {
+        const res = await call(items.map((item) => item.id));
+        deselectAll();
+
+        // Cả request hỏng (mất mạng, 401, 500): không có `failed` từng mục, nên quy mọi
+        // mục về cùng một lý do — đó đúng là điều đã xảy ra với chúng.
+        if (!res.ok) {
+            const reason = res.error?.message || t('common.unknownError');
+            showBatchResult(
+                items.length,
+                items.map((item) => ({ name: item.name, reason })),
+                successKey, errorKey, partialKey,
+            );
+            return 0;
+        }
+
+        const nameById = new Map(items.map((item) => [item.id, item.name]));
+        const errors = (res.failed || []).map((f) => ({
+            name: nameById.get(f.id) || f.id,
+            reason: f.reason || t('common.unknownError'),
+        }));
+        showBatchResult(items.length, errors, successKey, errorKey, partialKey);
+        return items.length - errors.length;
+    };
+
     const handleDeleteSelected = async () => {
         const items = getSelectedItems(folders, files);
         if (!items.length) return;
         if (!confirm(t('header.confirm.trash', { count: items.length }))) return;
 
-        const succeeded = await runBatch(
+        const succeeded = await runBulk(
             items,
-            (item) => moveToTrash(item.id, { silent: true }),
+            moveToTrashBulk,
             'header.success.delete',
             'header.error.delete',
             'header.error.deletePartial',
@@ -196,9 +233,9 @@ export default function Header({ toggleRightSidebar }) {
         if (!items.length) return;
         if (!confirm(t('header.confirm.deleteForever', { count: items.length }))) return;
 
-        const succeeded = await runBatch(
+        const succeeded = await runBulk(
             items,
-            (item) => deletePermanently(item.id, { silent: true }),
+            deletePermanentlyBulk,
             'header.success.deleteForever',
             'header.error.deleteForever',
             'header.error.deleteForeverPartial',

@@ -29,21 +29,32 @@ import { createBatchLoader } from './batchLoader';
  */
 
 /**
- * Pipeline R2 có đang bật không.
+ * Pipeline R2 có đang bật không. BA trạng thái, không phải hai.
  *
- * Không hỏi backend: cứ thấy MỘT hàng nào trong response danh sách có `thumbUrls`
- * là biết tính năng đã cấu hình. Cần cờ ở phạm vi module vì tệp VỪA UPLOAD không
- * đi qua đường danh sách — nó đến từ response `confirm-upload` (một entity thô,
- * không có `thumbUrls`). Không có cờ này thì thumbnail của tệp vừa tải lên không
- * bao giờ được đẩy lên R2 cho tới khi ai đó tải lại thư mục.
+ * Bản cũ là một cờ boolean mặc định `false`, chỉ bật khi `useFileThumbnail` DỰNG
+ * một thumbnail và thấy hàng đó có `thumbUrls`. Đó là một cái bẫy im lặng: lượt
+ * dựng ấy chỉ chạy khi cả hai tầng đệm đều trượt. Mở app, vào một thư mục mà mọi
+ * thumbnail đã nằm sẵn trong IndexedDB (hoặc một thư mục trống), rồi tải lên một
+ * video 200MB ⇒ cờ vẫn `false` ⇒ lượt đẩy lên R2 bị bỏ qua KHÔNG một dấu vết. Và
+ * với tệp lớn thì đó là cơ hội DUY NHẤT: đường hiển thị không tải nguyên tệp về để
+ * dựng lại. Kết quả đúng như đã thấy — cùng một cỡ tệp, máy này có thumbnail, máy
+ * kia không, tuỳ vào việc phiên đó tình cờ có một lượt dựng nào trượt đệm hay không.
  *
- * Mặc định `false` để không bắn request vào một endpoint đang tắt (nó trả 400).
+ * Nay mặc định là `unknown`: cứ thử MỘT lô. Backend trả 400 khi tính năng chưa cấu
+ * hình, và chỉ đúng câu trả lời đó mới chuyển sang `off` — nghĩa là chỗ này tự biết
+ * sự thật thay vì đoán, và đoán sai thì im lặng mất dữ liệu.
  */
-let pipelineEnabled = false;
+const UNKNOWN = 'unknown';
+const ON = 'on';
+const OFF = 'off';
+let pipelineState = UNKNOWN;
 
-/** Gọi khi thấy một hàng có `thumbUrls` — xem `pipelineEnabled`. */
+/**
+ * Gọi khi thấy một hàng có `thumbUrls`. Nay chỉ là ĐƯỜNG TẮT (biết trước để khỏi
+ * tốn lô thăm dò), không còn là điều kiện cần — xem `pipelineState`.
+ */
 export function noteThumbnailPipelineEnabled() {
-  pipelineEnabled = true;
+  pipelineState = ON;
 }
 
 /** Đúng ba giá trị mà backend đã ký. Đổi ở đây phải đổi cả `thumbnail-url.ts`. */
@@ -63,7 +74,22 @@ const uploadUrlBatch = createBatchLoader({
   maxBatchSize: 50,
   fetchMany: async (keys) => {
     const items = keys.map((key) => JSON.parse(key));
-    const res = await storageApi.getThumbnailUploadUrls(items);
+
+    let res;
+    try {
+      res = await storageApi.getThumbnailUploadUrls(items);
+    } catch (err) {
+      // 400 = backend nói thẳng "tính năng chưa cấu hình" (xem
+      // `StorageService.getThumbnailUploadUrls`). Chỉ câu trả lời đó mới được phép
+      // tắt hẳn; 401/5xx/mất mạng là sự cố nhất thời, tắt theo là biến một phút
+      // chập mạng thành cả phiên không đẩy được thumbnail nào.
+      if (err?.response?.status === 400) pipelineState = OFF;
+      // Không ném ra: `uploadOne` vốn nuốt mọi lỗi, và ném ở đây chỉ tạo ra một
+      // promise bị từ chối mà không ai bắt.
+      return new Map();
+    }
+
+    pipelineState = ON;
 
     // Ghép URL trả về với đúng khoá đã gửi. Backend không trả `sizeBytes` nên phải
     // dò lại từ danh sách gốc theo cặp (fileId, variant).
@@ -113,7 +139,7 @@ async function uploadOne(fileId, variant, blob) {
  * @param {Record<string, Blob>} blobs  ví dụ `{ t160: Blob, t384: Blob }`
  */
 export function uploadThumbnails(fileId, blobs) {
-  if (!fileId || !blobs || !pipelineEnabled) return;
+  if (!fileId || !blobs || pipelineState === OFF) return;
   for (const [variant, blob] of Object.entries(blobs)) {
     if (blob) void uploadOne(fileId, variant, blob);
   }

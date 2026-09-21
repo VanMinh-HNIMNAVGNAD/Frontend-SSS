@@ -47,6 +47,37 @@ const loadMammoth = () => (mammothPromise ??= import('mammoth').then((m) => m.de
 // Giới hạn dung lượng để tải thumbnail: 10MB
 export const MAX_THUMBNAIL_SIZE = 10 * 1024 * 1024;
 
+/**
+ * Những loại KHÔNG bị `MAX_THUMBNAIL_SIZE` chặn, vì chúng không hề tải nguyên tệp.
+ *
+ * Cái trần 10MB có một lý do rất cụ thể: nhánh ảnh dựng thumbnail bằng
+ * `fetch(previewUrl).blob()` — tức là kéo TRỌN tệp về RAM chỉ để vẽ một ô 384px.
+ * Với một tấm ảnh 15MB thì đó là một cái giá vô lý, nên chặn là đúng.
+ *
+ * Video và PDF KHÔNG làm như vậy:
+ *   • video — `<video preload="metadata">` rồi tua tới giây thứ 1. Trình duyệt đọc
+ *     bằng HTTP Range: phần header + đúng đoạn quanh khung hình cần, thường vài
+ *     trăm KB, và nó dừng ngay khi `seeked` bắn. Một video 200MB không vì thế mà
+ *     tốn 200MB.
+ *   • PDF — pdf.js cũng đọc theo Range (`disableAutoFetch`, xem `thumbnailBuilder`).
+ *
+ * Áp chung một cái trần theo BYTE CỦA TỆP GỐC cho cả ba là đo nhầm thứ, và hậu quả
+ * thì đúng bằng triệu chứng đã gặp: mọi video trên 10MB vĩnh viễn không có thumbnail
+ * trừ khi nó tình cờ được dựng sẵn lúc upload (`utils/thumbnailPrimer.js`) VÀ lượt
+ * đẩy lên R2 lúc ấy thành công. Cùng một video 150MB, máy có máy không.
+ */
+const RANGE_READ_CATEGORIES = new Set(['video', 'pdf']);
+
+/**
+ * Tệp này có phải "quá lớn để tải nguồn gốc về" không?
+ *
+ * Trả `true` ⇒ chỉ được lấy thumbnail đã có sẵn trên CDN (`cdnOnly`).
+ */
+function needsFullDownload(file, cat) {
+    if (RANGE_READ_CATEGORIES.has(cat)) return false;
+    return Boolean(file?.size && file.size > MAX_THUMBNAIL_SIZE);
+}
+
 export function getFileTypeCategory(name = '') {
     const n = name.toLowerCase();
     if (n.endsWith('.pdf')) return 'pdf';
@@ -130,6 +161,40 @@ function writeCache(key, fingerprint, value, ttl = CACHE_TTL) {
     while (cache.size > L1_MAX_ENTRIES) {
         cache.delete(cache.keys().next().value);
     }
+}
+
+/**
+ * Ai đang chờ nghe một ô đệm thay đổi.
+ *
+ * Cần vì L1 không chỉ được ghi bởi chính hook nữa: `utils/thumbnailPrimer.js` dựng
+ * thumbnail của tệp VỪA UPLOAD ở ngoài vòng đời React. Không có kênh báo này thì
+ * thumbnail nằm sẵn trong đệm mà cái thẻ ngay trên màn hình vẫn hiện icon cho tới
+ * lần render sau — và với tệp lớn thì "lần render sau" có thể là lần F5 tiếp theo.
+ */
+const listeners = new Map();
+
+function subscribeThumbnail(key, fn) {
+    let set = listeners.get(key);
+    if (!set) listeners.set(key, (set = new Set()));
+    set.add(fn);
+    return () => {
+        set.delete(fn);
+        if (set.size === 0) listeners.delete(key);
+    };
+}
+
+/**
+ * Ghi một thành phẩm vào L1 TỪ BÊN NGOÀI hook, rồi báo cho mọi thẻ đang hiển thị.
+ *
+ * @param {string} key          Khoá đệm, đúng dạng `thumbCacheKey` sinh ra:
+ *                              `${fileId}:${variant}`.
+ * @param {string} fingerprint  Dấu vân tay nội dung (`thumbnailFingerprint`).
+ * @param {object} value        Thành phẩm, dạng `{ thumbType, thumbUrl, ... }`.
+ */
+export function publishThumbnail(key, fingerprint, value) {
+    if (!key || !value) return;
+    writeCache(key, fingerprint, value);
+    for (const fn of listeners.get(key) ?? []) fn();
 }
 
 /**
@@ -348,7 +413,19 @@ async function loadThumbnail(file, cat, mini, { cdnOnly = false } = {}) {
             // Codec trình duyệt không giải được, CORS chưa mở, hoặc quá hạn chờ.
         }
 
-        // ── Tầng 3 ──
+        // ── Tầng 3 ── chỉ cho video NHỎ.
+        //
+        // Tầng 3 giao URL có chữ ký cho `FileThumbnail`/`FileCard` dựng một thẻ
+        // `<video>` THẬT cho mỗi ô. Chromium chỉ cho 6 kết nối trên một tên miền,
+        // nên một thư mục nhiều video lớn mà rơi hết xuống đây là chiếm sạch hạn
+        // mức ấy, và cửa sổ xem trước phải xếp hàng phía sau (xem `.ai/error.md`,
+        // mục "NGHI PHẠM PHỤ" ngày 04/09/2026).
+        //
+        // Với tệp lớn thì cái giá đó không đổi lại được gì: tới được đây nghĩa là
+        // tầng 2 vừa thất bại khi đọc chính tệp đó, nên thẻ `<video>` cũng sẽ thất
+        // bại y hệt — chỉ khác là thất bại 50 lần song song. Icon là câu trả lời
+        // đúng. Video nhỏ giữ nguyên đường lùi cũ.
+        if (file.size && file.size > MAX_THUMBNAIL_SIZE) return null;
         return { thumbType: cat, thumbUrl: res.previewUrl };
     }
 
@@ -467,6 +544,18 @@ export function useFileThumbnail(file, { variant = 'full', enabled = true } = {}
     const cached = readCache(cacheKey, fingerprint);
     const resolved = isLoadedCurrent ? loaded.value : cached || EMPTY;
 
+    // Nghe ô đệm của CHÍNH tệp này bị ghi từ bên ngoài (primer lúc upload xong).
+    // Effect riêng, và KHÔNG có điều kiện thoát sớm nào: effect dựng ở dưới thoát
+    // sớm ở ba chỗ (đã có trong L1 / ngoài khung nhìn / quá lớn), nên gắn kèm vào
+    // đó là đúng những thẻ cần nghe nhất lại không nghe.
+    useEffect(() => {
+        if (!cacheKey) return;
+        return subscribeThumbnail(cacheKey, () => {
+            const fresh = readCache(cacheKey, fingerprint);
+            if (fresh) setLoaded({ key: cacheKey, fingerprint, value: fresh });
+        });
+    }, [cacheKey, fingerprint]);
+
     useEffect(() => {
         if (!cacheKey) return;
 
@@ -482,7 +571,10 @@ export function useFileThumbnail(file, { variant = 'full', enabled = true } = {}
         // từ bản trong máy — xem `utils/thumbnailPrimer.js`) thì vẫn lấy: 20KB từ
         // biên không dính dáng gì tới lý do dựng cái trần. Không có `thumbUrls` thì
         // thôi hẳn, không gọi API, không hiện loading.
-        const tooLarge = Boolean(file.size && file.size > MAX_THUMBNAIL_SIZE);
+        //
+        // Video và PDF KHÔNG bao giờ rơi vào nhánh này, kể cả tệp 2GB: chúng đọc
+        // theo HTTP Range chứ không tải nguyên tệp — xem `RANGE_READ_CATEGORIES`.
+        const tooLarge = needsFullDownload(file, cat);
         if (tooLarge && !file.thumbUrls) return;
 
         let isMounted = true;

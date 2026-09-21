@@ -40,7 +40,7 @@ export default function MainLayout() {
         createFolder,
         enqueueUpload,
         toggleStar,
-        moveToTrash,
+        moveToTrashBulk,
         refreshStorageInfo,
     } = useFiles();
 
@@ -155,18 +155,24 @@ export default function MainLayout() {
             : t('shortcutToast.selectionCount', { count: selected.length });
         if (!window.confirm(t('shortcutToast.confirmTrash', { label }))) return;
 
-        // `silent` như ở handleToggleStar: gộp N kết quả thành một câu thay vì để
-        // moveToTrash bắn một toast cho từng mục. Trước đây forEach không await
-        // nên lỗi còn về sau cả confirm tiếp theo.
-        const results = await Promise.all(
-            selected.map((item) => moveToTrash(item.id, { silent: true })),
-        );
+        // MỘT request cho cả tập, không phải N request song song. `Promise.all` trước
+        // đây đã bỏ được phần chờ nối tiếp, nhưng vẫn bắt server chạy 4 câu truy vấn cho
+        // mỗi mục và mở N kết nối cùng lúc từ một dyno 512MB. Endpoint lô làm đúng việc
+        // đó bằng số câu truy vấn không đổi theo số mục.
+        //
+        // Server trả `failed: [{ id, reason }]` thay vì ném lỗi, nên một tệp hỏng không
+        // kéo theo phần còn lại; ghép id → tên để câu thông báo còn đọc được.
+        const res = await moveToTrashBulk(selected.map((item) => item.id));
         const failed = [];
-        results.forEach((res, idx) => {
-            if (!res?.ok) {
-                failed.push({ name: selected[idx].name, reason: res?.error?.message || t('common.unknownError') });
-            }
-        });
+        if (!res.ok) {
+            const reason = res.error?.message || t('common.unknownError');
+            selected.forEach((item) => failed.push({ name: item.name, reason }));
+        } else {
+            const nameById = new Map(selected.map((item) => [item.id, item.name]));
+            (res.failed || []).forEach((f) => {
+                failed.push({ name: nameById.get(f.id) || f.id, reason: f.reason || t('common.unknownError') });
+            });
+        }
 
         if (failed.length === 0) {
             toast.success(
@@ -193,7 +199,7 @@ export default function MainLayout() {
 
         // Một lượt làm mới dung lượng cho cả lô, thay vì một lượt mỗi mục
         if (failed.length < selected.length) refreshStorageInfo();
-    }, [activeTab, getSelection, moveToTrash, refreshStorageInfo, t]);
+    }, [activeTab, getSelection, moveToTrashBulk, refreshStorageInfo, t]);
 
     // ── Đăng ký phím tắt toàn cục ───────────────────────────────────────────
     // Tạm tắt khi đang mở modal chặn thao tác để phím không "xuyên" qua lớp phủ

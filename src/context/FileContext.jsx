@@ -1654,6 +1654,28 @@ export function FileProvider({ children }) {
     }
   }, [fetchAnalytics, t]);
 
+  /**
+   * Bản LÔ của `moveToTrash` — một request cho cả tập đang chọn.
+   *
+   * Hợp đồng khác hai hàm đơn ở trên vì việc nó làm khác: nó KHÔNG có `silent`, vì nó đã
+   * là cái "một lượt" mà `silent` sinh ra để phục vụ. Trả `{ ok, succeeded, failed }`,
+   * trong đó `failed` là mảng `{ id, reason }` do server trả về — phía gọi tự ghép id
+   * thành tên để hiện thông báo.
+   *
+   * Danh sách chỉ loại đúng những id server báo THÀNH CÔNG. Loại cả tập rồi mới biết ba
+   * mục lỗi là tự tạo ra một khoảng giao diện nói dối cho tới lượt tải lại kế tiếp.
+   */
+  const moveToTrashBulk = useCallback(async (ids) => {
+    try {
+      const res = await filesApi.moveToTrashBulk(ids);
+      const succeeded = new Set(res?.succeeded ?? []);
+      setItems((prev) => prev.filter((item) => !succeeded.has(item.id)));
+      return { ok: true, succeeded: res?.succeeded ?? [], failed: res?.failed ?? [] };
+    } catch (err) {
+      return { ok: false, error: err, succeeded: [], failed: [] };
+    }
+  }, []);
+
   const restoreFromTrash = useCallback(async (id, { silent = false } = {}) => {
     try {
       await filesApi.restoreFromTrash(id);
@@ -1696,6 +1718,18 @@ export function FileProvider({ children }) {
       return { ok: false, error: err };
     }
   }, [fetchAnalytics, t]);
+
+  /** Bản LÔ của `deletePermanently`. Xem `moveToTrashBulk` về hợp đồng trả về. */
+  const deletePermanentlyBulk = useCallback(async (ids) => {
+    try {
+      const res = await filesApi.deletePermanentlyBulk(ids);
+      const succeeded = new Set(res?.succeeded ?? []);
+      setItems((prev) => prev.filter((item) => !succeeded.has(item.id)));
+      return { ok: true, succeeded: res?.succeeded ?? [], failed: res?.failed ?? [] };
+    } catch (err) {
+      return { ok: false, error: err, succeeded: [], failed: [] };
+    }
+  }, []);
 
   const emptyTrash = useCallback(async (id) => {
     try {
@@ -2864,9 +2898,11 @@ export function FileProvider({ children }) {
     toggleStar,
     updateColor,
     moveToTrash,
+    moveToTrashBulk,
     restoreFromTrash,
     markNotSpam,
     deletePermanently,
+    deletePermanentlyBulk,
     emptyTrash,
     createFolder,
     createFolderSilent,
@@ -2912,7 +2948,8 @@ export function FileProvider({ children }) {
     // ── Lưu trữ ──
     storageInfo, fetchAnalytics,
     // ── Hành động trên file/folder ──
-    fetchFiles, toggleStar, moveToTrash, restoreFromTrash, markNotSpam, deletePermanently,
+    fetchFiles, toggleStar, moveToTrash, moveToTrashBulk, restoreFromTrash, markNotSpam,
+    deletePermanently, deletePermanentlyBulk,
     emptyTrash, createFolder, createFolderSilent, moveItem, copyItem, renameItem,
     getDownloadUrl, getPreviewUrl, getFileTextContent, createShareLink,
     // ── Upload ──

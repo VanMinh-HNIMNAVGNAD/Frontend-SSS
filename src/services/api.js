@@ -684,6 +684,17 @@ export const filesApi = {
   /** Cập nhật màu tùy chỉnh. Truyền color=null để reset về mặc định. */
   updateColor: (id, color) => afterFileMutation(id, api.patch(`/files/${id}/color`, { color })),
   moveToTrash: (id) => afterFileMutation(id, api.patch(`/files/${id}/trash`)),
+  /**
+   * Chuyển NHIỀU mục vào thùng rác bằng MỘT request.
+   *
+   * Không phải chuyện làm đẹp: gọi bản đơn N lần nối tiếp là N × 4 câu truy vấn, mỗi câu
+   * đi từ dyno ở Mỹ sang Postgres ở Singapore. Chọn 10 tệp rồi xoá từng mất khoảng 9 giây
+   * vì đúng lý do đó.
+   *
+   * Trả `{ succeeded, failed }` — server KHÔNG ném lỗi khi một vài id hỏng, vì một tệp đã
+   * bị người khác xoá mất không được phép kéo theo chín tệp còn lại.
+   */
+  moveToTrashBulk: (ids) => afterFileMutation(null, api.patch('/files/trash/bulk', { ids })),
   restoreFromTrash: (id) => afterFileMutation(id, api.patch(`/files/${id}/restore`)),
   // Gỡ cờ "Nội dung rác". KHÁC `restoreFromTrash`: tệp spam có `is_trash = false`
   // sẵn rồi, nên gọi /restore cho nó là một câu UPDATE không đổi gì — đó chính là
@@ -692,6 +703,11 @@ export const filesApi = {
   // Xoá sạch thùng rác đụng tới nhiều tệp cùng lúc, không có một id nào để chỉ ra.
   emptyTrash: () => afterFileMutation(null, api.delete('/files/trash/empty')),
   deletePermanently: (id) => afterFileMutation(id, api.delete(`/files/${id}/permanent`)),
+  // Cùng lý do với `moveToTrashBulk`, cộng thêm phần xoá object trên cloud cũng được gom
+  // lô ở phía server. `api.delete` truyền body qua `{ data }` — đây là cách axios nhận
+  // body cho DELETE.
+  deletePermanentlyBulk: (ids) =>
+    afterFileMutation(null, api.delete('/files/permanent/bulk', { data: { ids } })),
   getStorageAnalytics: () => api.get('/files/analytics'),
   // Qua bộ đệm 60 giây: `QuickCleanupModal` gọi lại nguyên bảng mỗi lần mở.
   getLargestFiles: (limit = 3) =>

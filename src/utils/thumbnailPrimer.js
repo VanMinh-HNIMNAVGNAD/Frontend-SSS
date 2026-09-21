@@ -1,4 +1,4 @@
-import { getFileTypeCategory } from '../hooks/useFileThumbnail';
+import { getFileTypeCategory, publishThumbnail } from '../hooks/useFileThumbnail';
 import {
   VARIANT_FOR,
   buildVariantsFromImageBlob,
@@ -96,21 +96,23 @@ async function prime({ entity, file, cat }) {
   for (const variant of Object.values(VARIANT_FOR)) {
     const dataUrl = built.dataUrls[variant];
     if (!dataUrl) continue;
-    await writeThumbnail(`${entity.id}:${variant}`, fingerprint, {
-      thumbType: 'image',
-      thumbUrl: dataUrl,
-      textContent: null,
-      sheetData: null,
-    });
+    const key = `${entity.id}:${variant}`;
+    const value = { thumbType: 'image', thumbUrl: dataUrl, textContent: null, sheetData: null };
+
+    await writeThumbnail(key, fingerprint, value);
+
+    // Và báo cho cái thẻ đang hiển thị ngay lúc này. Thiếu bước này thì thumbnail
+    // đã nằm trong đệm mà thẻ vừa xuất hiện vẫn là icon: hook đã đọc đệm xong từ
+    // trước khi lượt dựng này kết thúc, và không có gì gọi nó dậy để đọc lại.
+    publishThumbnail(key, fingerprint, value);
   }
 
   // Rồi R2, cho mọi thiết bị khác và mọi thành viên khác. Không chờ.
   //
-  // Lưu ý một ca có thật: `uploadThumbnails` chỉ bắn khi đã thấy pipeline bật
-  // (`noteThumbnailPipelineEnabled`), mà cờ ấy bật khi danh sách trả về một hàng có
-  // `thumbUrls`. Tải tệp đầu tiên vào một thư mục HOÀN TOÀN trống ngay sau khi mở
-  // app thì cờ chưa bật, nên lượt đẩy này im lặng bỏ qua — thumbnail vẫn có ở L2,
-  // và lần đầu ai đó mở lưới thì đường cũ sẽ đẩy nó lên.
+  // Trước đây lượt đẩy này bị bỏ qua trong im lặng khi phiên chưa kịp "thấy"
+  // pipeline bật — và với tệp lớn thì đây là cơ hội duy nhất, nên nó thành những
+  // video không bao giờ có thumbnail. `uploadThumbnails` nay tự thăm dò backend
+  // thay vì đoán; xem `utils/thumbnailUploader.js`.
   uploadThumbnails(entity.id, built.blobs);
 }
 

@@ -1,32 +1,4 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// Cloudflare Turnstile — cấu hình phía frontend
-// ─────────────────────────────────────────────────────────────────────────────
-// VAI TRÒ CỦA FRONTEND Ở ĐÂY LÀ *LẤY TOKEN*, KHÔNG PHẢI *XÁC MINH*.
-//
-// Luồng đúng (backend/docs/sercurity.md, mục 5 và mục 10.1):
-//
-//   Widget Turnstile  ──token──▶  form  ──body.captchaToken──▶  backend
-//                                                                  │
-//                                          verify với Cloudflare ◀──┘
-//
-// Có token trong tay KHÔNG có nghĩa là người dùng đã hợp lệ: token chỉ thành
-// bằng chứng sau khi backend gọi siteverify bằng TURNSTILE_SECRET_KEY. Vì vậy
-// mọi cờ `isVerified` ở frontend (xem hooks/useTurnstile.js) chỉ dùng để BẬT/TẮT
-// nút bấm cho đỡ gửi request chắc chắn hỏng — không bao giờ được coi là lớp bảo
-// vệ. Bot bỏ qua UI và gọi thẳng API là chuyện bình thường.
-//
-// Token dùng MỘT LẦN và hết hạn sau ~5 phút. Gửi lại đúng token cho request thứ
-// hai sẽ bị Cloudflare trả `timeout-or-duplicate` → luôn reset widget sau khi
-// submit (useTurnstile trả sẵn hàm reset()).
-//
-// KHOÁ: `VITE_TURNSTILE_SITE_KEY` là khoá CÔNG KHAI, nằm trong bundle là đúng
-// thiết kế. Khoá bí mật `TURNSTILE_SECRET_KEY` chỉ được đọc ở backend — TUYỆT
-// ĐỐI không thêm tiền tố VITE_ cho nó, vì mọi biến VITE_* đều được nhúng thẳng
-// vào file JS mà trình duyệt tải về.
-//
-// Biến môi trường đọc từ `frontend/.env`. (Trước đây là `.env` ở gốc repo qua
-// `envDir: '..'`; môi trường đã được tách nên bí mật của backend không còn nằm
-// trong tầm nhìn của Vite.)
+
 
 /** Khoá công khai của widget. Chuỗi rỗng = chưa cấu hình. */
 export const TURNSTILE_SITE_KEY = (import.meta.env.VITE_TURNSTILE_SITE_KEY || '').trim();

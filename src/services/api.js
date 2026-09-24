@@ -849,6 +849,30 @@ async function retryWhenOffline(call, { attempts = 3, baseDelayMs = 400 } = {}) 
   }
 }
 
+/** Trần một lô upload. Khớp `UPLOAD_BATCH_MAX_ITEMS` ở backend — lệch lên là ăn 400. */
+export const UPLOAD_BATCH_SIZE = 50;
+
+/**
+ * Backend có `upload-urls` / `confirm-uploads` chưa. Cờ RIÊNG, không dùng chung
+ * `batchSupported` của `preview-urls`: hai cặp endpoint ra đời ở hai lần deploy khác
+ * nhau, backend có cái này chưa chắc đã có cái kia.
+ */
+let uploadBatchSupported = true;
+
+async function callUploadBatch(path, items) {
+  if (!uploadBatchSupported) return null;
+  try {
+    return await retryWhenOffline(() => api.post(path, { items }));
+  } catch (err) {
+    // `err.status` PHẲNG — xem chú thích cùng chỗ trong `previewUrlBatch`.
+    const status = err?.status ?? err?.response?.status;
+    if (status !== 404 && status !== 405) throw err;
+    uploadBatchSupported = false;
+    console.warn(`[api] Backend chưa có POST ${path} — quay về đường upload lẻ cho cả phiên.`);
+    return null;
+  }
+}
+
 // Multi-Cloud Storage APIs
 export const storageApi = {
   /**
@@ -864,6 +888,29 @@ export const storageApi = {
    */
   getUploadUrl: (data) => retryWhenOffline(() => api.post('/files/upload-url', data)),
   confirmUpload: (data) => afterUpload(api.post('/files/confirm-upload', data)),
+
+  /**
+   * Bản LÔ của `getUploadUrl` / `confirmUpload` — tới `UPLOAD_BATCH_SIZE` tệp một
+   * request. Trả `{ items: [{ index, ok, ... }] }` cùng thứ tự với đầu vào; `ok: false`
+   * kèm `{ status, message }` là lỗi của riêng tệp đó.
+   *
+   * Trả `null` (không throw) khi backend CHƯA có đường lô (404/405): frontend deploy
+   * trên Vercel trước, backend trên Heroku sau — ở giữa hai lần deploy, người gọi phải
+   * quay về đường lẻ. Gặp một lần là hạ cờ cho cả phiên, khỏi bắn thêm request 404.
+   *
+   * Thử lại khi mất mạng là AN TOÀN cho cả hai: `upload-urls` chỉ ký URL, còn
+   * `confirm-uploads` nhận ra `storage_key` đã có hàng và trả lại đúng hàng đó thay
+   * vì ghi thêm (xem `StorageService.confirmUploadsBatch`).
+   */
+  getUploadUrlsBatch: (items) => callUploadBatch('/files/upload-urls', items),
+  confirmUploadsBatch: async (items) => {
+    const res = await callUploadBatch('/files/confirm-uploads', items);
+    // Như `afterUpload`, cho từng tệp vừa được ghi.
+    (res?.items || []).forEach((item) => {
+      if (item?.ok && item.file?.id) invalidateAfterFileMutation(item.file.id);
+    });
+    return res;
+  },
   getDownloadUrl: (id) => api.get(`/files/${id}/download-url`),
   /**
    * URL xem trước có chữ ký, qua bộ đệm.

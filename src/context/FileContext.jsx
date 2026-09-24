@@ -7,6 +7,7 @@ import {
   sharingApi,
   chunkedApi,
   isBackendUnreachable,
+  UPLOAD_BATCH_SIZE,
 } from '../services/api';
 import { useAuth } from './AuthContext';
 import { useLanguage } from './LanguageContext';
@@ -18,8 +19,47 @@ import { CHUNK_THRESHOLD, isResumableSize } from '../constants/upload';
 import { localeTagOf } from '../utils/locale';
 import { readNamespace, writeManyCached, clearPersistentCache } from '../utils/persistentCache';
 import { primeThumbnailsForUpload } from '../utils/thumbnailPrimer';
+import { createPipelinedBatcher } from '../utils/uploadBatcher';
 
 const FileContext = createContext();
+
+/**
+ * Lỗi từ backend mà đường proxy chắc chắn cũng trả y hệt: không có quyền, thư mục
+ * cha không còn, hết dung lượng. Gặp chúng thì báo lỗi luôn, đừng đẩy lại cả tệp
+ * qua dyno chỉ để nhận đúng câu trả lời đó lần thứ hai.
+ */
+const PROXY_WONT_HELP = new Set([403, 404, 413]);
+
+/**
+ * Xin URL trước cho tối đa ngần này tệp đang chờ, trong cùng một request.
+ *
+ * Không lấy hẳn `UPLOAD_BATCH_SIZE` (50): URL GCS sống 15 phút, và tệp thứ 50 chỉ
+ * được PUT sau khi 49 tệp trước xong. Mạng rất chậm thì chữ ký có thể hết hạn trước
+ * khi tới lượt — vẫn chạy được (PUT hỏng → lùi về proxy) nhưng phí một lượt. 30 tệp
+ * với 10 làn song song là ba "đợt", đủ xa để không phải chờ URL, đủ gần để hiếm khi
+ * chữ ký kịp hết hạn.
+ */
+const UPLOAD_URL_PREFETCH = 30;
+
+/** Tệp đi đường presigned PUT một phát và được gộp lô. Tệp 0 byte bị DTO từ chối (`Min(1)`) nên đi lẻ. */
+const isBatchableUpload = (job) =>
+  Boolean(job?.fileObj) && job.fileObj.size > 0 && job.fileObj.size <= CHUNK_THRESHOLD;
+
+const toUploadUrlPayload = (job) => ({
+  name: job.fileObj.name,
+  sizeBytes: job.fileObj.size,
+  mimeType: job.fileObj.type || 'application/octet-stream',
+  parentId: job.parentId || undefined,
+  sharedDriveId: job.sharedDriveId || undefined,
+  targetProvider: job.targetProvider,
+});
+
+/** Phần tử `ok: false` của một lô → Error mang `status` phẳng, giống lỗi của axios instance. */
+const uploadItemError = (item) => {
+  const err = new Error(item?.message || 'Không xử lý được tệp này.');
+  err.status = item?.status;
+  return err;
+};
 
 /**
  * Ba context tách khỏi FileContext, cùng sống trong FileProvider.
@@ -780,8 +820,56 @@ export function FileProvider({ children }) {
   const activeCountRef = useRef(0);   // số job đang chạy thực sự
   const pendingQueueRef = useRef([]); // mirror của uploadQueue để runner đọc không bị stale
 
-  const CONCURRENCY = 2;    // 2 file song song (CHUNK_THRESHOLD nằm ở constants/upload.js
-                           // vì bảng tiến trình cũng cần biết tệp nào tạm dừng được)
+  /**
+   * Số tệp được PUT cùng lúc (CHUNK_THRESHOLD nằm ở constants/upload.js vì bảng tiến
+   * trình cũng cần biết tệp nào tạm dừng được).
+   *
+   * Trước là 2, và với ảnh vài trăm KB thì 2 làn không bao giờ lấp nổi đường truyền:
+   * phần lớn thời gian của mỗi tệp là CHỜ backend (xin URL, xác nhận), không phải đẩy
+   * byte. Nay hai bước chờ đó đã đi theo lô và không còn giữ làn (xem `runUploadJob`),
+   * nên 10 làn là 10 PUT thật sự chạy song song. PUT đi thẳng lên GCS qua HTTP/2, không
+   * dính trần 6 kết nối mỗi host của HTTP/1.1.
+   */
+  const CONCURRENCY = 10;
+
+  /**
+   * Số tệp đã PUT xong, đã NHẢ làn, đang chờ lô xác nhận. Lượt đồng bộ cuối hàng đợi
+   * phải đợi cả chúng — nếu không nó chạy lúc hàng `files` còn chưa được ghi.
+   */
+  const confirmingCountRef = useRef(0);
+
+  /** jobId → Promise URL đã xin trước theo lô (xem `getUploadTarget`). */
+  const uploadTargetsRef = useRef(new Map());
+
+  /** Gộp nhiều lần gọi `enqueueUpload` trong cùng một tick thành MỘT lượt khởi chạy. */
+  const dispatchScheduledRef = useRef(false);
+
+  /**
+   * Bộ gom lô cho bước xác nhận. Tạo một lần cho cả vòng đời provider: nó chỉ dùng
+   * `storageApi`, không đọc state nào của React.
+   */
+  const [confirmBatcher] = useState(() =>
+    createPipelinedBatcher({
+      maxBatchSize: UPLOAD_BATCH_SIZE,
+      run: async (payloads) => {
+        const res = await storageApi.confirmUploadsBatch(payloads);
+        if (!res) {
+          // Backend chưa có đường lô: xác nhận lẻ từng tệp, như trước.
+          return Promise.all(
+            payloads.map((payload) =>
+              storageApi
+                .confirmUpload(payload)
+                .catch((err) => (err instanceof Error ? err : new Error(String(err)))),
+            ),
+          );
+        }
+        return payloads.map((_, i) => {
+          const item = res.items?.[i];
+          return item?.ok ? { file: item.file } : uploadItemError(item);
+        });
+      },
+    }),
+  );
 
   /**
    * jobId → AbortController của request đang chạy. Nút "Huỷ" cắt đúng request
@@ -1341,7 +1429,11 @@ export function FileProvider({ children }) {
     const tick = () => {
       // Còn tệp đang tải thì hoãn tiếp — lần đồng bộ này chỉ có ý nghĩa khi hàng
       // đợi đã rỗng hẳn, chen vào giữa chừng là tải lại danh sách vô ích
-      if (activeCountRef.current > 0 || pendingQueueRef.current.length > 0) {
+      if (
+        activeCountRef.current > 0 ||
+        pendingQueueRef.current.length > 0 ||
+        confirmingCountRef.current > 0
+      ) {
         silentSyncTimerRef.current = setTimeout(tick, 1500);
         return;
       }
@@ -2213,10 +2305,68 @@ export function FileProvider({ children }) {
     [user?.id],
   );
 
+  /**
+   * URL PUT cho một tệp nhỏ — xin THEO LÔ, và xin trước cho các tệp sắp tới lượt.
+   *
+   * Tệp đầu tiên chưa có URL sẽ xin cho chính nó cùng tới `UPLOAD_URL_PREFETCH - 1`
+   * tệp đang chờ phía sau, trong một request. Các tệp đó tới lượt thì lấy luôn URL đã
+   * có sẵn. 300 ảnh nhờ vậy là ~10 request thay vì 300.
+   *
+   * Lùi về `getUploadUrl` lẻ khi backend chưa có đường lô, hoặc cả lô bị từ chối vì
+   * một lý do không phải mất mạng (vd. 400 do một phần tử lạ) — đường lẻ cho mỗi tệp
+   * câu trả lời riêng của nó. Mất mạng thì ném ra như cũ: đường lẻ cũng sẽ chết.
+   * Lỗi của RIÊNG một tệp trong lô (`ok: false`) ném ra với đúng `status` của nó.
+   */
+  const getUploadTarget = useCallback((job) => {
+    const viaSingle = () => storageApi.getUploadUrl(toUploadUrlPayload(job));
+
+    const prefetched = uploadTargetsRef.current.get(job.id);
+    if (prefetched) {
+      uploadTargetsRef.current.delete(job.id);
+      return prefetched.then((target) => target ?? viaSingle());
+    }
+    if (!isBatchableUpload(job)) return viaSingle();
+
+    const upcoming = pendingQueueRef.current
+      .filter(
+        (j) =>
+          j.id !== job.id &&
+          isBatchableUpload(j) &&
+          !uploadTargetsRef.current.has(j.id) &&
+          !canceledJobIdsRef.current.has(j.id),
+      )
+      .slice(0, UPLOAD_URL_PREFETCH - 1);
+
+    const request = storageApi.getUploadUrlsBatch([job, ...upcoming].map(toUploadUrlPayload));
+    const targetAt = (i) =>
+      request.then(
+        (res) => {
+          if (!res) return null; // chưa có đường lô
+          const item = res.items?.[i];
+          if (item?.ok) return item;
+          throw uploadItemError(item);
+        },
+        (err) => {
+          if (isBackendUnreachable(err)) throw err;
+          console.warn('Xin URL theo lô thất bại, chuyển sang xin lẻ:', err);
+          return null;
+        },
+      );
+
+    upcoming.forEach((j, i) => {
+      const target = targetAt(i + 1);
+      // Tệp có thể bị huỷ trước khi tới lượt và không ai `await` promise này nữa.
+      target.catch(() => {});
+      uploadTargetsRef.current.set(j.id, target);
+    });
+
+    return targetAt(0).then((target) => target ?? viaSingle());
+  }, []);
+
   /** Thực thi upload cho 1 job (phân nhánh: chunked nếu > 10MB, thường nếu nhỏ hơn) */
   const runUploadJob = useCallback(
     async (job) => {
-      const { id, fileObj, parentId, targetProvider, sharedDriveId } = job;
+      const { id, fileObj, parentId, sharedDriveId } = job;
 
       // Người dùng có thể đã bấm huỷ / tạm dừng trong lúc job còn nằm chờ tới lượt
       if (canceledJobIdsRef.current.has(id) || pausedJobIdsRef.current.has(id)) {
@@ -2228,6 +2378,20 @@ export function FileProvider({ children }) {
       const controller = new AbortController();
       abortControllersRef.current.set(id, controller);
       const { signal } = controller;
+
+      /**
+       * Nhả làn cho tệp tiếp theo mà KHÔNG kết thúc job này. Gọi ngay sau khi PUT xong:
+       * phần còn lại chỉ là chờ lô xác nhận, không dùng chút băng thông nào, và giữ
+       * làn trong lúc đó là để 10 làn đứng chờ backend thay vì đẩy byte.
+       */
+      let holdsSlot = true;
+      const releaseSlot = () => {
+        if (!holdsSlot) return;
+        holdsSlot = false;
+        activeCountRef.current -= 1;
+        confirmingCountRef.current += 1;
+        dispatchRunner();
+      };
 
       updateJob(id, { status: 'uploading', percent: 0 });
 
@@ -2262,19 +2426,15 @@ export function FileProvider({ children }) {
         // rơi xuống proxy như trước — ở đó proxy đúng là câu trả lời.
         let presignedData = null;
         try {
-          presignedData = await storageApi.getUploadUrl({
-            name: fileObj.name,
-            sizeBytes: fileObj.size,
-            mimeType: fileObj.type || 'application/octet-stream',
-            parentId: parentId || undefined,
-            sharedDriveId: sharedDriveId || undefined,
-            targetProvider,
-          });
+          presignedData = await getUploadTarget(job);
         } catch (urlErr) {
           if (signal.aborted || canceledJobIdsRef.current.has(id)) throw urlErr;
-          // `storageApi.getUploadUrl` đã tự thử lại 2 lần có backoff trước khi tới
+          // Cả đường lô lẫn đường lẻ đã tự thử lại 2 lần có backoff trước khi tới
           // đây, nên tới được đây nghĩa là mạng mất chứ không phải nhấp một nhịp.
           if (isBackendUnreachable(urlErr)) throw urlErr;
+          // Không có quyền / hết dung lượng: proxy sẽ trả đúng câu đó, sau khi đã
+          // đẩy cả tệp qua dyno. Báo luôn.
+          if (PROXY_WONT_HELP.has(urlErr?.status)) throw urlErr;
           console.warn('Không xin được URL đẩy trực tiếp, chuyển sang proxy:', urlErr);
         }
 
@@ -2297,16 +2457,28 @@ export function FileProvider({ children }) {
             );
 
             updateJob(id, { percent: 99, status: 'confirming' });
+            releaseSlot();
 
-            const confirmRes = await storageApi.confirmUpload({
-              name: fileObj.name,
-              sizeBytes: fileObj.size,
-              mimeType: fileObj.type || 'application/octet-stream',
-              storageKey,
-              storageProvider,
-              parentId: parentId || undefined,
-              sharedDriveId: sharedDriveId || undefined,
-            });
+            // Xác nhận theo lô: các tệp PUT xong trong lúc một lô đang bay sẽ đi chung
+            // lô sau (xem `utils/uploadBatcher.js`). Backend chưa có đường lô thì bộ
+            // gom tự lùi về `confirm-upload` lẻ.
+            let confirmRes;
+            try {
+              confirmRes = await confirmBatcher.add(id, {
+                name: fileObj.name,
+                sizeBytes: fileObj.size,
+                mimeType: fileObj.type || 'application/octet-stream',
+                storageKey,
+                storageProvider,
+                parentId: parentId || undefined,
+                sharedDriveId: sharedDriveId || undefined,
+              });
+            } catch (confirmErr) {
+              // Chỉ đánh dấu lỗi của BACKEND ở bước này — lỗi PUT lên cloud (vd. 403 do
+              // chữ ký hết hạn) vẫn phải được proxy cứu như trước.
+              if (PROXY_WONT_HELP.has(confirmErr?.status)) confirmErr.skipProxy = true;
+              throw confirmErr;
+            }
 
             // Backend có thể đổi tên nếu trùng (ví dụ: file.txt → file(1).txt)
             const savedName = confirmRes?.file?.name || confirmRes?.name || fileObj.name;
@@ -2326,7 +2498,7 @@ export function FileProvider({ children }) {
             // đẩy cả tệp. Lỗi khi PUT thẳng lên CLOUD thì KHÔNG vào nhánh này —
             // `isBackendUnreachable` chỉ nhận lỗi của request qua axios instance của
             // backend — nên ca bucket cấu hình CORS sai vẫn được proxy cứu như trước.
-            if (isBackendUnreachable(directErr)) throw directErr;
+            if (isBackendUnreachable(directErr) || directErr?.skipProxy) throw directErr;
             console.warn('Direct upload failed, falling back to proxy:', directErr);
           }
         }
@@ -2336,7 +2508,7 @@ export function FileProvider({ children }) {
           const proxyRes = await storageApi.uploadProxy(
             fileObj,
             parentId,
-            targetProvider,
+            job.targetProvider,
             (percent) => {
               updateJob(id, { percent, status: 'uploading' });
             },
@@ -2387,13 +2559,19 @@ export function FileProvider({ children }) {
         }
       } finally {
         abortControllersRef.current.delete(id);
-        // Giảm bộ đếm và dispatch runner để chạy job tiếp theo
-        activeCountRef.current -= 1;
-        dispatchRunner();
+        if (holdsSlot) {
+          // Giảm bộ đếm và dispatch runner để chạy job tiếp theo
+          holdsSlot = false;
+          activeCountRef.current -= 1;
+          dispatchRunner();
+        } else {
+          // Làn đã nhả từ lúc PUT xong — chỉ còn gỡ khỏi nhóm "đang chờ xác nhận"
+          confirmingCountRef.current -= 1;
+        }
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [runChunkedUploadJob, onUploadedFile],
+    [runChunkedUploadJob, onUploadedFile, getUploadTarget, confirmBatcher],
   );
 
   /** Runner: lấy job pending từ ref, chạy tối đa CONCURRENCY job cùng lúc */
@@ -2430,7 +2608,17 @@ export function FileProvider({ children }) {
       // Thêm vào UploadContext (UI) và ref (runner)
       enqueueJob(job);
       pendingQueueRef.current.push(job);
-      dispatchRunner();
+
+      // Các nút gọi hàm này trong một vòng `forEach` — khởi chạy SAU vòng đó, để tệp
+      // đầu tiên thấy cả hàng đợi và xin URL cho cả lô. Khởi chạy ngay thì 10 tệp đầu
+      // mỗi tệp một request, vì lúc chúng bắt đầu hàng đợi mới có đúng mình chúng.
+      if (!dispatchScheduledRef.current) {
+        dispatchScheduledRef.current = true;
+        queueMicrotask(() => {
+          dispatchScheduledRef.current = false;
+          dispatchRunner();
+        });
+      }
     },
     [currentFolderId, activeTab, currentSharedDriveId, dispatchRunner, enqueueJob],
   );
@@ -2459,6 +2647,7 @@ export function FileProvider({ children }) {
       // Reset job trong UploadContext state
       resetJob(jobId, { percent: 0, status: 'pending', error: undefined, renamedFrom: undefined });
       uploadSessionsRef.current.delete(jobId);
+      uploadTargetsRef.current.delete(jobId);
       // Đưa lại vào pendingQueueRef để runner xử lý
       pendingQueueRef.current.push(retriedJob);
       // Dispatch runner (setTimeout để state flush trước)
@@ -2483,11 +2672,20 @@ export function FileProvider({ children }) {
       const job = uploadQueueRef.current.find((j) => j.id === jobId);
       if (!job || job.status === 'done' || job.status === 'canceled') return;
 
+      // Đã nằm trong một lô xác nhận đang bay: hàng `files` sắp (hoặc đã) được ghi.
+      // Huỷ lúc này chỉ có thể đua với lượt ghi đó — `abortUpload` tới trước thì xoá
+      // mất object của một tệp sắp có hàng trong DB. Để nó xong; tệp sẽ hiện ra.
+      if (confirmBatcher.isInFlight(jobId)) return;
+
       canceledJobIdsRef.current.add(jobId);
       pausedJobIdsRef.current.delete(jobId); // huỷ một tệp đang tạm dừng cũng là huỷ
       pendingQueueRef.current = pendingQueueRef.current.filter((j) => j.id !== jobId);
+      uploadTargetsRef.current.delete(jobId);
 
       abortControllersRef.current.get(jobId)?.abort();
+      // Còn nằm chờ trong lô xác nhận thì rút ra: không có hàng nào được ghi, và
+      // `abortUpload` bên dưới dọn object đã PUT lên.
+      confirmBatcher.cancel(jobId, new Error('canceled'));
       updateJob(jobId, { status: 'canceled', percent: 0, error: undefined });
 
       // Thông tin phiên: ưu tiên bản trong bộ nhớ, ngã về localStorage (job chunked
@@ -2524,7 +2722,7 @@ export function FileProvider({ children }) {
       }, 4000);
       cancelCleanupTimersRef.current.set(jobId, timer);
     },
-    [updateJob, removeJob, uploadQueueRef, loadChunkState, clearChunkState],
+    [updateJob, removeJob, uploadQueueRef, loadChunkState, clearChunkState, confirmBatcher],
   );
 
   /**

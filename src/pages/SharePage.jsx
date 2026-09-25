@@ -4,6 +4,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { localeTagOf } from '../utils/locale';
 import { sharingApi } from '../services/api';
 import { API_BASE_URL } from '../constants/api';
+import { triggerDownload, zipTicketUrl, isZipTicketUnavailable } from '../utils/downloadItems';
 import { formatBytes } from '../utils/formatFileSize';
 import * as pdfjsLib from 'pdfjs-dist';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
@@ -884,6 +885,35 @@ function FolderBrowser({ token, rootFolderName, isDownloadAllowed, onOpenFile, s
     setZipLoading(true);
     try {
       const headers = shareAuthToken ? { Authorization: `Bearer ${shareAuthToken}` } : {};
+
+      // Đường chính: xin vé rồi để trình duyệt tự tải — có thanh tiến trình, không gom
+      // cả thư mục vào RAM của tab. `fetch` thô chứ không qua axios: interceptor của axios
+      // ghi đè `Authorization` bằng token của người đang đăng nhập, làm mất token mật khẩu
+      // của link chia sẻ.
+      const ticketRes = await fetch(`${API_BASE_URL}/shares/${token}/download-zip/ticket`, {
+        method: 'POST',
+        headers,
+      });
+      if (ticketRes.ok) {
+        const body = await ticketRes.json();
+        const ticket = body?.data?.ticket ?? body?.ticket;
+        if (ticket) {
+          triggerDownload(zipTicketUrl(ticket));
+          return;
+        }
+      } else if (!isZipTicketUnavailable({ status: ticketRes.status })) {
+        let message = t('sharePage.folder.zipFailed');
+        try {
+          const errJson = await ticketRes.json();
+          message = errJson?.message || message;
+        } catch {
+          // response không phải JSON hợp lệ — dùng message mặc định
+        }
+        alert(message);
+        return;
+      }
+
+      // Đường lùi (backend chưa có endpoint vé / Redis hỏng): tải cả ZIP vào blob như cũ.
       const res = await fetch(`${API_BASE_URL}/shares/${token}/download-url`, { headers });
 
       if (!res.ok) {

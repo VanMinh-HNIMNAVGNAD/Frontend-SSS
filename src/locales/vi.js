@@ -146,6 +146,7 @@ const vi = {
   'header.success.copy': 'Đã sao chép {count} mục',
   'header.success.download': 'Đã tải {count} tệp',
   'header.zip.creating': 'Đang tạo tệp ZIP...',
+  'header.zip.started': 'Đã bắt đầu tải ZIP — xem tiến trình ở mục tải xuống của trình duyệt',
   'header.success.zip': 'Đã tạo tệp ZIP, đang tải xuống',
   // Thông báo lỗi — hai bản cho mỗi thao tác: đúng một mục thất bại thì nêu
   // luôn nguyên nhân, nhiều mục thì nêu số lượng + một mục làm ví dụ (danh

@@ -713,6 +713,8 @@ export const filesApi = {
   getLargestFiles: (limit = 3) =>
     largestFilesCache.get(`limit:${limit}`, () => api.get('/files/largest', { params: { limit } })),
   downloadZip: (fileIds) => api.post('/files/download-zip', { fileIds }, { responseType: 'blob' }),
+  /** Vé để trình duyệt tự tải ZIP — xem `downloadItemsAsZip`. Trả `{ ticket, expiresIn }`. */
+  createZipTicket: (fileIds) => api.post('/files/download-zip/ticket', { fileIds }),
   // Qua bộ đệm: `FileInfoDrawer` gọi lại cả hai thứ này mỗi lần mở, kể cả khi vừa
   // đóng đúng tệp đó. Mọi thao tác ghi lên tệp đều đốt bộ đệm (xem phần mutation
   // ngay dưới), nên dữ liệu không thể cũ một cách vô hạn.

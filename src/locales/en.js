@@ -144,6 +144,7 @@ const en = {
   'header.success.copy': 'Copied {count} item(s)',
   'header.success.download': 'Downloaded {count} file(s)',
   'header.zip.creating': 'Creating ZIP file...',
+  'header.zip.started': 'ZIP download started — track progress in your browser downloads',
   'header.success.zip': 'ZIP file ready, downloading',
   // Error messages — two variants per action: a single failure names the
   // reason, several failures name the count plus one example (the full list

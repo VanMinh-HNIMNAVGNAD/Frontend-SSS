@@ -17,6 +17,7 @@ context-frontend.xml
 # mới clone repo biết frontend cần biến gì (trước đây dòng .env.example ở đây làm
 # file mẫu bị bỏ qua trong im lặng).
 .env
+env.yaml
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

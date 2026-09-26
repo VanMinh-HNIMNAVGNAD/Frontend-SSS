@@ -1940,7 +1940,7 @@ export default function GeminiModal({
                             ref={fileInputRef}
                             type="file"
                             multiple
-                            accept="text/*,image/*,video/*,.pdf,.md,.csv,.json,.xml,.yml,.yaml,.log,.sql,.js,.jsx,.ts,.tsx,.py,.java,.c,.cpp,.cs,.go,.rs,.php,.rb,.sh"
+                            accept="text/*,image/*,video/*,.pdf,.docx,.pptx,.xlsx,.mp3,.wav,.m4a,.aac,.flac,.opus,.md,.csv,.json,.xml,.yml,.yaml,.log,.sql,.js,.jsx,.ts,.tsx,.py,.java,.c,.cpp,.cs,.go,.rs,.php,.rb,.sh"
                             className="hidden"
                             onChange={(e) => {
                                 pickFiles(e.target.files);

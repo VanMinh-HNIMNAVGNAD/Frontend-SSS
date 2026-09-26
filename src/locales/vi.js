@@ -737,7 +737,7 @@ const vi = {
   'preview.copy': 'Sao chép',
   'preview.tooBig': 'Dung lượng tệp lớn (>10MB), vui lòng tải về để xem.',
   'preview.unsupported': 'Định dạng tệp không hỗ trợ xem trước trực tiếp.',
-  'preview.shortcuts': 'Phím tắt: ESC (Đóng), +/- (Thu phóng), R (Xoay)',
+  'preview.shortcuts': 'Phím tắt: ESC (Đóng), +/- hoặc lăn chuột (Thu phóng), kéo (Di chuyển), bấm đúp (Phóng tại chỗ), R (Xoay)',
   'preview.highlightOff': 'Tệp lớn ({size}) — đã tắt tô màu cú pháp để trang không bị treo.',
   'home.title': 'Trang chủ',
   'home.myDrive': 'cloudSSS của tôi',

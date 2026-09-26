@@ -718,7 +718,7 @@ const en = {
   'preview.copy': 'Copy',
   'preview.tooBig': 'This file is larger than 10MB — download it to view.',
   'preview.unsupported': 'This format cannot be previewed here.',
-  'preview.shortcuts': 'Shortcuts: ESC (close), +/− (zoom), R (rotate)',
+  'preview.shortcuts': 'Shortcuts: ESC (close), +/− or scroll (zoom), drag (pan), double-click (zoom to point), R (rotate)',
   'preview.highlightOff': 'Large file ({size}) — syntax highlighting is off so the page stays responsive.',
   'home.title': 'Home',
   'home.myDrive': 'My cloudSSS',

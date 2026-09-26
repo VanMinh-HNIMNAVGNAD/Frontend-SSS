@@ -304,8 +304,6 @@ export default function FileGridView() {
                                     file={file}
                                     onDoubleClick={handleItemDoubleClick}
                                     onContextMenu={openContextMenu}
-                                    onStarToggle={toggleStar}
-                                    onOpenInfo={openInfoDrawer}
                                     isSelected={isSelected(file.id)}
                                     isCut={clipboard.mode === 'cut' && clipboard.items.some((e) => e.id === file.id)}
                                     onToggleSelect={toggleSelect}

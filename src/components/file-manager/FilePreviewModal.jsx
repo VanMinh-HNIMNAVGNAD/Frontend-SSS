@@ -35,6 +35,8 @@ import * as pdfjsLib from 'pdfjs-dist';
 import useTheme from '../../hooks/useTheme';
 import DocxRenderer from './DocxRenderer';
 import SheetPreview from './SheetPreview';
+import ZoomableImage from './ZoomableImage';
+import { useZoomPan, useWheelZoom, ZOOM_MIN, ZOOM_MAX } from '../../hooks/useZoomPan';
 
 // Khởi tạo Worker an toàn cho PDF.js
 if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
@@ -162,8 +164,11 @@ const needsPlaybackInfo = (item) => {
 /**
  * Component Canvas chuyên dụng xem PDF nhiều trang, hỗ trợ High-DPI
  */
-function PdfCanvasViewer({ url, zoom = 1, rotation = 0 }) {
+function PdfCanvasViewer({ url, zoom = 1, rotation = 0, onWheelZoom }) {
   const { t } = useLanguage();
+  // Ctrl/⌘ + lăn chuột (hoặc chụm touchpad) để phóng; lăn thường vẫn là cuộn trang.
+  const [scrollBox, setScrollBox] = useState(null);
+  useWheelZoom(scrollBox, (factor) => onWheelZoom && onWheelZoom(factor), { requireCtrl: true });
   const [pdfDoc, setPdfDoc] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [numPages, setNumPages] = useState(0);
@@ -291,7 +296,7 @@ function PdfCanvasViewer({ url, zoom = 1, rotation = 0 }) {
       {/* Vùng Canvas hiển thị PDF */}
       {/* `items-start` + `m-auto` trên canvas: khi zoom < khung thì canvas vẫn giữa,
           khi zoom vượt khung thì nó không bị cắt mất phần trên mà cuộn được. */}
-      <div className="flex-1 w-full overflow-auto flex items-start justify-center p-4">
+      <div ref={setScrollBox} className="flex-1 w-full overflow-auto flex items-start justify-center p-4">
         <canvas
           ref={canvasRef}
           className="m-auto rounded-lg shadow-2xl bg-white"
@@ -398,7 +403,9 @@ export default function FilePreviewModal({ item, onClose }) {
   const [url, setUrl] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [zoom, setZoom] = useState(1);
+  // { zoom, x, y } — xem ZoomableImage.jsx. PDF chỉ dùng `zoom`, ảnh dùng cả độ lệch.
+  const { view, setView, zoomIn: handleZoomIn, zoomOut: handleZoomOut, zoomBy, reset: resetView } = useZoomPan();
+  const zoom = view.zoom;
   const [rotation, setRotation] = useState(0);
 
   // Đổi giá trị là buộc thẻ <video>/<audio> dựng lại từ đầu. Cần đến vì hai chữ
@@ -426,7 +433,7 @@ export default function FilePreviewModal({ item, onClose }) {
     let isMounted = true;
     setLoading(true);
     setError(null);
-    setZoom(1);
+    resetView();
     setRotation(0);
     resumeRef.current = null;
 
@@ -474,7 +481,7 @@ export default function FilePreviewModal({ item, onClose }) {
     return () => {
       isMounted = false;
     };
-  }, [item, t]);
+  }, [item, t, resetView]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -499,13 +506,11 @@ export default function FilePreviewModal({ item, onClose }) {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onClose, aiItem]);
+  }, [onClose, aiItem, handleZoomIn, handleZoomOut]);
 
-  const handleZoomIn = () => setZoom((prev) => Math.min(prev + 0.25, 3));
-  const handleZoomOut = () => setZoom((prev) => Math.max(prev - 0.25, 0.5));
   const handleRotate = () => setRotation((prev) => (prev + 90) % 360);
   const handleReset = () => {
-    setZoom(1);
+    resetView();
     setRotation(0);
   };
 
@@ -794,7 +799,7 @@ export default function FilePreviewModal({ item, onClose }) {
             <>
               <button
                 onClick={handleZoomOut}
-                disabled={zoom <= 0.5}
+                disabled={zoom <= ZOOM_MIN}
                 className="p-2 rounded-xl bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 disabled:opacity-30 text-slate-700 dark:text-white transition-all cursor-pointer"
                 title={t('preview.zoomOut')}
               >
@@ -805,7 +810,7 @@ export default function FilePreviewModal({ item, onClose }) {
               </span>
               <button
                 onClick={handleZoomIn}
-                disabled={zoom >= 3}
+                disabled={zoom >= ZOOM_MAX}
                 className="p-2 rounded-xl bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 disabled:opacity-30 text-slate-700 dark:text-white transition-all cursor-pointer"
                 title={t('preview.zoomIn')}
               >
@@ -887,17 +892,14 @@ export default function FilePreviewModal({ item, onClose }) {
         {!loading && !error && (url || isTextLike) && (
           <>
             {isImage && (
-              <div className="w-full h-full flex items-center justify-center overflow-auto p-4 cursor-grab active:cursor-grabbing">
-                <img
-                  src={url}
-                  alt={item.name}
-                  style={{
-                    transform: `scale(${zoom}) rotate(${rotation}deg)`,
-                    transition: 'transform 0.15s ease-out',
-                  }}
-                  className="max-w-full max-h-full object-contain rounded-xl shadow-2xl border border-white/10"
-                />
-              </div>
+              <ZoomableImage
+                src={url}
+                alt={item.name}
+                view={view}
+                onViewChange={setView}
+                rotation={rotation}
+                className="p-4"
+              />
             )}
 
             {isVideo && (
@@ -1009,7 +1011,7 @@ export default function FilePreviewModal({ item, onClose }) {
             {/* Render PDF Canvas chất lượng cao không bị popup tải về */}
             {isPdf && (
               <div className="w-full h-full max-w-5xl rounded-2xl overflow-hidden bg-slate-900/80 border border-white/10 shadow-2xl flex flex-col items-center justify-center">
-                <PdfCanvasViewer url={url} zoom={zoom} rotation={rotation} />
+                <PdfCanvasViewer url={url} zoom={zoom} rotation={rotation} onWheelZoom={zoomBy} />
               </div>
             )}
 

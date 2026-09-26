@@ -12,6 +12,8 @@ import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { marked } from 'marked';
 import DocxRenderer from '../components/file-manager/DocxRenderer';
 import SheetPreview from '../components/file-manager/SheetPreview';
+import ZoomableImage from '../components/file-manager/ZoomableImage';
+import { useZoomPan, ZOOM_MIN, ZOOM_MAX } from '../hooks/useZoomPan';
 
 // ─── Khởi tạo PDF.js Worker (an toàn, không trùng lặp) ───────────────────────
 if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
@@ -536,25 +538,27 @@ function ChildFilePreviewModal({
   onClose,
 }) {
   const { t } = useLanguage();
-  const [zoom, setZoom] = useState(1);
+  // { zoom, x, y } — xem ZoomableImage.jsx. PDF chỉ dùng `zoom`, ảnh dùng cả độ lệch.
+  const { view, setView, zoomIn, zoomOut, reset: resetView } = useZoomPan();
+  const zoom = view.zoom;
   const [rotation, setRotation] = useState(0);
   const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
-    setZoom(1);
+    resetView();
     setRotation(0);
-  }, [file]);
+  }, [file, resetView]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') onClose && onClose();
-      if (e.key === '=' || e.key === '+') setZoom((z) => Math.min(3, z + 0.25));
-      if (e.key === '-') setZoom((z) => Math.max(0.5, z - 0.25));
+      if (e.key === '=' || e.key === '+') zoomIn();
+      if (e.key === '-') zoomOut();
       if (e.key === 'r' || e.key === 'R') setRotation((r) => (r + 90) % 360);
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onClose]);
+  }, [onClose, zoomIn, zoomOut]);
 
   if (!file) return null;
 
@@ -616,8 +620,8 @@ function ChildFilePreviewModal({
           {(isImg || isPdf) && previewUrl && (
             <>
               <button
-                onClick={() => setZoom((z) => Math.max(0.5, z - 0.25))}
-                disabled={zoom <= 0.5}
+                onClick={zoomOut}
+                disabled={zoom <= ZOOM_MIN}
                 className="p-2 rounded-xl bg-white/10 hover:bg-white/20 disabled:opacity-30 text-white transition-all cursor-pointer"
                 title={t('preview.zoomOut')}
               >
@@ -629,8 +633,8 @@ function ChildFilePreviewModal({
                 {Math.round(zoom * 100)}%
               </span>
               <button
-                onClick={() => setZoom((z) => Math.min(3, z + 0.25))}
-                disabled={zoom >= 3}
+                onClick={zoomIn}
+                disabled={zoom >= ZOOM_MAX}
                 className="p-2 rounded-xl bg-white/10 hover:bg-white/20 disabled:opacity-30 text-white transition-all cursor-pointer"
                 title={t('preview.zoomIn')}
               >
@@ -721,17 +725,14 @@ function ChildFilePreviewModal({
         {!loading && !error && !previewBlocked && previewUrl && (
           <>
             {isImg && (
-              <div className="w-full h-full flex items-center justify-center overflow-auto p-4 cursor-grab active:cursor-grabbing">
-                <img
-                  src={previewUrl}
-                  alt={file.name}
-                  style={{
-                    transform: `scale(${zoom}) rotate(${rotation}deg)`,
-                    transition: 'transform 0.15s ease-out',
-                  }}
-                  className="max-w-full max-h-full object-contain rounded-xl shadow-2xl border border-white/10"
-                />
-              </div>
+              <ZoomableImage
+                src={previewUrl}
+                alt={file.name}
+                view={view}
+                onViewChange={setView}
+                rotation={rotation}
+                className="p-4"
+              />
             )}
 
             {isVid && (

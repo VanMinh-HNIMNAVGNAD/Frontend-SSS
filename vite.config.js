@@ -31,10 +31,20 @@ function assertApiBaseUrl(env) {
       'Thiếu VITE_API_BASE_URL — dừng build.\n' +
         '  Máy dev : chép frontend/.env.example thành frontend/.env rồi điền giá trị.\n' +
         '  Vercel  : Settings > Environment Variables, thêm VITE_API_BASE_URL\n' +
-        '            (ví dụ https://<app>.herokuapp.com/api/v1) cho cả Production,\n' +
+        '            (ví dụ https://<service>.run.app/api/v1) cho cả Production,\n' +
         '            Preview, Development rồi Redeploy.\n' +
         '  Biến VITE_* chỉ được nhúng LÚC BUILD — đổi env mà không redeploy thì\n' +
         '  bundle cũ vẫn giữ giá trị cũ.',
+    )
+  }
+
+  // Mọi nơi ghép `${API_BASE_URL}/auth/google`, `/files`... nên thiếu `/api/v1` thì build
+  // vẫn xanh nhưng MỌI request trúng 404 `Cannot GET /auth/...` — đã xảy ra khi chuyển
+  // sang Cloud Run (khai mỗi URL service). Chặn ngay lúc build.
+  if (!/\/api\/v1\/?$/.test(url)) {
+    throw new Error(
+      `VITE_API_BASE_URL phải kết thúc bằng /api/v1 — đang là: ${url}\n` +
+        `  Sửa thành: ${url.replace(/\/+$/, '')}/api/v1 rồi Redeploy.`,
     )
   }
 

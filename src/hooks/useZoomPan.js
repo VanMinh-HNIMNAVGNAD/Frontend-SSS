@@ -16,7 +16,7 @@ const clampZoom = (z) => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, z));
  * Phóng tới `nextZoom` mà giữ nguyên điểm ảnh đang nằm tại (ax, ay) — toạ độ so
  * với tâm khung. Điểm đó trong hệ toạ độ của ảnh là (a − t) / z; muốn nó đứng yên
  * sau khi đổi z thì t' = a − (a − t) · z'/z. Anchor (0, 0) = phóng quanh tâm khung.
- * Từ 100% trở xuống ảnh đã lọt trong khung nên kéo về giữa luôn.
+ * Từ 100% trở xuống ảnh đã lọt trong khung nên đưa về giữa (0, 0).
  */
 export function zoomAt(view, nextZoom, ax = 0, ay = 0) {
   const zoom = clampZoom(nextZoom);
@@ -57,12 +57,11 @@ export function useWheelZoom(el, onZoom, { requireCtrl = false } = {}) {
     const onWheel = (e) => {
       if (requireCtrl && !e.ctrlKey && !e.metaKey) return;
       e.preventDefault();
-      // Quy mọi deltaMode về px. Một nấc chuột ≈ 100px → ~22%/nấc. Chụm touchpad cho
-      // delta rất nhỏ (vài px) nhưng dày đặc nên nhân thêm; chặn trần để Ctrl + lăn
-      // chuột (delta lớn, cũng mang ctrlKey) không nhảy một phát gấp ba.
+      // Quy mọi deltaMode về px. Chuẩn hóa để nấc chuột lăn mượt mà, phản hồi tức thì
       const px = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaMode === 2 ? e.deltaY * 400 : e.deltaY;
-      const d = Math.max(-100, Math.min(100, e.ctrlKey ? px * 5 : px));
-      handlerRef.current(Math.exp(-d * 0.002), e);
+      const d = Math.max(-100, Math.min(100, e.ctrlKey ? px * 4 : px));
+      // Tỉ lệ zoom theo hàm exp để mượt mà cả khi phóng to lẫn thu nhỏ
+      handlerRef.current(Math.exp(-d * 0.0025), e);
     };
     el.addEventListener('wheel', onWheel, { passive: false });
     return () => el.removeEventListener('wheel', onWheel);

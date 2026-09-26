@@ -121,44 +121,39 @@ const SectionGrid = ({ itemList, emptyMessage, onItemOpen, onToggleStar, onConte
                     onDoubleClick={() => onItemOpen && onItemOpen(item)}
                     onContextMenu={(e) => onContextMenu && onContextMenu(e, item)}
                     title={t('home.doubleClickToOpen')}
-                    className="bg-white dark:bg-[#282a2c] border border-gray-300/80 dark:border-gray-700/60 rounded-xl p-2.5 hover:shadow-md hover:border-blue-400 transition-all cursor-pointer flex flex-col group h-44 select-none shadow-2xs"
+                    className="bg-white dark:bg-[#282a2c] border border-gray-300/80 dark:border-gray-700/60 rounded-xl p-2 hover:shadow-md hover:border-blue-400 transition-all cursor-pointer flex flex-col group h-44 select-none shadow-2xs"
                 >
-                    <div className="flex items-center justify-between gap-1 mb-1.5">
-                        {safeFileIcon(item)}
-                        <div className="flex items-center gap-0.5">
-                            <StarButton
-                                size="sm"
-                                isStarred={item.isStarred}
-                                readOnly={item.isSharedWithMe}
-                                onToggle={() => onToggleStar && onToggleStar(item.id)}
-                            />
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    e.preventDefault();
-                                    onContextMenu && onContextMenu(e, item);
-                                }}
-                                onDoubleClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
-                                className="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity"
-                                title={t('home.moreActions')}
-                            >
-                                <MoreVertical className="w-3.5 h-3.5" />
-                            </button>
+                    {/* Hàng đầu: icon loại tệp và tên tệp nâng cao, nút sao đã bỏ vì có trong context menu */}
+                    <div className="flex items-center justify-between gap-1 mb-1 h-4.5">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                            {safeFileIcon(item)}
+                            <p className="text-[11px] font-semibold text-gray-900 dark:text-gray-100 truncate group-hover:text-blue-700" title={item.name}>
+                                {item.name}
+                            </p>
                         </div>
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                onContextMenu && onContextMenu(e, item);
+                            }}
+                            onDoubleClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
+                            className="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 p-0.5 rounded-full hover:bg-gray-100 dark:hover:bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                            title={t('home.moreActions')}
+                        >
+                            <MoreVertical className="w-3.5 h-3.5" />
+                        </button>
                     </div>
 
-                    {/* Mini thumbnail: ảnh / video / trang đầu PDF; loại khác về icon mờ */}
+                    {/* Mini thumbnail: ảnh / video / trang đầu PDF; loại khác về icon mờ — phóng to tối đa */}
                     <FileThumbnail
                         file={item}
-                        className="flex-1 w-full rounded-lg bg-slate-50/50 dark:bg-white/5 border border-gray-200 dark:border-gray-700/60 mb-2 group-hover:border-blue-300 transition-colors"
+                        className="flex-1 w-full rounded-lg bg-slate-50/50 dark:bg-white/5 border border-gray-200 dark:border-gray-700/60 my-1 group-hover:border-blue-300 transition-colors"
                         fallback={<div className="opacity-30 scale-[1.75]">{safeFileIcon(item)}</div>}
                     />
 
-                    <div>
-                        <p className="text-xs font-bold text-gray-900 dark:text-gray-100 truncate group-hover:text-blue-700" title={item.name}>
-                            {item.name}
-                        </p>
-                        <p className="text-[10px] text-gray-600 dark:text-gray-400 font-medium mt-0.5 truncate">
+                    <div className="h-3.5 mt-0.5 leading-none">
+                        <p className="text-[9.5px] text-gray-500 dark:text-gray-400 font-medium truncate">
                             {item.owner || t('list.owner.me')} • {item.updatedAt ? item.updatedAt.split(',')[0] : ''}
                         </p>
                     </div>

@@ -1287,8 +1287,15 @@ function errorFromPayload(payload, fallbackMessage) {
  * thì `reader.read()` treo tới khi TCP tự bỏ cuộc hàng phút sau.
  */
 const SSE_STALL_MS = 40 * 1000;
-/** Số lần nối lại tối đa cho MỘT lượt hỏi. */
-const MAX_SSE_RESUMES = 5;
+/**
+ * Số lần nối lại tối đa cho MỘT lượt hỏi.
+ *
+ * Phải phủ được trọn `RUN_MAX_MS` (6 phút) của backend với mỗi lần chờ 40 giây, chứ
+ * không chỉ vài cú đứt mạng: sự cố 27/09/2026 là dòng SSE không về byte nào cho tới khi
+ * lượt chạy xong, nên mỗi lần nối lại cũng im cho tới lúc đó. 5 lần chỉ phủ được khoảng
+ * 4 phút, trong khi lượt hỏi video nặng được chạy tới 6.
+ */
+const MAX_SSE_RESUMES = 10;
 /** Giãn cách giữa các lần nối lại (ms). Lần cuối lặp lại giá trị cuối cùng. */
 const SSE_RESUME_BACKOFF_MS = [500, 1000, 2000, 3000, 3000];
 
@@ -1497,7 +1504,13 @@ export const aiApi = {
   ) => {
     let result = null;
     let streamError = null;
-    let runId = null;
+    // Id lượt chạy do CHÍNH trình duyệt sinh và gửi kèm câu hỏi, nên đường nối lại có
+    // sẵn từ trước khi nhận được byte nào. Sự cố 27/09/2026: trên Cloud Run, lượt hỏi
+    // video không về byte nào trong 40 giây đầu. Lúc đó `runId` vẫn là null vì nó chỉ tới
+    // ở sự kiện `run`, nên không nối lại được, và lượt hỏi bị xoá im lặng dù backend đã
+    // trả lời xong. Trình duyệt quá cũ không có `randomUUID` thì về như cũ: chờ sự kiện `run`.
+    let runId = globalThis.crypto?.randomUUID?.() ?? null;
+    if (runId) onRun?.(runId);
     // Đang trong trạng thái "đã đứt, đang nối lại". Dùng để biết byte nào là byte ĐẦU
     // TIÊN của lượt nối lại — xem `noteActivity`.
     let resuming = false;
@@ -1532,11 +1545,19 @@ export const aiApi = {
       const attemptCtrl = new AbortController();
       const abortAttempt = () => attemptCtrl.abort();
       let stalled = false;
+      let gotBytes = false;
       let timer = null;
       const armWatchdog = () => {
         clearTimeout(timer);
         timer = setTimeout(() => {
           stalled = true;
+          // Một dòng cho người debug: phân biệt "chưa từng nhận byte nào" (dòng bị giữ ở
+          // đâu đó giữa backend và trình duyệt) với "đang chảy rồi im" (socket chết).
+          console.warn(
+            `[AI] ${SSE_STALL_MS / 1000}s không nhận được byte nào ` +
+              `(${gotBytes ? 'đã có byte trước đó' : 'CHƯA từng có byte'}) — ` +
+              `nối lại lượt ${runId ?? '(chưa có runId)'}, lần ${attempts + 1}.`,
+          );
           abortAttempt();
         }, SSE_STALL_MS);
       };
@@ -1550,6 +1571,7 @@ export const aiApi = {
       // nối lại từ lâu và câu trả lời đang được sinh bình thường. `: ping` là thứ duy
       // nhất chảy đều trong khoảng đó, nên nó phải là thứ tắt dòng cảnh báo.
       const noteActivity = () => {
+        gotBytes = true;
         armWatchdog();
         if (resuming) {
           resuming = false;
@@ -1567,8 +1589,8 @@ export const aiApi = {
 
       let failure = null;
       try {
-        if (runId === null) {
-          await postSse('/ai/ask/stream', payload, {
+        if (attempts === 0) {
+          await postSse('/ai/ask/stream', runId ? { ...payload, runId } : payload, {
             signal: attemptCtrl.signal,
             onActivity: noteActivity,
             onEvent: handle,
@@ -1596,6 +1618,10 @@ export const aiApi = {
       if (result || streamError) break;
 
       const canResume = runId !== null && attempts < MAX_SSE_RESUMES;
+      // Đồng hồ canh dòng huỷ request bằng ĐÚNG lỗi của nút Dừng (`CanceledError`). Để
+      // nguyên nó bay lên thì giao diện xoá lượt hỏi im lặng như thể người dùng tự huỷ —
+      // đúng triệu chứng "phân tích xong thì khung chat trống trơn" ngày 27/09/2026.
+      if (failure && stalled) failure = new Error(tOutsideReact('ai.stream.disconnected'));
       // Lỗi CÓ mã HTTP là phán quyết của máy chủ (404 lượt chạy đã bay, 401 hết đường
       // làm mới, 400 sai tham số) — nối lại chỉ nhận đúng câu đó lần nữa.
       if (failure && (failure.status || !canResume)) throw failure;

@@ -169,6 +169,16 @@ function PdfCanvasViewer({ url, zoom = 1, rotation = 0, onWheelZoom }) {
   // Ctrl/⌘ + lăn chuột (hoặc chụm touchpad) để phóng; lăn thường vẫn là cuộn trang.
   const [scrollBox, setScrollBox] = useState(null);
   useWheelZoom(scrollBox, (factor) => onWheelZoom && onWheelZoom(factor), { requireCtrl: true });
+  // Bề ngang khung cuộn — để mức 100% VỪA màn hẹp. Trước đây tỉ lệ nền cố định 1.5,
+  // nên một trang Letter rộng 918px trên màn điện thoại 360px: mở ra chỉ thấy nửa
+  // dòng chữ và phải cuộn ngang. Màn rộng thì vẫn là 1.5 như cũ.
+  const [boxWidth, setBoxWidth] = useState(0);
+  useEffect(() => {
+    if (!scrollBox) return;
+    const observer = new ResizeObserver(([entry]) => setBoxWidth(entry.contentRect.width));
+    observer.observe(scrollBox);
+    return () => observer.disconnect();
+  }, [scrollBox]);
   const [pdfDoc, setPdfDoc] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [numPages, setNumPages] = useState(0);
@@ -240,7 +250,9 @@ function PdfCanvasViewer({ url, zoom = 1, rotation = 0, onWheelZoom }) {
         // như nút zoom không hoạt động.
         //   • cssScale (1.5 * zoom) = kích thước hiển thị.
         //   • dpr thêm vào chỉ để bù màn hình HiDPI, không đổi kích thước hiển thị.
-        const cssScale = 1.5 * zoom;
+        const pageWidth = page.getViewport({ scale: 1, rotation }).width;
+        const fitScale = boxWidth > 0 ? boxWidth / pageWidth : 1.5;
+        const cssScale = Math.min(1.5, fitScale) * zoom;
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
         const cssViewport = page.getViewport({ scale: cssScale, rotation });
         const viewport = page.getViewport({ scale: cssScale * dpr, rotation });
@@ -272,7 +284,7 @@ function PdfCanvasViewer({ url, zoom = 1, rotation = 0, onWheelZoom }) {
         } catch {}
       }
     };
-  }, [pdfDoc, currentPage, zoom, rotation]);
+  }, [pdfDoc, currentPage, zoom, rotation, boxWidth]);
 
   if (loading) {
     return (
@@ -296,7 +308,7 @@ function PdfCanvasViewer({ url, zoom = 1, rotation = 0, onWheelZoom }) {
       {/* Vùng Canvas hiển thị PDF */}
       {/* `items-start` + `m-auto` trên canvas: khi zoom < khung thì canvas vẫn giữa,
           khi zoom vượt khung thì nó không bị cắt mất phần trên mà cuộn được. */}
-      <div ref={setScrollBox} className="flex-1 w-full overflow-auto flex items-start justify-center p-4">
+      <div ref={setScrollBox} className="flex-1 w-full overflow-auto flex items-start justify-center p-2 @lg:p-4">
         <canvas
           ref={canvasRef}
           className="m-auto rounded-lg shadow-2xl bg-white"
@@ -305,7 +317,7 @@ function PdfCanvasViewer({ url, zoom = 1, rotation = 0, onWheelZoom }) {
 
       {/* Thanh chuyển trang */}
       {numPages > 1 && (
-        <div className="flex items-center gap-3 px-4 py-2 mt-2 bg-slate-900/90 border border-white/10 rounded-full shadow-lg shrink-0 select-none">
+        <div className="flex items-center gap-3 px-4 py-1.5 @lg:py-2 my-2 bg-slate-900/90 border border-white/10 rounded-full shadow-lg shrink-0 select-none">
           <button
             onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
             disabled={currentPage <= 1}
@@ -775,74 +787,89 @@ export default function FilePreviewModal({ item, onClose }) {
 
   if (!item) return null;
 
+  // Bộ nút phóng/xoay cho ảnh và PDF. Dựng MỘT lần, đặt ở hai chỗ theo bề ngang cửa
+  // sổ (container query `@2xl`, 672px): trên thanh đầu khi rộng, dưới chân khi hẹp. Trước đây nó luôn nằm trên thanh đầu,
+  // và ở màn 360–390px năm nút này đè lên tên tệp rồi đẩy nút Tải xuống cùng nút Đóng
+  // ra ngoài mép phải — người dùng không đóng nổi cửa sổ xem trước.
+  const zoomControls = (isImage || isPdf) && url ? (
+    <>
+      <button
+        onClick={handleZoomOut}
+        disabled={zoom <= ZOOM_MIN}
+        className="p-2 rounded-xl bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 disabled:opacity-30 text-slate-700 dark:text-white transition-all cursor-pointer"
+        title={t('preview.zoomOut')}
+      >
+        <ZoomOut className="w-4 h-4" />
+      </button>
+      <span className="text-xs font-mono px-2 py-1 bg-slate-100 dark:bg-white/10 rounded-lg text-slate-700 dark:text-slate-300 min-w-[50px] text-center">
+        {Math.round(zoom * 100)}%
+      </span>
+      <button
+        onClick={handleZoomIn}
+        disabled={zoom >= ZOOM_MAX}
+        className="p-2 rounded-xl bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 disabled:opacity-30 text-slate-700 dark:text-white transition-all cursor-pointer"
+        title={t('preview.zoomIn')}
+      >
+        <ZoomIn className="w-4 h-4" />
+      </button>
+      <button
+        onClick={handleRotate}
+        className="p-2 rounded-xl bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-slate-700 dark:text-white transition-all cursor-pointer"
+        title={t('preview.rotate')}
+      >
+        <RotateCw className="w-4 h-4" />
+      </button>
+      <button
+        onClick={handleReset}
+        className="p-2 rounded-xl bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-slate-700 dark:text-white transition-all cursor-pointer"
+        title={t('preview.resetZoom')}
+      >
+        <Maximize2 className="w-4 h-4" />
+      </button>
+    </>
+  ) : null;
+
   return (
     // Panel AI mở ra ở cột phải và ĐÈ lên cửa sổ này. Không nhường chỗ thì nó che đúng
     // góc chứa thanh công cụ — kể cả nút Đóng — nên người dùng phải đóng panel mới đóng
     // được cửa sổ xem trước. Chừa ra đúng bề rộng của panel (26rem, 30rem từ `lg`) là hai
     // thứ đứng cạnh nhau: tài liệu bên trái, câu trả lời bên phải, không cái nào che cái
     // nào. Chỉ từ `sm` trở lên — trên điện thoại panel là hộp thoại giữa màn hình.
+    //
+    // `@container`: bố cục bên trong đọc bề ngang CỦA CHÍNH CỬA SỔ NÀY (`@lg:`, `@2xl:`),
+    // không đọc bề ngang màn hình (`sm:`). Panel AI mở ra thì cửa sổ chỉ còn phần bên
+    // trái — điện thoại xoay ngang 844px còn 428px — mà breakpoint theo màn hình vẫn
+    // tưởng là màn rộng, bày đủ nút zoom lên thanh đầu và đẩy nút Đóng ra ngoài.
     <div
-      className={`fixed inset-0 z-50 flex flex-col bg-white/95 dark:bg-slate-950/90 backdrop-blur-xl animate-in fade-in duration-200 text-slate-900 dark:text-white select-none transition-[padding] duration-200 ${
+      className={`@container fixed inset-0 z-50 flex flex-col bg-white/95 dark:bg-slate-950/90 backdrop-blur-xl animate-in fade-in duration-200 text-slate-900 dark:text-white select-none transition-[padding] duration-200 ${
         aiItem ? 'sm:pr-[26rem] lg:pr-[30rem]' : ''
       }`}
     >
       {/* Top Floating Header & Controls */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-white/10 bg-white/85 dark:bg-slate-900/60 backdrop-blur-md">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center border border-blue-500/30 shrink-0">
+      <div className="flex items-center justify-between gap-2 px-3 py-2.5 @2xl:px-6 @2xl:py-4 border-b border-slate-200 dark:border-white/10 bg-white/85 dark:bg-slate-900/60 backdrop-blur-md">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <div className="hidden @lg:flex w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 items-center justify-center border border-blue-500/30 shrink-0">
             {isImage ? <FileImage className="w-5 h-5" /> : isVideo ? <FileVideo className="w-5 h-5" /> : isAudio ? <FileAudio className="w-5 h-5" /> : isSheet ? <FileSpreadsheet className="w-5 h-5" /> : <FileText className="w-5 h-5" />}
           </div>
           <div className="min-w-0">
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-white truncate max-w-md" title={item.name}>
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-white truncate @2xl:max-w-md" title={item.name}>
               {item.name}
             </h3>
-            <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-              <span>{formatBytes(item.sizeBytes)}</span>
-              <span>•</span>
-              <span className="capitalize">{item.storageProvider?.replace('_', ' ') || 'Google Cloud'}</span>
+            <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap min-w-0">
+              <span className="shrink-0">{formatBytes(item.sizeBytes)}</span>
+              <span className="shrink-0">•</span>
+              <span className="capitalize truncate">{item.storageProvider?.replace('_', ' ') || 'Google Cloud'}</span>
             </div>
           </div>
         </div>
 
         {/* Toolbar Controls */}
-        <div className="flex items-center gap-2">
-          {(isImage || isPdf) && url && (
-            <>
-              <button
-                onClick={handleZoomOut}
-                disabled={zoom <= ZOOM_MIN}
-                className="p-2 rounded-xl bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 disabled:opacity-30 text-slate-700 dark:text-white transition-all cursor-pointer"
-                title={t('preview.zoomOut')}
-              >
-                <ZoomOut className="w-4 h-4" />
-              </button>
-              <span className="text-xs font-mono px-2 py-1 bg-slate-100 dark:bg-white/10 rounded-lg text-slate-700 dark:text-slate-300 min-w-[50px] text-center">
-                {Math.round(zoom * 100)}%
-              </span>
-              <button
-                onClick={handleZoomIn}
-                disabled={zoom >= ZOOM_MAX}
-                className="p-2 rounded-xl bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 disabled:opacity-30 text-slate-700 dark:text-white transition-all cursor-pointer"
-                title={t('preview.zoomIn')}
-              >
-                <ZoomIn className="w-4 h-4" />
-              </button>
-              <button
-                onClick={handleRotate}
-                className="p-2 rounded-xl bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-slate-700 dark:text-white transition-all cursor-pointer"
-                title={t('preview.rotate')}
-              >
-                <RotateCw className="w-4 h-4" />
-              </button>
-              <button
-                onClick={handleReset}
-                className="p-2 rounded-xl bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-slate-700 dark:text-white transition-all cursor-pointer"
-                title={t('preview.resetZoom')}
-              >
-                <Maximize2 className="w-4 h-4" />
-              </button>
+        <div className="flex items-center gap-1.5 @lg:gap-2 shrink-0">
+          {zoomControls && (
+            <div className="hidden @2xl:flex items-center gap-2">
+              {zoomControls}
               <div className="w-px h-5 bg-slate-200 dark:bg-white/10 mx-1" />
-            </>
+            </div>
           )}
 
           {/* Hỏi AI ngay tại chỗ: trước đây muốn hỏi về tệp đang xem thì phải đóng cửa sổ
@@ -851,24 +878,26 @@ export default function FilePreviewModal({ item, onClose }) {
               trong lúc đọc câu trả lời — đó mới là điểm của cái nút này. */}
           <button
             onClick={() => openAi(item, 'chat')}
-            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 dark:bg-blue-500/20 dark:hover:bg-blue-500/30 border border-blue-200 dark:border-blue-400/40 text-blue-700 dark:text-blue-100 text-xs font-semibold shadow-sm transition-all cursor-pointer"
+            className="flex items-center gap-2 px-2.5 @lg:px-3 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 dark:bg-blue-500/20 dark:hover:bg-blue-500/30 border border-blue-200 dark:border-blue-400/40 text-blue-700 dark:text-blue-100 text-xs font-semibold shadow-sm transition-all cursor-pointer"
             title={t('preview.askAi')}
           >
             <Sparkles className="w-4 h-4" />
-            <span className="hidden sm:inline">{t('preview.askAi')}</span>
+            <span className="hidden @lg:inline">{t('preview.askAi')}</span>
           </button>
 
           <button
             onClick={handleDownload}
-            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-lg shadow-blue-500/20 transition-all cursor-pointer"
+            title={t('common.download')}
+            aria-label={t('common.download')}
+            className="flex items-center gap-2 px-2.5 @lg:px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-lg shadow-blue-500/20 transition-all cursor-pointer whitespace-nowrap"
           >
             <Download className="w-4 h-4" />
-            <span>{t('common.download')}</span>
+            <span className="hidden @lg:inline">{t('common.download')}</span>
           </button>
 
           <button
             onClick={onClose}
-            className="p-2 rounded-xl bg-slate-100 dark:bg-white/10 hover:bg-rose-500/80 text-slate-700 dark:text-white transition-all ml-2 cursor-pointer"
+            className="p-2 rounded-xl bg-slate-100 dark:bg-white/10 hover:bg-rose-500/80 text-slate-700 dark:text-white transition-all @lg:ml-2 cursor-pointer"
             title={t('preview.close')}
           >
             <X className="w-5 h-5" />
@@ -877,7 +906,7 @@ export default function FilePreviewModal({ item, onClose }) {
       </div>
 
       {/* Main Preview Container */}
-      <div className="flex-1 flex items-center justify-center overflow-hidden p-6 relative">
+      <div className="flex-1 flex items-center justify-center overflow-hidden p-2 @lg:p-6 relative">
         {loading && (
           <div className="flex flex-col items-center gap-3 text-slate-400">
             <Loader2 className="w-10 h-10 animate-spin text-blue-500" />
@@ -886,11 +915,11 @@ export default function FilePreviewModal({ item, onClose }) {
         )}
 
         {error && !loading && (
-          <div className="max-w-md p-6 bg-red-500/10 border border-red-500/30 rounded-2xl text-center space-y-3">
-            <p className="text-sm text-red-300 font-medium">{error}</p>
+          <div className="max-w-md mx-2 p-6 bg-red-500/10 border border-red-500/30 rounded-2xl text-center space-y-3">
+            <p className="text-sm text-red-600 dark:text-red-300 font-medium">{error}</p>
             <button
               onClick={handleDownload}
-              className="px-4 py-2 bg-white/10 hover:bg-white/20 text-xs font-semibold rounded-xl text-white transition-all"
+              className="px-4 py-2 bg-white hover:bg-slate-50 dark:bg-white/10 dark:hover:bg-white/20 border border-slate-200 dark:border-transparent text-xs font-semibold rounded-xl text-slate-700 dark:text-white transition-all cursor-pointer"
             >
               {t('preview.downloadToView')}
             </button>
@@ -1031,16 +1060,16 @@ export default function FilePreviewModal({ item, onClose }) {
             {isDocx && (
               <div className="w-full h-full max-w-5xl rounded-2xl overflow-hidden bg-white dark:bg-[#0d1117] border border-slate-200 dark:border-white/10 shadow-2xl flex flex-col">
                 <div className="px-4 py-2.5 bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-white/10 text-xs font-mono text-slate-600 dark:text-slate-400 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block" />
-                    <span className="font-semibold text-slate-800 dark:text-slate-200">{item.name}</span>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block shrink-0" />
+                    <span className="hidden @lg:inline font-semibold text-slate-800 dark:text-slate-200 truncate">{item.name}</span>
                   </div>
                   <span>Word Document • {formatBytes(item.sizeBytes)}</span>
                 </div>
                 {/* Không còn class typography nào ở đây: `docx-preview` dựng lại
                     font, cỡ chữ, lề và khổ giấy ĐÚNG như trong tệp, nên mọi thứ áp
                     từ ngoài vào đều là ghi đè lên định dạng thật của tài liệu. */}
-                <div className="flex-1 overflow-auto p-4 sm:p-8 bg-slate-100 dark:bg-slate-950/60 flex justify-center">
+                <div className="flex-1 overflow-auto p-4 @lg:p-8 bg-slate-100 dark:bg-slate-950/60 flex justify-center">
                   <DocxRenderer url={url} onDownload={handleDownload} />
                 </div>
               </div>
@@ -1051,7 +1080,7 @@ export default function FilePreviewModal({ item, onClose }) {
                 <div className="px-4 py-2.5 bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-white/10 text-xs font-mono text-slate-600 dark:text-slate-400 flex items-center justify-between">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block shrink-0" />
-                    <span className="font-semibold text-slate-800 dark:text-slate-200 truncate">{item.name}</span>
+                    <span className="hidden @lg:inline font-semibold text-slate-800 dark:text-slate-200 truncate">{item.name}</span>
                   </div>
                   <span className="shrink-0">{t('preview.sheet.label')} • {formatBytes(item.sizeBytes)}</span>
                 </div>
@@ -1064,14 +1093,14 @@ export default function FilePreviewModal({ item, onClose }) {
                 <div className="px-4 py-2.5 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-white/10 text-xs font-mono text-slate-600 dark:text-slate-400 flex items-center justify-between">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className={`w-2.5 h-2.5 rounded-full inline-block shrink-0 ${isMd ? 'bg-sky-400' : 'bg-emerald-500'}`} />
-                    <span className="font-semibold text-slate-800 dark:text-slate-200 truncate">{item.name}</span>
+                    <span className="hidden @lg:inline font-semibold text-slate-800 dark:text-slate-200 truncate">{item.name}</span>
                     {isMd && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 font-mono hidden sm:inline-block">
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 font-mono hidden @lg:inline-block">
                         Markdown
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                  <div className="flex items-center gap-2 @lg:gap-3 shrink-0">
                     {isMd && (
                       <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-white/10">
                         <button
@@ -1098,7 +1127,7 @@ export default function FilePreviewModal({ item, onClose }) {
                     >
                       {copied ? t('preview.copied') : t('preview.copy')}
                     </button>
-                    <span className="hidden sm:inline">UTF-8 • {formatBytes(item.sizeBytes)}</span>
+                    <span className="hidden @lg:inline">UTF-8 • {formatBytes(item.sizeBytes)}</span>
                   </div>
                 </div>
                 <div className="flex-1 overflow-auto text-xs text-slate-700 dark:text-slate-200 selection:bg-blue-500/40">
@@ -1125,7 +1154,7 @@ export default function FilePreviewModal({ item, onClose }) {
                   ) : textContent ? (
                     isMd && mdViewMode === 'preview' ? (
                       <div
-                        className="p-6 sm:p-10 max-w-4xl mx-auto markdown-preview-content"
+                        className="p-6 @lg:p-10 max-w-4xl mx-auto markdown-preview-content"
                         dangerouslySetInnerHTML={{
                           __html: marked.parse(textContent, { breaks: true, gfm: true })
                         }}
@@ -1208,11 +1237,14 @@ export default function FilePreviewModal({ item, onClose }) {
         )}
       </div>
 
-      {/* Bottom Info Bar */}
-      <div className="px-6 py-3 bg-white/85 dark:bg-slate-900/60 border-t border-slate-200 dark:border-white/10 flex items-center justify-end text-xs text-slate-500 dark:text-slate-400">
-        <div className="flex items-center gap-4">
-          <span>{t('preview.shortcuts')}</span>
-        </div>
+      {/* Bottom Info Bar — cửa sổ rộng: dòng phím tắt. Hẹp (điện thoại): không có bàn phím nên
+          dòng đó vô nghĩa và tốn hai dòng chữ; chỗ này nhường cho bộ nút phóng/xoay (chỉ
+          khi tệp có), không có thì ẩn luôn thanh để phần xem được thêm chỗ. */}
+      <div className={`px-3 py-2 @2xl:px-6 @2xl:py-3 bg-white/85 dark:bg-slate-900/60 border-t border-slate-200 dark:border-white/10 items-center justify-center @2xl:justify-end text-xs text-slate-500 dark:text-slate-400 ${
+        zoomControls ? 'flex' : 'hidden @2xl:flex'
+      }`}>
+        {zoomControls && <div className="flex @2xl:hidden items-center gap-2">{zoomControls}</div>}
+        <span className="hidden @2xl:inline">{t('preview.shortcuts')}</span>
       </div>
     </div>
   );

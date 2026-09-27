@@ -85,9 +85,12 @@ export default function Sidebar() {
       <aside
         className={`bg-[var(--app-sidebar)] border-r border-[var(--app-border)] flex flex-col pt-3 short:pt-2 select-none transition-all duration-300 ease-in-out shrink-0 h-full 
           fixed lg:relative z-50 lg:z-0 top-0 left-0
-          ${isSidebarCollapsed ? '-translate-x-full lg:translate-x-0 lg:w-20 px-2' : 'translate-x-0 w-72 lg:w-64 px-3'}
+          ${isSidebarCollapsed ? '-translate-x-full lg:translate-x-0 lg:w-20 px-2' : 'translate-x-0 w-76 px-3'}
         `}
       >
+        {/* Rộng 304px cả điện thoại lẫn desktop: nhãn dài nhất ("cloudSSS được chia sẻ với
+            tôi") in đậm lúc đang chọn cần ~198px, bản 256px cũ chỉ cho 159px nên bị cắt
+            thành "...". Thêm mục mới thì đo lại, đừng để nhãn nào phải cắt. */}
         {/* NÚT + MỚI */}
         <div className={`mb-5 short:mb-2.5 flex ${isSidebarCollapsed ? 'justify-center' : 'pl-2 justify-start'}`}>
           <NewButton isCollapsed={isSidebarCollapsed} />

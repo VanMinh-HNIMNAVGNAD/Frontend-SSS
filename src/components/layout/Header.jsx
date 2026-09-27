@@ -40,6 +40,7 @@ export default function Header({ toggleRightSidebar }) {
         setSearchQuery, 
         toggleSidebar, 
         filterType,
+        filterOwner,
         isSidebarCollapsed,
         getSelectedItems,
         folders,
@@ -463,7 +464,7 @@ export default function Header({ toggleRightSidebar }) {
                         title={t('header.search.filter')}
                         aria-expanded={isFilterOpen}
                         className={`p-2 sm:p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-white/10 transition-colors ml-1 sm:ml-2 shrink-0 cursor-pointer ${
-                            isFilterOpen || filterType !== 'all' ? 'text-blue-700 dark:text-blue-400 bg-blue-100/80 dark:bg-blue-500/15' : 'text-gray-700 dark:text-gray-300'
+                            isFilterOpen || filterType !== 'all' || filterOwner !== 'all' ? 'text-blue-700 dark:text-blue-400 bg-blue-100/80 dark:bg-blue-500/15' : 'text-gray-700 dark:text-gray-300'
                         }`}
                     >
                         <SlidersHorizontal className="w-4 h-4" />

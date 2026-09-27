@@ -50,7 +50,7 @@ export default function FileSkeleton({ count = 8, type = 'table' }) {
 
     // 3. Extended Metadata Table / List Mode Skeleton (For FileListView)
     return (
-        <div className="w-full overflow-hidden animate-pulse rounded-xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-[#282a2c]">
+        <div className="w-full overflow-hidden animate-pulse border-b border-gray-200 dark:border-gray-700">
             {/* Table Header Skeleton */}
             <div className="grid grid-cols-12 items-center border-b border-gray-200 dark:border-gray-700 py-3 px-3 bg-gray-50/80 dark:bg-white/5 text-xs">
                 <div className="col-span-3 flex items-center gap-2">

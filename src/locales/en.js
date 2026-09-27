@@ -208,6 +208,7 @@ const en = {
   'filter.resetTitle': 'Clear all filters',
   'filter.type.all': 'All file types',
   'filter.type.folder': 'Folders',
+  'filter.type.file': 'Files',
   'filter.type.pdf': 'Documents & PDF',
   'filter.type.image': 'Images & design',
   'filter.type.spreadsheet': 'Spreadsheets & databases',
@@ -1193,23 +1194,11 @@ const en = {
 
   // ── Search filter panel (SearchFilterModal) ──
   'search.filter.title': 'cloudSSS search filters',
-  'search.filter.type.label': 'File / cloudSSS type',
-  'search.filter.type.all': 'All types (cloudSSS, folders, files)',
-  'search.filter.type.folder': 'Folder / cloudSSS',
-  'search.filter.type.file': 'File',
-  'search.filter.type.pdf': 'PDF document (.pdf)',
-  'search.filter.type.image': 'Image (PNG, JPG)',
   'search.filter.owner.label': 'Owner',
   'search.filter.owner.anyone': 'Anyone',
   'search.filter.owner.me': 'Owned by me',
-  'search.filter.owner.others': 'Shared by others',
+  'search.filter.owner.others': 'Owned by others',
   'search.filter.location.label': 'Location',
-  'search.filter.location.anywhere': 'Anywhere in cloudSSS',
-  'search.filter.location.myDrive': 'My cloudSSS',
-  'search.filter.location.sharedWithMe': 'Shared with me',
-  'search.filter.location.sharedDrives': 'Shared cloudSSS',
-  'search.filter.location.spam': 'Spam',
-  'search.filter.location.trash': 'Trash',
   'search.filter.apply': 'Apply filters',
 
 

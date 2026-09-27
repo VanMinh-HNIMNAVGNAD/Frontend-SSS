@@ -17,6 +17,7 @@ import { formatBytes } from '../utils/formatFileSize';
 import { buildSortedDirPaths } from '../utils/uploadTree';
 import { CHUNK_THRESHOLD, isResumableSize } from '../constants/upload';
 import { localeTagOf } from '../utils/locale';
+import { dateFilterStart } from '../constants/fileFilters';
 import { readNamespace, writeManyCached, clearPersistentCache } from '../utils/persistentCache';
 import { primeThumbnailsForUpload } from '../utils/thumbnailPrimer';
 import { createPipelinedBatcher } from '../utils/uploadBatcher';
@@ -132,8 +133,14 @@ const LIST_CACHE_TTL_MS = 60 * 60 * 1000;
  */
 const LIST_REVALIDATE_AFTER_MS = 60 * 1000;
 
-/** Namespace của bộ đệm danh sách trong kho bền (`utils/persistentCache.js`). */
-const LIST_PERSIST_NS = 'file-list';
+/**
+ * Namespace của bộ đệm danh sách trong kho bền (`utils/persistentCache.js`).
+ *
+ * Đổi tên khi HÌNH DẠNG item đổi: bản lưu cũ không có `updatedAtMs`/`createdAtMs`
+ * (v2), mà vẽ nó ra trước lượt gọi mạng thì sắp theo ngày sẽ sai cho tới lúc server
+ * trả lời. Namespace cũ tự hết hạn theo TTL, không cần dọn tay.
+ */
+const LIST_PERSIST_NS = 'file-list-v2';
 
 /**
  * Gom nhiều lượt ghi thành một lượt xuống đĩa.
@@ -184,6 +191,11 @@ const formatApiItem = (item, isSharedWithMe = false, locale = 'vi-VN') => {
     size: Number(item.sizeBytes || 0),
     createdAt: item.createdAt ? new Date(item.createdAt).toLocaleString(locale) : '',
     updatedAt: item.updatedAt ? new Date(item.updatedAt).toLocaleString(locale) : '',
+    // Mốc thời gian dạng số để SẮP XẾP. `createdAt`/`updatedAt` ở trên đã thành chuỗi
+    // hiển thị ("17:00:00 20/9/2026"), và đem chuỗi đó so theo bảng chữ cái là xếp theo
+    // GIỜ TRONG NGÀY: "Sửa đổi mới nhất" từng đưa tệp 20/9 lên trên tệp 26/9.
+    createdAtMs: Date.parse(item.createdAt) || 0,
+    updatedAtMs: Date.parse(item.updatedAt) || 0,
   };
 
   if (isSharedWithMe) {
@@ -383,12 +395,40 @@ export function FileProvider({ children }) {
   ]);
 
   // Search & Filters
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQueryState] = useState('');
   const debouncedSearch = useDebounce(searchQuery, 400); // B8: chỉ gọi API sau 400ms idle
-  const [filterType, setFilterType] = useState('all');
-  const [filterDate, setFilterDate] = useState('all');
-  const [filterOwner, setFilterOwner] = useState('all');
-  const [filterLocation, setFilterLocation] = useState('all');
+  const [filterType, setFilterTypeState] = useState('all');
+  const [filterDate, setFilterDateState] = useState('all');
+  const [filterOwner, setFilterOwnerState] = useState('all');
+
+  // Đổi câu hỏi (từ khoá, bộ lọc) là quay về trang 1. Trước đây số trang giữ nguyên:
+  // đang ở trang 2 mà lọc ra ít hơn 50 mục thì màn hình hiện một trang trống.
+  const setSearchQuery = useCallback((value) => {
+    setSearchQueryState(value);
+    setCurrentPage(1);
+  }, [setCurrentPage]);
+  const setFilterType = useCallback((value) => {
+    setFilterTypeState(value);
+    setCurrentPage(1);
+  }, [setCurrentPage]);
+  const setFilterDate = useCallback((value) => {
+    setFilterDateState(value);
+    setCurrentPage(1);
+  }, [setCurrentPage]);
+  const setFilterOwner = useCallback((value) => {
+    setFilterOwnerState(value);
+    setCurrentPage(1);
+  }, [setCurrentPage]);
+
+  /**
+   * "Người sở hữu" chỉ có nghĩa ở Bộ nhớ dùng chung — nơi duy nhất một danh sách có
+   * mục của người khác mà backend lọc được theo chủ. Ở cloudSSS của tôi, Gắn sao,
+   * Thùng rác… mọi mục đều của bạn nên "người khác" luôn ra rỗng; ở "Được chia sẻ với
+   * tôi" backend bỏ qua nó. Ngoài Bộ nhớ dùng chung thì coi như không lọc — kể cả khi
+   * lựa chọn còn đọng lại từ lần trước — để không có bộ lọc vô hình nào làm rỗng trang.
+   */
+  const ownerFilterApplies = activeTab === 'shared-drives';
+  const effectiveFilterOwner = ownerFilterApplies ? filterOwner : 'all';
 
   // Sorting
   const [sortField, setSortField] = useState('name'); // 'name' | 'size' | 'type' | 'owner' | 'group' | 'updatedAt' | 'createdAt'
@@ -431,7 +471,7 @@ export function FileProvider({ children }) {
     search: debouncedSearch,
     filterType,
     filterDate,
-    filterOwner,
+    filterOwner: effectiveFilterOwner,
   };
 
   /**
@@ -747,14 +787,14 @@ export function FileProvider({ children }) {
         search: debouncedSearch || '',
         filterType,
         filterDate,
-        filterOwner,
+        filterOwner: effectiveFilterOwner,
         page: currentPage,
         limit: pageSize,
         locale,
       }),
     [
       activeTab, currentFolderId, currentSharedDriveId, debouncedSearch,
-      filterType, filterDate, filterOwner, currentPage, pageSize, locale,
+      filterType, filterDate, effectiveFilterOwner, currentPage, pageSize, locale,
     ],
   );
 
@@ -1231,7 +1271,10 @@ export function FileProvider({ children }) {
               search: debouncedSearch || undefined,
               filterType: filterType !== 'all' ? filterType : undefined,
               filterDate: filterDate !== 'all' ? filterDate : undefined,
-              filterSender: filterOwner !== 'all' ? filterOwner : undefined,
+              // Mốc theo giờ máy người dùng — xem `dateFilterStart`. Tính NGAY lúc gọi,
+              // không đưa vào dependency: "7 ngày qua" trôi theo từng mili giây.
+              updatedFrom: dateFilterStart(filterDate)?.toISOString(),
+              filterSender: effectiveFilterOwner !== 'all' ? effectiveFilterOwner : undefined,
               page: currentPage,
               limit: pageSize,
             },
@@ -1319,7 +1362,7 @@ export function FileProvider({ children }) {
 
       await doFetch(retries);
     },
-    [isAuthenticated, isAuthLoading, isListCacheHydrated, activeTab, currentFolderId, currentSharedDriveId, debouncedSearch, filterType, filterDate, filterOwner, currentPage, pageSize, fetchHomeItems, locale, t, cacheKey, scopeKey, readListCache, writeListCache]
+    [isAuthenticated, isAuthLoading, isListCacheHydrated, activeTab, currentFolderId, currentSharedDriveId, debouncedSearch, filterType, filterDate, effectiveFilterOwner, currentPage, pageSize, fetchHomeItems, locale, t, cacheKey, scopeKey, readListCache, writeListCache]
   );
 
   /**
@@ -1477,12 +1520,12 @@ export function FileProvider({ children }) {
   }, [belongsToCurrentView, upsertItems, scheduleAnalyticsRefresh, scheduleSilentSync, t]);
 
   const resetFilters = useCallback(() => {
-    setFilterType('all');
-    setFilterDate('all');
-    setFilterOwner('all');
-    setFilterLocation('all');
-    setSearchQuery('');
-  }, []);
+    setFilterTypeState('all');
+    setFilterDateState('all');
+    setFilterOwnerState('all');
+    setSearchQueryState('');
+    setCurrentPage(1);
+  }, [setCurrentPage]);
 
   // ── Selection Functions ──
 
@@ -1571,40 +1614,48 @@ export function FileProvider({ children }) {
   const folders = useMemo(() => items.filter((item) => item.type === 'folder'), [items]);
   const files = useMemo(() => items.filter((item) => item.type === 'file'), [items]);
 
-  const sortedFolders = useMemo(() => {
-    return [...folders].sort((a, b) => {
-        let valA = a[sortField] || '';
-        let valB = b[sortField] || '';
-        
-        if (typeof valA === 'string') valA = valA.toLowerCase();
-        if (typeof valB === 'string') valB = valB.toLowerCase();
+  /**
+   * So sánh hai mục theo cột đang chọn — dùng chung cho thư mục và tệp.
+   *
+   * • Tên: thứ tự TỰ NHIÊN theo ngôn ngữ giao diện (`Intl.Collator`, `numeric`). So
+   *   chuỗi thô như trước thì "Thư mục 10" đứng trước "Thư mục 2", còn "Ảnh", "Đề
+   *   cương" bị đẩy xuống sau "Zalo" vì chữ có dấu nằm ngoài bảng a–z.
+   * • Ngày: so MỐC THỜI GIAN (`updatedAtMs`), không so chuỗi hiển thị — xem `formatApiItem`.
+   * • Hoà nhau (ví dụ mọi thư mục đều "0 byte" khi sắp theo kích thước) thì xếp theo
+   *   tên, để thứ tự luôn đoán được thay vì phụ thuộc thứ tự server trả về.
+   */
+  const compareItems = useMemo(() => {
+    const collator = new Intl.Collator(locale, { numeric: true, sensitivity: 'base' });
+    const byName = (a, b) => collator.compare(a.name || '', b.name || '');
+    const byField = {
+      size: (a, b) => (Number(a.sizeBytes) || 0) - (Number(b.sizeBytes) || 0),
+      updatedAt: (a, b) => (a.updatedAtMs || 0) - (b.updatedAtMs || 0),
+      createdAt: (a, b) => (a.createdAtMs || 0) - (b.createdAtMs || 0),
+      type: (a, b) => collator.compare(a.mimeType || '', b.mimeType || ''),
+      owner: (a, b) => collator.compare(a.owner || '', b.owner || ''),
+    };
+    const sign = sortDirection === 'desc' ? -1 : 1;
+    return (a, b) => {
+      const primary = sortField === 'name' ? byName(a, b) : byField[sortField]?.(a, b) || 0;
+      if (primary !== 0) return sign * primary;
+      return sortField === 'name' ? 0 : byName(a, b);
+    };
+  }, [locale, sortField, sortDirection]);
 
-        if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
-        if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
-        return 0;
-    });
-  }, [folders, sortField, sortDirection]);
+  // "Gần đây" giữ NGUYÊN thứ tự server trả về — mở gần nhất trước. Trang này không có
+  // thanh sắp xếp, nên trước đây nó lặng lẽ dùng lựa chọn toàn cục (mặc định Tên A-Z)
+  // và "Gần đây" hiện ra theo bảng chữ cái.
+  const keepServerOrder = activeTab === 'recent';
 
-  const sortedFiles = useMemo(() => {
-    return [...files].sort((a, b) => {
-        let valA = a[sortField] || '';
-        let valB = b[sortField] || '';
-        if (sortField === 'size') {
-            valA = Number(a.sizeBytes) || 0;
-            valB = Number(b.sizeBytes) || 0;
-        } else if (sortField === 'type') {
-            valA = a.mimeType || '';
-            valB = b.mimeType || '';
-        } else {
-            if (typeof valA === 'string') valA = valA.toLowerCase();
-            if (typeof valB === 'string') valB = valB.toLowerCase();
-        }
+  const sortedFolders = useMemo(
+    () => (keepServerOrder ? folders : [...folders].sort(compareItems)),
+    [folders, compareItems, keepServerOrder],
+  );
 
-        if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
-        if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
-        return 0;
-    });
-  }, [files, sortField, sortDirection]);
+  const sortedFiles = useMemo(
+    () => (keepServerOrder ? files : [...files].sort(compareItems)),
+    [files, compareItems, keepServerOrder],
+  );
 
   // Storage Info Object
   const storageInfo = useMemo(() => ({
@@ -3071,10 +3122,9 @@ export function FileProvider({ children }) {
     setSortField,
     sortDirection,
     setSortDirection,
-    filterOwner,
+    filterOwner: effectiveFilterOwner,
     setFilterOwner,
-    filterLocation,
-    setFilterLocation,
+    ownerFilterApplies,
     resetFilters,
     storageInfo,
     /**
@@ -3141,7 +3191,8 @@ export function FileProvider({ children }) {
     handleSetActiveTab, handleSetCurrentFolderId, handleSetCurrentSharedDriveId,
     openFolder, toggleSidebar, setViewMode,
     // ── Tìm kiếm / lọc / sắp xếp ──
-    searchQuery, filterType, filterDate, filterOwner, filterLocation,
+    searchQuery, filterType, filterDate, effectiveFilterOwner, ownerFilterApplies,
+    setSearchQuery, setFilterType, setFilterDate, setFilterOwner,
     sortField, sortDirection, resetFilters, uniqueOwners,
     // ── Lưu trữ ──
     storageInfo, fetchAnalytics,

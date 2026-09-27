@@ -211,6 +211,7 @@ const vi = {
   'filter.resetTitle': 'Xóa tất cả bộ lọc',
   'filter.type.all': 'Tất cả loại tệp',
   'filter.type.folder': 'Thư mục',
+  'filter.type.file': 'Tệp tin',
   'filter.type.pdf': 'Tài liệu & PDF',
   'filter.type.image': 'Hình ảnh & Thiết kế',
   'filter.type.spreadsheet': 'Bảng tính & Database',
@@ -1211,23 +1212,11 @@ const vi = {
 
   // ── Bảng bộ lọc tìm kiếm (SearchFilterModal) ──
   'search.filter.title': 'Bộ lọc tìm kiếm cloudSSS',
-  'search.filter.type.label': 'Loại tệp / cloudSSS',
-  'search.filter.type.all': 'Tất cả loại (cloudSSS, thư mục, tệp)',
-  'search.filter.type.folder': 'Thư mục / cloudSSS',
-  'search.filter.type.file': 'Tệp tin',
-  'search.filter.type.pdf': 'Tài liệu PDF (.pdf)',
-  'search.filter.type.image': 'Hình ảnh (PNG, JPG)',
   'search.filter.owner.label': 'Người sở hữu',
   'search.filter.owner.anyone': 'Bất kỳ ai',
   'search.filter.owner.me': 'Tôi sở hữu',
-  'search.filter.owner.others': 'Được chia sẻ bởi người khác',
+  'search.filter.owner.others': 'Người khác sở hữu',
   'search.filter.location.label': 'Vị trí',
-  'search.filter.location.anywhere': 'Bất kỳ đâu trong cloudSSS',
-  'search.filter.location.myDrive': 'cloudSSS của tôi',
-  'search.filter.location.sharedWithMe': 'Được chia sẻ với tôi',
-  'search.filter.location.sharedDrives': 'cloudSSS đã chia sẻ',
-  'search.filter.location.spam': 'Nội dung rác',
-  'search.filter.location.trash': 'Thùng rác',
   'search.filter.apply': 'Áp dụng bộ lọc',
 
 

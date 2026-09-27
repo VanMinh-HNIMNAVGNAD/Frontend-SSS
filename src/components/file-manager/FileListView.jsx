@@ -334,6 +334,30 @@ const FileTableRow = memo(function FileTableRow({
 
 // ──────────────────────────────────────────────────────────────────
 
+/**
+ * Ô tiêu đề cột bấm được để sắp xếp. `onSort = null` là cột chỉ để đọc (tab "Gần đây").
+ */
+function SortHeader({ field, label, className = '', onSort, sortField, sortDirection }) {
+    const active = onSort && sortField === field;
+    return (
+        <th
+            onClick={onSort ? () => onSort(field) : undefined}
+            className={`py-3 px-3 font-bold transition-colors ${
+                onSort ? 'hover:text-blue-700 dark:hover:text-blue-400 cursor-pointer' : ''
+            } ${className}`}
+        >
+            <div className="flex items-center gap-1">
+                <span>{label}</span>
+                {active && (
+                    sortDirection === 'asc'
+                        ? <ArrowUp className="w-3 h-3 text-blue-600 dark:text-blue-400" />
+                        : <ArrowDown className="w-3 h-3 text-blue-600 dark:text-blue-400" />
+                )}
+            </div>
+        </th>
+    );
+}
+
 export default function FileListView() {
     const { t } = useLanguage();
     const {
@@ -486,6 +510,13 @@ export default function FileListView() {
         }
     }, [sortField, setSortDirection, setSortField]);
 
+    // "Gần đây" luôn theo thứ tự mở gần nhất (FileContext giữ nguyên thứ tự server ở
+    // tab này), nên tiêu đề cột ở đó không bấm được và không có mũi tên: một mũi tên
+    // "Tên ↑" trên danh sách không xếp theo tên là nói sai.
+    const sortProps = activeTab === 'recent'
+        ? { onSort: null }
+        : { onSort: handleSort, sortField, sortDirection };
+
     // Folders and files are already sorted by FileContext
     const sortedFolders = folders || [];
     const sortedFiles = files || [];
@@ -601,7 +632,7 @@ export default function FileListView() {
     return (
         <div
             onContextMenu={openBlankContextMenu}
-            className="w-full flex flex-col h-full justify-between select-none text-xs sm:text-sm relative"
+            className="w-full flex flex-col min-h-full select-none text-xs sm:text-sm relative"
         >
             <input type="file" ref={fileInputRef} onChange={handleFileInputChange} multiple className="hidden" aria-label={t('newBtn.aria.pickFiles')} />
             <input type="file" ref={setFolderInputRef} onChange={handleFolderInputChange} multiple className="hidden" aria-label={t('newBtn.aria.pickFolder')} />
@@ -610,8 +641,12 @@ export default function FileListView() {
             {/* `isRefreshing` = vẫn đứng nguyên thư mục này, chỉ đang lọc / tìm lại.
                 Làm mờ và khoá tương tác thay vì thay bằng skeleton: xoá cả bảng đi
                 rồi dựng lại sau mỗi 400ms gõ phím là màn hình nhấp nháy liên tục. */}
+            {/* KHÔNG có thẻ bao (viền + bo góc + bóng) và KHÔNG tự cuộn dọc: bảng dài theo
+                nội dung và cuộn cùng khung trang. Trước đây khung này `flex-1` trong một cột
+                `h-full` nên bảng cuộn TRONG một ô riêng, còn bên dưới luôn chừa 96px trống —
+                danh sách dừng cách đáy màn hình một đoạn, và thẻ trắng bao quanh làm rối mắt. */}
             <div
-                className={`w-full flex-1 overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700 shadow-xs bg-white dark:bg-[#282a2c] transition-opacity duration-150 ${
+                className={`w-full overflow-x-auto border-b border-gray-200 dark:border-gray-700 transition-opacity duration-150 ${
                     isRefreshing ? 'opacity-50 pointer-events-none' : ''
                 }`}
                 aria-busy={isRefreshing}
@@ -639,70 +674,12 @@ export default function FileListView() {
                             {/* Star Header */}
                             <th className="py-3 px-3 w-8 text-center"></th>
 
-                            {/* Name Header */}
-                            <th
-                                onClick={() => handleSort('name')}
-                                className="py-3 px-3 font-bold hover:text-blue-700 dark:hover:text-blue-400 cursor-pointer transition-colors"
-                            >
-                                <div className="flex items-center gap-1">
-                                    <span>{t('list.col.name')}</span>
-                                    {sortField === 'name' && (
-                                        sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 text-blue-600 dark:text-blue-400" /> : <ArrowDown className="w-3 h-3 text-blue-600 dark:text-blue-400" />
-                                    )}
-                                </div>
-                            </th>
-
-                            {/* Size Header */}
-                            <th
-                                onClick={() => handleSort('size')}
-                                className="py-3 px-3 font-bold hover:text-blue-700 dark:hover:text-blue-400 cursor-pointer transition-colors"
-                            >
-                                <div className="flex items-center gap-1">
-                                    <span>{t('list.col.size')}</span>
-                                    {sortField === 'size' && (
-                                        sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 text-blue-600 dark:text-blue-400" /> : <ArrowDown className="w-3 h-3 text-blue-600 dark:text-blue-400" />
-                                    )}
-                                </div>
-                            </th>
-
-                            {/* Type Header (Hidden on Mobile & Tablet) */}
-                            <th
-                                onClick={() => handleSort('type')}
-                                className="py-3 px-3 font-bold hover:text-blue-700 dark:hover:text-blue-400 cursor-pointer transition-colors hidden lg:table-cell"
-                            >
-                                <div className="flex items-center gap-1">
-                                    <span>{t('list.col.type')}</span>
-                                    {sortField === 'type' && (
-                                        sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 text-blue-600 dark:text-blue-400" /> : <ArrowDown className="w-3 h-3 text-blue-600 dark:text-blue-400" />
-                                    )}
-                                </div>
-                            </th>
-
-                            {/* Owner Header (Hidden on Mobile & Tablet) */}
-                            <th
-                                onClick={() => handleSort('owner')}
-                                className="py-3 px-3 font-bold hover:text-blue-700 dark:hover:text-blue-400 cursor-pointer transition-colors hidden lg:table-cell"
-                            >
-                                <div className="flex items-center gap-1">
-                                    <span>{t('list.col.owner')}</span>
-                                    {sortField === 'owner' && (
-                                        sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 text-blue-600 dark:text-blue-400" /> : <ArrowDown className="w-3 h-3 text-blue-600 dark:text-blue-400" />
-                                    )}
-                                </div>
-                            </th>
-
-                            {/* Modified Header (Hidden on Mobile) */}
-                            <th
-                                onClick={() => handleSort('updatedAt')}
-                                className="py-3 px-3 font-bold hover:text-blue-700 dark:hover:text-blue-400 cursor-pointer transition-colors hidden sm:table-cell"
-                            >
-                                <div className="flex items-center gap-1">
-                                    <span>{t('list.col.modified')}</span>
-                                    {sortField === 'updatedAt' && (
-                                        sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 text-blue-600 dark:text-blue-400" /> : <ArrowDown className="w-3 h-3 text-blue-600 dark:text-blue-400" />
-                                    )}
-                                </div>
-                            </th>
+                            {/* Tiêu đề cột bấm để sắp xếp — xem `SortHeader`. */}
+                            <SortHeader field="name" label={t('list.col.name')} {...sortProps} />
+                            <SortHeader field="size" label={t('list.col.size')} {...sortProps} />
+                            <SortHeader field="type" label={t('list.col.type')} className="hidden lg:table-cell" {...sortProps} />
+                            <SortHeader field="owner" label={t('list.col.owner')} className="hidden lg:table-cell" {...sortProps} />
+                            <SortHeader field="updatedAt" label={t('list.col.modified')} className="hidden sm:table-cell" {...sortProps} />
 
                             {/* Actions Header */}
                             <th className="py-3 px-3 w-10 text-center"></th>
@@ -749,11 +726,11 @@ export default function FileListView() {
 
             {/*
               Vùng nền trống bên dưới bảng — right-click vào đây để tải lên / tạo thư mục mới.
-              Cao cố định (h-24) chứ không flex-1 nữa: khung bảng ở trên đã lấy flex-1 để kéo
-              dài hết vùng nhìn thấy, nên phần chừa cho right-click phải giữ chiều cao riêng,
-              nếu không nó bị bóp về 0 và mất chỗ mở menu vùng trống.
+              `flex-1` lấp phần còn thừa khi thư mục ít mục; `min-h-12` giữ một dải 48px ở
+              cuối khi danh sách dài hơn màn hình, đủ chỗ mở menu vùng trống mà không bắt
+              người dùng nhìn một khoảng trống lớn.
             */}
-            <div className="h-24 shrink-0" aria-hidden="true" />
+            <div className="flex-1 min-h-12 shrink-0" aria-hidden="true" />
 
             {/* Pagination Controls */}
             {totalPages > 1 && (

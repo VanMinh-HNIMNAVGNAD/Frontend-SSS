@@ -4,6 +4,7 @@ import {
     Calendar,
     XCircle,
     Folder,
+    File,
     FileText,
     Image as ImageIcon,
     FileSpreadsheet,
@@ -15,6 +16,19 @@ import {
 } from 'lucide-react';
 import { useFiles } from '../../context/FileContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { FILE_TYPE_FILTER_OPTIONS } from '../../constants/fileFilters';
+
+const TYPE_ICONS = {
+    folder: Folder,
+    file: File,
+    pdf: FileText,
+    image: ImageIcon,
+    spreadsheet: FileSpreadsheet,
+    presentation: Presentation,
+    media: Video,
+    code: FileCode,
+    archive: Archive,
+};
 
 /**
  * Reusable File Filter Bar Component (Common Component used across MyDrivePage, SharedWithMePage, StarredPage, SpamPage, TrashPage)
@@ -30,17 +44,14 @@ export default function FileFilterBar({
     const { sortField, setSortField, sortDirection, setSortDirection } = useFiles();
     const { t } = useLanguage();
 
-    // Extended File Type Options
+    // Cùng một danh sách với bộ lọc nâng cao trên thanh tìm kiếm — xem constants/fileFilters.js.
     const typeOptions = [
         { value: 'all', label: t('filter.type.all') },
-        { value: 'folder', label: t('filter.type.folder'), icon: Folder },
-        { value: 'pdf', label: t('filter.type.pdf'), icon: FileText },
-        { value: 'image', label: t('filter.type.image'), icon: ImageIcon },
-        { value: 'spreadsheet', label: t('filter.type.spreadsheet'), icon: FileSpreadsheet },
-        { value: 'presentation', label: t('filter.type.presentation'), icon: Presentation },
-        { value: 'media', label: t('filter.type.media'), icon: Video },
-        { value: 'code', label: t('filter.type.code'), icon: FileCode },
-        { value: 'archive', label: t('filter.type.archive'), icon: Archive },
+        ...FILE_TYPE_FILTER_OPTIONS.map(({ value, labelKey }) => ({
+            value,
+            label: t(labelKey),
+            icon: TYPE_ICONS[value],
+        })),
     ];
 
     // Date Modified Options

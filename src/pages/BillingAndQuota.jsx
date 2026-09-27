@@ -56,7 +56,7 @@ import {
  *   trả về `[{ id, name, storageBytes, storageGB, priceMonthly, priceYearly }]` đã sắp xếp
  *   theo `priceMonthly` tăng dần. Bảng giá render bằng cách loop `plans` — DB trả bao nhiêu
  *   gói thì có bấy nhiêu cột, không có mảng gói cứng nào ở đây nữa.
- * - Giao diện (badge, icon, danh sách quyền lợi) nằm ở `PLAN_UI_CONFIG` trong
+ * - Giao diện (huy hiệu, gói được làm nổi, danh sách quyền lợi) nằm ở `PLAN_UI_CONFIG` trong
  *   `constants/billing.js`, ghép vào dữ liệu API theo tên gói, dự phòng theo index.
  *
  * Trước đây trang render một mảng 3 gói hard-code nên khi DB lên 5 gói thì giá 199.000 đ của
@@ -459,36 +459,41 @@ export default function BillingAndQuota() {
             </div>
           </div>
 
-          {/* Section Switcher & Button Làm mới */}
+          {/* Section Switcher & Button Làm mới
+              Hai tab là hai ô BẰNG NHAU (grid 2 cột), chỉ có chữ; "Làm mới" là một thao
+              tác chứ không phải tab nên đứng riêng sau vạch ngăn và là mục duy nhất còn
+              icon (icon đó còn quay khi đang đồng bộ). Trước đây tab "Bảng giá" mang icon
+              ngôi sao, tab "Lịch sử" mang icon đồng hồ, mỗi ô rộng theo chữ của nó nên
+              ranh giới hai tab lệch nhau và vạch ngăn trông như chia nhầm chỗ.
+              `min-w-max` giữ cho cột không bị ép hẹp hơn chữ trên điện thoại — hẹp quá
+              thì cả khung cuộn ngang (overflow-x-auto), không để chữ tràn đè lên nhau. */}
           <div className="flex items-center bg-white dark:bg-[#282a2c] p-1.5 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm shrink-0 w-full sm:w-auto overflow-x-auto">
-            <button
-              onClick={() => setActiveSection('pricing')}
-              className={`flex-1 sm:flex-none px-4 sm:px-5 py-2.5 sm:py-2 text-[15px] font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 whitespace-nowrap ${
-                activeSection === 'pricing'
-                  ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-gray-900/5 dark:ring-white/10'
-                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-white/5'
-              }`}
-            >
-              <Sparkles className="w-4 h-4" /> {t('billing.tab.pricing')}
-            </button>
-            <button
-              onClick={() => setActiveSection('history')}
-              className={`flex-1 sm:flex-none px-4 sm:px-5 py-2.5 sm:py-2 text-[15px] font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 whitespace-nowrap ${
-                activeSection === 'history'
-                  ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-gray-900/5 dark:ring-white/10'
-                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-white/5'
-              }`}
-            >
-              <History className="w-4 h-4" /> {t('billing.tab.history')}
-            </button>
+            <div className="flex-1 sm:flex-none grid grid-cols-2 gap-1 min-w-max">
+              {[
+                { id: 'pricing', labelKey: 'billing.tab.pricing' },
+                { id: 'history', labelKey: 'billing.tab.history' },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveSection(tab.id)}
+                  className={`px-4 sm:px-5 py-2.5 sm:py-2 text-[15px] font-bold rounded-xl transition-all cursor-pointer text-center whitespace-nowrap ${
+                    activeSection === tab.id
+                      ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-gray-900/5 dark:ring-white/10'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-white/5'
+                  }`}
+                >
+                  {t(tab.labelKey)}
+                </button>
+              ))}
+            </div>
 
-            <div className="w-px h-5 bg-gray-200 dark:bg-gray-700 mx-1 shrink-0" />
+            <div className="w-px h-5 bg-gray-200 dark:bg-gray-700 mx-1.5 shrink-0" />
 
             <button
               onClick={handleRefresh}
               disabled={isSyncing || (activeSection === 'history' && txLoading)}
               title={t('billing.quota.syncTitle')}
-              className="flex-1 sm:flex-none px-4 sm:px-5 py-2.5 sm:py-2 text-[15px] font-bold rounded-xl text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-white/5 active:bg-gray-100 dark:active:bg-gray-700 transition-all cursor-pointer flex items-center justify-center gap-2 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+              className="shrink-0 px-4 sm:px-5 py-2.5 sm:py-2 text-[15px] font-bold rounded-xl text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-50 dark:hover:bg-white/5 active:bg-gray-100 dark:active:bg-gray-700 transition-all cursor-pointer flex items-center justify-center gap-2 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <RefreshCw className={`w-4 h-4 ${isSyncing || (activeSection === 'history' && txLoading) ? 'animate-spin' : ''}`} />
               <span>{t('info.refresh')}</span>
@@ -726,14 +731,14 @@ export default function BillingAndQuota() {
                 </p>
               </div>
             ) : (
-              /* Grid thẻ gói giá — render thẳng từ dữ liệu API, mỗi dòng căn đều nhau */
+              /* Grid thẻ gói giá — render thẳng từ dữ liệu API, mỗi dòng căn đều nhau.
+                 `gap-y-7`: huy hiệu "Phổ biến" nhô 12px lên trên viền thẻ, khe dọc 16px
+                 cũ chỉ còn 4px khi gói đó rơi xuống hàng thứ hai (2 cột, hoặc điện thoại). */
               <div
-                className={`grid grid-cols-1 ${resolvePlanGridCols(decoratedPlans.length)} gap-4 lg:gap-5 w-full items-stretch`}
+                className={`grid grid-cols-1 ${resolvePlanGridCols(decoratedPlans.length)} gap-x-4 gap-y-7 lg:gap-x-5 w-full items-stretch`}
               >
                 {decoratedPlans.map((plan) => {
-                  const PlanIcon = plan.ui.Icon;
                   const badge = plan.ui.badge;
-                  const BadgeIcon = badge?.Icon;
 
                   return (
                     <div
@@ -744,22 +749,21 @@ export default function BillingAndQuota() {
                           : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-lg shadow-sm hover:-translate-y-1'
                       }`}
                     >
-                      {/* 1. Huy hiệu phân cấp (PLAN_UI_CONFIG) - h-8 giữ chỗ kể cả khi gói
-                          không có huy hiệu, để các thẻ cùng hàng không xô lệch */}
-                      <div className="h-8 mb-3 flex items-center">
-                        {badge && (
-                          <span
-                            className={`inline-flex items-center gap-1.5 px-3 py-1 text-[11px] font-extrabold rounded-lg tracking-wider uppercase ${badge.tone}`}
-                          >
-                            {BadgeIcon && <BadgeIcon className="w-3.5 h-3.5 fill-current" />}
-                            {t(badge.labelKey)}
-                          </span>
-                        )}
-                      </div>
+                      {/* 1. Huy hiệu (PLAN_UI_CONFIG) — chỉ gói được làm nổi mới có. Vắt
+                          ngang viền trên của thẻ thay vì chiếm một hàng riêng: trước đây mọi
+                          thẻ phải chừa sẵn một ô cao 44px cho huy hiệu để các thẻ cùng hàng
+                          thẳng nhau, nay chỉ còn một gói có nên ô đó là khoảng trống ở bốn
+                          thẻ còn lại. */}
+                      {badge && (
+                        <span
+                          className={`absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 text-[11px] font-extrabold rounded-full tracking-wider uppercase whitespace-nowrap ${badge.tone}`}
+                        >
+                          {t(badge.labelKey)}
+                        </span>
+                      )}
 
-                      {/* 2. Tên gói (API) + icon (PLAN_UI_CONFIG) - Cố định h-14 để căn đều dù 1 hay 2 dòng */}
-                      <div className="h-14 flex items-center gap-2.5 mb-3">
-                        {PlanIcon && <PlanIcon className={`w-5 h-5 shrink-0 ${plan.ui.iconTone}`} />}
+                      {/* 2. Tên gói (API) - Cố định h-14 để căn đều dù 1 hay 2 dòng */}
+                      <div className="h-14 flex items-center mb-3">
                         <h3 className="text-lg lg:text-[19px] font-black text-gray-900 dark:text-gray-100 leading-tight">
                           {plan.name}
                         </h3>

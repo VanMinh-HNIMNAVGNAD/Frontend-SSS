@@ -1,4 +1,13 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import {
+    createContext,
+    useCallback,
+    useContext,
+    useEffect,
+    useLayoutEffect,
+    useMemo,
+    useRef,
+    useState,
+} from 'react';
 import {
     Download,
     Pencil,
@@ -21,6 +30,8 @@ import {
     FolderPlus,
     Palette,
     ChevronRight,
+    Plus,
+    Upload,
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { SHORTCUT_HINTS } from '../../hooks/useGlobalShortcuts';
@@ -62,14 +73,28 @@ const TONE = {
 /**
  * Một hàng lệnh. `icon` nhận sẵn node để chỗ gọi tự quyết màu/animation
  * (ngôi sao đã tô, Loader2 đang quay…), phần còn lại của lưới thì cố định.
+ * `active` giữ nền như lúc rê chuột — cho hàng đang mở menu con, để người dùng
+ * vẫn thấy menu con đó thuộc hàng nào khi chuột đã sang hẳn bên kia.
  */
-function MenuRow({ icon, label, shortcut, shortcutTitle, trailing, onClick, disabled = false, tone = 'default' }) {
+function MenuRow({
+    icon,
+    label,
+    shortcut,
+    shortcutTitle,
+    trailing,
+    onClick,
+    disabled = false,
+    tone = 'default',
+    active = false,
+    ...buttonProps
+}) {
     return (
         <button
             type="button"
+            {...buttonProps}
             onClick={onClick}
             disabled={disabled}
-            className={`${ROW_BASE} ${TONE[tone]} ${
+            className={`${ROW_BASE} ${TONE[tone]} ${active ? 'bg-gray-100 dark:bg-[#37393b]' : ''} ${
                 disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
             }`}
         >
@@ -101,6 +126,233 @@ function MenuRowLocked({ label, hint }) {
 
 function MenuSeparator() {
     return <div className="h-px bg-gray-200 dark:bg-gray-700/60 my-1 mx-1.5" />;
+}
+
+// ── Menu con (▸) ────────────────────────────────────────────────────────────
+// Menu nào đang mở được ghi bằng MỘT đường dẫn cho cả cây: 'create' → 'create/upload'.
+// Một đường dẫn thay vì mỗi hàng một cờ riêng, vì các menu con phải loại trừ nhau:
+// mở "Tạo mới ▸" là bảng màu (đường dẫn 'color') phải đóng — hai tấm cùng bung sang
+// phải thì tấm này đè lên tấm kia. Và một tầng con chỉ mở được khi tầng cha đang mở.
+//
+// Menu con nằm TRONG cây DOM của menu (không dùng portal), cùng lý do với
+// ColorPickerPanel: ContextMenu đóng khi mousedown rơi ra ngoài `menuRef`.
+
+// Khung giống MENU_SHELL nhưng `absolute` (neo vào hàng cha) và nền đặc: một lớp
+// backdrop-blur lồng trong lớp backdrop-blur khác của menu cha là làm mờ hai lần.
+const SUBMENU_SHELL =
+    'absolute z-10 w-56 max-w-[calc(100vw-16px)] bg-white dark:bg-[#282a2c] rounded-2xl ' +
+    'shadow-2xl px-1.5 py-1.5 border border-gray-300 dark:border-gray-700/80 animate-fade-in';
+
+// Neo của menu con là <div className="relative"> bọc hàng cha — nằm trong padding 6px
+// + viền 1px của menu cha. Lùi lên đúng 7px thì hàng ĐẦU của menu con thẳng hàng với
+// hàng cha; cách ra 11px thì khe hở nhìn thấy giữa hai viền là 4px.
+const SUBMENU_INSET = 7;
+const SUBMENU_GAP = 11;
+const VIEWPORT_MARGIN = 8;
+// Rê qua hàng thì chờ một nhịp mới mở, để lướt dọc menu không làm menu con chớp lên;
+// rời đi thì chờ lâu hơn, đủ cho đường chéo từ hàng cha sang hàng dưới của menu con.
+const SUBMENU_OPEN_DELAY = 100;
+const SUBMENU_CLOSE_DELAY = 250;
+
+/** `path` có nằm trong nhánh `branch` không — 'create/upload' nằm trong 'create'. */
+const isInBranch = (path, branch) =>
+    path != null && (path === branch || path.startsWith(`${branch}/`));
+
+const parentOf = (path) => (path.includes('/') ? path.slice(0, path.lastIndexOf('/')) : null);
+
+// { openPath, setOpenPath, rootRef, side } — `side` là hướng tầng cha đã bung ra;
+// mỗi SubmenuPanel cung cấp lại context với `side` của chính nó cho tầng con.
+const SubmenuContext = createContext(null);
+
+/**
+ * Hàng mở menu con. Chuột: rê qua là mở. Chạm và bàn phím không có "rê qua" nên
+ * bấm mới mở, và bấm lần nữa để gập lại.
+ */
+function SubmenuRow({ path, icon, label, tone = 'default', children }) {
+    const { openPath, setOpenPath, rootRef } = useContext(SubmenuContext);
+    const isOpen = isInBranch(openPath, path);
+    const wrapperRef = useRef(null);
+    const openTimerRef = useRef(null);
+    const closeTimerRef = useRef(null);
+    const pointerTypeRef = useRef('');
+
+    // Mở nhánh này nhưng KHÔNG gập tầng con đang mở bên trong nó: chuột lướt ngược từ
+    // "Tải lên ▸" về hàng "Tạo mới" không được làm tắt menu "Tải lên".
+    const open = useCallback(
+        () => setOpenPath((cur) => (isInBranch(cur, path) ? cur : path)),
+        [setOpenPath, path],
+    );
+    const close = useCallback(
+        () => setOpenPath((cur) => (isInBranch(cur, path) ? parentOf(path) : cur)),
+        [setOpenPath, path],
+    );
+
+    useEffect(() => () => clearTimeout(openTimerRef.current), []);
+
+    // Đang mở thì canh chuột trên CẢ menu: sang một phần khác của menu (hàng khác, vạch
+    // ngăn, tầng khác) là gập sau một nhịp, quay lại nhánh này trong nhịp đó là huỷ. Rê
+    // quá đà ra hẳn ngoài menu thì giữ nguyên, như menu của hệ điều hành.
+    // Không dựa vào `pointerleave` của chính hàng này: chuột đã ra ngoài menu rồi mới
+    // quay lại ở một hàng khác thì hàng này không còn nhận được sự kiện "rời" nào nữa,
+    // và menu con cứ thế mở mãi cạnh hàng người dùng đang trỏ.
+    useEffect(() => {
+        const root = rootRef.current;
+        if (!isOpen || !root) return undefined;
+
+        const cancelClose = () => {
+            clearTimeout(closeTimerRef.current);
+            closeTimerRef.current = null;
+        };
+        const onPointerOver = (e) => {
+            if (e.pointerType !== 'mouse') return;
+            if (wrapperRef.current?.contains(e.target)) {
+                cancelClose();
+            } else if (!closeTimerRef.current) {
+                closeTimerRef.current = setTimeout(() => {
+                    closeTimerRef.current = null;
+                    close();
+                }, SUBMENU_CLOSE_DELAY);
+            }
+        };
+
+        root.addEventListener('pointerover', onPointerOver);
+        return () => {
+            root.removeEventListener('pointerover', onPointerOver);
+            cancelClose();
+        };
+    }, [isOpen, rootRef, close]);
+
+    return (
+        <div
+            ref={wrapperRef}
+            className="relative"
+            onPointerEnter={(e) => {
+                if (e.pointerType !== 'mouse') return;
+                clearTimeout(openTimerRef.current);
+                openTimerRef.current = setTimeout(open, SUBMENU_OPEN_DELAY);
+            }}
+            onPointerLeave={(e) => {
+                // Lướt qua chưa đủ một nhịp thì huỷ lệnh mở đang chờ
+                if (e.pointerType === 'mouse') clearTimeout(openTimerRef.current);
+            }}
+        >
+            <MenuRow
+                tone={tone}
+                icon={icon}
+                label={label}
+                active={isOpen}
+                aria-haspopup="menu"
+                aria-expanded={isOpen}
+                onPointerDown={(e) => {
+                    pointerTypeRef.current = e.pointerType;
+                }}
+                onClick={() => {
+                    clearTimeout(openTimerRef.current);
+                    // Chuột thì rê qua đã mở rồi: bấm mà gập lại thì người vừa rê vào rồi
+                    // bấm (đúng như đang được hướng dẫn) sẽ thấy menu con biến mất.
+                    if (pointerTypeRef.current === 'mouse') open();
+                    else setOpenPath((cur) => (isInBranch(cur, path) ? parentOf(path) : path));
+                    pointerTypeRef.current = '';
+                }}
+                trailing={<ChevronRight className="w-3.5 h-3.5 shrink-0 text-gray-400 dark:text-gray-500" />}
+            />
+
+            {isOpen && <SubmenuPanel>{children}</SubmenuPanel>}
+        </div>
+    );
+}
+
+/**
+ * Tấm menu con. Bung cùng hướng với tầng cha (tầng cha đã lật sang trái vì sát mép
+ * phải thì tầng con bung sang phải sẽ đè lên chính menu gốc), chỉ đổi hướng khi hướng
+ * đó không đủ chỗ. Cả hai bên đều chật (điện thoại) thì thả xuống ngay dưới hàng cha.
+ */
+function SubmenuPanel({ children }) {
+    const ctx = useContext(SubmenuContext);
+    const panelRef = useRef(null);
+    const [pos, setPos] = useState(null);
+    const preferredSide = ctx.side;
+
+    // Đo trước khi trình duyệt vẽ nên không thấy tấm menu nhảy chỗ.
+    const measure = useCallback(() => {
+        const el = panelRef.current;
+        const anchor = el?.parentElement; // <div className="relative"> bọc hàng cha
+        if (!el || !anchor) return;
+
+        const rect = anchor.getBoundingClientRect();
+        const w = el.offsetWidth;
+        const h = el.offsetHeight;
+        const roomRight = window.innerWidth - VIEWPORT_MARGIN - (rect.right + SUBMENU_GAP);
+        const roomLeft = rect.left - SUBMENU_GAP - VIEWPORT_MARGIN;
+
+        const side = preferredSide === 'left'
+            ? (roomLeft >= w || roomLeft >= roomRight ? 'left' : 'right')
+            : (roomRight >= w || roomRight >= roomLeft ? 'right' : 'left');
+        const beside = (side === 'right' ? roomRight : roomLeft) >= w;
+
+        let left;
+        let top;
+        let width;
+        if (beside) {
+            left = side === 'right' ? rect.width + SUBMENU_GAP : -(w + SUBMENU_GAP);
+            top = -SUBMENU_INSET;
+        } else {
+            // Thả xuống ngay dưới hàng cha và phủ KHÍT bề rộng hàng cha. Nó đè lên các
+            // hàng bên dưới của menu cha, còn hàng cha vẫn thấy và bấm được (bấm lần nữa
+            // để gập). Lùi vào một đoạn cho ra dáng tầng con thì mép trái lòi ra nửa cột
+            // icon của menu cha bên dưới — trông như vỡ khung.
+            left = 0;
+            width = rect.width;
+            top = rect.height + 2;
+        }
+
+        const overflowBottom = rect.top + top + h - (window.innerHeight - VIEWPORT_MARGIN);
+        if (overflowBottom > 0) top -= overflowBottom;
+        if (rect.top + top < VIEWPORT_MARGIN) top = VIEWPORT_MARGIN - rect.top;
+
+        setPos({ side, beside, left, top, width });
+    }, [preferredSide]);
+
+    useLayoutEffect(() => {
+        measure();
+    }, [measure]);
+
+    const childCtx = useMemo(
+        () => ({ ...ctx, side: pos?.side ?? preferredSide }),
+        [ctx, pos?.side, preferredSide],
+    );
+
+    return (
+        <div
+            ref={panelRef}
+            className={SUBMENU_SHELL}
+            style={{
+                left: pos?.left ?? 0,
+                top: pos?.top ?? 0,
+                width: pos?.width,
+                visibility: pos ? 'visible' : 'hidden',
+            }}
+        >
+            {/* Cầu nối vô hình phủ khe giữa hai menu (cả padding + viền của menu cha):
+                chuột đi ngang qua đó vẫn tính là đang ở trong hàng cha, nên menu con
+                không gập giữa đường. Nới 24px trên/dưới cho đường chéo. Khi tấm đè lên
+                menu cha thì không có khe nào để nối — và cầu lúc đó sẽ che mất các hàng
+                của menu cha — nên bỏ. */}
+            {pos?.beside && (
+                <span
+                    aria-hidden
+                    className="absolute"
+                    style={{
+                        [pos.side === 'left' ? 'right' : 'left']: -SUBMENU_GAP,
+                        top: -24,
+                        width: SUBMENU_GAP,
+                        height: 'calc(100% + 48px)',
+                    }}
+                />
+            )}
+            <SubmenuContext.Provider value={childCtx}>{children}</SubmenuContext.Provider>
+        </div>
+    );
 }
 
 export default function ContextMenu({
@@ -146,18 +398,53 @@ export default function ContextMenu({
 
     // Reposition menu to stay inside window bounds
     const [pos, setPos] = useState({ top: y, left: x });
-    // Bảng màu — bung sang bên phải như submenu (xem ColorPickerPanel.jsx).
-    // Lưu ID của mục đang mở bảng màu chứ không phải cờ boolean: component này KHÔNG
-    // remount khi bấm chuột phải sang mục khác (mọi trang đều giữ một instance duy
-    // nhất), nên cờ boolean sẽ để panel mở nguyên và hiện màu của mục trước đó.
-    const [colorPickerFor, setColorPickerFor] = useState(null);
-    const showColorPicker = colorPickerFor != null && colorPickerFor === item?.id;
 
-    // Mọi lối đóng menu đều đi qua đây để bảng màu không còn mở sẵn ở lần mở sau.
+    // Menu con đang mở (bảng màu là 'color', "Tạo mới ▸" là 'create'…) — xem SubmenuRow.
+    // Gắn kèm KHOÁ của lần mở menu (mục + toạ độ) chứ không lưu mỗi đường dẫn:
+    // component này KHÔNG remount khi bấm chuột phải sang mục khác (mọi trang đều giữ
+    // một instance duy nhất), nên chỉ lưu đường dẫn thì menu con — và bảng màu với màu
+    // của mục trước — vẫn mở nguyên ở lần mở sau.
+    const [submenu, setSubmenu] = useState(null);
+    const menuKey = `${item?.id ?? ''}@${x},${y}`;
+    const openPath = submenu?.key === menuKey ? submenu.path : null;
+    const showColorPicker = openPath === 'color';
+
+    const setOpenPath = useCallback((next) => {
+        setSubmenu((prev) => {
+            const current = prev?.key === menuKey ? prev.path : null;
+            const path = typeof next === 'function' ? next(current) : next;
+            // Không đổi gì thì trả lại nguyên `prev`: hẹn giờ gập của một lần mở menu
+            // TRƯỚC (khoá cũ) chạy muộn sẽ thấy `current` là null và không được phép xoá
+            // trắng menu con của lần mở hiện tại.
+            if (path === current) return prev;
+            return path ? { key: menuKey, path } : null;
+        });
+    }, [menuKey]);
+
+    const submenuContext = useMemo(
+        () => ({ openPath, setOpenPath, rootRef: menuRef, side: 'right' }),
+        [openPath, setOpenPath],
+    );
+
+    // Mọi lối đóng menu đều đi qua đây để menu con không còn mở sẵn ở lần mở sau.
     const closeMenu = useCallback(() => {
-        setColorPickerFor(null);
+        setSubmenu(null);
         onClose?.();
     }, [onClose]);
+
+    // Esc gập từng tầng menu con một, không đóng cả menu. Bảng màu tự lo phím Esc của
+    // nó (ColorPickerPanel). Chặn nổi bọt để Esc không rơi xuống FileContext và xoá mất
+    // bảng tạm Cắt/Sao chép đang chờ dán.
+    useEffect(() => {
+        if (!isOpen || !openPath || openPath === 'color') return undefined;
+        const onKeyDown = (e) => {
+            if (e.key !== 'Escape') return;
+            e.stopPropagation();
+            setOpenPath((current) => (current ? parentOf(current) : current));
+        };
+        document.addEventListener('keydown', onKeyDown, true);
+        return () => document.removeEventListener('keydown', onKeyDown, true);
+    }, [isOpen, openPath, setOpenPath]);
 
     useEffect(() => {
         if (menuRef.current) {
@@ -187,33 +474,29 @@ export default function ContextMenu({
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [closeMenu]);
 
-    const hasBlankAreaActions = onUploadFile || onUploadFolder || onCreateFolder;
+    // Chỉ FileListView/FileGridView truyền ba lệnh này, nên menu của Trang chủ và của
+    // thẻ Bộ nhớ dùng chung không có nhóm tạo mới.
+    const hasCreateActions = onUploadFile || onUploadFolder || onCreateFolder;
 
     // Menu vùng trống không có `item` để làm mốc ẩn/hiện, nên phải dựa vào `isOpen`
     if (!isOpen) return null;
 
-    if (!item && !hasBlankAreaActions) return null;
+    if (!item && !hasCreateActions) return null;
 
-    // ── Menu cho vùng nền trống: tải tệp/thư mục lên, tạo thư mục mới, dán ──
-    if (!item) {
-        // Dán vào chỗ trống = dán vào thư mục ĐANG mở (`onPaste(undefined)` để
-        // FileContext tự lấy `currentFolderId`). Đây là lối vào quan trọng nhất của
-        // lệnh dán mà trước đây không có: một thư mục đích RỖNG thì không còn tệp
-        // nào để bấm chuột phải lên, nên người dùng không có cách nào dán bằng menu.
-        //
-        // Chỉ mở ở hai tab có khái niệm "thư mục đang mở". Ở Có gắn sao / Gần đây /
-        // Thùng rác / Nội dung rác, `currentFolderId` là null nên lệnh dán sẽ ném tệp
-        // vào gốc My Drive — một nơi người dùng không hề nhìn thấy trên màn hình đó.
-        const canPasteHere =
-            canPaste && !isTrashTab && !isSpamTab && ['my-drive', 'shared-drives'].includes(activeTab);
-
-        return (
-            <div
-                ref={menuRef}
-                className={MENU_SHELL}
-                style={{ top: pos.top, left: pos.left }}
-                onClick={(e) => e.stopPropagation()}
-                onContextMenu={(e) => e.preventDefault()}
+    // Nhóm "Tải lên ▸ (tệp / thư mục)" + "Tạo thư mục mới". Menu vùng trống đặt nhóm
+    // này thẳng ở tầng đầu; menu của tệp/thư mục đặt nó trong "Tạo mới ▸" — để ở danh
+    // sách đã kín hàng (không còn chỗ trống nào để bấm chuột phải) vẫn tạo được.
+    //
+    // Mọi lệnh đều vào THƯ MỤC ĐANG MỞ, kể cả khi mở từ menu của một thư mục: giống nút
+    // "+ Mới" và menu vùng trống. Tạo vào bên trong thư mục vừa bấm thì mục mới nằm ở
+    // chỗ người dùng không nhìn thấy.
+    const renderCreateRows = (uploadPath) => (
+        <>
+            <SubmenuRow
+                path={uploadPath}
+                tone="strong"
+                icon={<Upload className="w-4 h-4 text-blue-600 dark:text-blue-400" />}
+                label={t('menu.upload')}
             >
                 <MenuRow
                     tone="strong"
@@ -231,15 +514,44 @@ export default function ContextMenu({
                     label={isBuildingTree ? t('menu.buildingTree') : t('menu.uploadFolder')}
                     onClick={() => { onUploadFolder?.(); closeMenu(); }}
                 />
+            </SubmenuRow>
 
-                <MenuSeparator />
+            <MenuRow
+                tone="strong"
+                icon={<FolderPlus className="w-4 h-4 text-gray-700 dark:text-gray-300" />}
+                label={t('menu.newFolder')}
+                onClick={() => { onCreateFolder?.(); closeMenu(); }}
+            />
+        </>
+    );
 
-                <MenuRow
-                    tone="strong"
-                    icon={<FolderPlus className="w-4 h-4 text-gray-700 dark:text-gray-300" />}
-                    label={t('menu.newFolder')}
-                    onClick={() => { onCreateFolder?.(); closeMenu(); }}
-                />
+    // SubmenuRow đọc trạng thái menu con qua context — bọc cả menu một lần ở đây.
+    const withSubmenus = (menu) => (
+        <SubmenuContext.Provider value={submenuContext}>{menu}</SubmenuContext.Provider>
+    );
+
+    // ── Menu cho vùng nền trống: tải lên ▸, tạo thư mục mới, dán ──
+    if (!item) {
+        // Dán vào chỗ trống = dán vào thư mục ĐANG mở (`onPaste(undefined)` để
+        // FileContext tự lấy `currentFolderId`). Đây là lối vào quan trọng nhất của
+        // lệnh dán mà trước đây không có: một thư mục đích RỖNG thì không còn tệp
+        // nào để bấm chuột phải lên, nên người dùng không có cách nào dán bằng menu.
+        //
+        // Chỉ mở ở hai tab có khái niệm "thư mục đang mở". Ở Có gắn sao / Gần đây /
+        // Thùng rác / Nội dung rác, `currentFolderId` là null nên lệnh dán sẽ ném tệp
+        // vào gốc My Drive — một nơi người dùng không hề nhìn thấy trên màn hình đó.
+        const canPasteHere =
+            canPaste && !isTrashTab && !isSpamTab && ['my-drive', 'shared-drives'].includes(activeTab);
+
+        return withSubmenus(
+            <div
+                ref={menuRef}
+                className={MENU_SHELL}
+                style={{ top: pos.top, left: pos.left }}
+                onClick={(e) => e.stopPropagation()}
+                onContextMenu={(e) => e.preventDefault()}
+            >
+                {renderCreateRows('upload')}
 
                 {canPasteHere && (
                     <>
@@ -365,7 +677,7 @@ export default function ContextMenu({
     // đi thay vì để người dùng bấm rồi nhận 403.
     const canToggleStar = !item.isSharedWithMe;
 
-    return (
+    return withSubmenus(
         <div
             ref={menuRef}
             className={MENU_SHELL}
@@ -439,6 +751,21 @@ export default function ContextMenu({
                         label={t('ai.menu.title')}
                         onClick={() => { onGemini?.(item, 'chat'); closeMenu(); }}
                     />
+
+                    {/* Tạo mới ▸ — cùng nhóm lệnh với menu vùng trống (xem renderCreateRows).
+                        Ở dạng danh sách, hàng nối hàng kín cả khung nên gần như không còn chỗ
+                        trống để bấm chuột phải; không có mục này thì muốn tải lên phải rời
+                        tay khỏi danh sách để tìm nút "+ Mới". */}
+                    {hasCreateActions && (
+                        <SubmenuRow
+                            path="create"
+                            tone="strong"
+                            icon={<Plus className="w-4 h-4 text-blue-600 dark:text-blue-400" />}
+                            label={t('menu.createNew')}
+                        >
+                            {renderCreateRows('create/upload')}
+                        </SubmenuRow>
+                    )}
 
                     <MenuSeparator />
 
@@ -550,7 +877,7 @@ export default function ContextMenu({
                             <MenuRow
                                 icon={<Palette className="w-4 h-4 text-gray-700 dark:text-gray-300" />}
                                 label={t('menu.changeColor')}
-                                onClick={() => setColorPickerFor((v) => (v === item.id ? null : item.id))}
+                                onClick={() => setOpenPath((path) => (path === 'color' ? null : 'color'))}
                                 trailing={
                                     <span className="shrink-0 flex items-center gap-1.5">
                                         {/* Preview màu hiện tại */}
@@ -568,7 +895,7 @@ export default function ContextMenu({
                                     item={item}
                                     currentColor={item.customColor ?? null}
                                     onSelectColor={(hex) => onChangeColor(item, hex)}
-                                    onClose={() => setColorPickerFor(null)}
+                                    onClose={() => setOpenPath(null)}
                                     onCloseMenu={closeMenu}
                                 />
                             )}

@@ -7,7 +7,7 @@
 //   • Tên gói, dung lượng, `priceMonthly`, `priceYearly` → luôn đến từ
 //     `GET /billing/plans` (`billingApi.getPlans()`). Thêm/xoá/đổi giá một gói
 //     trong DB là bảng giá tự đổi theo, không phải sửa code.
-//   • Thứ mà API không biết — badge, icon, màu nhấn, các gạch đầu dòng quyền lợi
+//   • Thứ mà API không biết — badge, gói được làm nổi, các gạch đầu dòng quyền lợi
 //     — nằm ở `PLAN_UI_CONFIG` bên dưới, ghép vào dữ liệu API theo `plan.name`.
 //
 // Trước đây trang render một mảng gói hard-code (có cả giá) nên khi DB lên 5 gói
@@ -18,18 +18,7 @@
 // dùng chung được các nhãn trạng thái/chu kỳ mà không phải import ngược từ page
 // (page → modal → page là vòng import).
 
-import {
-  AlertTriangle,
-  Check,
-  Clock,
-  Cloud,
-  Crown,
-  Gem,
-  Package,
-  Rocket,
-  XCircle,
-  Zap,
-} from 'lucide-react';
+import { AlertTriangle, Check, Clock, XCircle } from 'lucide-react';
 
 // ─────────────────────────────── Định dạng số ───────────────────────────────
 
@@ -135,57 +124,44 @@ export const CYCLE_LABEL_KEY = {
 // Dòng quyền lợi đầu tiên của mỗi thẻ được sinh động từ dung lượng API, nên
 // `features` ở đây cố ý không nhắc tới dung lượng gói.
 //
-// `badge: null` = gói không có huy hiệu; thẻ vẫn giữ đúng chiều cao ô huy hiệu để
-// các thẻ trong cùng một hàng không bị xô lệch.
+// CHỈ gói được làm nổi (`highlight`) mới có huy hiệu, và thẻ KHÔNG có icon. Các huy hiệu
+// "Cơ Bản" / "Tiết Kiệm" / "Tối Thượng" cũ đã bỏ: tên gói trong DB ("Gói Tiết Kiệm (Lite)",
+// "Gói Tối Thượng (Ultra)"…) đã nói đúng điều đó, huy hiệu chỉ nhắc lại một lần nữa — và
+// năm huy hiệu cho năm gói thì không còn gói nào nổi lên được. Icon đám mây / tia sét /
+// vương miện cạnh tên gói cũng bỏ vì cùng lý do: trang trí, không thêm thông tin nào.
+// Huy hiệu nằm vắt trên viền trên của thẻ (BillingAndQuota.jsx), nên thẻ không có huy
+// hiệu không phải chừa ô trống để các thẻ cùng hàng thẳng nhau.
 
 export const PLAN_UI_CONFIG = [
   {
     key: 'free',
     match: ['free', 'miễn phí', 'mien phi'],
-    Icon: Cloud,
-    badge: {
-      labelKey: 'billing.badge.free',
-      Icon: null,
-      tone: 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-transparent',
-    },
+    badge: null,
     highlight: false,
-    iconTone: 'text-slate-400 dark:text-slate-500',
     featureKeys: ['billing.feature.free.ai', 'billing.feature.free.storage', 'billing.feature.free.sync'],
   },
   {
     key: 'lite',
     match: ['lite', 'starter', 'tiêu chuẩn', 'tieu chuan'],
-    Icon: Package,
-    badge: {
-      labelKey: 'billing.badge.lite',
-      Icon: null,
-      tone: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30',
-    },
+    badge: null,
     highlight: false,
-    iconTone: 'text-emerald-500 dark:text-emerald-400',
     featureKeys: ['billing.feature.lite.ai', 'billing.feature.lite.crypto', 'billing.feature.lite.speed'],
   },
   {
     key: 'pro',
     match: ['pro', 'cá nhân', 'ca nhan', 'personal'],
-    Icon: Zap,
     badge: {
       labelKey: 'billing.badge.pro',
-      Icon: Zap,
-      tone: 'bg-blue-600 text-white border border-transparent shadow-sm',
+      tone: 'bg-blue-600 text-white shadow-sm',
     },
     highlight: true,
-    iconTone: 'text-blue-600 dark:text-blue-400',
     featureKeys: ['billing.feature.pro.ai', 'billing.feature.lite.crypto', 'billing.feature.pro.speed'],
   },
   {
     key: 'plus',
     match: ['plus', 'cao cấp', 'cao cap', 'premium'],
-    Icon: Rocket,
-    // Không có huy hiệu theo thiết kế — ô huy hiệu để trống nhưng vẫn chiếm chỗ.
     badge: null,
     highlight: false,
-    iconTone: 'text-amber-500 dark:text-amber-400',
     featureKeys: [
       'billing.feature.plus.ai',
       'billing.feature.plus.crypto',
@@ -196,14 +172,8 @@ export const PLAN_UI_CONFIG = [
   {
     key: 'ultra',
     match: ['ultra', 'tối thượng', 'toi thuong', 'enterprise', 'business'],
-    Icon: Crown,
-    badge: {
-      labelKey: 'billing.badge.ultra',
-      Icon: null,
-      tone: 'bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30',
-    },
+    badge: null,
     highlight: false,
-    iconTone: 'text-purple-500 dark:text-purple-400',
     featureKeys: [
       'billing.feature.ultra.ai',
       'billing.feature.ultra.crypto',
@@ -216,10 +186,8 @@ export const PLAN_UI_CONFIG = [
 /** Gói lạ (DB thêm gói mới ngoài 5 gói chuẩn) vẫn render được, chỉ là trung tính. */
 export const FALLBACK_PLAN_UI = {
   key: 'custom',
-  Icon: Gem,
   badge: null,
   highlight: false,
-  iconTone: 'text-slate-400 dark:text-slate-500',
   featureKeys: [
     'billing.feature.custom.share',
     'billing.feature.custom.support',

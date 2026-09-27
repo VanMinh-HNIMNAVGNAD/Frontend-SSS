@@ -14,6 +14,12 @@ body {
    ghi, là nơi duy nhất quản lý lựa chọn Sáng/Tối/Hệ thống */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Màn THẤP (laptop 1366×768 hay 1280×720 ở zoom 100% chỉ còn ~560–640px chiều cao
+   sau khi trừ thanh tác vụ và khung trình duyệt). Sidebar dùng biến thể này để thu
+   mật độ dọc, nhờ vậy cả menu lẫn khối bộ nhớ nằm gọn không phải cuộn; màn cao hơn
+   vẫn giữ nguyên khoảng thoáng cũ. */
+@custom-variant short (@media (max-height: 780px));
+
 :root {
   color-scheme: light;
   --app-bg: #f3f6fa;
@@ -96,6 +102,14 @@ body {
     background-image: 
       linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
       linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  }
+
+  /* Bản cho nền sáng của `.bg-grid-pattern`: cùng nhịp lưới, nét tối. */
+  .bg-grid-pattern-ink {
+    background-size: 32px 32px;
+    background-image:
+      linear-gradient(to right, rgba(15, 23, 42, 0.05) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(15, 23, 42, 0.05) 1px, transparent 1px);
   }
 
   .bg-grid-dots {

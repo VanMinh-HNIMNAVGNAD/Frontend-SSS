@@ -6,6 +6,10 @@ import { useLanguage } from '../context/LanguageContext';
 import AuthBackground from '../components/ui/AuthBackground';
 import TurnstileWidget from '../components/security/TurnstileWidget';
 import OtpForm from '../components/security/OtpForm';
+import {
+  AUTH_CARD, AUTH_TITLE, AUTH_LABEL, AUTH_INPUT, AUTH_INPUT_ICON, AUTH_ERROR, AUTH_PRIMARY_BUTTON, AUTH_MUTED,
+  AUTH_LINK, AUTH_STRONG, AUTH_SUCCESS_BADGE, AUTH_SUCCESS_ICON, AUTH_SUCCESS_TEXT,
+} from '../components/ui/authStyles';
 import useTurnstile from '../hooks/useTurnstile';
 import { TURNSTILE_ACTIONS } from '../constants/turnstile';
 
@@ -134,18 +138,15 @@ export default function ForgotPasswordPage() {
     done: 'Xong!',
   }[step];
 
-  const inputClass =
-    'w-full h-12 pl-12 pr-4 rounded-xl text-base font-semibold text-white bg-transparent border border-white/10 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 outline-none transition placeholder-slate-500';
-
   return (
     <AuthBackground>
-      <div className="w-full max-w-[460px] bg-slate-900/70 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-2xl shadow-black/50 ring-1 ring-white/5 relative z-10">
-        <h1 className="text-2xl font-bold text-center text-white tracking-tight mb-6">
+      <div className={AUTH_CARD}>
+        <h1 className={AUTH_TITLE}>
           {heading}
         </h1>
 
         {error && step !== 'otp' && (
-          <div className="p-3 mb-5 bg-red-500/20 border border-red-500/30 rounded-xl text-sm text-red-300 text-center font-semibold">
+          <div className={`${AUTH_ERROR} mb-5`}>
             {error}
           </div>
         )}
@@ -153,14 +154,14 @@ export default function ForgotPasswordPage() {
         {/* ── BƯỚC 1 ── */}
         {step === 'email' && (
           <form onSubmit={handleRequestOtp} className="space-y-5">
-            <p className="text-sm font-medium text-slate-400 text-center">
+            <p className={`text-sm font-medium ${AUTH_MUTED} text-center`}>
               {t('forgot.emailStepHint')}
             </p>
 
             <div>
-              <label className="text-sm text-slate-300 block mb-2 font-bold">{t('auth.email.label')}</label>
+              <label className={AUTH_LABEL}>{t('auth.email.label')}</label>
               <div className="relative">
-                <Mail className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                <Mail className={AUTH_INPUT_ICON} />
                 <input
                   type="email"
                   value={email}
@@ -168,7 +169,7 @@ export default function ForgotPasswordPage() {
                   placeholder={t('auth.email.placeholder')}
                   required
                   autoFocus
-                  className={inputClass}
+                  className={AUTH_INPUT}
                 />
               </div>
             </div>
@@ -180,7 +181,7 @@ export default function ForgotPasswordPage() {
             <button
               type="submit"
               disabled={isLoading || !captcha.isVerified}
-              className="w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-base font-bold tracking-wide transition flex items-center justify-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-600/25 cursor-pointer"
+              className={AUTH_PRIMARY_BUTTON}
             >
               {/* Nút bị khoá cho tới khi ô xác minh render xong VÀ giải xong (xem
                   useTurnstile.isVerified). Nhãn đổi theo để lý do bị khoá đọc được
@@ -195,9 +196,9 @@ export default function ForgotPasswordPage() {
               <ArrowRight className="w-5 h-5" />
             </button>
 
-            <div className="text-center text-sm font-medium text-slate-400 pt-2">
+            <div className={`text-center text-sm font-medium ${AUTH_MUTED} pt-2`}>
               {t('forgot.rememberPassword')}{' '}
-              <Link to="/login" className="text-blue-400 hover:underline font-bold">
+              <Link to="/login" className={AUTH_LINK}>
                 {t('common.login')}
               </Link>
             </div>
@@ -228,18 +229,18 @@ export default function ForgotPasswordPage() {
         {step === 'password' && (
           <form onSubmit={handleResetPassword} className="space-y-5">
             <div className="flex flex-col items-center text-center gap-2 mb-1">
-              <ShieldCheck className="w-10 h-10 text-emerald-400" />
-              <p className="text-sm font-medium text-slate-300">
+              <ShieldCheck className="w-10 h-10 text-emerald-600 dark:text-emerald-400" />
+              <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
                 {t('forgot.setNewFor')}
                 <br />
-                <span className="font-bold text-white break-all">{email}</span>
+                <span className={AUTH_STRONG}>{email}</span>
               </p>
             </div>
 
             <div>
-              <label className="text-sm text-slate-300 block mb-2 font-bold">{t('auth.password.newLabel')}</label>
+              <label className={AUTH_LABEL}>{t('auth.password.newLabel')}</label>
               <div className="relative">
-                <Lock className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                <Lock className={AUTH_INPUT_ICON} />
                 <input
                   type="password"
                   value={newPassword}
@@ -247,36 +248,36 @@ export default function ForgotPasswordPage() {
                   placeholder="••••••••"
                   required
                   autoFocus
-                  className={inputClass}
+                  className={AUTH_INPUT}
                 />
               </div>
             </div>
 
             <div>
-              <label className="text-sm text-slate-300 block mb-2 font-bold">
+              <label className={AUTH_LABEL}>
                 {t('forgot.confirmLabel')}
               </label>
               <div className="relative">
-                <Lock className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                <Lock className={AUTH_INPUT_ICON} />
                 <input
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="••••••••"
                   required
-                  className={inputClass}
+                  className={AUTH_INPUT}
                 />
               </div>
             </div>
 
-            <p className="text-xs font-medium text-slate-500 text-center">
+            <p className="text-xs font-medium text-slate-500 dark:text-slate-400 text-center">
               {t('forgot.signOutWarning')}
             </p>
 
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-base font-bold tracking-wide transition flex items-center justify-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-600/25 cursor-pointer"
+              className={AUTH_PRIMARY_BUTTON}
             >
               <span>{isLoading ? t('forgot.saving') : t('forgot.submit')}</span>
               <ArrowRight className="w-5 h-5" />
@@ -287,11 +288,11 @@ export default function ForgotPasswordPage() {
         {/* ── XONG ── */}
         {step === 'done' && (
           <div className="flex flex-col items-center text-center gap-4 py-4">
-            <div className="w-16 h-16 rounded-full bg-emerald-500/15 border border-emerald-500/40 flex items-center justify-center animate-[otpPop_0.35s_ease-out]">
-              <ShieldCheck className="w-8 h-8 text-emerald-400" strokeWidth={2.5} />
+            <div className={AUTH_SUCCESS_BADGE}>
+              <ShieldCheck className={AUTH_SUCCESS_ICON} strokeWidth={2.5} />
             </div>
-            <p className="text-base font-bold text-emerald-300">{t('forgot.done')}</p>
-            <p className="text-sm font-medium text-slate-400">
+            <p className={AUTH_SUCCESS_TEXT}>{t('forgot.done')}</p>
+            <p className={`text-sm font-medium ${AUTH_MUTED}`}>
               {t('forgot.redirecting')}
             </p>
           </div>

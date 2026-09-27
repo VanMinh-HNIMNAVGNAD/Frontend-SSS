@@ -54,7 +54,7 @@ function withLegalLinks(template, links) {
         to={link.to}
         target="_blank"
         rel="noopener noreferrer"
-        className="text-blue-400 hover:text-blue-300 font-bold underline decoration-blue-400/40 underline-offset-2"
+        className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-bold underline decoration-blue-600/40 dark:decoration-blue-400/40 underline-offset-2"
       >
         {link.label}
       </Link>
@@ -98,9 +98,9 @@ export function LegalConsentCheckbox({ checked, onChange, disabled = false }) {
         // đường submit khác, và câu nhắc mặc định của trình duyệt xuất hiện ngay
         // cạnh ô tích — gần hơn khối lỗi đỏ ở đầu form.
         required
-        className="mt-0.5 w-4 h-4 shrink-0 rounded border-white/20 bg-transparent text-blue-600 focus:ring-2 focus:ring-blue-500/40 cursor-pointer accent-blue-600 disabled:cursor-not-allowed"
+        className="mt-0.5 w-4 h-4 shrink-0 rounded border-slate-300 dark:border-white/20 bg-transparent text-blue-600 focus:ring-2 focus:ring-blue-500/40 cursor-pointer accent-blue-600 disabled:cursor-not-allowed"
       />
-      <span className="text-[13px] leading-relaxed font-medium text-slate-400 group-hover:text-slate-300 transition-colors">
+      <span className="text-[13px] leading-relaxed font-medium text-slate-600 dark:text-slate-400 group-hover:text-slate-800 dark:group-hover:text-slate-300 transition-colors">
         {withLegalLinks(t('legal.consent.checkbox'), links)}
       </span>
     </label>

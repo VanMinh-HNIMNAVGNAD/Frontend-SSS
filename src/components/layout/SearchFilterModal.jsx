@@ -2,7 +2,23 @@ import { useEffect, useRef } from 'react';
 import { useFiles } from '../../context/FileContext';
 import { useLanguage } from '../../context/LanguageContext';
 
-export default function SearchFilterModal({ isOpen, onClose }) {
+// 16px và cao hơn trên điện thoại: Safari iOS phóng to cả trang khi chạm vào ô chọn
+// có chữ dưới 16px, và ngón tay cần vùng chạm lớn hơn con trỏ chuột.
+const SELECT_CLASS =
+    'w-full bg-gray-50 dark:bg-white/5 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2.5 sm:py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';
+
+/**
+ * Popover bộ lọc nâng cao, mở từ nút ở cuối ô tìm kiếm trên Header.
+ *
+ * Màn rộng: thả ngay dưới ô tìm kiếm, rộng bằng nó. Điện thoại: thành tấm phủ gần
+ * trọn chiều ngang màn hình ngay dưới Header — bám theo bề ngang ô tìm kiếm thì
+ * ở màn 390px nó chỉ còn khoảng 100px, chữ rớt từng từ một dòng.
+ *
+ * `toggleRef` là nút mở: cú bấm vào nó không được tính là "bấm ra ngoài", nếu không
+ * `mousedown` đóng popover rồi `click` của chính nút đó mở lại, và không bao giờ
+ * đóng được bằng nút đã mở nó.
+ */
+export default function SearchFilterModal({ isOpen, onClose, toggleRef }) {
     const { 
         filterType, setFilterType,
         filterOwner, setFilterOwner,
@@ -14,6 +30,7 @@ export default function SearchFilterModal({ isOpen, onClose }) {
 
     useEffect(() => {
         const handleClickOutside = (e) => {
+            if (toggleRef?.current?.contains(e.target)) return;
             if (modalRef.current && !modalRef.current.contains(e.target)) {
                 onClose && onClose();
             }
@@ -34,7 +51,7 @@ export default function SearchFilterModal({ isOpen, onClose }) {
             document.removeEventListener('mousedown', handleClickOutside);
             window.removeEventListener('keydown', handleKeyDown);
         };
-    }, [isOpen, onClose]);
+    }, [isOpen, onClose, toggleRef]);
 
     if (!isOpen) return null;
 
@@ -47,18 +64,18 @@ export default function SearchFilterModal({ isOpen, onClose }) {
     return (
         <div 
             ref={modalRef}
-            className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#282a2c] rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-6 z-50 text-gray-800 dark:text-gray-200 animate-in fade-in duration-150 cursor-default text-left"
+            className="fixed inset-x-2 top-[4.25rem] max-h-[calc(100dvh-5rem)] overflow-y-auto sm:absolute sm:inset-x-0 sm:top-full sm:mt-2 sm:max-h-none sm:overflow-visible bg-white dark:bg-[#282a2c] rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-4 sm:p-6 z-50 text-gray-800 dark:text-gray-200 animate-fade-in cursor-default text-left"
         >
-            <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">{t('search.filter.title')}</h3>
+            <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3 sm:mb-4">{t('search.filter.title')}</h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
                 {/* Loại tệp */}
                 <div>
                     <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">{t('search.filter.type.label')}</label>
                     <select
                         value={filterType}
                         onChange={(e) => setFilterType(e.target.value)}
-                        className="w-full bg-gray-50 dark:bg-white/5 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className={SELECT_CLASS}
                     >
                         <option value="all">{t('search.filter.type.all')}</option>
                         <option value="folder">{t('search.filter.type.folder')}</option>
@@ -74,7 +91,7 @@ export default function SearchFilterModal({ isOpen, onClose }) {
                     <select
                         value={filterOwner}
                         onChange={(e) => setFilterOwner(e.target.value)}
-                        className="w-full bg-gray-50 dark:bg-white/5 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className={SELECT_CLASS}
                     >
                         <option value="all">{t('search.filter.owner.anyone')}</option>
                         <option value="me">{t('search.filter.owner.me')}</option>
@@ -88,7 +105,7 @@ export default function SearchFilterModal({ isOpen, onClose }) {
                     <select
                         value={filterLocation}
                         onChange={(e) => setFilterLocation(e.target.value)}
-                        className="w-full bg-gray-50 dark:bg-white/5 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className={SELECT_CLASS}
                     >
                         <option value="all">{t('search.filter.location.anywhere')}</option>
                         <option value="my-drive">{t('search.filter.location.myDrive')}</option>
@@ -100,7 +117,7 @@ export default function SearchFilterModal({ isOpen, onClose }) {
                 </div>
             </div>
 
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+            <div className="flex items-center justify-end gap-2 sm:gap-3 pt-3 border-t border-gray-100 dark:border-gray-700">
                 <button
                     type="button"
                     onClick={handleReset}

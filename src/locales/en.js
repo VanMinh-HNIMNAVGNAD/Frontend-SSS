@@ -120,6 +120,7 @@ const en = {
   'header.ai': 'Ask the AI assistant',
   'header.ai.needLogin': 'Sign in to use the AI assistant',
   'header.settings': 'cloudSSS settings',
+  'header.more': 'More',
   'header.account': 'Account details',
   // Button labels that carry a shortcut — kept inside the translation, not
   // concatenated in JSX
@@ -704,8 +705,8 @@ const en = {
   'preview.media.decode-error.body': 'The browser accepted the file but could not decode its contents. Download it and open it in VLC, or re-encode to H.264 + AAC and upload again.',
   'preview.media.src-unsupported.title': 'Format not supported by this browser',
   'preview.media.src-unsupported.body': 'The container or codec is not one this browser can play (.mkv, .avi, .flv and .wmv usually land here). Each browser supports a different list — a file Edge/Chrome refuses may well play in Firefox, so try that first; otherwise download it and open it in VLC.',
-  'preview.media.fragmented-mp4.title': 'Edge/Chrome must download this whole file first',
-  'preview.media.fragmented-mp4.body': 'This is a fragmented MP4 — a format meant for streaming through a dedicated player, not for sequential download. The file is intact and its codecs are fine, but Edge/Chrome need to build a whole-file index before playing, while Firefox starts right away. Reopen it in Firefox, or download it and use a local player.',
+  'preview.media.fragmented-mp4.title': 'Edge/Chrome is scanning this file fragment by fragment before playing',
+  'preview.media.fragmented-mp4.body': 'This is a fragmented MP4 — a format meant for streaming through a dedicated player, not for sequential download. The file is intact and its codecs are fine, but Edge/Chrome must read the header of every fragment in turn to build an index before playing — the longer the video, the longer the wait — while Firefox starts right away. Wait a little longer, reopen it in Firefox, or download it and use a local player.',
   'preview.media.moov-at-end.title': 'File is not optimised for streaming',
   'preview.media.moov-at-end.body': 'The file index (the moov box) sits at the end instead of the start, so the browser has to fetch the tail of the file before playback can begin — the larger the file, the longer that takes. The file itself is intact. Wait a little longer, or download it and use a local player.',
   'preview.audio.noticeTitle': 'About the audio:',

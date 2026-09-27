@@ -111,16 +111,18 @@ export default function OtpInput({
   // chứ không chỉ màu — người mù màu vẫn phân biệt được đúng/sai.
   const boxClass = (index) => {
     const base =
-      'w-full aspect-square max-w-[52px] rounded-xl text-center text-2xl font-bold text-white bg-white/[0.03] border outline-none transition-all duration-200';
+      'w-full aspect-square max-w-[52px] rounded-xl text-center text-2xl font-bold bg-white dark:bg-white/[0.04] shadow-xs dark:shadow-none border outline-none transition-all duration-200';
+    // Màu chữ nằm ở TỪNG nhánh chứ không ở `base`: hai class màu chữ trên cùng một
+    // phần tử thì class nào thắng là do thứ tự trong CSS sinh ra, không phải thứ tự viết.
     if (status === 'success') {
-      return `${base} border-emerald-500 ring-2 ring-emerald-500/40 text-emerald-300`;
+      return `${base} border-emerald-500 ring-2 ring-emerald-500/40 text-emerald-600 dark:text-emerald-300`;
     }
     if (status === 'error') {
-      return `${base} border-red-500 ring-2 ring-red-500/30 text-red-300`;
+      return `${base} border-red-500 ring-2 ring-red-500/30 text-red-600 dark:text-red-300`;
     }
     const filled = Boolean(value[index]);
-    return `${base} ${
-      filled ? 'border-blue-500/60' : 'border-white/10'
+    return `${base} text-slate-900 dark:text-white ${
+      filled ? 'border-blue-500/60' : 'border-slate-300 dark:border-white/15'
     } focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30`;
   };
 

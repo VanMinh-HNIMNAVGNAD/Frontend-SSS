@@ -6,10 +6,11 @@ import { useEffect, useState } from 'react';
  * Vì sao phải có: nhóm tệp này Chromium (Edge/Chrome, cả bản mobile) không phát
  * nổi qua thẻ `<video src>` thường. `moov` của chúng rỗng mục lục, mọi thông tin
  * mẫu nằm rải trong từng `moof`, mà tệp lại không khai `mehd`/`sidx` — nên trình
- * duyệt phải dựng chỉ mục bằng cách đọc hết tệp trước khi phát được. Với tệp
- * 3.8 GB ở tốc độ đo thật 1.6 MB/s là khoảng 40 phút chờ; người dùng chỉ thấy nó
- * treo. Firefox không lộ ra lỗi này vì demuxer của nó đọc tới `moof` nào thì phát
- * `moof` đó. Chi tiết trong `.ai/error.md` mục #13.
+ * duyệt phải dựng chỉ mục trước khi phát được. Đo trên Edge 153 (27/09/2026): nó
+ * đọc đầu từng `moof` bằng MỘT request `Range` nối tiếp cho mỗi mảnh, nên thời gian
+ * chờ tỉ lệ với số mảnh × độ trễ mạng — video 8 phút mảnh 2s là ~240 request, hơn
+ * 20 giây ở 1.6 MB/s + RTT 60ms. Firefox không lộ ra lỗi này vì demuxer của nó đọc
+ * tới `moof` nào thì phát `moof` đó. Chi tiết trong `.ai/error.md` mục #13.
  *
  * Mà trớ trêu là fMP4 lại ĐÚNG là định dạng MSE sinh ra để nhận: nạp `ftyp`+`moov`
  * làm init segment rồi đổ tiếp byte của tệp vào `SourceBuffer` là phát gần như

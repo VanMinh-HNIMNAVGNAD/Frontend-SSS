@@ -4,6 +4,7 @@ import { ScrollText } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { LEGAL_DOCS, LEGAL_PATHS } from '../../constants/legal';
+import { AUTH_CARD, AUTH_ERROR } from '../ui/authStyles';
 
 /**
  * ─────────────────────────────────────────────────────────────────────────────
@@ -70,7 +71,7 @@ export default function TermsAcceptanceGate() {
       to={LEGAL_PATHS[docId]}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex items-center gap-1.5 text-blue-400 hover:text-blue-300 font-bold underline decoration-blue-400/40 underline-offset-2"
+      className="inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-bold underline decoration-blue-600/40 dark:decoration-blue-400/40 underline-offset-2"
     >
       <ScrollText className="w-3.5 h-3.5 shrink-0" />
       {label}
@@ -82,20 +83,20 @@ export default function TermsAcceptanceGate() {
     // trình tải): màn này phải nằm TRÊN tất cả, nếu không nó chỉ là một tấm che
     // mà người dùng bấm xuyên qua được.
     <div
-      className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-[#0a0e17]/95 backdrop-blur-sm"
+      className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/40 dark:bg-black/70 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-labelledby="terms-gate-title"
     >
-      <div className="w-full max-w-[520px] bg-[#111726] border border-white/[0.12] rounded-2xl p-7 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.8)] ring-1 ring-white/5">
+      <div className={`${AUTH_CARD} max-w-[520px]`}>
         <h2
           id="terms-gate-title"
-          className="text-xl font-bold text-white tracking-tight"
+          className="text-xl font-bold text-slate-900 dark:text-white tracking-tight"
         >
           {t('legal.gate.title')}
         </h2>
 
-        <p className="mt-3 text-sm leading-relaxed text-slate-300">
+        <p className="mt-3 text-sm leading-relaxed text-slate-700 dark:text-slate-300">
           {t('legal.gate.body')}
         </p>
 
@@ -107,7 +108,7 @@ export default function TermsAcceptanceGate() {
         </div>
 
         {localError && (
-          <div className="mt-5 p-3 bg-red-500/20 border border-red-500/30 rounded-xl text-sm text-red-300 text-center font-semibold">
+          <div className={`${AUTH_ERROR} mt-5`}>
             {localError}
           </div>
         )}
@@ -119,7 +120,7 @@ export default function TermsAcceptanceGate() {
             type="button"
             onClick={logout}
             disabled={isSubmitting}
-            className="flex-1 h-12 rounded-xl text-slate-300 font-bold text-sm bg-white/[0.03] border border-white/10 hover:border-white/25 hover:bg-white/[0.08] transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex-1 h-12 rounded-xl text-slate-700 dark:text-slate-200 font-bold text-sm bg-white dark:bg-white/[0.04] border border-slate-300 dark:border-white/15 shadow-xs dark:shadow-none enabled:hover:border-slate-400 dark:enabled:hover:border-white/30 enabled:hover:bg-slate-50 dark:enabled:hover:bg-white/[0.08] transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {t('legal.gate.decline')}
           </button>

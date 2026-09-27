@@ -124,6 +124,7 @@ const vi = {
   'header.ai': 'Hỏi trợ lý AI',
   'header.ai.needLogin': 'Đăng nhập để dùng trợ lý AI',
   'header.settings': 'Cài đặt cloudSSS',
+  'header.more': 'Thêm',
   'header.account': 'Thông tin tài khoản',
   // Nhãn nút có kèm phím tắt — để nguyên trong bản dịch, không ghép ngoài JSX
   'header.action.cut': 'Cắt (Ctrl+X)',
@@ -723,8 +724,8 @@ const vi = {
   'preview.media.decode-error.body': 'Trình duyệt nhận tệp nhưng không giải mã được nội dung bên trong. Tải về mở bằng VLC hoặc chuyển tệp sang H.264 + AAC rồi tải lên lại.',
   'preview.media.src-unsupported.title': 'Trình duyệt không hỗ trợ định dạng này',
   'preview.media.src-unsupported.body': 'Định dạng chứa hoặc codec của tệp không nằm trong danh sách trình duyệt phát được (.mkv, .avi, .flv, .wmv thường vào nhóm này). Mỗi trình duyệt hỗ trợ một danh sách khác nhau — tệp Edge/Chrome từ chối có thể Firefox lại phát được, nên thử Firefox trước; không được thì tải về mở bằng VLC.',
-  'preview.media.fragmented-mp4.title': 'Tệp này Edge/Chrome phải tải hết mới phát được',
-  'preview.media.fragmented-mp4.body': 'Đây là MP4 phân mảnh (fragmented MP4) — định dạng dành cho phát trực tuyến qua trình phát chuyên dụng, không phải để tải tuần tự. Tệp vẫn nguyên vẹn và codec vẫn bình thường, nhưng Edge/Chrome cần dựng xong chỉ mục toàn tệp trước khi phát, còn Firefox thì phát ngay. Mở lại bằng Firefox là xem được, hoặc tải về mở bằng trình phát trên máy.',
+  'preview.media.fragmented-mp4.title': 'Edge/Chrome đang dò từng mảnh của tệp này trước khi phát',
+  'preview.media.fragmented-mp4.body': 'Đây là MP4 phân mảnh (fragmented MP4) — định dạng dành cho phát trực tuyến qua trình phát chuyên dụng, không phải để tải tuần tự. Tệp vẫn nguyên vẹn và codec vẫn bình thường, nhưng Edge/Chrome phải đọc lần lượt đầu từng mảnh để dựng chỉ mục trước khi phát — video càng dài càng lâu, còn Firefox thì phát ngay. Chờ thêm một chút, mở bằng Firefox, hoặc tải về mở bằng trình phát trên máy.',
   'preview.media.moov-at-end.title': 'Tệp chưa được tối ưu để phát trực tuyến',
   'preview.media.moov-at-end.body': 'Mục lục của tệp (box moov) nằm ở cuối chứ không ở đầu, nên trình duyệt phải tải thêm phần đuôi tệp mới bắt đầu phát được — tệp càng lớn càng lâu. Tệp vẫn nguyên vẹn. Chờ thêm một chút, hoặc tải về mở bằng trình phát trên máy.',
   'preview.audio.noticeTitle': 'Lưu ý về âm thanh:',

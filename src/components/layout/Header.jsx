@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useFiles, useFileSelection, useClipboard } from '../../context/FileContext';
 import { downloadItemsAsZip, triggerDownload } from '../../utils/downloadItems';
@@ -24,7 +24,8 @@ import {
     Scissors,
     AlertCircle,
     History,
-    Sparkles
+    Sparkles,
+    MoreVertical
 } from 'lucide-react';
 import cloudLogo from '../../assets/icon/cloud-acceleration-svgrepo-com.svg';
 
@@ -70,9 +71,27 @@ export default function Header({ toggleRightSidebar }) {
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isAccountOpen, setIsAccountOpen] = useState(false);
     const [isActivityLogOpen, setIsActivityLogOpen] = useState(false);
+    // Menu "⋮" chỉ có trên điện thoại: gom Lịch sử + Cài đặt vào đó để ô tìm kiếm có
+    // chỗ. Ở màn 390px, logo + chữ + bốn nút tròn trước đây ép ô tìm kiếm về 0px và
+    // đẩy nút tài khoản ra ngoài mép màn hình.
+    const [isMoreOpen, setIsMoreOpen] = useState(false);
+    // Nút mở bộ lọc — popover cần biết để cú bấm vào chính nút này không bị tính là
+    // "bấm ra ngoài" (đóng) rồi ngay sau đó bị `onClick` mở lại.
+    const filterToggleRef = useRef(null);
 
     const handleLogoClick = () => {
         navigate('/app/home');
+    };
+
+    // Dùng chung cho nút trên thanh (màn rộng) và mục trong menu "⋮" (điện thoại).
+    // Chặn khách chưa đăng nhập ngay tại chỗ bấm — xem chú thích ở nút bên dưới.
+    const handleOpenActivityLog = () => {
+        if (!isAuthenticated) {
+            toast.error(t('header.activityLog.needLogin'));
+            navigate('/login');
+            return;
+        }
+        setIsActivityLogOpen(true);
     };
 
     const isTrashTab = activeTab === 'trash';
@@ -322,13 +341,13 @@ export default function Header({ toggleRightSidebar }) {
 
     if (selectedCount > 0) {
         return (
-            <header className="h-16 flex items-center justify-between px-3 md:px-5 bg-[#0b57d0] text-white border-b border-[#0b57d0] shrink-0 gap-3 transition-colors duration-200">
+            <header className="h-16 flex items-center justify-between px-2 sm:px-3 md:px-5 bg-[#0b57d0] text-white border-b border-[#0b57d0] shrink-0 gap-2 sm:gap-3 transition-colors duration-200">
                 {/* Left */}
-                <div className="flex items-center gap-4">
-                    <button onClick={deselectAll} className="p-2 hover:bg-white/20 rounded-full transition-colors cursor-pointer" title={t('common.close')}>
+                <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+                    <button onClick={deselectAll} className="p-2 hover:bg-white/20 rounded-full transition-colors cursor-pointer shrink-0" title={t('common.close')}>
                         <X className="w-5 h-5" />
                     </button>
-                    <span className="font-semibold text-lg">{t('header.selected', { count: selectedCount })}</span>
+                    <span className="font-semibold text-base sm:text-lg truncate">{t('header.selected', { count: selectedCount })}</span>
                     
                     <div className="w-px h-6 bg-white/30 dark:bg-white/5 mx-2 hidden sm:block" />
                     
@@ -342,7 +361,7 @@ export default function Header({ toggleRightSidebar }) {
                 </div>
 
                 {/* Right */}
-                <div className="flex items-center gap-1 sm:gap-2">
+                <div className="flex items-center gap-0.5 sm:gap-2 shrink-0">
                     {!isTrashTab && !isSpamTab ? (
                         <>
                             <button onClick={handleDeleteSelected} className="flex items-center gap-1.5 px-3 py-2 hover:bg-red-500/90 rounded-lg transition-colors text-sm font-medium cursor-pointer" title={t('common.delete')}>
@@ -392,7 +411,7 @@ export default function Header({ toggleRightSidebar }) {
     }
 
     return (
-        <header className="h-16 flex items-center justify-between px-3 md:px-5 bg-[var(--app-surface)] border-b border-[var(--app-border)] shrink-0 gap-3 transition-colors duration-200 shadow-2xs">
+        <header className="h-16 flex items-center justify-between px-2 sm:px-3 md:px-5 bg-[var(--app-surface)] border-b border-[var(--app-border)] shrink-0 gap-1.5 sm:gap-3 transition-colors duration-200 shadow-2xs">
             {/* LOGO & Web Title "cloudSSS" */}
             <div className="flex items-center gap-2 shrink-0">
                 {/* Nút Toggle Sidebar */}
@@ -404,37 +423,46 @@ export default function Header({ toggleRightSidebar }) {
                     <Menu className="w-5 h-5 text-gray-800 dark:text-gray-200" />
                 </button>
 
-                {/* Tên web "cloudSSS" (Clicking resets to My Drive) */}
+                {/* Tên web "cloudSSS" (Clicking resets to My Drive).
+                    Ẩn trên điện thoại: chỗ đó dành cho ô tìm kiếm. Nút ☰ bên cạnh vẫn mở
+                    được sidebar, và breadcrumb ngay dưới đã nói người dùng đang ở đâu. */}
                 <div 
                     onClick={handleLogoClick}
-                    className="flex items-center cursor-pointer select-none pr-2 group"
+                    className="hidden sm:flex items-center cursor-pointer select-none pr-2 group"
                     title={t('header.logo.title')}
                 >
                     <img src={cloudLogo} alt="" className="w-8 h-8 mr-1" />
-                    <span className="text-xl font-extrabold tracking-tight text-gray-900 dark:text-gray-100 font-sans">
+                    {/* Chữ chỉ hiện từ `md`: ở dải 640–767px (tablet dọc nhỏ, điện thoại
+                        xoay ngang) cả bốn nút tròn đã quay lại thanh, thêm chữ nữa là ô
+                        tìm kiếm lại bị ép còn vài chục pixel. */}
+                    <span className="hidden md:inline text-xl font-extrabold tracking-tight text-gray-900 dark:text-gray-100 font-sans">
                         cloud<span className="text-blue-600 dark:text-blue-400 font-black text-2xl">SSS</span>
                     </span>
                 </div>
             </div>
 
             {/* VÙNG TÌM KIẾM TO + BỘ LỌC TÌM KIẾM */}
-            <div className="flex-1 max-w-2xl relative mx-2">
-                <div className="flex items-center bg-gray-100/90 dark:bg-white/5 hover:bg-gray-200/70 dark:hover:bg-white/10 focus-within:bg-white dark:focus-within:bg-[var(--app-surface)] border border-gray-200/90 dark:border-transparent focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100 dark:focus-within:ring-0 focus-within:shadow-md rounded-full px-4 py-2 transition-all duration-200">
-                    <Search className="w-5 h-5 text-gray-600 dark:text-gray-400 mr-3 shrink-0" />
+            <div className="flex-1 min-w-0 max-w-2xl relative sm:mx-2">
+                <div className="flex items-center h-11 sm:h-auto bg-gray-100/90 dark:bg-white/5 hover:bg-gray-200/70 dark:hover:bg-white/10 focus-within:bg-white dark:focus-within:bg-[var(--app-surface)] border border-gray-200/90 dark:border-transparent focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100 dark:focus-within:ring-0 focus-within:shadow-md rounded-full pl-3 pr-1.5 sm:px-4 sm:py-2 transition-all duration-200">
+                    <Search className="w-5 h-5 text-gray-600 dark:text-gray-400 mr-2 sm:mr-3 shrink-0" />
                     <input
                         id="global-search-input"
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder={t('header.search.placeholder')}
-                        className="w-full bg-transparent border-none outline-none text-sm font-medium text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                        // 16px trên điện thoại: Safari iOS tự phóng to cả trang khi chạm vào
+                        // ô nhập có chữ nhỏ hơn 16px, và không tự thu lại sau đó.
+                        className="w-full min-w-0 bg-transparent border-none outline-none text-base sm:text-sm font-medium text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 text-ellipsis"
                     />
                     
                     {/* Nút Bộ lọc tìm kiếm */}
                     <button
+                        ref={filterToggleRef}
                         onClick={() => setIsFilterOpen(!isFilterOpen)}
                         title={t('header.search.filter')}
-                        className={`p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-white/10 transition-colors ml-2 shrink-0 cursor-pointer ${
+                        aria-expanded={isFilterOpen}
+                        className={`p-2 sm:p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-white/10 transition-colors ml-1 sm:ml-2 shrink-0 cursor-pointer ${
                             isFilterOpen || filterType !== 'all' ? 'text-blue-700 dark:text-blue-400 bg-blue-100/80 dark:bg-blue-500/15' : 'text-gray-700 dark:text-gray-300'
                         }`}
                     >
@@ -446,11 +474,12 @@ export default function Header({ toggleRightSidebar }) {
                 <SearchFilterModal
                     isOpen={isFilterOpen}
                     onClose={() => setIsFilterOpen(false)}
+                    toggleRef={filterToggleRef}
                 />
             </div>
 
             {/* CÀI ĐẶT + ỨNG DỤNG HỆ SINH THÁI + THÔNG TIN TÀI KHOẢN */}
-            <div className="flex items-center gap-1.5 shrink-0 relative">
+            <div className="flex items-center gap-0.5 sm:gap-1.5 shrink-0 relative">
                 
 
 
@@ -463,17 +492,10 @@ export default function Header({ toggleRightSidebar }) {
                   * bật lên rồi trang mới nhảy đi. Nay chặn ngay tại chỗ bấm.
                   */}
                 <button
-                    onClick={() => {
-                        if (!isAuthenticated) {
-                            toast.error(t('header.activityLog.needLogin'));
-                            navigate('/login');
-                            return;
-                        }
-                        setIsActivityLogOpen(true);
-                    }}
+                    onClick={handleOpenActivityLog}
                     disabled={isAuthLoading}
                     title={isAuthenticated ? t('header.activityLog') : t('header.activityLog.needLogin')}
-                    className="p-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="hidden sm:inline-flex p-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                     <History className="w-5 h-5" />
                 </button>
@@ -501,7 +523,7 @@ export default function Header({ toggleRightSidebar }) {
                     disabled={isAuthLoading}
                     title={isAuthenticated ? t('header.ai') : t('header.ai.needLogin')}
                     aria-label={isAuthenticated ? t('header.ai') : t('header.ai.needLogin')}
-                    className="p-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="p-2 sm:p-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                     <Sparkles className="w-5 h-5" />
                 </button>
@@ -510,10 +532,52 @@ export default function Header({ toggleRightSidebar }) {
                 <button
                     onClick={() => setIsSettingsOpen(true)}
                     title={t('header.settings')}
-                    className="p-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 rounded-full transition-colors cursor-pointer"
+                    className="hidden sm:inline-flex p-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 rounded-full transition-colors cursor-pointer"
                 >
                     <Settings className="w-5 h-5" />
                 </button>
+
+                {/* Menu "⋮" — chỉ trên điện thoại, thay cho hai nút Lịch sử + Cài đặt ở trên */}
+                <div className="relative sm:hidden">
+                    <button
+                        onClick={() => setIsMoreOpen((open) => !open)}
+                        title={t('header.more')}
+                        aria-label={t('header.more')}
+                        aria-expanded={isMoreOpen}
+                        className="p-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 rounded-full transition-colors cursor-pointer"
+                    >
+                        <MoreVertical className="w-5 h-5" />
+                    </button>
+                    {isMoreOpen && (
+                        <>
+                            {/* Lớp trong suốt bắt cú chạm ra ngoài để đóng menu */}
+                            <div className="fixed inset-0 z-40" onClick={() => setIsMoreOpen(false)} />
+                            <div className="absolute right-0 top-full mt-2 w-56 z-50 py-1.5 bg-[var(--app-surface)] border border-[var(--app-border)] rounded-2xl shadow-xl animate-fade-in">
+                                <button
+                                    onClick={() => {
+                                        setIsMoreOpen(false);
+                                        handleOpenActivityLog();
+                                    }}
+                                    disabled={isAuthLoading}
+                                    className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors text-left cursor-pointer disabled:opacity-40"
+                                >
+                                    <History className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                                    <span>{t('header.activityLog')}</span>
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setIsMoreOpen(false);
+                                        setIsSettingsOpen(true);
+                                    }}
+                                    className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors text-left cursor-pointer"
+                                >
+                                    <Settings className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                                    <span>{t('header.settings')}</span>
+                                </button>
+                            </div>
+                        </>
+                    )}
+                </div>
 
                 {/* Nút Thông tin tài khoản — 3 trạng thái: loading / chưa login / đã login */}
                 <div className="relative">
@@ -524,7 +588,7 @@ export default function Header({ toggleRightSidebar }) {
                         /* Chưa đăng nhập → hiện nút Đăng nhập */
                         <button
                             onClick={() => navigate('/login')}
-                            className="ml-1 px-4 py-1.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow-sm transition-colors cursor-pointer"
+                            className="ml-1 px-3 sm:px-4 py-1.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-[13px] sm:text-sm font-semibold shadow-sm transition-colors cursor-pointer whitespace-nowrap"
                         >
                             {t('common.login')}
                         </button>

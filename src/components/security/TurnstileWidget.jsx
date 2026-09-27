@@ -114,7 +114,7 @@ export default function TurnstileWidget({
         {!isReady && (
           <div
             aria-live="polite"
-            className="absolute inset-0 flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 text-xs font-semibold text-slate-400 pointer-events-none"
+            className="absolute inset-0 flex items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-xs font-semibold text-slate-500 dark:text-slate-400 pointer-events-none"
           >
             <Loader2 className="w-4 h-4 animate-spin" />
             <span>{t('turnstile.loading')}</span>
@@ -125,7 +125,7 @@ export default function TurnstileWidget({
       {error && (
         <p
           role="alert"
-          className="mt-2 flex items-center justify-center gap-1.5 text-xs font-semibold text-red-400 text-center"
+          className="mt-2 flex items-center justify-center gap-1.5 text-xs font-semibold text-red-600 dark:text-red-400 text-center"
         >
           <ShieldAlert className="w-4 h-4 shrink-0 mt-px" />
           <span>{error}</span>

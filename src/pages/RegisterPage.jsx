@@ -10,6 +10,10 @@ import { TURNSTILE_ACTIONS } from '../constants/turnstile';
 import { API_BASE_URL } from '../constants/api';
 import OtpForm from '../components/security/OtpForm';
 import { LegalConsentCheckbox } from '../components/security/LegalConsent';
+import {
+  AUTH_CARD, AUTH_TITLE, AUTH_LABEL, AUTH_INPUT, AUTH_INPUT_ICON, AUTH_SOCIAL_BUTTON, AUTH_SOCIAL_LABEL,
+  AUTH_GITHUB_ICON, AUTH_DIVIDER_LINE, AUTH_DIVIDER_TEXT, AUTH_ERROR, AUTH_PRIMARY_BUTTON, AUTH_MUTED, AUTH_LINK,
+} from '../components/ui/authStyles';
 import { LEGAL_VERSION } from '../constants/legal';
 
 export default function RegisterPage() {
@@ -209,8 +213,8 @@ export default function RegisterPage() {
   return (
     <AuthBackground>
       {/* Auth Card */}
-      <div className="w-full bg-[#111726]/95 backdrop-blur-xl border border-white/[0.12] rounded-2xl p-8 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.8)] ring-1 ring-white/5 relative z-10">
-        <h1 className="text-2xl font-bold text-center text-white tracking-tight mb-6">
+      <div className={AUTH_CARD}>
+        <h1 className={AUTH_TITLE}>
           {step === 'otp' ? t('register.otpTitle') : t('register.title')}
         </h1>
 
@@ -236,7 +240,7 @@ export default function RegisterPage() {
             type="button"
             onClick={() => handleSocialRegister('Google')}
             disabled={Boolean(signupBlockReason)}
-            className="group flex-1 h-12 rounded-xl text-white bg-white/[0.03] border border-white/10 hover:border-white/25 hover:bg-white/[0.08] transition-all duration-200 flex items-center justify-center gap-2.5 cursor-pointer shadow-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-white/10 disabled:hover:bg-white/[0.03]"
+            className={AUTH_SOCIAL_BUTTON}
             title={signupBlockReason || t('register.oauth.google')}
           >
             <svg className="w-6 h-6 grayscale opacity-75 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-200" viewBox="0 0 24 24">
@@ -257,7 +261,7 @@ export default function RegisterPage() {
                 d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.3-6.4-5.2L1.9 16C3.7 19.7 7.5 23 12 23z"
               />
             </svg>
-            <span className="text-sm font-semibold text-slate-300 group-hover:text-white transition-colors duration-200">Google</span>
+            <span className={AUTH_SOCIAL_LABEL}>Google</span>
           </button>
 
           {/* GitHub */}
@@ -265,76 +269,76 @@ export default function RegisterPage() {
             type="button"
             onClick={() => handleSocialRegister('GitHub')}
             disabled={Boolean(signupBlockReason)}
-            className="group flex-1 h-12 rounded-xl text-white bg-white/[0.03] border border-white/10 hover:border-white/25 hover:bg-white/[0.08] transition-all duration-200 flex items-center justify-center gap-2.5 cursor-pointer shadow-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-white/10 disabled:hover:bg-white/[0.03]"
+            className={AUTH_SOCIAL_BUTTON}
             title={signupBlockReason || t('register.oauth.github')}
           >
-            <svg className="w-6 h-6 text-slate-400 group-hover:text-white transition-colors duration-200 fill-current" viewBox="0 0 24 24">
+            <svg className={AUTH_GITHUB_ICON} viewBox="0 0 24 24">
               <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
             </svg>
-            <span className="text-sm font-semibold text-slate-300 group-hover:text-white transition-colors duration-200">GitHub</span>
+            <span className={AUTH_SOCIAL_LABEL}>GitHub</span>
           </button>
         </div>
 
         {/* Divider */}
         <div className="relative my-6">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-white/10" />
+            <div className={AUTH_DIVIDER_LINE} />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-slate-900/90 px-3 text-slate-400 font-bold tracking-wider">
+            <span className={AUTH_DIVIDER_TEXT}>
               {t('login.orEmail')}
             </span>
           </div>
         </div>
 
         {displayError && (
-          <div className="p-3 mb-5 bg-red-500/20 border border-red-500/30 rounded-xl text-sm text-red-300 text-center font-semibold">
+          <div className={`${AUTH_ERROR} mb-5`}>
             {displayError}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="text-sm text-slate-300 block mb-2 font-bold">{t('auth.nickname.label')}</label>
+            <label className={AUTH_LABEL}>{t('auth.nickname.label')}</label>
             <div className="relative">
-              <User className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              <User className={AUTH_INPUT_ICON} />
               <input
                 type="text"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder={t('auth.nickname.placeholder')}
                 required
-                className="w-full h-12 pl-12 pr-4 rounded-xl text-base font-semibold text-white bg-transparent border border-white/10 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 outline-none transition placeholder-slate-500"
+                className={AUTH_INPUT}
               />
             </div>
           </div>
 
           <div>
-            <label className="text-sm text-slate-300 block mb-2 font-bold">{t('auth.email.label')}</label>
+            <label className={AUTH_LABEL}>{t('auth.email.label')}</label>
             <div className="relative">
-              <Mail className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              <Mail className={AUTH_INPUT_ICON} />
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder={t('auth.email.placeholder')}
                 required
-                className="w-full h-12 pl-12 pr-4 rounded-xl text-base font-semibold text-white bg-transparent border border-white/10 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 outline-none transition placeholder-slate-500"
+                className={AUTH_INPUT}
               />
             </div>
           </div>
 
           <div>
-            <label className="text-sm text-slate-300 block mb-2 font-bold">{t('auth.password.label')}</label>
+            <label className={AUTH_LABEL}>{t('auth.password.label')}</label>
             <div className="relative">
-              <Lock className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              <Lock className={AUTH_INPUT_ICON} />
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
-                className="w-full h-12 pl-12 pr-4 rounded-xl text-base font-semibold text-white bg-transparent border border-white/10 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 outline-none transition placeholder-slate-500"
+                className={AUTH_INPUT}
               />
             </div>
           </div>
@@ -363,7 +367,7 @@ export default function RegisterPage() {
             type="submit"
             disabled={isLoading || Boolean(signupBlockReason)}
             title={signupBlockReason || undefined}
-            className="w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-base font-bold tracking-wide transition flex items-center justify-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-600/25 cursor-pointer"
+            className={AUTH_PRIMARY_BUTTON}
           >
             {/* Nút bị khoá cho tới khi ĐÃ TÍCH ĐỒNG Ý và ô xác minh render xong VÀ
                 giải xong (xem `signupBlockReason` + useTurnstile.isVerified). Nhãn
@@ -382,9 +386,9 @@ export default function RegisterPage() {
             <ArrowRight className="w-5 h-5" />
           </button>
 
-          <div className="text-center text-sm font-medium text-slate-400 pt-2">
+          <div className={`text-center text-sm font-medium ${AUTH_MUTED} pt-2`}>
             {t('register.hasAccount')}{' '}
-            <Link to="/login" className="text-blue-400 hover:underline font-bold">
+            <Link to="/login" className={AUTH_LINK}>
               {t('register.loginNow')}
             </Link>
           </div>

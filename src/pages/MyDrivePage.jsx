@@ -106,13 +106,13 @@ export default function MyDrivePage() {
       )}
 
       {/* Header Toolbar */}
-      <div className="flex items-center justify-between mb-2 pb-2 border-b border-gray-200 dark:border-gray-700">
+      <div className="flex items-center justify-between gap-3 mb-2 pb-2 border-b border-gray-200 dark:border-gray-700">
         <div className="flex-1 min-w-0">
           <Breadcrumb path={breadcrumb} onNavigate={(id) => openFolder({ id })} />
         </div>
 
         {/* Action Buttons & View Switcher */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           {clipboard?.items?.length > 0 && (
             <button
               disabled={isPasting}

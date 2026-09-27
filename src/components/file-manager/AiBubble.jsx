@@ -100,16 +100,16 @@ function pointToPos(x, y, vw, vh) {
  * bản sao thay vì tô bốn màu vào một icon vì `color` là MỘT giá trị cho cả phần tử —
  * muốn bốn màu cùng lúc thì phải có bốn phần tử.
  *
- * Lúc đang nghĩ, `spinning` cho vòng xoay quay BÊN TRONG lớp cắt: bốn góc màu đứng yên
- * tại chỗ còn nét vòng xoay chạy xuyên qua chúng, nên vẫn đọc ra là "đang chạy" chứ
- * không thành bốn mảnh rời quay theo nhau.
+ * CHỈ dùng cho icon đứng yên. Trước đây vòng xoay lúc đang nghĩ cũng đi qua đây: bốn
+ * bản sao quay riêng, mỗi bản được khử răng cưa riêng rồi cắt ở mép lệch nửa pixel,
+ * nên nét cung chạy qua đường ghép cứ chớp lệch — nhìn như bong bóng đang rung.
  */
-function RainbowIcon({ Icon, spinning }) {
+function RainbowIcon({ Icon }) {
     return (
         <span className="relative block w-7 h-7">
             {['tl', 'tr', 'br', 'bl'].map((quadrant) => (
                 <span key={quadrant} className={`ai-bubble-quad ai-bubble-quad-${quadrant}`}>
-                    <Icon className={`w-7 h-7 ${spinning ? 'animate-spin' : ''}`} />
+                    <Icon className="w-7 h-7" />
                 </span>
             ))}
         </span>
@@ -232,9 +232,13 @@ export default function AiBubble({ isThinking, unseenReply, label, onRestore }) 
             {/* Ba trạng thái, đọc được mà không cần mở ra: đang trả lời (vòng xoay),
                 đã có câu trả lời chưa xem (chấm xanh), và bình thường.
 
-                `RainbowIcon` lo phần bốn góc đổi màu — dùng chung cho cả hai icon, nên
-                vòng xoay lúc đang nghĩ cũng cầu vồng y hệt lúc đứng yên. */}
-            <RainbowIcon Icon={isThinking ? Loader2 : Sparkles} spinning={isThinking} />
+                Vòng xoay là MỘT icon liền, một màu — một vòng tải bình thường, không
+                đi qua `RainbowIcon` (xem chú thích ở đó vì sao). */}
+            {isThinking ? (
+                <Loader2 className="w-7 h-7 animate-spin" />
+            ) : (
+                <RainbowIcon Icon={Sparkles} />
+            )}
             {!isThinking && unseenReply && (
                 <span className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-blue-600 dark:bg-blue-400 ring-2 ring-white dark:ring-[#282a2c]" />
             )}

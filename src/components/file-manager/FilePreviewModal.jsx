@@ -427,6 +427,12 @@ export default function FilePreviewModal({ item, onClose }) {
   // `useMediaSupport`: đọc ra mới đối chiếu, khỏi cần một effect chỉ để dọn state.
   const [slowStart, setSlowStart] = useState({ key: null, value: false });
 
+  // Khoá của lần nạp mà thẻ <video> đã PHÁT ĐƯỢC (`canplay`/`playing`). Cảnh báo
+  // container chỉ là dự đoán lúc video còn đứng; video đã chạy thì dự đoán đó sai
+  // cho máy này, và câu "phải tải hết mới phát được" treo đè lên một video đang
+  // phát là nói sai trước mắt người xem.
+  const [playableKey, setPlayableKey] = useState(null);
+
   useEffect(() => {
     if (!item) return;
 
@@ -642,6 +648,8 @@ export default function FilePreviewModal({ item, onClose }) {
   // "mãi không phát được" phải bắt đầu lại từ đầu.
   const mediaKey = item ? `${item.id}:${mediaReloadNonce}` : null;
   const isSlowStart = slowStart.key === mediaKey && slowStart.value;
+  const hasPlayed = playableKey === mediaKey;
+  const handleMediaPlayable = useCallback(() => setPlayableKey(mediaKey), [mediaKey]);
 
   /**
    * Tệp phân mảnh thì phát bằng MSE thay vì để `<video src>` tự lo.
@@ -690,13 +698,16 @@ export default function FilePreviewModal({ item, onClose }) {
    *
    * Kết luận về CODEC (`useMediaSupport`) thắng: nó dựa trên chuyện đã xảy ra
    * thật với thẻ media, còn cấu trúc container chỉ là dự đoán. Cảnh báo container
-   * chỉ lên tiếng khi video đã thực sự không phát nổi sau `SLOW_START_AFTER_MS`.
+   * chỉ lên tiếng khi video đã thực sự không phát nổi sau `SLOW_START_AFTER_MS`,
+   * và TỰ RÚT khi thẻ <video> phát được (`hasPlayed`): trình duyệt dựng chỉ mục
+   * nhanh hơn dự đoán, hay mạng chỉ chậm lúc đầu, thì video đang chạy trước mặt
+   * người xem là bằng chứng mạnh hơn mọi phân loại container.
    *
    * Riêng 'fragmented' chỉ nói với Chromium: Firefox phát dạng này bình thường,
    * hiện cảnh báo ở đó là nói sai.
    */
   const containerDiagnosis =
-    !isSlowStart || useMse ? null
+    !isSlowStart || useMse || hasPlayed ? null
       : playbackHint === 'fragmented' ? (IS_CHROMIUM ? 'fragmented-mp4' : null)
         : playbackHint === 'moov-at-end' ? 'moov-at-end'
           : null;
@@ -957,6 +968,8 @@ export default function FilePreviewModal({ item, onClose }) {
                   {...mediaHandlers}
                   onLoadedMetadata={handleMediaLoadedMetadata}
                   onError={handleMediaError}
+                  onCanPlay={handleMediaPlayable}
+                  onPlaying={handleMediaPlayable}
                 />
               </div>
             )}

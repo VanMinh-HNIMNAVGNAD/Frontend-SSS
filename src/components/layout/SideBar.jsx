@@ -50,8 +50,8 @@ export default function Sidebar() {
       <button
         onClick={() => setActiveTab(id)}
         title={isSidebarCollapsed ? label : undefined}
-        className={`w-full flex items-center gap-4 px-4 py-2.5 rounded-full transition-all duration-150 text-[14px] font-medium text-left group relative ${
-          isSidebarCollapsed ? 'justify-center px-0 py-3' : 'justify-start'
+        className={`w-full flex items-center gap-4 px-4 py-2.5 short:py-2 rounded-full transition-all duration-150 text-[14px] font-medium text-left group relative ${
+          isSidebarCollapsed ? 'justify-center px-0 py-3 short:py-2.5' : 'justify-start'
         } ${isActive ? 'bg-[#d3e3fd] dark:bg-blue-500/25 text-[#041e49] dark:text-blue-100 font-bold shadow-2xs' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200/80 dark:hover:bg-white/5'}`}
       >
         <Icon
@@ -83,18 +83,21 @@ export default function Sidebar() {
         />
       )}
       <aside
-        className={`bg-[var(--app-sidebar)] border-r border-[var(--app-border)] flex flex-col pt-3 select-none transition-all duration-300 ease-in-out shrink-0 h-full 
+        className={`bg-[var(--app-sidebar)] border-r border-[var(--app-border)] flex flex-col pt-3 short:pt-2 select-none transition-all duration-300 ease-in-out shrink-0 h-full 
           fixed lg:relative z-50 lg:z-0 top-0 left-0
           ${isSidebarCollapsed ? '-translate-x-full lg:translate-x-0 lg:w-20 px-2' : 'translate-x-0 w-72 lg:w-64 px-3'}
         `}
       >
         {/* NÚT + MỚI */}
-        <div className={`mb-5 flex ${isSidebarCollapsed ? 'justify-center' : 'pl-2 justify-start'}`}>
+        <div className={`mb-5 short:mb-2.5 flex ${isSidebarCollapsed ? 'justify-center' : 'pl-2 justify-start'}`}>
           <NewButton isCollapsed={isSidebarCollapsed} />
         </div>
 
-        {/* DANH SÁCH MENU SIDEBAR */}
-        <nav className="flex-1 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
+        {/* DANH SÁCH MENU SIDEBAR
+            `short:` thu mật độ ở màn thấp (xem src/index.css) để cả menu nằm gọn ở
+            zoom 100% trên laptop 768px/720px. `overflow-y-auto` chỉ còn là lưới an
+            toàn cho màn thấp hơn nữa. */}
+        <nav className="flex-1 overflow-y-auto space-y-1 short:space-y-0.5 pr-1 custom-scrollbar">
           <NavItem id="home" label={t('nav.home')} icon={Home} hoverColor="group-hover:text-blue-600" activeColor="text-blue-600 dark:text-blue-400" />
           <NavItem id="my-drive" label={t('nav.myDrive')} icon={HardDrive} hoverColor="group-hover:text-emerald-600" activeColor="text-emerald-600 dark:text-emerald-400" />
           <NavItem id="shared-drives" label={t('nav.sharedDrives')} icon={FolderGit2} hoverColor="group-hover:text-indigo-600" activeColor="text-indigo-600 dark:text-indigo-400" />
@@ -102,18 +105,18 @@ export default function Sidebar() {
           <NavItem id="recent" label={t('nav.recent')} icon={Clock} hoverColor="group-hover:text-amber-500" activeColor="text-amber-500 dark:text-amber-400" />
           <NavItem id="starred" label={t('nav.starred')} icon={Star} hoverColor="group-hover:text-yellow-500" activeColor="text-yellow-500 dark:text-yellow-400" />
 
-          <div className="my-2 border-t border-gray-200 dark:border-gray-700/60" />
+          <div className="my-2 short:my-1 border-t border-gray-200 dark:border-gray-700/60" />
 
           <NavItem id="spam" label={t('nav.spam')} icon={ShieldAlert} badge={spamCount} badgeColor="bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300" hoverColor="group-hover:text-orange-600" activeColor="text-orange-600 dark:text-orange-400" />
           <NavItem id="trash" label={t('nav.trash')} icon={Trash2} badge={trashCount} hoverColor="group-hover:text-rose-600" activeColor="text-rose-600 dark:text-rose-400" />
 
-          <div className="my-2 border-t border-gray-200 dark:border-gray-700/60" />
+          <div className="my-2 short:my-1 border-t border-gray-200 dark:border-gray-700/60" />
 
           <NavItem id="billing" label={t('nav.billing')} icon={CreditCard} hoverColor="group-hover:text-purple-600" activeColor="text-purple-600 dark:text-purple-400" />
         </nav>
 
         {/* KHỐI THANH LƯU TRỮ DYNAMIC COLOR */}
-        <div className="mt-auto pt-3 pb-4 border-t border-gray-200 dark:border-gray-700/60">
+        <div className="mt-auto pt-3 pb-4 short:pt-2 short:pb-2 border-t border-gray-200 dark:border-gray-700/60">
           {isSidebarCollapsed ? (
             <div
               onClick={() => setActiveTab('billing')}
@@ -152,7 +155,7 @@ export default function Sidebar() {
                 />
               </div>
 
-              <div className="text-xs text-gray-600 dark:text-gray-300 mb-3">
+              <div className="text-xs text-gray-600 dark:text-gray-300 mb-3 short:mb-2">
                 {t('sidebar.storage.usedLabel')}{' '}
                 <span className="font-semibold text-gray-900 dark:text-gray-100">{storageInfo.usedFormatted || `${storageInfo.usedGB} GB`}</span>{' '}
                 {t('sidebar.storage.ofTotal', { total: storageInfo.totalGB })}

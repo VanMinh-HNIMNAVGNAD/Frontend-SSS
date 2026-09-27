@@ -3,6 +3,9 @@ import { ArrowRight, Check, MailCheck, RotateCw } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import OtpInput from './OtpInput';
 import TurnstileWidget from './TurnstileWidget';
+import {
+  AUTH_ERROR, AUTH_STRONG, AUTH_SUCCESS_BADGE, AUTH_SUCCESS_ICON, AUTH_SUCCESS_TEXT,
+} from '../ui/authStyles';
 
 /**
  * ─────────────────────────────────────────────────────────────────────────────
@@ -110,10 +113,10 @@ export default function OtpForm({
     return (
       <div className="space-y-6">
         <div className="flex flex-col items-center gap-4 py-2">
-          <div className="w-16 h-16 rounded-full bg-emerald-500/15 border border-emerald-500/40 flex items-center justify-center animate-[otpPop_0.35s_ease-out]">
-            <Check className="w-8 h-8 text-emerald-400" strokeWidth={3} />
+          <div className={AUTH_SUCCESS_BADGE}>
+            <Check className={AUTH_SUCCESS_ICON} strokeWidth={3} />
           </div>
-          <p className="text-base font-bold text-emerald-300">{successMessage ?? t('otp.success')}</p>
+          <p className={AUTH_SUCCESS_TEXT}>{successMessage ?? t('otp.success')}</p>
         </div>
         <OtpInput value={otp} onChange={() => {}} status="success" disabled />
       </div>
@@ -129,16 +132,16 @@ export default function OtpForm({
       className="space-y-5"
     >
       <div className="flex flex-col items-center text-center gap-2">
-        <MailCheck className="w-10 h-10 text-blue-400" />
-        <p className="text-sm font-medium text-slate-300">
+        <MailCheck className="w-10 h-10 text-blue-600 dark:text-blue-400" />
+        <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
           {t('otp.sentTo')}
           <br />
-          <span className="font-bold text-white break-all">{email}</span>
+          <span className={AUTH_STRONG}>{email}</span>
         </p>
       </div>
 
       {error && (
-        <div className="p-3 bg-red-500/20 border border-red-500/30 rounded-xl text-sm text-red-300 text-center font-semibold">
+        <div className={AUTH_ERROR}>
           {error}
         </div>
       )}
@@ -189,7 +192,7 @@ export default function OtpForm({
             type="button"
             onClick={onBack}
             disabled={busy}
-            className="text-slate-400 hover:text-white transition disabled:opacity-50 cursor-pointer"
+            className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition disabled:opacity-50 cursor-pointer"
           >
             {t('otp.back')}
           </button>
@@ -201,7 +204,7 @@ export default function OtpForm({
           type="button"
           onClick={handleResend}
           disabled={secondsLeft > 0 || busy || (captcha ? !captcha.isVerified : false)}
-          className="flex items-center gap-1.5 text-blue-400 hover:underline font-bold disabled:text-slate-500 disabled:no-underline disabled:cursor-not-allowed cursor-pointer"
+          className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400 hover:underline font-bold disabled:text-slate-400 dark:disabled:text-slate-500 disabled:no-underline disabled:cursor-not-allowed cursor-pointer"
         >
           <RotateCw className="w-4 h-4" />
           {secondsLeft > 0 ? t('otp.resendIn', { seconds: secondsLeft }) : t('otp.resend')}

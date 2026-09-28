@@ -50,9 +50,8 @@ export const MAX_THUMBNAIL_SIZE = 10 * 1024 * 1024;
 /**
  * Những loại KHÔNG bị `MAX_THUMBNAIL_SIZE` chặn, vì chúng không hề tải nguyên tệp.
  *
- * Cái trần 10MB có một lý do rất cụ thể: nhánh ảnh dựng thumbnail bằng
- * `fetch(previewUrl).blob()` — tức là kéo TRỌN tệp về RAM chỉ để vẽ một ô 384px.
- * Với một tấm ảnh 15MB thì đó là một cái giá vô lý, nên chặn là đúng.
+ * Cái trần 10MB có một lý do rất cụ thể: những nhánh phải kéo TRỌN tệp về RAM
+ * (bảng tính, DOCX, text) chỉ để vẽ một ô xem trước.
  *
  * Video và PDF KHÔNG làm như vậy:
  *   • video — `<video preload="metadata">` rồi tua tới giây thứ 1. Trình duyệt đọc
@@ -69,12 +68,20 @@ export const MAX_THUMBNAIL_SIZE = 10 * 1024 * 1024;
 const RANGE_READ_CATEGORIES = new Set(['video', 'pdf']);
 
 /**
+ * Ảnh cũng KHÔNG bị trần chặn nữa (28/09/2026, theo yêu cầu): ảnh lớn cỡ nào cũng
+ * được tải gốc về để dựng thumbnail, rồi đẩy bản thu nhỏ lên R2 — chỉ tốn đúng một
+ * lần cho mỗi ảnh. Trần 10MB giờ chỉ còn áp cho bảng tính / DOCX / text, những thứ
+ * phải parse nguyên tệp trên main thread.
+ */
+const UNCAPPED_CATEGORIES = new Set([...RANGE_READ_CATEGORIES, 'image']);
+
+/**
  * Tệp này có phải "quá lớn để tải nguồn gốc về" không?
  *
  * Trả `true` ⇒ chỉ được lấy thumbnail đã có sẵn trên CDN (`cdnOnly`).
  */
 function needsFullDownload(file, cat) {
-    if (RANGE_READ_CATEGORIES.has(cat)) return false;
+    if (UNCAPPED_CATEGORIES.has(cat)) return false;
     return Boolean(file?.size && file.size > MAX_THUMBNAIL_SIZE);
 }
 
@@ -300,9 +307,8 @@ function transferredBytes(url) {
  * @param {boolean} mini
  * @param {object}  [opts]
  * @param {boolean} [opts.cdnOnly]  Chỉ được lấy thumbnail ĐÃ CÓ trên R2, cấm mọi
- *   đường phải tải nguồn gốc về. Dùng cho tệp vượt trần `MAX_THUMBNAIL_SIZE`: một
- *   tấm ảnh 15MB không đáng tải về để thu nhỏ, nhưng nếu bản 20KB của nó đã nằm
- *   sẵn trên biên CDN thì chẳng có lý do gì để hiện icon.
+ *   đường phải tải nguồn gốc về. Dùng cho tệp vượt trần `MAX_THUMBNAIL_SIZE` (ảnh,
+ *   video, PDF không bao giờ vượt — xem `UNCAPPED_CATEGORIES`).
  */
 async function loadThumbnail(file, cat, mini, { cdnOnly = false } = {}) {
     const n = (file.name || '').toLowerCase();

@@ -9,7 +9,7 @@ import { useInViewport } from '../../hooks/useInViewport';
  * presigned URL được cache lại, không gọi API hai lần cho cùng một tệp.
  *
  * `fallback` là icon theo loại tệp — hiển thị khi tệp không có (hoặc chưa có)
- * thumbnail: thư mục, tệp nén, audio, tệp > 10MB...
+ * thumbnail: thư mục, tệp nén, audio...
  */
 function FileThumbnail({ file, className = '', fallback = null, fit = 'cover' }) {
     // Xem chú thích cùng chỗ trong FileCard: chỉ dựng thumbnail cho ô đã vào gần

@@ -35,15 +35,12 @@ import { uploadThumbnails } from './thumbnailUploader';
  * của việc upload. Người dùng đã thấy tệp của mình nằm trong thư mục rồi.
  */
 
-/**
- * Trần dung lượng ảnh được dựng ở đây.
- *
- * Không đọc từ `MAX_THUMBNAIL_SIZE` (10MB) của đường hiển thị: con số đó chặn việc
- * TẢI VỀ vài MB qua mạng, còn ở đây tệp đã nằm sẵn trong máy nên chi phí duy nhất
- * là giải mã. Nhưng giải mã không miễn phí: một tấm 25MB cỡ 8000×6000 chiếm ~190MB
- * RAM dưới dạng bitmap, nên vẫn cần một trần — chỉ là cao hơn.
+/*
+ * Không có trần dung lượng ảnh (bỏ trần 25MB ngày 28/09/2026, theo yêu cầu): ảnh
+ * lớn cỡ nào cũng được dựng thumbnail. Hàng đợi chạy tuần tự nên mỗi lúc chỉ có
+ * một bitmap lớn nằm trong RAM; nếu giải mã hỏng thì `drain` nuốt lỗi như mọi
+ * thất bại khác, và đường hiển thị sẽ dựng lại sau.
  */
-const PRIME_IMAGE_MAX_BYTES = 25 * 1024 * 1024;
 
 /** GIF/SVG bỏ qua, cùng lý do với đường hiển thị: mất hoạt ảnh / không cần thu nhỏ. */
 const SKIP_IMAGE_EXT = /\.(gif|svg)$/i;
@@ -130,10 +127,7 @@ export function primeThumbnailsForUpload(entity, file) {
   const cat = getFileTypeCategory(name);
   if (cat !== 'image' && cat !== 'video') return;
 
-  if (cat === 'image') {
-    if (SKIP_IMAGE_EXT.test(name)) return;
-    if (file.size > PRIME_IMAGE_MAX_BYTES) return;
-  }
+  if (cat === 'image' && SKIP_IMAGE_EXT.test(name)) return;
 
   queue.push({ entity, file, cat });
   void drain();

@@ -853,6 +853,43 @@ const previewUrlBatch = createBatchLoader({
   },
 });
 
+/**
+ * Nhờ SERVER dựng thumbnail ảnh (`POST /files/thumbnails/generate`).
+ *
+ * Server đọc ảnh gốc trong mạng Google và trả luôn bytes WebP (data URL), nên trình
+ * duyệt không phải kéo ảnh gốc 25–35MB về chỉ để vẽ một ô 160px.
+ *
+ * Lô 4 (backend nhận tối đa 12): request này CHỜ dựng xong mới trả, nên lô nhỏ là
+ * thumbnail hiện dần theo từng nhóm thay vì cả trang chờ ảnh chậm nhất.
+ *
+ * Backend cũ chưa có endpoint (404/405) → tắt cho cả phiên, trả rỗng, và
+ * `useFileThumbnail` đi đường cũ (tự tải ảnh gốc về thu nhỏ) — y như `batchSupported`.
+ */
+let thumbGenerateSupported = true;
+
+const thumbGenerateBatch = createBatchLoader({
+  windowMs: 16,
+  maxBatchSize: 4,
+  fetchMany: async (ids) => {
+    if (!thumbGenerateSupported) return new Map();
+    try {
+      const res = await api.post(
+        '/files/thumbnails/generate',
+        { ids },
+        { meta: { noProgressBar: true } },
+      );
+      return new Map((res?.items || []).map((item) => [String(item.id), item]));
+    } catch (err) {
+      const status = err?.status ?? err?.response?.status;
+      if (status === 404 || status === 405) {
+        thumbGenerateSupported = false;
+        return new Map();
+      }
+      throw err;
+    }
+  },
+});
+
 // ───────────────── Lỗi mạng của máy người dùng vs. server từ chối ─────────────────
 
 /**
@@ -1039,6 +1076,13 @@ export const storageApi = {
    */
   getThumbnailUploadUrls: (items) =>
     api.post('/files/thumbnails/upload-urls', { items }, { meta: { noProgressBar: true } }),
+
+  /**
+   * Nhờ server dựng thumbnail cho MỘT ảnh (gộp lô ngầm, xem `thumbGenerateBatch`).
+   * Trả `{ id, thumbUrls, dataUrls: { t160, t384 } }`, hoặc `null` khi server không
+   * dựng (không phải ảnh nó đọc được, không có quyền, backend cũ).
+   */
+  generateThumbnail: (id) => thumbGenerateBatch.load(id),
 
   /**
    * Huỷ một phiên tải lên đang dở và dọn rác trên cloud.

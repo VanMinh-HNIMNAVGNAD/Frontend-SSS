@@ -313,11 +313,12 @@ function transferredBytes(url) {
 async function loadThumbnail(file, cat, mini, { cdnOnly = false } = {}) {
     const n = (file.name || '').toLowerCase();
 
-    // ── Image: ba tầng, dừng ở tầng nào có kết quả ───────────────
+    // ── Image: dừng ở tầng nào có kết quả ─────────────────────────
     //
-    //   1. R2 qua Cloudflare  — ~20KB, 0 lượt gọi backend  (Giai đoạn 2)
-    //   2. ảnh gốc trên GCS   — tải một lần, dựng mọi biến thể, đẩy lên R2
-    //   3. URL gốc trực tiếp  — khi không thu nhỏ được (GIF/SVG, CORS, canvas lỗi)
+    //   1.  R2 qua Cloudflare  — ~3–15KB, 0 lượt gọi backend  (khi `thumbReady`)
+    //   1b. server dựng        — sharp trên Cloud Run, trả bytes, đẩy lên R2
+    //   2.  ảnh gốc trên GCS   — trình duyệt tự tải về dựng (khi server không dựng được)
+    //   3.  URL gốc trực tiếp  — khi không thu nhỏ được (GIF/SVG, CORS, canvas lỗi)
     if (cat === 'image') {
         const variant = VARIANT_FOR[mini ? 'mini' : 'full'];
 
@@ -333,11 +334,29 @@ async function loadThumbnail(file, cat, mini, { cdnOnly = false } = {}) {
             // vẫn được đẩy thumbnail lên R2.
             noteThumbnailPipelineEnabled();
         }
-        if (!isVectorOrAnimated) {
+        // `thumbReady === false` = backend nói CHƯA có trên R2 → đừng dò. Dò trượt là
+        // ăn một 404 mà Cloudflare cache lại (cả ở trình duyệt, `max-age=14400`), tức
+        // ô này sẽ không lấy được thumbnail từ CDN suốt 4 giờ kể cả khi đã dựng xong.
+        // `undefined` = danh sách không mang cờ này (backend cũ) → dò như trước.
+        if (!isVectorOrAnimated && file.thumbReady !== false) {
             const fromCdn = await probeCdnThumbnail(file.thumbUrls?.[variant]);
             if (fromCdn) return { thumbType: 'image', thumbUrl: fromCdn };
         }
         if (cdnOnly) return null;
+
+        // ── Tầng 1b ── nhờ server dựng: nó đọc ảnh gốc trong mạng Google (vài trăm
+        // ms cho ảnh 35MB), đẩy lên R2 cho mọi người, và trả luôn bytes cho ô này.
+        // Không được thì mới rơi xuống tầng 2 — tải trọn ảnh gốc về trình duyệt.
+        if (!isVectorOrAnimated) {
+            const fromServer = await storageApi.generateThumbnail(file.id).catch(() => null);
+            if (fromServer?.dataUrls?.[variant]) {
+                return {
+                    thumbType: 'image',
+                    thumbUrl: fromServer.dataUrls[variant],
+                    extraVariants: siblingVariants(file.id, fromServer.dataUrls, variant),
+                };
+            }
+        }
 
         // ── Tầng 2/3: cần URL của ảnh gốc ──
         let res = await storageApi.getPreviewUrl(file.id);

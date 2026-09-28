@@ -17,6 +17,7 @@ import {
 } from '../utils/ttlCache';
 import { recordRequestStart, recordRequestEnd } from '../utils/requestMetrics';
 import { createBatchLoader } from '../utils/batchLoader';
+import { solvePow } from '../utils/powSolver';
 // api.js chạy NGOÀI cây React nên không gọi được `useLanguage()`. Những câu dự
 // phòng dưới đây vẫn hiện thẳng lên toast, nên chúng phải theo ngôn ngữ đang chọn.
 import { tOutsideReact } from '../utils/translate';
@@ -202,6 +203,33 @@ api.interceptors.request.use(
  * sẽ không khớp `includes('khóa')` nữa.
  */
 const ACCOUNT_LOCKED_CODE = 'AUTH_2005_ACCOUNT_LOCKED';
+
+/**
+ * Mã lỗi backend khi mạng của người dùng đang quá tải lượt gọi từ trình duyệt lạ
+ * (`ErrorCode.AUTH_POW_REQUIRED`, HTTP 428). Không phải lỗi để hiện cho người dùng: nó kèm
+ * một bài toán nhỏ, trình duyệt giải xong thì gửi lại đúng request đó là đi tiếp.
+ */
+const POW_REQUIRED_CODE = 'AUTH_2015_POW_REQUIRED';
+/**
+ * Độ khó lớn nhất chịu giải. Backend hiện dùng tối đa 3 triệu; trần ở đây chỉ chặn một
+ * phản hồi hỏng bắt trình duyệt quay vòng hàng phút.
+ */
+const POW_MAX_ACCEPTED = 10_000_000;
+
+/** Bài toán PoW trong lỗi này, hoặc null nếu đây không phải lỗi đòi PoW hợp lệ. */
+function powChallengeOf(error) {
+  const data = error?.response?.data;
+  if (error?.response?.status !== 428 || data?.errorCode !== POW_REQUIRED_CODE) return null;
+  const pow = data?.args?.pow;
+  const valid =
+    typeof pow?.token === 'string' &&
+    typeof pow?.salt === 'string' &&
+    /^[0-9a-f]{64}$/.test(pow?.hash ?? '') &&
+    Number.isInteger(pow?.max) &&
+    pow.max >= 0 &&
+    pow.max <= POW_MAX_ACCEPTED;
+  return valid ? pow : null;
+}
 
 /** Tài khoản bị khoá có phải là lý do của lỗi này không? */
 function isAccountLocked(errorLike) {
@@ -444,6 +472,36 @@ api.interceptors.response.use(
     const original = error.config;
     releaseProgress(original);
     recordRequestEnd(original?.__metricsMark, { failed: true });
+
+    // ── Mạng đang bị spam: giải bài toán PoW rồi gửi lại, người dùng không phải làm gì ──
+    //
+    // Backend không chặn người lạ trên một mạng đang quá tải nữa mà bắt trình duyệt giải
+    // một bài toán vài giây. Lượt gửi lại mang header `X-Pow-Solution` được backend miễn
+    // CAPTCHA: bài toán chỉ được phát sau khi lượt đầu đã qua Turnstile, còn token Turnstile
+    // của lượt đầu thì đã bị tiêu.
+    //
+    // `_powSolved`: mỗi request chỉ giải MỘT lần. Lượt gửi lại mà vẫn 428 thì có gì đó sai
+    // ở backend, giải tiếp chỉ là vòng lặp.
+    const powChallenge = !original?._powSolved ? powChallengeOf(error) : null;
+    if (powChallenge) {
+      original._powSolved = true;
+      // Đếm như một request đang bay: thanh tiến trình và nút "đang xử lý" vẫn sáng trong
+      // lúc giải, thay vì đứng im vài giây như thể đã treo.
+      inFlightCount += 1;
+      notifyBusy();
+      try {
+        const answer = await solvePow(powChallenge);
+        original.headers['X-Pow-Solution'] = `${powChallenge.token}:${answer}`;
+        return api(original);
+      } catch (solveError) {
+        // Không giải được (hiếm): rơi xuống xử lý lỗi thường, hiện câu 428 của backend.
+        console.warn('[API] Không giải được bài toán xác minh:', solveError?.message);
+      } finally {
+        inFlightCount = Math.max(0, inFlightCount - 1);
+        notifyBusy();
+      }
+    }
+
     const url = original?.url || '';
     const canRefresh =
       error.response?.status === 401 &&

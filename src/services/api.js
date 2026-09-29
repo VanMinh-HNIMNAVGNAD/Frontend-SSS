@@ -236,6 +236,24 @@ function isAccountLocked(errorLike) {
   return errorLike?.response?.data?.errorCode === ACCOUNT_LOCKED_CODE;
 }
 
+/**
+ * Mã lỗi backend khi thiết bị hoặc IP đã bị cấm vĩnh viễn vì vi phạm lần 2 chính sách nội
+ * dung bạo lực của AI (`ErrorCode.AUTH_DEVICE_BANNED`, HTTP 403). Middleware backend trả mã
+ * này cho MỌI request, kể cả đăng nhập, nên đăng xuất rồi nói rõ lý do ở trang đăng nhập.
+ */
+const DEVICE_BANNED_CODE = 'AUTH_2016_DEVICE_BANNED';
+
+function isDeviceBanned(errorLike) {
+  return errorLike?.response?.data?.errorCode === DEVICE_BANNED_CODE;
+}
+
+/** Lý do đăng xuất để `LoginPage` nói ra, theo thứ tự nặng → nhẹ. */
+function logoutReasonOf({ isBanned, isLocked }) {
+  if (isBanned) return 'device_banned';
+  if (isLocked) return 'account_locked';
+  return undefined;
+}
+
 const NO_REFRESH_PATHS = [
   '/auth/refresh',
   '/auth/login',
@@ -292,13 +310,15 @@ let refreshPromise = null;
  * khác là sự cố tạm thời: giữ nguyên phiên, để lượt sau thử lại.
  */
 class RefreshFailure extends Error {
-  constructor(message, { isAuthFailure, isLocked = false }) {
+  constructor(message, { isAuthFailure, isLocked = false, isBanned = false }) {
     super(message);
     this.name = 'RefreshFailure';
     this.isAuthFailure = isAuthFailure;
     // Phiên chết vì tài khoản bị KHOÁ, không phải vì hết hạn. Đăng xuất trong cả hai
     // trường hợp, nhưng chỉ trường hợp này mới có gì để nói với người dùng.
     this.isLocked = isLocked;
+    // Thiết bị/IP bị cấm vĩnh viễn — middleware backend chặn cả `/auth/refresh`.
+    this.isBanned = isBanned;
   }
 }
 
@@ -346,6 +366,7 @@ function refreshAccessToken() {
         throw new RefreshFailure(err?.message || 'Làm mới phiên thất bại', {
           isAuthFailure,
           isLocked: isAccountLocked(err),
+          isBanned: isDeviceBanned(err),
         });
       })
       .finally(() => {
@@ -524,11 +545,13 @@ api.interceptors.response.use(
         // đăng xuất. Lỗi mạng hay 5xx thì giữ phiên và để request này báo lỗi như một
         // lỗi bình thường — người dùng thử lại là xong, không mất việc đang làm.
         if (refreshError?.isAuthFailure) {
-          forceLogout(refreshError.isLocked ? 'account_locked' : undefined);
+          forceLogout(logoutReasonOf(refreshError));
         }
       }
     } else if (error.response?.status === 401) {
       forceLogout(isAccountLocked(error) ? 'account_locked' : undefined);
+    } else if (error.response?.status === 403 && isDeviceBanned(error)) {
+      forceLogout('device_banned');
     }
 
     // Với `responseType: 'blob'` (vd. filesApi.downloadZip) axios trả body lỗi
@@ -1419,6 +1442,10 @@ function canceledError() {
 async function postSse(path, payload, { signal, onEvent, onActivity, method = 'POST' }) {
   const open = async () => {
     const token = localStorage.getItem('accessToken');
+    // Cùng header với interceptor của axios. Đường này là `fetch` trần nên phải tự gắn —
+    // thiếu nó thì lượt hỏi AI (chính là nơi vi phạm nội dung bạo lực bị bắt) được ghi sổ
+    // không có thiết bị, và lệnh cấm lần 2 chỉ còn cấm được theo IP.
+    const deviceId = getDeviceId();
     return fetch(`${API_BASE_URL}${path}`, {
       method,
       credentials: 'include',
@@ -1429,6 +1456,7 @@ async function postSse(path, payload, { signal, onEvent, onActivity, method = 'P
           ? { 'Content-Type': 'application/json' }
           : {}),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(deviceId ? { 'X-Device-Id': deviceId } : {}),
       },
       ...(payload !== null && payload !== undefined
         ? { body: JSON.stringify(payload) }
@@ -1447,7 +1475,7 @@ async function postSse(path, payload, { signal, onEvent, onActivity, method = 'P
         await refreshAccessToken();
       } catch (refreshError) {
         if (refreshError?.isAuthFailure) {
-          forceLogout(refreshError.isLocked ? 'account_locked' : undefined);
+          forceLogout(logoutReasonOf(refreshError));
         }
         throw refreshError;
       }
@@ -1473,6 +1501,9 @@ async function postSse(path, payload, { signal, onEvent, onActivity, method = 'P
       err.response = { status: res.status, data: body };
     }
     console.error('[API Error]', res.status, path, err.message);
+    if (res.status === 403 && body?.errorCode === DEVICE_BANNED_CODE) {
+      forceLogout('device_banned');
+    }
     throw err;
   }
 
@@ -1583,12 +1614,6 @@ export const aiApi = {
    * @param {function=} handlers.onMeta      ({ context, model, grounded }) — gọi NGAY
    *                   khi backend dựng xong ngữ cảnh, TRƯỚC đoạn chữ đầu tiên. Đây là
    *                   lúc biết AI đọc được gì (`context.mode`) để nói thật với người dùng.
-   * @param {function=} handlers.onThought   (text) — một đoạn TÓM TẮT SUY LUẬN, cũng
-   *                   cần NỐI vào phần đã có. Tới trước `onDelta` đầu tiên hàng chục
-   *                   giây: đo ngày 10/09/2026 thì dòng suy luận đầu về ở 3,1–4,5s
-   *                   trong khi chữ đầu của câu trả lời phải chờ 9,6–15,0s. Đây KHÔNG
-   *                   phải câu trả lời — không lưu, không nối vào `answer`; hiện ở một
-   *                   khối tạm rồi thay bằng câu trả lời thật.
    * @param {function=} handlers.onDelta     (text) — một đoạn chữ mới, cần NỐI vào
    *                   phần đã có chứ không phải thay thế nó.
    * @param {function=} handlers.onAlive     () — gọi ở byte ĐẦU TIÊN sau một lần đứt,
@@ -1602,7 +1627,7 @@ export const aiApi = {
    */
   askStream: async (
     payload,
-    { signal, onMeta, onThought, onDelta, onRun, onResume, onAlive } = {},
+    { signal, onMeta, onDelta, onRun, onResume, onAlive } = {},
   ) => {
     let result = null;
     let streamError = null;
@@ -1629,7 +1654,9 @@ export const aiApi = {
       } else if (name === 'meta') {
         runId = data?.runId ?? runId;
         onMeta?.(data);
-      } else if (name === 'thought') onThought?.(data?.text ?? '');
+      }
+      // `thought` (tóm tắt suy luận) không còn được phát từ 29/09/2026; backend cũ còn gửi
+      // thì rơi qua chuỗi này mà không làm gì.
       else if (name === 'delta') onDelta?.(data?.text ?? '');
       else if (name === 'done') result = data;
       else if (name === 'error') streamError = errorFromPayload(data);

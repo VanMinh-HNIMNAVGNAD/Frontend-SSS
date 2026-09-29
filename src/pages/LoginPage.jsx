@@ -47,7 +47,9 @@ export default function LoginPage() {
   //     hạ tầng, không phải lỗi của người dùng, nên câu chữ phải nói "thử lại sau";
   //   • account_locked         — tài khoản bị khoá (`isActive = false`). Bắt buộc phải hiện:
   //     trước đây người bị khoá đăng nhập OAuth thì vào được /app một nhịp rồi bị đá ra
-  //     không lời nào, nên họ thử đi thử lại mãi mà không biết chuyện gì đang xảy ra.
+  //     không lời nào, nên họ thử đi thử lại mãi mà không biết chuyện gì đang xảy ra;
+  //   • device_banned          — thiết bị hoặc IP bị cấm vĩnh viễn vì vi phạm lần 2 chính
+  //     sách nội dung bạo lực của AI. Mọi request đều 403, nên nói luôn là thử lại vô ích.
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const reason = params.get('error');
@@ -63,6 +65,8 @@ export default function LoginPage() {
       setLocalError(t('login.oauthUnavailable'));
     } else if (reason === 'account_locked') {
       setLocalError(t('login.accountLocked'));
+    } else if (reason === 'device_banned') {
+      setLocalError(t('login.deviceBanned'));
     }
   }, [location.search, t]);
 

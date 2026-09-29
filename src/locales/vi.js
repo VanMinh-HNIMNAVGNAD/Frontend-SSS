@@ -371,6 +371,8 @@ const vi = {
     'Không hoàn tất được đăng nhập OAuth vì dịch vụ tạm thời không sẵn sàng. Vui lòng thử lại sau ít phút hoặc dùng Email.',
   'login.accountLocked':
     'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên để được mở khóa.',
+  'login.deviceBanned':
+    'Thiết bị hoặc mạng này đã bị cấm vĩnh viễn vì vi phạm chính sách nội dung (máu me, bạo lực, trả thù, gây chết người). Nếu bạn cho rằng đây là nhầm lẫn, hãy liên hệ quản trị viên.',
   'login.oauth.google': 'Đăng nhập bằng Google',
   'login.oauth.github': 'Đăng nhập bằng GitHub',
   'login.oauth.comingSoon': 'Đăng nhập bằng {provider} sắp ra mắt. Vui lòng sử dụng Google, GitHub hoặc Email!',
@@ -506,9 +508,8 @@ const vi = {
   'ai.empty.file': 'Hỏi AI bất cứ điều gì về tệp này',
   'ai.empty.folder': 'Hỏi AI bất cứ điều gì về thư mục này',
   'ai.empty.hint': 'Chọn một lệnh nhanh bên dưới, hoặc gõ câu hỏi của bạn. AI đọc nội dung tệp văn bản, mã nguồn, ảnh, PDF và danh sách mục con của thư mục.',
-  'ai.thinking': 'Đang đọc và suy luận…',
+  'ai.thinking': 'Đang phân tích…',
   'ai.reconnecting': 'Mất kết nối — đang nối lại, câu trả lời vẫn đang được tạo…',
-  'ai.reasoning': 'Đang suy luận',
   'ai.send': 'Gửi',
   'ai.truncated': 'Câu trả lời bị cắt vì đã chạm giới hạn độ dài. Hỏi lại vào một phần cụ thể để có câu trọn vẹn.',
   'ai.stop': 'Dừng',
@@ -535,9 +536,9 @@ const vi = {
   'ai.attach.tooMany': 'Mỗi lượt hỏi tối đa {max} tệp. Lượt này chỉ còn {left} chỗ nên các tệp thừa đã bị bỏ qua.',
   'ai.attach.tooBig': '"{name}" vượt giới hạn {max} cho tệp đính kèm. Tệp lớn hơn thì tải vào cloudSSS rồi hỏi AI từ menu chuột phải.',
   'ai.attach.failed': 'Không tải được tệp lên. Kiểm tra kết nối rồi thử lại.',
-  'ai.attach.quota': 'Còn {remaining}/{limit} lượt tải tệp tháng này',
+  'ai.attach.quota': 'Còn {remaining}/{limit} lượt tải tệp trong chu kỳ này',
   'ai.attach.limits': 'tối đa {max} tệp mỗi lượt, {size} mỗi tệp',
-  'ai.attach.quotaOut': 'Đã dùng hết {limit} lượt tải tệp của tháng này. Bạn vẫn hỏi AI được về mọi tệp đã có trong cloudSSS; hạn mức cấp lại vào đầu tháng sau.',
+  'ai.attach.quotaOut': 'Đã dùng hết {limit} lượt tải tệp của chu kỳ này. Bạn vẫn hỏi AI được về mọi tệp đã có trong cloudSSS; hạn mức cấp lại vào {date}.',
   'ai.placeholder.empty': 'Hỏi bất cứ điều gì, hoặc đính kèm một tệp…',
 
   'ai.placeholder.folder': 'Hỏi bất cứ điều gì về thư mục này…',
@@ -587,13 +588,13 @@ const vi = {
   // ── Hạn mức AI theo gói (backend: storage_plans.ai_token_quota) ──
   // Hiển thị PHẦN TRĂM ĐÃ DÙNG cho khớp với thanh tiến trình ngay bên dưới. Con số token
   // thật vẫn có trong tooltip cho ai cần đối chiếu hoá đơn.
-  'ai.quota.usedPercent': 'Đã dùng {percent}% hạn mức AI tháng này',
-  'ai.quota.empty': 'Đã dùng hết hạn mức AI tháng này',
+  'ai.quota.usedPercent': 'Đã dùng {percent}% hạn mức AI chu kỳ này',
+  'ai.quota.empty': 'Đã dùng hết hạn mức AI chu kỳ này',
   'ai.quota.reset': 'Cấp lại {date}',
-  'ai.quota.tooltip': 'Đã dùng {used}/{limit} token AI trong tháng này',
-  'ai.quota.blockedTitle': 'Hết hạn mức AI của tháng',
-  'ai.quota.blockedDesc': 'Gói "{plan}" của bạn đã dùng hết số token AI trong tháng này. Hạn mức được cấp lại vào {date}, hoặc nâng cấp gói để có thêm ngay.',
-  'ai.quota.upgradeHint': 'Nâng cấp gói để có thêm hạn mức AI ngay, không phải chờ sang tháng.',
+  'ai.quota.tooltip': 'Đã dùng {used}/{limit} token AI trong chu kỳ 30 ngày này',
+  'ai.quota.blockedTitle': 'Hết hạn mức AI của chu kỳ',
+  'ai.quota.blockedDesc': 'Gói "{plan}" của bạn đã dùng hết số token AI trong chu kỳ này. Hạn mức được cấp lại vào {date}, hoặc nâng cấp gói để có thêm ngay.',
+  'ai.quota.upgradeHint': 'Nâng cấp gói để có thêm hạn mức AI ngay, không phải chờ sang chu kỳ mới.',
   'ai.quota.upgradeCta': 'Xem các gói',
   'ai.context.grounded': 'có tra cứu web',
   'ai.context.groundedCount': 'Đã tra cứu web · {count} nguồn',

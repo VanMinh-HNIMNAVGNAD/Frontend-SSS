@@ -604,21 +604,6 @@ export default function GeminiModal({
                                 { sender: 'ai', text: '', context, model, streaming: true },
                             ]);
                         },
-                        // Tóm tắt suy luận: về ở 3,1–4,5s, tức hàng chục giây TRƯỚC chữ
-                        // đầu tiên của câu trả lời (9,6–15,0s, đo 10/09/2026). Đây là thứ
-                        // lấp khoảng im lặng mà người dùng phàn nàn — nhưng nó KHÔNG phải
-                        // câu trả lời, nên nằm ở trường riêng `thought`, không nối vào
-                        // `text` và không đi vào bong bóng chốt ở cuối.
-                        onThought: (chunk) => {
-                            setMessages((prev) => {
-                                const last = prev[prev.length - 1];
-                                if (!last?.streaming) return prev;
-                                return [
-                                    ...prev.slice(0, -1),
-                                    { ...last, thought: (last.thought ?? '') + chunk },
-                                ];
-                            });
-                        },
                         // NỐI vào phần đã có. `streaming` là cờ nhận dạng bong bóng đang
                         // chảy: không có nó thì một lượt hỏi mới (hoặc một lần dọn lỗi)
                         // có thể ghi chữ vào đúng bong bóng đã hoàn tất của lượt trước.
@@ -650,6 +635,9 @@ export default function GeminiModal({
                         // trong chuỗi chữ không có gì nói ra điều đó. Backend biết
                         // (`finishReason`), nên nó nói — xem `truncated` ở `settle()`.
                         truncated: res.truncated,
+                        // Lượt bị bắt vì nội dung bạo lực: `answer` đã là câu cảnh báo do
+                        // backend viết, ở đây chỉ để tô khối cho khác câu trả lời thường.
+                        moderation: res.moderation ?? null,
                     };
                     const last = prev[prev.length - 1];
                     return last?.streaming ? [...prev.slice(0, -1), bubble] : [...prev, bubble];
@@ -1259,15 +1247,19 @@ export default function GeminiModal({
             ? Math.min(100, Math.round((quota.used / quota.limit) * 100))
             : 100
         : 0;
-    // Ngày cấp lại, hiển thị theo giờ VN vì chu kỳ hạn mức tính theo múi giờ đó.
-    const resetLabel = quota?.resetAt
-        ? new Date(quota.resetAt).toLocaleDateString(locale, {
-              day: '2-digit',
-              month: '2-digit',
-              year: 'numeric',
-              timeZone: 'Asia/Ho_Chi_Minh',
-          })
-        : null;
+    // Ngày cấp lại, hiển thị theo giờ VN. Chu kỳ là 30 ngày tính từ ngày mua gói (không
+    // còn là tháng dương lịch), nên câu chữ phải nói NGÀY cụ thể chứ không nói "đầu tháng".
+    const formatResetDate = (value) =>
+        value
+            ? new Date(value).toLocaleDateString(locale, {
+                  day: '2-digit',
+                  month: '2-digit',
+                  year: 'numeric',
+                  timeZone: 'Asia/Ho_Chi_Minh',
+              })
+            : null;
+    const resetLabel = formatResetDate(quota?.resetAt);
+    const fileResetLabel = formatResetDate(fileQuota?.resetAt) ?? resetLabel ?? '—';
     const inputLocked = aiDisabled || quotaBlocked;
 
     /**
@@ -1597,7 +1589,10 @@ export default function GeminiModal({
                                             }`}
                                         >
                                             {fileQuotaOut
-                                                ? t('ai.attach.quotaOut', { limit: fileQuota.limit })
+                                                ? t('ai.attach.quotaOut', {
+                                                      limit: fileQuota.limit,
+                                                      date: fileResetLabel,
+                                                  })
                                                 : `${t('ai.attach.quota', {
                                                       remaining: fileQuota.remaining,
                                                       limit: fileQuota.limit,
@@ -1645,36 +1640,17 @@ export default function GeminiModal({
                             <div key={idx} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
                                 {msg.sender === 'ai' ? (
                                     <div className="group w-full text-[13px] leading-relaxed text-gray-800 dark:text-gray-200">
-                                        {/* Suy luận đang chảy — chỉ hiện KHI CHƯA có chữ nào
-                                            của câu trả lời. Nó lấp đúng khoảng im lặng dài
-                                            nhất (9,6–15,0s) bằng nội dung thật, rồi nhường
-                                            chỗ cho câu trả lời ngay khi chữ đầu tiên tới.
-
-                                            Không có nút mở lại, và đó là chủ ý: bong bóng
-                                            chốt ở cuối lượt KHÔNG mang `thought`, nên phần
-                                            nháp này không được lưu vào lịch sử trò chuyện —
-                                            giữ một nút mở lại thứ đã không còn tồn tại chỉ
-                                            là một nút hỏng.
-
-                                            `flex-col-reverse` cho khối tự trôi theo dòng mới
-                                            nhất mà không cần một `useRef` + `scrollTop` nào:
-                                            con cao hơn khung thì phần TRÊN bị cắt, phần dưới
-                                            luôn nằm trong tầm mắt. */}
-                                        {msg.streaming && !msg.text && msg.thought && (
-                                            <div className="mb-1 rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/40 px-2.5 py-2">
-                                                <p className="flex items-center gap-1.5 text-[11px] font-medium text-gray-500 dark:text-gray-400">
-                                                    <Loader2 className="w-3 h-3 animate-spin shrink-0" />
-                                                    {t('ai.reasoning')}
-                                                </p>
-                                                <div className="mt-1 max-h-24 overflow-hidden flex flex-col-reverse">
-                                                    <p className="whitespace-pre-wrap text-[11px] leading-snug text-gray-500 dark:text-gray-400">
-                                                        {msg.thought}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        )}
                                         <div
-                                            className="prose-ai"
+                                            className={
+                                                msg.moderation
+                                                    ? `prose-ai rounded-lg border px-3 py-2.5 ${
+                                                          msg.moderation.banned
+                                                              ? 'border-rose-300 dark:border-rose-900/70 bg-rose-50 dark:bg-rose-950/40 text-rose-900 dark:text-rose-100'
+                                                              : 'border-amber-300 dark:border-amber-900/70 bg-amber-50 dark:bg-amber-950/30 text-amber-900 dark:text-amber-100'
+                                                      }`
+                                                    : 'prose-ai'
+                                            }
+                                            role={msg.moderation ? 'alert' : undefined}
                                             dangerouslySetInnerHTML={{ __html: renderMarkdown(msg.text) }}
                                         />
                                         {/* Câu trả lời bị cắt vì chạm trần: nói ra ngay dưới
@@ -1726,9 +1702,13 @@ export default function GeminiModal({
 
                     {/* Khoảng im lặng trước chữ đầu tiên dài hơn trước, vì ngân sách suy
                         luận giờ là ĐỘNG (đo được 1.200-1.800 token suy luận, tức 6-10 giây
-                        chưa có chữ nào). Nên dòng này phải nói đúng việc đang diễn ra —
-                        "đang suy luận" — chứ không phải một spinner trống làm người dùng
-                        tưởng máy treo. */}
+                        chưa có chữ nào). Nên dòng này phải nói đúng việc đang diễn ra chứ
+                        không phải một spinner trống làm người dùng tưởng máy treo.
+
+                        Đây là chỉ báo DUY NHẤT trong lúc chờ (29/09/2026). Bản trước còn in
+                        cả tóm tắt suy luận của Gemini vào bong bóng, và nó toàn là tường
+                        thuật "tôi đã nhận được tệp…, tôi đã đọc…" — người dùng phải ngồi đọc
+                        chữ thừa. Backend giờ không phát sự kiện `thought` nữa. */}
                     {/* Chỉ còn dòng trạng thái. Nút Dừng đã chuyển xuống ô nhập: ở đây nó
                         nằm trong vùng CUỘN, nên chỉ cần người dùng kéo lên đọc lại đoạn
                         trước là nút biến khỏi màn hình — đúng lúc câu trả lời đang dài ra
@@ -1956,7 +1936,10 @@ export default function GeminiModal({
                             disabled={inputLocked || slotsLeft === 0 || uploading || fileQuotaOut}
                             title={
                                 fileQuotaOut
-                                    ? t('ai.attach.quotaOut', { limit: fileQuota?.limit ?? 0 })
+                                    ? t('ai.attach.quotaOut', {
+                                          limit: fileQuota?.limit ?? 0,
+                                          date: fileResetLabel,
+                                      })
                                     : slotsLeft === 0
                                       ? t('ai.attach.full', { max: MAX_SOURCES_PER_TURN })
                                       : t('ai.attach.add', { left: slotsLeft })

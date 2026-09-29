@@ -11,10 +11,6 @@ import {
     Square,
     RefreshCw,
     AlertTriangle,
-    FileText,
-    Image as ImageIcon,
-    ListChecks,
-    Wand2,
     Trash2,
     Loader2,
     FileSearch,
@@ -25,8 +21,6 @@ import {
     Globe,
     History,
     ChevronLeft,
-    ChevronDown,
-    ChevronUp,
     MessageSquare,
     ArrowUpRight,
     Paperclip,
@@ -69,34 +63,44 @@ import { localeTagOf } from '../../utils/locale';
  *  - onClose
  */
 
-// Các lệnh nhanh hiện thành chip trong khung chat. `id` phải nằm trong `AI_ACTIONS` của
-// backend (`dto/ask-ai.dto.ts`) — câu lệnh thật nằm ở backend, đây chỉ là cái nút.
+// Nhãn của các lệnh nhanh — cho bong bóng câu hỏi khi một lệnh chạy từ menu chuột phải
+// (`initialAction`). `id` phải nằm trong `AI_ACTIONS` của backend (`dto/ask-ai.dto.ts`) —
+// câu lệnh thật nằm ở backend, đây chỉ là cái nhãn.
 //
-// `kinds` là LOẠI MỤC mà chip được phép hiện. Ba lệnh phân tích chia theo loại tệp vì đó
-// là thứ quyết định mô hình thật sự nhận được gì — chữ, ảnh, hay khung hình kèm tiếng.
-// Hiện "Phân tích video" trên một tệp .docx thì cú bấm đó chắc chắn cho một câu trả lời
-// tồi VÀ vẫn trừ hạn mức của người dùng, nên lọc ở đây là lọc trước khi tiêu tiền.
-//
-// Bộ cũ ('explain' | 'keywords' | 'quiz') đã rút khỏi đây 13/09/2026 nhưng backend vẫn còn
-// nhận, để bản frontend đang chạy trên Vercel không vỡ trong khoảng giữa hai lần deploy.
+// Khung chat KHÔNG còn bày các lệnh này thành nút (bỏ 29/09/2026 theo yêu cầu chủ hệ
+// thống): màn hình trống để trống, và chỗ dưới ô nhập nhường cho nút chọn model. Menu
+// chuột phải vẫn gọi được chúng như cũ.
 const QUICK_ACTIONS = [
-    { id: 'document', icon: FileText, labelKey: 'ai.action.document', kinds: ['file'] },
-    { id: 'image', icon: ImageIcon, labelKey: 'ai.action.image', kinds: ['image'] },
-    { id: 'video', icon: FileVideo, labelKey: 'ai.action.video', kinds: ['video'] },
-    {
-        id: 'improve',
-        icon: Wand2,
-        labelKey: 'ai.action.improve',
-        fileLabelKey: 'ai.action.improveFile',
-        kinds: ['file', 'image', 'video', 'folder'],
-    },
-    {
-        id: 'summarize',
-        icon: ListChecks,
-        labelKey: 'ai.action.summarize',
-        kinds: ['file', 'image', 'video', 'folder'],
-    },
+    { id: 'document', labelKey: 'ai.action.document' },
+    { id: 'image', labelKey: 'ai.action.image' },
+    { id: 'video', labelKey: 'ai.action.video' },
+    { id: 'improve', labelKey: 'ai.action.improve', fileLabelKey: 'ai.action.improveFile' },
+    { id: 'summarize', labelKey: 'ai.action.summarize' },
 ];
+
+/**
+ * Model đã chọn lần trước, nhớ theo trình duyệt. Chỉ là GỢI Ý: danh sách thật nằm ở
+ * `GET /ai/status`, và id không còn trong đó thì về model mặc định (xem `selectedModel`).
+ * Bọc try vì `localStorage` ném lỗi ở chế độ riêng tư của vài trình duyệt.
+ */
+const MODEL_STORAGE_KEY = 'driver:aiModel';
+const readStoredModel = () => {
+    try {
+        return localStorage.getItem(MODEL_STORAGE_KEY);
+    } catch {
+        return null;
+    }
+};
+
+/**
+ * Model sẽ gửi đi, từ danh sách của `GET /ai/status` và lựa chọn đã nhớ. `null` = backend
+ * cũ chưa có trường `models` — khi đó KHÔNG gửi `model`: backend bật `forbidNonWhitelisted`,
+ * và một trường lạ làm MỌI lượt hỏi ăn 400 trong khoảng giữa hai lần deploy.
+ */
+const resolveModelChoice = (models, picked) => {
+    if (!Array.isArray(models) || !models.length) return null;
+    return (models.find((m) => m.id === picked) ?? models[0]).id;
+};
 
 // Số lượt gửi kèm làm lịch sử. Cắt ở đây chứ không gửi cả hội thoại: backend chặn
 // cứng ở 20 lượt (ArrayMaxSize), gửi thừa sẽ ăn 400 giữa cuộc trò chuyện.
@@ -296,11 +300,8 @@ export default function GeminiModal({
     // lúc chưa xong, và người dùng phải mở ra kiểm tra từng lúc.
     const [unseenReply, setUnseenReply] = useState(false);
 
-    // Hàng lệnh nhanh. Trước đây nó là một dải chip cuộn ngang nằm thường trực trên ô
-    // nhập — chiếm một hàng vĩnh viễn kể cả giữa một cuộc trò chuyện dài, mà đúng lúc nó
-    // hữu ích nhất (khung còn trống) thì lại là dải chip nhỏ nhất trên màn hình. Nay:
-    // lưới nút lớn ở màn hình trống, và một nút bật/tắt ở ô nhập cho lúc đang trò chuyện.
-    const [quickOpen, setQuickOpen] = useState(false);
+    // Model người dùng bấm chọn dưới ô nhập (id Vertex, ví dụ 'gemini-2.5-flash').
+    const [pickedModel, setPickedModel] = useState(readStoredModel);
     // Đặt tên `historyList` chứ không `history`: trong `send()` đã có biến cục bộ tên
     // `history` (mấy lượt gửi kèm cho Gemini), trùng tên là bẫy đọc nhầm.
     const [historyList, setHistoryList] = useState({ items: [], nextBefore: null });
@@ -352,30 +353,17 @@ export default function GeminiModal({
 
     const isFolder = item?.type === 'folder';
 
-    /**
-     * Loại mục đang mở, theo đúng bốn nhánh mà backend dựng ngữ cảnh khác nhau.
-     *
-     * Khớp theo TIỀN TỐ mime chứ không theo đuôi tệp: đuôi do người dùng đặt và đổi tên
-     * được, `mimeType` là thứ backend thật sự dùng để quyết định gửi gì lên Gemini. Lệch
-     * hai chỗ này thì người dùng bấm "Phân tích video" rồi nhận về một câu trả lời chỉ
-     * dựa trên tên tệp, không hiểu vì sao.
-     */
-    const itemKind = useMemo(() => {
-        if (item?.type === 'folder') return 'folder';
-        const mime = (item?.mimeType || '').toLowerCase();
-        if (mime.startsWith('image/')) return 'image';
-        if (mime.startsWith('video/')) return 'video';
-        return 'file';
-    }, [item]);
-
-    const quickActions = useMemo(
-        // Không có mục nào trong Drive thì không có lệnh nhanh nào đúng: cả năm lệnh đều
-        // nói về "mục đang mở". Người dùng đính tệp từ máy xong thì gõ câu hỏi — lệnh
-        // nhanh cho tệp đính kèm là việc của một bản sau, và bày ra một nút chạy trên
-        // ngữ cảnh rỗng thì chỉ tốn hạn mức của họ.
-        () => (item ? QUICK_ACTIONS.filter((a) => a.kinds.includes(itemKind)) : []),
-        [itemKind, item],
-    );
+    // Danh sách model backend cho chọn (mặc định đứng đầu) và model đang chọn.
+    const modelOptions = Array.isArray(status?.models) && status.models.length ? status.models : null;
+    const selectedModel = resolveModelChoice(modelOptions, pickedModel);
+    const pickModel = (id) => {
+        setPickedModel(id);
+        try {
+            localStorage.setItem(MODEL_STORAGE_KEY, id);
+        } catch {
+            // Không nhớ được thì lần sau về mặc định — không có gì để báo.
+        }
+    };
 
     /**
      * Ngữ cảnh THẬT của lượt hỏi kế tiếp, gộp từ hai nguồn.
@@ -524,7 +512,9 @@ export default function GeminiModal({
 
     // ── Gửi một câu hỏi ────────────────────────────────────────────────────
     const send = useCallback(
-        async ({ action = 'chat', text = '' }) => {
+        // `model` truyền tay chỉ ở lượt tự chạy lúc mở khung: lúc đó `status` vừa được đặt
+        // nhưng closure này vẫn là của lần render trước, nên `selectedModel` còn `null`.
+        async ({ action = 'chat', text = '', model = selectedModel }) => {
             // Bản trước `if (!item) return` — tức không có mục là không hỏi được gì. Nay
             // điều kiện là "có CÁI GÌ ĐÓ để gửi": một mục Drive, một tệp vừa đính, hoặc
             // một câu hỏi gõ tay (hỏi chay về chính driveR vẫn trả lời được — xem ghi chú
@@ -570,6 +560,7 @@ export default function GeminiModal({
                         ...(action === 'chat' ? { prompt: text } : {}),
                         ...(history.length ? { history } : {}),
                         ...(conversationId ? { conversationId } : {}),
+                        ...(model ? { model } : {}),
                         lang: language === 'en' ? 'en' : 'vi',
                     },
                     {
@@ -697,6 +688,7 @@ export default function GeminiModal({
             readyAttachmentIds,
             uploading,
             minimized,
+            selectedModel,
         ],
     );
 
@@ -766,7 +758,10 @@ export default function GeminiModal({
             }
             if (nextStatus?.enabled === false) return;
             if (initialAction && initialAction !== 'chat') {
-                sendRef.current({ action: initialAction });
+                sendRef.current({
+                    action: initialAction,
+                    model: resolveModelChoice(nextStatus?.models, readStoredModel()),
+                });
             } else {
                 inputRef.current?.focus();
             }
@@ -1231,14 +1226,6 @@ export default function GeminiModal({
         );
     };
 
-    /**
-     * Nhãn của một lệnh nhanh. Thư mục và tệp dùng chung `id` nhưng có lệnh cần chữ khác
-     * ("Viết lại nội dung" cho tệp / "Đề xuất cách sắp xếp" cho thư mục), nên chỗ nào vẽ
-     * nút cũng phải qua đây — hai nơi tự chọn khoá dịch là hai nơi sớm muộn chọn khác nhau.
-     */
-    const quickActionLabel = (action) =>
-        t((!isFolder && action.fileLabelKey) || action.labelKey);
-
     const aiDisabled = status?.enabled === false;
     // Phần trăm ĐÃ DÙNG. `limit` có thể là 0 (gói bị khoá AI) — chia cho 0 ra Infinity
     // nên chặn ở đây, coi như đã dùng hết.
@@ -1538,98 +1525,11 @@ export default function GeminiModal({
                             </p>
                         </div>
                     ) : messages.length === 0 && !isThinking ? (
-                        // Màn hình trống có ích: nói rõ AI sẽ đọc được gì ở mục này, rồi
-                        // BÀY THẲNG các lệnh ra thành lưới nút lớn.
-                        //
-                        // Trước đây màn hình này chỉ có một icon và hai dòng chữ, còn các
-                        // lệnh nằm ở một dải chip cuộn ngang sát đáy panel — chữ 12px,
-                        // viền xám, cùng cỡ với mọi thứ khác. Tức là đúng vào lúc người
-                        // dùng KHÔNG có gì để đọc và cần được mời làm một việc, thứ duy
-                        // nhất có thể bấm lại là thứ nhỏ nhất và khuất nhất trên màn hình,
-                        // và lệnh thứ tư trở đi còn nằm ngoài mép phải.
-                        <div className="h-full flex flex-col items-center justify-center px-4 gap-3">
-                            <div className="text-center">
-                                <Sparkles className="w-6 h-6 text-gray-400 dark:text-gray-500 mx-auto" />
-                                <p className="mt-2 font-semibold text-gray-800 dark:text-gray-200">
-                                    {item
-                                        ? isFolder
-                                            ? t('ai.empty.folder')
-                                            : t('ai.empty.file')
-                                        : t('ai.empty.blank')}
-                                </p>
-                                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                                    {item ? t('ai.empty.hint') : t('ai.empty.blankHint')}
-                                </p>
-                            </div>
-
-                            {/* Mở từ thanh điều hướng: chưa có mục nào nên không có lệnh
-                                nhanh nào đúng (xem `quickActions`). Thay vào đó là MỘT nút
-                                lớn làm đúng việc người dùng cần làm tiếp — đính tệp. Bày
-                                một màn hình trống kèm một dòng "hãy đính kèm tệp" mà không
-                                có nút nào thì lời mời đó bắt họ tự đi tìm cái kẹp giấy. */}
-                            {!item && (
-                                <div className="w-full max-w-sm">
-                                    <button
-                                        onClick={() => fileInputRef.current?.click()}
-                                        disabled={slotsLeft === 0 || uploading || fileQuotaOut}
-                                        className="w-full flex items-center justify-center gap-2 px-3 py-3 rounded-xl border border-dashed border-gray-300 dark:border-gray-600 text-[13px] font-medium text-gray-700 dark:text-gray-300 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                                    >
-                                        <Paperclip className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                                        {t('ai.attach.cta')}
-                                    </button>
-                                    {fileQuota && (
-                                        // Hết suất thì nói LÝ DO bằng chữ, không chỉ làm mờ
-                                        // cái nút: một nút mờ không tự giải thích, và người
-                                        // dùng sẽ bấm mãi rồi kết luận là app hỏng.
-                                        <p
-                                            className={`mt-2 text-center text-[11px] ${
-                                                fileQuotaOut
-                                                    ? 'text-amber-600 dark:text-amber-400'
-                                                    : 'text-gray-400 dark:text-gray-500'
-                                            }`}
-                                        >
-                                            {fileQuotaOut
-                                                ? t('ai.attach.quotaOut', {
-                                                      limit: fileQuota.limit,
-                                                      date: fileResetLabel,
-                                                  })
-                                                : `${t('ai.attach.quota', {
-                                                      remaining: fileQuota.remaining,
-                                                      limit: fileQuota.limit,
-                                                  })} · ${t('ai.attach.limits', {
-                                                      max: MAX_SOURCES_PER_TURN,
-                                                      size: formatBytes(MAX_ATTACHMENT_BYTES, locale),
-                                                  })}`}
-                                        </p>
-                                    )}
-                                </div>
-                            )}
-
-                            {/* MỘT CỘT ở mọi bề rộng, đổi 13/09/2026 cùng bộ chip mới.
-                                Hai cột trong `max-w-sm` cho mỗi ô ~184px, tức ~25 ký tự ở
-                                cỡ chữ 13px — nhãn dài nhất của bộ mới ("Phân tích chi tiết
-                                nội dung hình ảnh", 36 ký tự) bị `truncate` nuốt mất nửa
-                                sau, và người dùng đọc được đúng "Phân tích chi tiết nội d…".
-                                Bộ mới nhiều nhất 3 chip cho một mục nên một cột không hề
-                                làm khung dài ra như bộ 5 chip cũ. */}
-                            <div className="w-full max-w-sm grid grid-cols-1 gap-2">
-                                {quickActions.map((action) => {
-                                    const Icon = action.icon;
-                                    return (
-                                        <button
-                                            key={action.id}
-                                            onClick={() => send({ action: action.id })}
-                                            className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-[13px] text-gray-800 dark:text-gray-200 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors cursor-pointer text-left"
-                                        >
-                                            <Icon className="w-4 h-4 shrink-0 text-blue-600 dark:text-blue-400" />
-                                            <span className="min-w-0 truncate" title={quickActionLabel(action)}>
-                                                {quickActionLabel(action)}
-                                            </span>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
+                        // Màn hình trống để TRỐNG (29/09/2026). Bản trước bày một dòng chào,
+                        // một đoạn hướng dẫn, nút đính tệp và lưới lệnh nhanh; chủ hệ thống
+                        // thấy đó là chữ thừa. Ô nhập, kẹp giấy và nút chọn model bên dưới đã
+                        // đủ để bắt đầu.
+                        null
                     ) : (
                         // Không còn avatar hai bên. Trong một cột rộng 416px, hai vòng
                         // tròn 32px cộng khoảng cách ăn mất một phần tám bề ngang mà chẳng
@@ -1749,31 +1649,6 @@ export default function GeminiModal({
                     )}
                 </div>
 
-                {/* ── Lệnh nhanh giữa cuộc trò chuyện ──
-                    Chỉ hiện khi được MỞ, và chỉ khi khung đã có nội dung: lúc khung còn
-                    trống thì lưới nút ở giữa màn hình đã làm đúng việc này rồi, bày thêm
-                    một dải chip nữa ngay bên dưới là hai bộ nút giống hệt nhau trên cùng
-                    một màn hình. Bọc ngang (`flex-wrap`) chứ không cuộn ngang: dải cuộn cũ
-                    giấu lệnh thứ tư và thứ năm ra ngoài mép phải mà không có dấu hiệu gì. */}
-                {!inputLocked && quickOpen && messages.length > 0 && (
-                    <div className="px-4 pt-2.5 border-t border-gray-200 dark:border-gray-800 flex flex-wrap gap-1.5 text-xs">
-                        {quickActions.map((action) => {
-                            const Icon = action.icon;
-                            return (
-                                <button
-                                    key={action.id}
-                                    disabled={isThinking}
-                                    onClick={() => { send({ action: action.id }); setQuickOpen(false); }}
-                                    className="px-2.5 py-1.5 text-gray-700 dark:text-gray-300 rounded-lg transition-colors border border-gray-200 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-500 hover:bg-gray-50 dark:hover:bg-gray-800/60 flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    <Icon className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                                    {quickActionLabel(action)}
-                                </button>
-                            );
-                        })}
-                    </div>
-                )}
-
                 {/* ── Hết hạn mức: mời nâng cấp thay vì để một ô nhập bấm vào chỉ ra lỗi ── */}
                 {quotaBlocked && !aiDisabled && (
                     <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-800 flex items-center justify-between gap-3">
@@ -1877,39 +1752,12 @@ export default function GeminiModal({
                 )}
 
                 {/* ── Ô nhập ── */}
-                {/* Đường kẻ ngăn vẽ ở hàng lệnh nhanh khi hàng đó đang mở, chứ không vẽ
-                    cả hai: hai đường kẻ ôm lấy dải chip biến nó thành một khối riêng nằm
-                    lửng giữa panel, trong khi nó thuộc về ô nhập ngay bên dưới. */}
                 <form
                     onSubmit={handleSubmit}
                     hidden={quotaBlocked && !aiDisabled}
-                    className={`px-4 py-3 ${
-                        !inputLocked && quickOpen && messages.length > 0
-                            ? ''
-                            : 'border-t border-gray-200 dark:border-gray-800'
-                    }`}
+                    className="px-4 py-3 border-t border-gray-200 dark:border-gray-800"
                 >
                     <div className="flex gap-2 items-center">
-                        {/* Mở/đóng hàng lệnh nhanh. Ở đây chứ không phải một dải chip
-                            thường trực: giữa một cuộc trò chuyện, mỗi hàng cố định là một
-                            hàng câu trả lời bị đẩy ra khỏi tầm nhìn. */}
-                        {!inputLocked && messages.length > 0 && (
-                            <button
-                                type="button"
-                                onClick={() => setQuickOpen((open) => !open)}
-                                title={t('ai.quickActions')}
-                                aria-label={t('ai.quickActions')}
-                                aria-expanded={quickOpen}
-                                className={`shrink-0 p-2 rounded-lg border transition-colors cursor-pointer ${
-                                    quickOpen
-                                        ? 'border-blue-500 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10'
-                                        : 'border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
-                                }`}
-                            >
-                                {quickOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
-                            </button>
-                        )}
-
                         {/* Đính tệp từ máy. `multiple` nhưng vẫn chặn ở `slotsLeft` —
                             trình duyệt không có cách nào giới hạn số tệp trong hộp chọn,
                             nên chọn 10 tệp là chuyện bình thường và `pickFiles` phải xử lý
@@ -2003,12 +1851,55 @@ export default function GeminiModal({
                             </button>
                         )}
                     </div>
-                    {/* Tên model về đây thay vì đứng thành một chip màu trên đầu khung: nó
-                        là chú thích, không phải nhan đề. */}
-                    <p className="mt-2 text-[11px] text-gray-400 dark:text-gray-500 truncate">
-                        {t('ai.disclaimer')}
-                        {status?.model && <span className="font-mono"> · {status.model}</span>}
-                    </p>
+                    {/* Chọn model cho lượt hỏi KẾ TIẾP. Đổi giữa cuộc trò chuyện được: mỗi lượt
+                        mang model riêng, lịch sử vẫn là một cuộc. Khoá trong lúc đang trả lời
+                        vì lượt đó đã đi bằng model cũ rồi.
+
+                        Chỉ còn một nhãn ngắn, không ghi "nhanh"/"kỹ": đo thật 29/09/2026 thì
+                        2.5 ra chữ đầu sớm hơn nhưng viết dài gấp đôi nên xong muộn hơn — ghi
+                        "nhanh" là hứa một điều không đúng. Số đo ở `backend/src/ai/ai-models.ts`.
+
+                        Backend cũ không có danh sách thì về dòng cũ: tên model mặc định. */}
+                    <div className="mt-2 flex items-center gap-2 min-w-0 text-[11px]">
+                        {modelOptions && modelOptions.length > 1 ? (
+                            <div
+                                role="radiogroup"
+                                aria-label={t('ai.model.label')}
+                                className="shrink-0 inline-flex p-0.5 rounded-lg bg-gray-100 dark:bg-gray-800"
+                            >
+                                {modelOptions.map((m) => {
+                                    const active = m.id === selectedModel;
+                                    return (
+                                        <button
+                                            key={m.id}
+                                            type="button"
+                                            role="radio"
+                                            aria-checked={active}
+                                            disabled={isThinking}
+                                            onClick={() => pickModel(m.id)}
+                                            title={m.id}
+                                            className={`px-2.5 py-1 rounded-md font-medium transition-colors cursor-pointer disabled:cursor-not-allowed ${
+                                                active
+                                                    ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm'
+                                                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 disabled:opacity-50'
+                                            }`}
+                                        >
+                                            {m.label}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        ) : (
+                            status?.model && (
+                                <span className="shrink-0 font-mono text-gray-400 dark:text-gray-500">
+                                    {status.model}
+                                </span>
+                            )
+                        )}
+                        <span className="min-w-0 truncate text-gray-400 dark:text-gray-500" title={t('ai.disclaimer')}>
+                            {t('ai.disclaimer')}
+                        </span>
+                    </div>
                 </form>
 
                 {/* ── Lịch sử trò chuyện ──

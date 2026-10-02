@@ -1097,7 +1097,7 @@ const vi = {
   'sharePage.zoomOut': "Thu nhỏ",
   'sharePage.zoomIn': "Phóng to",
   'sharePage.docx.converting': "Đang chuyển đổi tài liệu Word…",
-  'sharePage.text.truncated': "\\n\\n[... nội dung bị cắt bớt do quá dài]",
+  'sharePage.text.truncated': "\n\n[... nội dung bị cắt bớt do quá dài]",
   'sharePage.text.loading': "Đang tải nội dung văn bản / mã nguồn…",
   'sharePage.copyCode': "Sao chép mã",
   'sharePage.downloadOnly': "Tệp này chỉ cho phép tải xuống từ liên kết chia sẻ.",
@@ -1105,7 +1105,6 @@ const vi = {
   'sharePage.preview.blocked': "Tệp này không cho phép xem trước, vui lòng tải xuống",
   'sharePage.preview.unsupported': "Không hỗ trợ xem trước định dạng này",
   'sharePage.preview.downloadToRead': "Vui lòng tải xuống để xem nội dung",
-  'sharePage.preview.ownerDisabled': "Chủ sở hữu đã tắt tính năng xem trước tệp này. Vui lòng bấm 'Tải về' để xem nội dung.",
   'sharePage.preview.unsupportedDirect': "Định dạng tệp này không hỗ trợ xem trước trực tiếp.",
   'sharePage.preview.cannot': "Không thể xem trước tệp này.",
   'sharePage.downloading': "Đang tải…",
@@ -1362,6 +1361,25 @@ const vi = {
   'auth.nickname.label': 'Nickname',
 
   'card.sharedBadge': 'Được chia sẻ',
+
+  // ── Ảnh xem trước theo tầng (hooks/usePreviewImage.js) ──
+  'preview.image.loadingSharp': 'Đang tải bản nét…',
+  'preview.image.loadingOriginal': 'Đang tải ảnh gốc…',
+  'preview.image.loadingOriginalPct': 'Đang tải ảnh gốc… {percent}%',
+  'preview.image.originalFailed': 'Không mở được ảnh gốc trên máy này — đang xem bản thu gọn',
+  'preview.image.viewOriginal': 'Xem ảnh gốc · {size}',
+
+  // ── Lưới an toàn khi một phần giao diện bị lỗi (components/common/ErrorBoundary.jsx) ──
+  'crash.title': 'Phần này gặp sự cố',
+  'crash.body': 'Đã có lỗi khi hiển thị. Dữ liệu của bạn không bị ảnh hưởng — thử lại hoặc tải lại trang.',
+  'crash.newVersionTitle': 'cloudSSS vừa có phiên bản mới',
+  'crash.newVersionBody': 'Trang đang mở là bản cũ nên không tải được phần này. Tải lại trang để dùng bản mới.',
+  'crash.reload': 'Tải lại trang',
+  'crash.retry': 'Thử lại',
+  'crash.home': 'Về trang chính',
+  'crash.storageBlocked':
+    'Trình duyệt đang chặn lưu dữ liệu trang, nên cloudSSS không giữ được phiên đăng nhập sau khi tải lại. Cho phép cookie và dữ liệu trang cho trang này để dùng bình thường.',
+  'sharePage.preview.tooLarge': 'Tệp {size} quá lớn để xem trước trên trình duyệt (tối đa {limit}). Hãy tải xuống để xem.',
 
 };
 

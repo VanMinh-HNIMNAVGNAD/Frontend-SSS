@@ -393,7 +393,11 @@ export default function ShareModal({ isOpen, item, onClose }) {
                                 <input
                                     type="checkbox"
                                     checked={allowDownload}
-                                    onChange={(e) => setAllowDownload(e.target.checked)}
+                                    onChange={(e) => {
+                                        // Hai ô loại trừ nhau: "Chỉ cho phép xem trước" nghĩa là KHÔNG cho tải.
+                                        setAllowDownload(e.target.checked);
+                                        if (e.target.checked) setPreviewOnly(false);
+                                    }}
                                     className="rounded text-blue-500 focus:ring-blue-500 cursor-pointer accent-blue-500"
                                 />
                                 <span>{t('share.allowDownload')}</span>
@@ -403,7 +407,10 @@ export default function ShareModal({ isOpen, item, onClose }) {
                                 <input
                                     type="checkbox"
                                     checked={previewOnly}
-                                    onChange={(e) => setPreviewOnly(e.target.checked)}
+                                    onChange={(e) => {
+                                        setPreviewOnly(e.target.checked);
+                                        if (e.target.checked) setAllowDownload(false);
+                                    }}
                                     className="rounded text-blue-500 focus:ring-blue-500 cursor-pointer accent-blue-500"
                                 />
                                 <span>{t('share.previewOnly')}</span>

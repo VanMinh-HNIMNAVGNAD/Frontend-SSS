@@ -29,13 +29,15 @@ import { storageApi } from '../../services/api';
 import { useAiPanel } from '../../context/AiPanelContext';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { vs } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { renderMarkdownSafe } from '../../utils/safeMarkdown';
 import * as pdfjsLib from 'pdfjs-dist';
-import useTheme from '../../hooks/useTheme';
 import DocxRenderer from './DocxRenderer';
 import SheetPreview from './SheetPreview';
 import ZoomableImage from './ZoomableImage';
+import ImageStagePill from './ImageStagePill';
+import { usePreviewImage } from '../../hooks/usePreviewImage';
+import { useFileThumbnail } from '../../hooks/useFileThumbnail';
+import { thumbnailFingerprint } from '../../utils/thumbnailStore';
 import { useZoomPan, useWheelZoom, ZOOM_MIN, ZOOM_MAX } from '../../hooks/useZoomPan';
 
 // Khởi tạo Worker an toàn cho PDF.js
@@ -408,7 +410,6 @@ function MediaSupportNotice({ diagnosis, fileName, onDownload, t, inline = false
 export default function FilePreviewModal({ item, onClose }) {
   const { t } = useLanguage();
   const { getPreviewUrl } = useFiles();
-  const { isDark } = useTheme();
   // Panel AI dùng chung với menu chuột phải (`AiPanelProvider`). `aiItem` ở đây KHÔNG phải
   // để hiển thị gì — nó là thứ cho biết panel đang đè lên trên, dùng ở nhánh phím tắt.
   const { openAi, aiItem } = useAiPanel();
@@ -419,6 +420,25 @@ export default function FilePreviewModal({ item, onClose }) {
   const { view, setView, zoomIn: handleZoomIn, zoomOut: handleZoomOut, zoomBy, reset: resetView } = useZoomPan();
   const zoom = view.zoom;
   const [rotation, setRotation] = useState(0);
+
+  // Ảnh nạp theo ba tầng (thumbnail có sẵn → bản 2048px → ảnh gốc khi phóng to) — xem
+  // `hooks/usePreviewImage.js`. Thumbnail đọc từ bộ đệm của lưới (`enabled: false` = không
+  // gọi mạng): ô vừa bấm vào thường đã có sẵn, nên ảnh hiện ra ngay lập tức.
+  const thumbFull = useFileThumbnail(item, { variant: 'full', enabled: false });
+  const thumbMini = useFileThumbnail(item, { variant: 'mini', enabled: false });
+  const placeholderUrl =
+    (thumbFull.thumbType === 'image' && thumbFull.thumbUrl) ||
+    // `thumbReady` = server nói bản trên CDN đã có — hỏi CDN lúc chưa có là bị nhớ 404 4 giờ.
+    (item?.thumbReady === true && item?.thumbUrls?.t384) ||
+    (thumbMini.thumbType === 'image' && thumbMini.thumbUrl) ||
+    null;
+  const previewImage = usePreviewImage({
+    file: item,
+    originalUrl: url,
+    placeholderUrl,
+    loadPreview: () => storageApi.getPreviewImage(item.id),
+    cacheKey: item ? thumbnailFingerprint(item) : null,
+  });
 
   // Đổi giá trị là buộc thẻ <video>/<audio> dựng lại từ đầu. Cần đến vì hai chữ
   // ký sinh trong cùng một giây có thể ra ĐÚNG một URL — lúc đó setUrl() không
@@ -791,40 +811,27 @@ export default function FilePreviewModal({ item, onClose }) {
   // sổ (container query `@2xl`, 672px): trên thanh đầu khi rộng, dưới chân khi hẹp. Trước đây nó luôn nằm trên thanh đầu,
   // và ở màn 360–390px năm nút này đè lên tên tệp rồi đẩy nút Tải xuống cùng nút Đóng
   // ra ngoài mép phải — người dùng không đóng nổi cửa sổ xem trước.
+  // Kiểu Google Drive: các nút chỉ là biểu tượng nằm chung MỘT viên bo tròn (xem
+  // `PILL`), không mỗi nút một nền riêng.
+  const iconButton =
+    'p-2 rounded-full text-white/90 hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent transition-colors cursor-pointer';
   const zoomControls = (isImage || isPdf) && url ? (
     <>
-      <button
-        onClick={handleZoomOut}
-        disabled={zoom <= ZOOM_MIN}
-        className="p-2 rounded-xl bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 disabled:opacity-30 text-slate-700 dark:text-white transition-all cursor-pointer"
-        title={t('preview.zoomOut')}
-      >
-        <ZoomOut className="w-4 h-4" />
+      <button onClick={handleZoomOut} disabled={zoom <= ZOOM_MIN} className={iconButton} title={t('preview.zoomOut')}>
+        <ZoomOut className="w-[18px] h-[18px]" />
       </button>
-      <span className="text-xs font-mono px-2 py-1 bg-slate-100 dark:bg-white/10 rounded-lg text-slate-700 dark:text-slate-300 min-w-[50px] text-center">
+      <span className="text-xs font-medium tabular-nums text-white/80 min-w-[44px] text-center">
         {Math.round(zoom * 100)}%
       </span>
-      <button
-        onClick={handleZoomIn}
-        disabled={zoom >= ZOOM_MAX}
-        className="p-2 rounded-xl bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 disabled:opacity-30 text-slate-700 dark:text-white transition-all cursor-pointer"
-        title={t('preview.zoomIn')}
-      >
-        <ZoomIn className="w-4 h-4" />
+      <button onClick={handleZoomIn} disabled={zoom >= ZOOM_MAX} className={iconButton} title={t('preview.zoomIn')}>
+        <ZoomIn className="w-[18px] h-[18px]" />
       </button>
-      <button
-        onClick={handleRotate}
-        className="p-2 rounded-xl bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-slate-700 dark:text-white transition-all cursor-pointer"
-        title={t('preview.rotate')}
-      >
-        <RotateCw className="w-4 h-4" />
+      <div className="w-px h-5 bg-white/15 mx-0.5" />
+      <button onClick={handleRotate} className={iconButton} title={t('preview.rotate')}>
+        <RotateCw className="w-[18px] h-[18px]" />
       </button>
-      <button
-        onClick={handleReset}
-        className="p-2 rounded-xl bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-slate-700 dark:text-white transition-all cursor-pointer"
-        title={t('preview.resetZoom')}
-      >
-        <Maximize2 className="w-4 h-4" />
+      <button onClick={handleReset} className={iconButton} title={t('preview.resetZoom')}>
+        <Maximize2 className="w-[18px] h-[18px]" />
       </button>
     </>
   ) : null;
@@ -840,22 +847,40 @@ export default function FilePreviewModal({ item, onClose }) {
     // không đọc bề ngang màn hình (`sm:`). Panel AI mở ra thì cửa sổ chỉ còn phần bên
     // trái — điện thoại xoay ngang 844px còn 428px — mà breakpoint theo màn hình vẫn
     // tưởng là màn rộng, bày đủ nút zoom lên thanh đầu và đẩy nút Đóng ra ngoài.
+    //
+    // GIAO DIỆN kiểu trình xem của Google Drive (02/10/2026): nền đen TRONG SUỐT để vẫn thấy
+    // danh sách tệp phía sau, thanh đầu không viền, nút Đóng ở góc trái, các nút phóng/xoay
+    // gom vào một viên bo tròn. Lớp `dark` ép mọi biến thể `dark:` bên trong sang tông tối
+    // bất kể app đang sáng hay tối — trình xem luôn là "phòng tối" như Google, và chữ trắng
+    // trên nền đen trong suốt không bao giờ thành chữ đen trên nền đen ở theme sáng.
     <div
-      className={`@container fixed inset-0 z-50 flex flex-col bg-white/95 dark:bg-slate-950/90 backdrop-blur-xl animate-in fade-in duration-200 text-slate-900 dark:text-white select-none transition-[padding] duration-200 ${
+      className={`dark @container fixed inset-0 z-50 flex flex-col bg-black/80 animate-in fade-in duration-200 text-white select-none transition-[padding] duration-200 ${
         aiItem ? 'sm:pr-[26rem] lg:pr-[30rem]' : ''
       }`}
     >
-      {/* Top Floating Header & Controls */}
-      <div className="flex items-center justify-between gap-2 px-3 py-2.5 @2xl:px-6 @2xl:py-4 border-b border-slate-200 dark:border-white/10 bg-white/85 dark:bg-slate-900/60 backdrop-blur-md">
-        <div className="flex items-center gap-3 min-w-0 flex-1">
-          <div className="hidden @lg:flex w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 items-center justify-center border border-blue-500/30 shrink-0">
-            {isImage ? <FileImage className="w-5 h-5" /> : isVideo ? <FileVideo className="w-5 h-5" /> : isAudio ? <FileAudio className="w-5 h-5" /> : isSheet ? <FileSpreadsheet className="w-5 h-5" /> : <FileText className="w-5 h-5" />}
+      {/* Thanh đầu: [Đóng] [biểu tượng loại tệp] tên tệp ………… [Hỏi AI] [Tải xuống] */}
+      <div className="flex items-center justify-between gap-2 px-1.5 py-1.5 @2xl:px-3 @2xl:py-2 bg-gradient-to-b from-black/75 via-black/40 to-transparent">
+        <div className="flex items-center gap-1 @lg:gap-2 min-w-0 flex-1">
+          <button
+            onClick={onClose}
+            className="p-2.5 rounded-full text-white/90 hover:bg-white/10 transition-colors cursor-pointer shrink-0"
+            title={t('preview.close')}
+            aria-label={t('preview.close')}
+          >
+            <X className="w-5 h-5" />
+          </button>
+          <div
+            className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 text-white ${
+              isImage || isVideo || isPdf ? 'bg-rose-500' : isAudio ? 'bg-violet-500' : isSheet ? 'bg-emerald-600' : 'bg-blue-500'
+            }`}
+          >
+            {isImage ? <FileImage className="w-4 h-4" /> : isVideo ? <FileVideo className="w-4 h-4" /> : isAudio ? <FileAudio className="w-4 h-4" /> : isSheet ? <FileSpreadsheet className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
           </div>
-          <div className="min-w-0">
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-white truncate @2xl:max-w-md" title={item.name}>
+          <div className="min-w-0 pl-1">
+            <h3 className="text-sm @2xl:text-base font-medium text-white truncate @2xl:max-w-xl" title={item.name}>
               {item.name}
             </h3>
-            <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap min-w-0">
+            <div className="flex items-center gap-1.5 text-[11px] text-white/55 whitespace-nowrap min-w-0">
               <span className="shrink-0">{formatBytes(item.sizeBytes)}</span>
               <span className="shrink-0">•</span>
               <span className="capitalize truncate">{item.storageProvider?.replace('_', ' ') || 'Google Cloud'}</span>
@@ -863,25 +888,17 @@ export default function FilePreviewModal({ item, onClose }) {
           </div>
         </div>
 
-        {/* Toolbar Controls */}
-        <div className="flex items-center gap-1.5 @lg:gap-2 shrink-0">
-          {zoomControls && (
-            <div className="hidden @2xl:flex items-center gap-2">
-              {zoomControls}
-              <div className="w-px h-5 bg-slate-200 dark:bg-white/10 mx-1" />
-            </div>
-          )}
-
+        <div className="flex items-center gap-1.5 @lg:gap-2 shrink-0 pr-1">
           {/* Hỏi AI ngay tại chỗ: trước đây muốn hỏi về tệp đang xem thì phải đóng cửa sổ
               này, tìm lại tệp trong danh sách rồi bấm chuột phải. Panel AI mở ra ở cạnh
               phải và ĐÈ lên chứ không đóng cửa sổ xem trước, nên vẫn nhìn được tài liệu
               trong lúc đọc câu trả lời — đó mới là điểm của cái nút này. */}
           <button
             onClick={() => openAi(item, 'chat')}
-            className="flex items-center gap-2 px-2.5 @lg:px-3 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 dark:bg-blue-500/20 dark:hover:bg-blue-500/30 border border-blue-200 dark:border-blue-400/40 text-blue-700 dark:text-blue-100 text-xs font-semibold shadow-sm transition-all cursor-pointer"
+            className="flex items-center gap-2 px-2.5 @lg:px-4 py-2 rounded-full border border-white/30 hover:bg-white/10 text-white text-sm font-medium transition-colors cursor-pointer"
             title={t('preview.askAi')}
           >
-            <Sparkles className="w-4 h-4" />
+            <Sparkles className="w-4 h-4 text-sky-300" />
             <span className="hidden @lg:inline">{t('preview.askAi')}</span>
           </button>
 
@@ -889,24 +906,24 @@ export default function FilePreviewModal({ item, onClose }) {
             onClick={handleDownload}
             title={t('common.download')}
             aria-label={t('common.download')}
-            className="flex items-center gap-2 px-2.5 @lg:px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-lg shadow-blue-500/20 transition-all cursor-pointer whitespace-nowrap"
+            className="flex items-center gap-2 px-2.5 @lg:px-4 py-2 rounded-full bg-[#a8c7fa] hover:bg-[#bdd5fb] text-[#062e6f] text-sm font-medium transition-colors cursor-pointer whitespace-nowrap"
           >
             <Download className="w-4 h-4" />
             <span className="hidden @lg:inline">{t('common.download')}</span>
           </button>
-
-          <button
-            onClick={onClose}
-            className="p-2 rounded-xl bg-slate-100 dark:bg-white/10 hover:bg-rose-500/80 text-slate-700 dark:text-white transition-all @lg:ml-2 cursor-pointer"
-            title={t('preview.close')}
-          >
-            <X className="w-5 h-5" />
-          </button>
         </div>
       </div>
 
-      {/* Main Preview Container */}
+      {/* Main Preview Container — trong suốt, nhìn xuyên xuống app phía sau */}
       <div className="flex-1 flex items-center justify-center overflow-hidden p-2 @lg:p-6 relative">
+        {/* Viên công cụ phóng/xoay: cửa sổ rộng thì nổi ở góc trên bên trái như Google;
+            cửa sổ hẹp thì nằm ở thanh dưới (xem cuối tệp). */}
+        {zoomControls && (
+          <div className="hidden @2xl:flex absolute top-1 left-3 z-10 items-center gap-0.5 px-1.5 py-1 rounded-full bg-neutral-800/95 shadow-lg shadow-black/40">
+            {zoomControls}
+          </div>
+        )}
+
         {loading && (
           <div className="flex flex-col items-center gap-3 text-slate-400">
             <Loader2 className="w-10 h-10 animate-spin text-blue-500" />
@@ -931,14 +948,27 @@ export default function FilePreviewModal({ item, onClose }) {
             là để một tệp .md lớn rơi ra ngoài MỌI nhánh và hiện ra khung trắng. */}
         {!loading && !error && (url || isTextLike) && (
           <>
-            {isImage && (
+            {isImage && previewImage.src && (
               <ZoomableImage
-                src={url}
+                src={previewImage.src}
                 alt={item.name}
                 view={view}
                 onViewChange={setView}
                 rotation={rotation}
                 className="p-4"
+                fitToBox={previewImage.stage !== 'original' || Boolean(previewImage.fullSize)}
+                fullSize={previewImage.fullSize}
+                onDemand={previewImage.reportDemand}
+              />
+            )}
+            {isImage && !previewImage.src && (
+              <Loader2 className="w-10 h-10 animate-spin text-white/70" />
+            )}
+            {isImage && (
+              <ImageStagePill
+                stage={previewImage}
+                sizeBytes={itemSizeBytes}
+                onLoadOriginal={previewImage.requestOriginal}
               />
             )}
 
@@ -1201,9 +1231,9 @@ export default function FilePreviewModal({ item, onClose }) {
                           };
                           return map[ext] || 'text';
                         })()}
-                        style={isDark ? vscDarkPlus : vs}
+                        style={vscDarkPlus}
                         showLineNumbers={true}
-                        customStyle={{ margin: 0, padding: '1rem', background: 'transparent', minHeight: '100%', color: isDark ? '#e2e8f0' : '#1e293b' }}
+                        customStyle={{ margin: 0, padding: '1rem', background: 'transparent', minHeight: '100%', color: '#e2e8f0' }}
                         wrapLines={true}
                       >
                         {textContent}
@@ -1240,10 +1270,14 @@ export default function FilePreviewModal({ item, onClose }) {
       {/* Bottom Info Bar — cửa sổ rộng: dòng phím tắt. Hẹp (điện thoại): không có bàn phím nên
           dòng đó vô nghĩa và tốn hai dòng chữ; chỗ này nhường cho bộ nút phóng/xoay (chỉ
           khi tệp có), không có thì ẩn luôn thanh để phần xem được thêm chỗ. */}
-      <div className={`px-3 py-2 @2xl:px-6 @2xl:py-3 bg-white/85 dark:bg-slate-900/60 border-t border-slate-200 dark:border-white/10 items-center justify-center @2xl:justify-end text-xs text-slate-500 dark:text-slate-400 ${
+      <div className={`px-3 py-2 @2xl:px-6 @2xl:py-2.5 bg-gradient-to-t from-black/50 to-transparent items-center justify-center @2xl:justify-end text-xs text-white/45 ${
         zoomControls ? 'flex' : 'hidden @2xl:flex'
       }`}>
-        {zoomControls && <div className="flex @2xl:hidden items-center gap-2">{zoomControls}</div>}
+        {zoomControls && (
+          <div className="flex @2xl:hidden items-center gap-0.5 px-1.5 py-1 rounded-full bg-neutral-800/95 shadow-lg shadow-black/40">
+            {zoomControls}
+          </div>
+        )}
         <span className="hidden @2xl:inline">{t('preview.shortcuts')}</span>
       </div>
     </div>

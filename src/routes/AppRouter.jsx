@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { Routes, Route, useNavigate, Navigate, useLocation } from 'react-router-dom';
 import MainLayout from '../components/layout/MainLayout';
+import ErrorBoundary from '../components/common/ErrorBoundary';
 import PageNotFound from '../pages/PageNotFound';
 import { readStartupPage } from '../constants/routes';
 import { LEGAL_ALIASES, LEGAL_DOCS, LEGAL_PATHS } from '../constants/legal';
@@ -66,11 +67,17 @@ function IndexRedirect() {
 
 export default function AppRouter() {
     const navigate = useNavigate();
+    const location = useLocation();
 
     return (
-        // Fallback để trống có chủ ý: các chunk này chỉ vài chục KB và tải xong
-        // trong một nhịp, chèn spinner vào đó chỉ tạo thêm một cú nháy. Khung
-        // app (Sidebar, Header) đã hiện sẵn vì MainLayout không lazy.
+        // `resetKey` theo đường dẫn: một trang hỏng không giam người dùng lại — bấm sang
+        // trang khác (hay nút Back) là boundary tự xoá lỗi.
+        <ErrorBoundary resetKey={location.pathname}>
+        {/*
+          Fallback để trống có chủ ý: các chunk này chỉ vài chục KB và tải xong
+          trong một nhịp, chèn spinner vào đó chỉ tạo thêm một cú nháy. Khung
+          app (Sidebar, Header) đã hiện sẵn vì MainLayout không lazy.
+        */}
         <Suspense fallback={null}>
             <Routes>
                 <Route path="/" element={<Navigate to="/app" replace />} />
@@ -144,5 +151,6 @@ export default function AppRouter() {
                 <Route path="*" element={<PageNotFound onGoHome={() => navigate('/app')} />} />
             </Routes>
         </Suspense>
+        </ErrorBoundary>
     );
 }

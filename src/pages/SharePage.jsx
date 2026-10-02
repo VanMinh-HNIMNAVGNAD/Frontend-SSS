@@ -12,7 +12,10 @@ import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { renderMarkdownSafe } from '../utils/safeMarkdown';
 import DocxRenderer from '../components/file-manager/DocxRenderer';
 import SheetPreview from '../components/file-manager/SheetPreview';
+import { safeSessionStorage } from '../utils/safeStorage';
 import ZoomableImage from '../components/file-manager/ZoomableImage';
+import ImageStagePill from '../components/file-manager/ImageStagePill';
+import { usePreviewImage } from '../hooks/usePreviewImage';
 import { useZoomPan, ZOOM_MIN, ZOOM_MAX } from '../hooks/useZoomPan';
 
 // ─── Khởi tạo PDF.js Worker (an toàn, không trùng lặp) ───────────────────────
@@ -46,6 +49,48 @@ const PREVIEW_SHEET = (mime, name) =>
     mime === 'application/vnd.oasis.opendocument.spreadsheet' ||
     /\.(xlsx|xlsm|xltx|xls|ods)$/i.test(name ?? ''));
 const isMarkdownFile = (name = '') => /\.(md|markdown)$/i.test(name ?? '');
+
+// docx/xlsx được dựng TRỌN trên main thread của người nhận link (docx-preview, SheetJS):
+// tệp vài trăm MB là treo rồi sập tab. Cùng ngưỡng với `FilePreviewModal` (10MB) — trước
+// 02/10/2026 trang chia sẻ không có ngưỡng nào (ledger ##64).
+const SHARE_PREVIEW_MAX_BYTES = 10 * 1024 * 1024;
+// Văn bản thì chỉ đọc phần ĐẦU tệp: đủ cho 150.000 ký tự hiển thị, không kéo cả tệp 1GB
+// vào RAM chỉ để cắt bỏ gần hết.
+const TEXT_PREVIEW_READ_BYTES = 512 * 1024;
+const isTooLargeToRender = (file) => Number(file?.sizeBytes) > SHARE_PREVIEW_MAX_BYTES;
+
+/** Đọc tối đa `limit` byte đầu của response rồi huỷ phần còn lại. */
+async function readTextHead(res, limit) {
+  if (!res.body?.getReader) {
+    const text = await res.text();
+    return { text, truncated: false };
+  }
+  const reader = res.body.getReader();
+  const chunks = [];
+  let received = 0;
+  let truncated = false;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+    received += value.byteLength;
+    if (received >= limit) {
+      truncated = true;
+      await reader.cancel().catch(() => {});
+      break;
+    }
+  }
+  const bytes = new Uint8Array(Math.min(received, limit));
+  let offset = 0;
+  for (const chunk of chunks) {
+    const take = Math.min(chunk.byteLength, bytes.length - offset);
+    if (take <= 0) break;
+    bytes.set(chunk.subarray(0, take), offset);
+    offset += take;
+  }
+  // `stream: true` để ký tự nhiều byte bị cắt đôi ở mép không thành rác ở cuối.
+  return { text: new TextDecoder().decode(bytes, { stream: truncated }), truncated };
+}
 
 // ─── Helper: icon MIME ────────────────────────────────────────────────────────
 function mimeColor(mimeType, type, name) {
@@ -314,8 +359,10 @@ function CodeTextPreview({ url, name }) {
           },
         });
         if (!res.ok) throw new Error('fetch failed');
-        let text = await res.text();
+        const head = await readTextHead(res, TEXT_PREVIEW_READ_BYTES);
+        let text = head.text;
         if (text.length > 150_000) text = text.slice(0, 150_000) + t('sharePage.text.truncated');
+        else if (head.truncated) text += t('sharePage.text.truncated');
         if (!cancelled) setContent(text);
       } catch {
         if (!cancelled) setError(true);
@@ -445,7 +492,32 @@ function RestrictedPreviewNotice({ file, message }) {
 }
 
 // ─── Preview Area (dispatch theo MIME cho file đơn gốc) ───────────────────────
-function PreviewArea({ file, previewUrl, loadingPreview, previewBlocked }) {
+/**
+ * Ảnh của tệp được chia sẻ (khung chính, không thu phóng): bản 2048px nếu server có, không
+ * thì ảnh gốc như cũ. Khách mở link trên điện thoại là người được lợi nhất — trước đây một
+ * ảnh 40MB là 40MB dữ liệu di động chỉ để xem vừa màn hình. Muốn bản gốc thì đã có nút Tải.
+ */
+function SharedInlineImage({ file, previewUrl, token, authToken }) {
+  const image = usePreviewImage({
+    file,
+    originalUrl: previewUrl,
+    loadPreview: () => sharingApi.getSharedPreviewImage(token, undefined, authToken || undefined),
+    cacheKey: `share:${token}`,
+  });
+  if (!image.src) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <svg className="w-8 h-8 animate-spin text-indigo-400" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4Z" />
+        </svg>
+      </div>
+    );
+  }
+  return <img src={image.src} alt={file.name} className="max-h-[70vh] max-w-full object-contain rounded-xl mx-auto block" />;
+}
+
+function PreviewArea({ file, previewUrl, loadingPreview, previewBlocked, token, authToken }) {
   const { t } = useLanguage();
   const { mimeType, name } = file;
 
@@ -478,7 +550,7 @@ function PreviewArea({ file, previewUrl, loadingPreview, previewBlocked }) {
   }
 
   if (PREVIEW_IMAGE(mimeType, name)) {
-    return <img src={previewUrl} alt={name} className="max-h-[70vh] max-w-full object-contain rounded-xl mx-auto block" loading="lazy" />;
+    return <SharedInlineImage file={file} previewUrl={previewUrl} token={token} authToken={authToken} />;
   }
   if (PREVIEW_VIDEO(mimeType, name)) {
     return <video controls className="max-h-[70vh] w-full rounded-xl bg-black" preload="metadata" src={previewUrl} />;
@@ -495,6 +567,17 @@ function PreviewArea({ file, previewUrl, loadingPreview, previewBlocked }) {
   }
   if (PREVIEW_PDF(mimeType, name)) {
     return <PdfCanvasViewer url={previewUrl} />;
+  }
+  if ((PREVIEW_DOCX(mimeType, name) || PREVIEW_SHEET(mimeType, name)) && isTooLargeToRender(file)) {
+    return (
+      <RestrictedPreviewNotice
+        file={file}
+        message={t('sharePage.preview.tooLarge', {
+          size: formatBytes(file.sizeBytes),
+          limit: formatBytes(SHARE_PREVIEW_MAX_BYTES),
+        })}
+      />
+    );
   }
   if (PREVIEW_DOCX(mimeType, name)) {
     return (
@@ -532,12 +615,20 @@ function ChildFilePreviewModal({
   loading,
   error,
   previewBlocked,
-  previewDisabledByOwner,
   isDownloadAllowed,
   onDownload,
   onClose,
+  token,
+  authToken,
 }) {
   const { t } = useLanguage();
+  // Ảnh nạp theo tầng — bản 2048px trước, ảnh gốc khi phóng to. Xem `hooks/usePreviewImage.js`.
+  const image = usePreviewImage({
+    file,
+    originalUrl: previewUrl,
+    loadPreview: () => sharingApi.getSharedPreviewImage(token, file?.id, authToken || undefined),
+    cacheKey: `share:${token}`,
+  });
   // { zoom, x, y } — xem ZoomableImage.jsx. PDF chỉ dùng `zoom`, ảnh dùng cả độ lệch.
   const { view, setView, zoomIn, zoomOut, reset: resetView } = useZoomPan();
   const zoom = view.zoom;
@@ -568,8 +659,10 @@ function ChildFilePreviewModal({
   const isVid = PREVIEW_VIDEO(mime, name);
   const isAud = PREVIEW_AUDIO(mime, name);
   const isPdf = PREVIEW_PDF(mime, name);
-  const isDoc = PREVIEW_DOCX(mime, name);
-  const isSheet = PREVIEW_SHEET(mime, name);
+  // Quá ngưỡng thì rơi xuống khung "tải về" bên dưới, kèm câu nói rõ vì sao.
+  const tooLarge = (PREVIEW_DOCX(mime, name) || PREVIEW_SHEET(mime, name)) && isTooLargeToRender(file);
+  const isDoc = PREVIEW_DOCX(mime, name) && !tooLarge;
+  const isSheet = PREVIEW_SHEET(mime, name) && !tooLarge;
   const isTxt = PREVIEW_TEXT(mime, name);
 
   const handleDownloadClick = async () => {
@@ -702,9 +795,7 @@ function ChildFilePreviewModal({
         {previewBlocked && !loading && !error && (
           <RestrictedPreviewNotice
             file={file}
-            message={previewDisabledByOwner
-              ? t('sharePage.preview.ownerDisabled')
-              : t('sharePage.preview.blocked')}
+            message={t('sharePage.preview.blocked')}
           />
         )}
 
@@ -724,15 +815,21 @@ function ChildFilePreviewModal({
 
         {!loading && !error && !previewBlocked && previewUrl && (
           <>
-            {isImg && (
+            {isImg && image.src && (
               <ZoomableImage
-                src={previewUrl}
+                src={image.src}
                 alt={file.name}
                 view={view}
                 onViewChange={setView}
                 rotation={rotation}
                 className="p-4"
+                fitToBox={image.stage !== 'original' || Boolean(image.fullSize)}
+                fullSize={image.fullSize}
+                onDemand={image.reportDemand}
               />
+            )}
+            {isImg && (
+              <ImageStagePill stage={image} sizeBytes={Number(file.sizeBytes) || 0} onLoadOriginal={image.requestOriginal} />
             )}
 
             {isVid && (
@@ -790,7 +887,14 @@ function ChildFilePreviewModal({
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25M9 16.5v.75m3-3v3M15 12v5.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
                 </svg>
                 <h4 className="font-bold text-white text-sm">{file.name}</h4>
-                <p className="text-xs text-slate-400">{t('sharePage.preview.unsupportedDirect')}</p>
+                <p className="text-xs text-slate-400">
+                  {tooLarge
+                    ? t('sharePage.preview.tooLarge', {
+                        size: formatBytes(file.sizeBytes),
+                        limit: formatBytes(SHARE_PREVIEW_MAX_BYTES),
+                      })
+                    : t('sharePage.preview.unsupportedDirect')}
+                </p>
                 {isDownloadAllowed && (
                   <button
                     onClick={handleDownloadClick}
@@ -1090,7 +1194,7 @@ export default function SharePage() {
   const navigate   = useNavigate();
 
   const [shareData, setShareData]           = useState(null);
-  const [shareAuthToken, setShareAuthToken] = useState(sessionStorage.getItem('shareAuthToken') || '');
+  const [shareAuthToken, setShareAuthToken] = useState(safeSessionStorage.getItem('shareAuthToken') || '');
   const [passwordInput, setPasswordInput]   = useState('');
   const [passwordSubmitting, setPasswordSubmitting] = useState(false);
   const [passwordError, setPasswordError]   = useState('');
@@ -1253,7 +1357,7 @@ export default function SharePage() {
         throw new Error(t('sharePage.password.noToken'));
       }
       setShareAuthToken(nextToken);
-      sessionStorage.setItem('shareAuthToken', nextToken);
+      safeSessionStorage.setItem('shareAuthToken', nextToken);
       setPasswordInput('');
     } catch (err) {
       setPasswordError(err?.message || t('sharePage.password.wrong'));
@@ -1272,7 +1376,6 @@ export default function SharePage() {
 
   const { file, owner, isDownloadAllowed, expiresAt, hasPassword } = shareData;
   const isFolder = file.type === 'folder';
-  const previewDisabledByOwner = shareData.isPreviewOnly === false && isDownloadAllowed === true;
   const requiresPassword = Boolean(hasPassword) && !shareAuthToken;
 
   if (requiresPassword) {
@@ -1438,18 +1541,14 @@ export default function SharePage() {
                 </button>
               )}
             </div>
-            {previewDisabledByOwner && (
-              <div className="mx-5 mt-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
-                {t('sharePage.preview.ownerDisabled')}
-              </div>
-            )}
             <div className="p-4 sm:p-6">
               <PreviewArea
                 file={file}
                 previewUrl={previewUrl}
                 loadingPreview={loadingPreview}
                 previewBlocked={previewBlocked}
-                previewDisabledByOwner={previewDisabledByOwner}
+                token={token}
+                authToken={shareAuthToken}
               />
             </div>
           </section>
@@ -1463,9 +1562,10 @@ export default function SharePage() {
             loading={childPreviewLoading}
             error={childPreviewError}
             previewBlocked={childPreviewBlocked}
-            previewDisabledByOwner={previewDisabledByOwner}
             isDownloadAllowed={isDownloadAllowed}
             onDownload={handleDownloadChild}
+            token={token}
+            authToken={shareAuthToken}
             onClose={() => {
               setSelectedChild(null);
               setChildPreviewUrl(null);

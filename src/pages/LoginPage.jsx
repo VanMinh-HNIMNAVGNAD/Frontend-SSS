@@ -10,6 +10,7 @@ import { TURNSTILE_ACTIONS } from '../constants/turnstile';
 import { API_BASE_URL } from '../constants/api';
 import OtpForm from '../components/security/OtpForm';
 import { LegalNotice } from '../components/security/LegalConsent';
+import { isPersistentStorageBlocked } from '../utils/safeStorage';
 import {
   AUTH_CARD, AUTH_TITLE, AUTH_LABEL, AUTH_INPUT, AUTH_INPUT_ICON, AUTH_SOCIAL_BUTTON, AUTH_SOCIAL_LABEL,
   AUTH_GITHUB_ICON, AUTH_DIVIDER_LINE, AUTH_DIVIDER_TEXT, AUTH_ERROR, AUTH_PRIMARY_BUTTON, AUTH_MUTED, AUTH_LINK,
@@ -286,6 +287,14 @@ export default function LoginPage() {
         {displayError && (
           <div className={`${AUTH_ERROR} mb-5`}>
             {displayError}
+          </div>
+        )}
+
+        {/* Trình duyệt chặn dữ liệu trang: đăng nhập vẫn được, nhưng F5 là mất phiên. Nói
+            trước để người dùng không tưởng app tự đăng xuất họ. */}
+        {isPersistentStorageBlocked() && (
+          <div className="mb-5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs font-medium text-amber-300">
+            {t('crash.storageBlocked')}
           </div>
         )}
 

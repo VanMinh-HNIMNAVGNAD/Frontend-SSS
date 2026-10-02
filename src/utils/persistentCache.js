@@ -38,6 +38,7 @@
  */
 
 import { subjectOf } from './jwt';
+import { safeLocalStorage } from './safeStorage';
 
 const DB_NAME = 'driver-cache';
 const DB_VERSION = 1;
@@ -114,7 +115,7 @@ function runTx(db, mode, work, fallback = null) {
  */
 export function cacheScope() {
   try {
-    return subjectOf(localStorage.getItem('accessToken')) || 'anon';
+    return subjectOf(safeLocalStorage.getItem('accessToken')) || 'anon';
   } catch {
     return 'anon';
   }

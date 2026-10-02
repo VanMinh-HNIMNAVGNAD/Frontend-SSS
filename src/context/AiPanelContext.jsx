@@ -1,4 +1,5 @@
 import { createContext, lazy, Suspense, useCallback, useContext, useMemo, useState } from 'react';
+import ErrorBoundary, { ErrorFallback } from '../components/common/ErrorBoundary';
 
 /**
  * Một chỗ duy nhất trong toàn ứng dụng quyết định "panel AI đang mở cho mục nào".
@@ -84,6 +85,14 @@ export function AiPanelProvider({ children }) {
         <AiPanelContext.Provider value={value}>
             {children}
             {target && (
+                // Panel AI hỏng (hoặc chunk của nó thuộc bản build cũ) thì chỉ panel đóng
+                // lại kèm lời báo — phần còn lại của app vẫn chạy.
+                <ErrorBoundary
+                    resetKey={target.item?.id ?? 'blank'}
+                    fallback={({ error }) => (
+                        <ErrorFallback error={error} variant="overlay" onClose={closeAi} />
+                    )}
+                >
                 <Suspense fallback={null}>
                     {/* `key` theo id: đổi sang mục khác là dựng lại khung chat từ đầu, chứ
                         không để lại lịch sử trò chuyện của tệp trước.
@@ -103,6 +112,7 @@ export function AiPanelProvider({ children }) {
                         onClose={closeAi}
                     />
                 </Suspense>
+                </ErrorBoundary>
             )}
         </AiPanelContext.Provider>
     );

@@ -21,6 +21,7 @@ import { dateFilterStart } from '../constants/fileFilters';
 import { readNamespace, writeManyCached, clearPersistentCache } from '../utils/persistentCache';
 import { primeThumbnailsForUpload } from '../utils/thumbnailPrimer';
 import { createPipelinedBatcher } from '../utils/uploadBatcher';
+import { safeLocalStorage } from '../utils/safeStorage';
 
 const FileContext = createContext();
 
@@ -2193,7 +2194,7 @@ export function FileProvider({ children }) {
 
       // Người dùng có thể tắt phím tắt trong Cài đặt → bỏ qua toàn bộ
       // (khoá do SettingsModal.jsx ghi: driveR_settings_shortcuts_enabled)
-      if (localStorage.getItem('driveR_settings_shortcuts_enabled') === 'false') return;
+      if (safeLocalStorage.getItem('driveR_settings_shortcuts_enabled') === 'false') return;
 
       const isCtrlOrCmd = e.ctrlKey || e.metaKey;
 

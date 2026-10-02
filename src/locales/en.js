@@ -1079,7 +1079,7 @@ const en = {
   'sharePage.zoomOut': "Zoom out",
   'sharePage.zoomIn': "Zoom in",
   'sharePage.docx.converting': "Converting the Word document...",
-  'sharePage.text.truncated': "\\n\\n[... content truncated because it is too long]",
+  'sharePage.text.truncated': "\n\n[... content truncated because it is too long]",
   'sharePage.text.loading': "Loading the text / source...",
   'sharePage.copyCode': "Copy code",
   'sharePage.downloadOnly': "This file can only be downloaded from the share link.",
@@ -1087,7 +1087,6 @@ const en = {
   'sharePage.preview.blocked': "Preview is disabled for this file — please download it",
   'sharePage.preview.unsupported': "This format cannot be previewed",
   'sharePage.preview.downloadToRead': "Download the file to read it",
-  'sharePage.preview.ownerDisabled': "The owner turned off preview for this file. Use Download to read it.",
   'sharePage.preview.unsupportedDirect': "This format cannot be previewed here.",
   'sharePage.preview.cannot': "This file cannot be previewed.",
   'sharePage.downloading': "Downloading...",
@@ -1343,6 +1342,25 @@ const en = {
   'auth.nickname.label': 'Nickname',
 
   'card.sharedBadge': 'Shared',
+
+  // ── Staged image preview (hooks/usePreviewImage.js) ──
+  'preview.image.loadingSharp': 'Loading sharper version…',
+  'preview.image.loadingOriginal': 'Loading original…',
+  'preview.image.loadingOriginalPct': 'Loading original… {percent}%',
+  'preview.image.originalFailed': "Couldn't open the original on this device — showing a reduced version",
+  'preview.image.viewOriginal': 'View original · {size}',
+
+  // ── Safety net when part of the UI fails (components/common/ErrorBoundary.jsx) ──
+  'crash.title': 'This part ran into a problem',
+  'crash.body': "Something went wrong while showing this. Your data is fine — try again or reload the page.",
+  'crash.newVersionTitle': 'A new version of cloudSSS is available',
+  'crash.newVersionBody': "This tab is running an older version, so it couldn't load this part. Reload to use the new version.",
+  'crash.reload': 'Reload page',
+  'crash.retry': 'Try again',
+  'crash.home': 'Go to main page',
+  'crash.storageBlocked':
+    "Your browser is blocking site data, so cloudSSS can't keep you signed in after a reload. Allow cookies and site data for this site to use it normally.",
+  'sharePage.preview.tooLarge': 'This {size} file is too large to preview in the browser (limit {limit}). Download it to view.',
 
 };
 

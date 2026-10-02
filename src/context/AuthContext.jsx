@@ -5,13 +5,14 @@ import { LEGAL_VERSION, needsTermsAcceptance } from '../constants/legal';
 import { subjectOf } from '../utils/jwt';
 import { resetSharedCaches } from '../utils/ttlCache';
 import { useLanguage } from './LanguageContext';
+import { safeLocalStorage } from '../utils/safeStorage';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const { t } = useLanguage();
   const [user, setUser] = useState(null);
-  const [accessToken, setAccessToken] = useState(() => localStorage.getItem('accessToken'));
+  const [accessToken, setAccessToken] = useState(() => safeLocalStorage.getItem('accessToken'));
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   // Trang này vừa được backend đưa về từ callback OAuth và đang cầm một mã chờ đổi?
@@ -37,7 +38,7 @@ export function AuthProvider({ children }) {
       // đăng nhập tài khoản khác ở tab B là tab A lập tức gửi request bằng token
       // của B trong khi vẫn đang vẽ hồ sơ của A. Trước đây chỗ này setUser() thẳng
       // → tab A âm thầm biến thành tài khoản B.
-      const tokenSubject = subjectOf(localStorage.getItem('accessToken'));
+      const tokenSubject = subjectOf(safeLocalStorage.getItem('accessToken'));
       if (tokenSubject && nextUser?.id && nextUser.id !== tokenSubject) {
         console.error('[Auth] Hồ sơ trả về không khớp token đang giữ — huỷ phiên.');
         throw new Error('Phiên đăng nhập không khớp tài khoản');
@@ -49,7 +50,7 @@ export function AuthProvider({ children }) {
       console.error('Failed to fetch user profile:', err);
       setUser(null);
       setAccessToken(null);
-      localStorage.removeItem('accessToken');
+      safeLocalStorage.removeItem('accessToken');
       resetSharedCaches();
     } finally {
       setIsLoading(false);
@@ -144,7 +145,7 @@ export function AuthProvider({ children }) {
   const applySession = useCallback((data) => {
     const token = data.accessToken || data.token;
     if (token) {
-      localStorage.setItem('accessToken', token);
+      safeLocalStorage.setItem('accessToken', token);
       setAccessToken(token);
     }
     const userProfile = data.user || data;
@@ -177,7 +178,7 @@ export function AuthProvider({ children }) {
 
     if (!code) {
       if (legacyToken) {
-        localStorage.setItem('accessToken', legacyToken);
+        safeLocalStorage.setItem('accessToken', legacyToken);
         setAccessToken(legacyToken);
         window.history.replaceState({}, document.title, window.location.pathname);
       }
@@ -335,7 +336,7 @@ export function AuthProvider({ children }) {
     } catch (err) {
       console.error('[Auth] Gọi /auth/logout thất bại (vẫn xoá phiên cục bộ):', err);
     } finally {
-      localStorage.removeItem('accessToken');
+      safeLocalStorage.removeItem('accessToken');
       setAccessToken(null);
       setUser(null);
       // Các bộ đệm ở phạm vi module (URL xem trước, nội dung tệp, danh sách

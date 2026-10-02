@@ -1,5 +1,5 @@
 import { lazy, Suspense, useState, useRef, useCallback } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useFiles, useFilePreview } from '../../context/FileContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -18,6 +18,7 @@ import RenameModal from '../file-manager/RenameModal';
  */
 const FilePreviewModal = lazy(() => import('../file-manager/FilePreviewModal'));
 import TermsAcceptanceGate from '../security/TermsAcceptanceGate';
+import ErrorBoundary, { ErrorFallback } from '../common/ErrorBoundary';
 import UploadProgress from '../file-manager/UploadProgress';
 import ResumeUploads from '../file-manager/ResumeUploads';
 
@@ -28,6 +29,7 @@ export const SEARCH_INPUT_ID = 'global-search-input';
 
 export default function MainLayout() {
     const { t } = useLanguage();
+    const location = useLocation();
     const {
         renameItem,
         // ── Phục vụ hệ thống phím tắt ──
@@ -239,7 +241,11 @@ export default function MainLayout() {
 
                 {/* Body Content */}
                 <main className="flex-1 overflow-hidden px-3 sm:px-4 lg:px-5 py-3 relative z-0">
-                    <Outlet />
+                    {/* Lỗi trong một trang chỉ thay phần nội dung — Sidebar/Header vẫn còn để
+                        người dùng bấm sang trang khác. */}
+                    <ErrorBoundary variant="inline" resetKey={location.pathname}>
+                        <Outlet />
+                    </ErrorBoundary>
                 </main>
             </div>
 
@@ -274,12 +280,19 @@ export default function MainLayout() {
 
             {/* File Preview Modal */}
             {previewItem && (
-                <Suspense fallback={null}>
-                    <FilePreviewModal
-                        item={previewItem}
-                        onClose={closePreview}
-                    />
-                </Suspense>
+                <ErrorBoundary
+                    resetKey={previewItem.id}
+                    fallback={({ error }) => (
+                        <ErrorFallback error={error} variant="overlay" onClose={closePreview} />
+                    )}
+                >
+                    <Suspense fallback={null}>
+                        <FilePreviewModal
+                            item={previewItem}
+                            onClose={closePreview}
+                        />
+                    </Suspense>
+                </ErrorBoundary>
             )}
 
             {/* Global Upload Progress — floating bottom-right */}

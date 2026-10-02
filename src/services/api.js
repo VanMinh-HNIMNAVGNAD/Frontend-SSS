@@ -21,6 +21,7 @@ import { solvePow } from '../utils/powSolver';
 // api.js chạy NGOÀI cây React nên không gọi được `useLanguage()`. Những câu dự
 // phòng dưới đây vẫn hiện thẳng lên toast, nên chúng phải theo ngôn ngữ đang chọn.
 import { tOutsideReact } from '../utils/translate';
+import { safeLocalStorage } from '../utils/safeStorage';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -158,7 +159,7 @@ function getDeviceId() {
 
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('accessToken');
+    const token = safeLocalStorage.getItem('accessToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -324,7 +325,7 @@ class RefreshFailure extends Error {
 
 function refreshAccessToken() {
   if (!refreshPromise) {
-    const previousSubject = subjectOf(localStorage.getItem('accessToken'));
+    const previousSubject = subjectOf(safeLocalStorage.getItem('accessToken'));
     refreshPromise = axios
       .post(`${API_BASE_URL}/auth/refresh`, null, { withCredentials: true })
       // Backend bọc response ({ statusCode, data }) nên phải bóc hai lớp.
@@ -349,7 +350,7 @@ function refreshAccessToken() {
           });
         }
 
-        localStorage.setItem('accessToken', token);
+        safeLocalStorage.setItem('accessToken', token);
         return token;
       })
       .catch((err) => {
@@ -385,7 +386,7 @@ function refreshAccessToken() {
  * lại bị đá ra — vòng lặp đó là phàn nàn đã dẫn tới thay đổi này.
  */
 function forceLogout(reason) {
-  localStorage.removeItem('accessToken');
+  safeLocalStorage.removeItem('accessToken');
   const path = window.location.pathname;
   // Khách vãng lai trên trang chia sẻ KHÔNG bao giờ bị redirect về /login
   const isPublicSharePage = path.startsWith('/share');
@@ -414,7 +415,7 @@ const REFRESH_BEFORE_EXPIRY_MS = 2 * 60 * 1000;
 
 /** Token trong localStorage có sắp hết hạn (hoặc đã hết) không? */
 function accessTokenNeedsRefresh() {
-  const token = localStorage.getItem('accessToken');
+  const token = safeLocalStorage.getItem('accessToken');
   if (!token) return false; // chưa đăng nhập — không có gì để làm mới
 
   const exp = decodeJwt(token)?.exp;
@@ -890,6 +891,9 @@ const previewUrlBatch = createBatchLoader({
  */
 let thumbGenerateSupported = true;
 
+/** `false` khi backend chưa có `GET /files/:id/preview-image` — xem `storageApi.getPreviewImage`. */
+let previewImageSupported = true;
+
 const thumbGenerateBatch = createBatchLoader({
   windowMs: 16,
   maxBatchSize: 4,
@@ -1101,6 +1105,31 @@ export const storageApi = {
     api.post('/files/thumbnails/upload-urls', { items }, { meta: { noProgressBar: true } }),
 
   /**
+   * Ảnh xem trước 2048px cho cửa sổ xem ảnh (`GET /files/:id/preview-image`).
+   *
+   * Lần đầu server phải dựng (~1–2s cho ảnh 30–50MB), các lần sau chỉ là một lượt hỏi.
+   * Trả `{ url, width, height, originalWidth, originalHeight }`, hoặc `null` khi không có
+   * (ảnh nhỏ, GIF/HEIC, tính năng tắt, backend cũ, lỗi) — nơi gọi dùng ảnh gốc như cũ.
+   * Xem `hooks/usePreviewImage.js`.
+   */
+  getPreviewImage: async (id) => {
+    if (!previewImageSupported) return null;
+    try {
+      const res = await api.get(`/files/${id}/preview-image`, { meta: { noProgressBar: true } });
+      return res?.url ? res : null;
+    } catch (err) {
+      const status = err?.status ?? err?.response?.status;
+      // Backend chưa có endpoint (Nest trả 404 "Cannot GET …"): tắt cho cả phiên, đừng
+      // hỏi lại ở mỗi ảnh. 404 kiểu khác là "không có quyền / tệp đã mất" của riêng ảnh này.
+      const message = String(err?.response?.data?.message ?? err?.message ?? '');
+      if (status === 405 || (status === 404 && /Cannot GET/i.test(message))) {
+        previewImageSupported = false;
+      }
+      return null;
+    }
+  },
+
+  /**
    * Nhờ server dựng thumbnail cho MỘT ảnh (gộp lô ngầm, xem `thumbGenerateBatch`).
    * Trả `{ id, thumbUrls, dataUrls: { t160, t384 } }`, hoặc `null` khi server không
    * dựng (không phải ảnh nó đọc được, không có quyền, backend cũ).
@@ -1218,6 +1247,22 @@ export const sharingApi = {
       params: fileId ? { fileId } : {},
       headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
     }),
+  /**
+   * Ảnh xem trước 2048px qua token chia sẻ — URL có chữ ký 1 giờ. `null` = dùng ảnh gốc.
+   * Xem `storageApi.getPreviewImage`.
+   */
+  getSharedPreviewImage: async (token, fileId, authToken) => {
+    try {
+      const res = await api.get(`/shares/${token}/preview-image`, {
+        params: fileId ? { fileId } : {},
+        headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
+        meta: { noProgressBar: true },
+      });
+      return res?.url ? res : null;
+    } catch {
+      return null;
+    }
+  },
   /** Sinh presigned download URL qua token chia sẻ */
   getSharedDownloadUrl: (token, fileId, authToken) =>
     api.get(`/shares/${token}/download-url`, {
@@ -1441,7 +1486,7 @@ function canceledError() {
  */
 async function postSse(path, payload, { signal, onEvent, onActivity, method = 'POST' }) {
   const open = async () => {
-    const token = localStorage.getItem('accessToken');
+    const token = safeLocalStorage.getItem('accessToken');
     // Cùng header với interceptor của axios. Đường này là `fetch` trần nên phải tự gắn —
     // thiếu nó thì lượt hỏi AI (chính là nơi vi phạm nội dung bạo lực bị bắt) được ghi sổ
     // không có thiết bị, và lệnh cấm lần 2 chỉ còn cấm được theo IP.

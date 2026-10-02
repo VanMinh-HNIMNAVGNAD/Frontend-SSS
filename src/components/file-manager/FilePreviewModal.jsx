@@ -30,7 +30,7 @@ import { useAiPanel } from '../../context/AiPanelContext';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { vs } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { marked } from 'marked';
+import { renderMarkdownSafe } from '../../utils/safeMarkdown';
 import * as pdfjsLib from 'pdfjs-dist';
 import useTheme from '../../hooks/useTheme';
 import DocxRenderer from './DocxRenderer';
@@ -1156,7 +1156,7 @@ export default function FilePreviewModal({ item, onClose }) {
                       <div
                         className="p-6 @lg:p-10 max-w-4xl mx-auto markdown-preview-content"
                         dangerouslySetInnerHTML={{
-                          __html: marked.parse(textContent, { breaks: true, gfm: true })
+                          __html: renderMarkdownSafe(textContent)
                         }}
                       />
                     ) : textContent.length > SYNTAX_HIGHLIGHT_MAX_CHARS ? (

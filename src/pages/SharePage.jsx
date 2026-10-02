@@ -9,7 +9,7 @@ import { formatBytes } from '../utils/formatFileSize';
 import * as pdfjsLib from 'pdfjs-dist';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { marked } from 'marked';
+import { renderMarkdownSafe } from '../utils/safeMarkdown';
 import DocxRenderer from '../components/file-manager/DocxRenderer';
 import SheetPreview from '../components/file-manager/SheetPreview';
 import ZoomableImage from '../components/file-manager/ZoomableImage';
@@ -410,7 +410,7 @@ function CodeTextPreview({ url, name }) {
           <div
             className="p-6 sm:p-8 max-w-4xl mx-auto markdown-preview-content font-sans"
             dangerouslySetInnerHTML={{
-              __html: marked.parse(content, { breaks: true, gfm: true })
+              __html: renderMarkdownSafe(content)
             }}
           />
         ) : (

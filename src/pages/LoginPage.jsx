@@ -40,6 +40,9 @@ export default function LoginPage() {
   //   • oauth_no_email         — nhà cung cấp không trả về email (GitHub cho phép giấu
   //     email trong cài đặt riêng tư). Thử lại bao nhiêu lần cũng vậy, nên câu chữ
   //     phải chỉ sang cách đăng nhập khác;
+  //   • oauth_email_unverified — có email nhưng nhà cung cấp chưa xác minh cái nào. Backend
+  //     không gộp tài khoản theo email chưa xác minh (đó là đường chiếm tài khoản người
+  //     khác), nên câu chữ chỉ cách tự gỡ: xác minh email bên GitHub/Google rồi thử lại;
   //   • oauth_failed           — nhà cung cấp OAuth từ chối (bước 1);
   //   • oauth_exchange_failed  — mã đổi phiên hết hạn hoặc đã dùng (bước 2). Xảy ra khi
   //     người dùng bấm F5 ở trang vừa quay về, hoặc để tab đó quá 60 giây;
@@ -57,6 +60,8 @@ export default function LoginPage() {
       setLocalError(t('login.oauthCancelled'));
     } else if (reason === 'oauth_no_email') {
       setLocalError(t('login.oauthNoEmail'));
+    } else if (reason === 'oauth_email_unverified') {
+      setLocalError(t('login.oauthEmailUnverified'));
     } else if (reason === 'oauth_failed') {
       setLocalError(t('login.oauthFailed'));
     } else if (reason === 'oauth_exchange_failed') {

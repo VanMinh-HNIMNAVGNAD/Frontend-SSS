@@ -16,6 +16,7 @@
     "@tailwindcss/vite": "^4.3.3",
     "axios": "^1.18.1",
     "docx-preview": "^0.4.0",
+    "dompurify": "^3.4.16",
     "lucide-react": "^1.25.0",
     "mammoth": "^1.12.1",
     "marked": "^18.0.9",

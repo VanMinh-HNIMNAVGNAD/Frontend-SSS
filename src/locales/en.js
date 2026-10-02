@@ -358,6 +358,8 @@ const en = {
   'login.oauthCancelled': 'You cancelled the sign-in. Nothing was shared.',
   'login.oauthNoEmail':
     'That social account does not share an email address, so it cannot be used to sign in. Please sign in with your email instead.',
+  'login.oauthEmailUnverified':
+    'The email on that social account has not been verified. Verify it in your GitHub/Google settings and try again, or sign in with your email.',
   'login.oauthFailed': 'OAuth sign-in failed. Try again, or sign in with your email.',
   'login.oauthExpired': 'The OAuth sign-in expired. Please click sign in again.',
   'login.oauthUnavailable':

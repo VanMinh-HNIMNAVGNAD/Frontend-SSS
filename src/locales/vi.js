@@ -361,6 +361,8 @@ const vi = {
   'login.oauthCancelled': 'Bạn đã huỷ việc đăng nhập. Không có thông tin nào được chia sẻ.',
   'login.oauthNoEmail':
     'Tài khoản mạng xã hội này không chia sẻ địa chỉ email nên không dùng để đăng nhập được. Vui lòng đăng nhập bằng Email.',
+  'login.oauthEmailUnverified':
+    'Email của tài khoản mạng xã hội này chưa được xác minh. Hãy xác minh email trong phần cài đặt của GitHub/Google rồi thử lại, hoặc đăng nhập bằng Email.',
   'login.oauthFailed': 'Đăng nhập OAuth thất bại. Vui lòng thử lại hoặc sử dụng Email để đăng nhập.',
   // Hai lý do dưới đây thuộc BƯỚC 2 của đăng nhập OAuth (đổi mã lấy phiên), khác hẳn
   // `oauthFailed` ở bước 1 — ở bước 1 là nhà cung cấp từ chối, còn ở đây nhà cung cấp đã

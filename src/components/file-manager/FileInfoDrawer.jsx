@@ -22,7 +22,6 @@ import {
     Share2, 
     Pencil, 
     Sparkles, 
-    Check, 
     Activity as ActivityIcon, 
     Info as InfoIcon,
     History,
@@ -49,9 +48,6 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
     const { t, language } = useLanguage();
     const locale = localeTagOf(language);
     const [currentTab, setCurrentTab] = useState(activeTab);
-    const [description, setDescription] = useState(item?.description || '');
-    const [isSavingDesc, setIsSavingDesc] = useState(false);
-    const [savedDescSuccess, setSavedDescSuccess] = useState(false);
     const [versions, setVersions] = useState(null);
     const [activityLogs, setActivityLogs] = useState([]);
     const [activityError, setActivityError] = useState(null);
@@ -62,12 +58,6 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
             setCurrentTab(activeTab);
         }
     }, [activeTab, isOpen]);
-
-    useEffect(() => {
-        if (item) {
-            setDescription(item.description || '');
-        }
-    }, [item]);
 
     const fetchActivityLogs = () => {
         if (!item?.id) return;
@@ -302,15 +292,6 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
         }
     };
 
-    const handleSaveDescription = () => {
-        setIsSavingDesc(true);
-        setTimeout(() => {
-            setIsSavingDesc(false);
-            setSavedDescSuccess(true);
-            setTimeout(() => setSavedDescSuccess(false), 2000);
-        }, 400);
-    };
-
     return (
         <>
             {/* Transparent backdrop overlay */}
@@ -494,7 +475,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                             <div className="flex justify-between py-1.5 border-b border-gray-200 dark:border-gray-800">
                                 <span className="text-gray-600 dark:text-gray-400 font-semibold">{t('info.field.modified')}</span>
                                 <span className="font-semibold text-gray-900 dark:text-gray-100 font-mono">
-                                    {item.updatedAt || t('activity.time.justNow')}
+                                    {item.updatedAt || '—'}
                                 </span>
                             </div>
 
@@ -502,38 +483,8 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                             <div className="flex justify-between py-1.5 border-b border-gray-200 dark:border-gray-800">
                                 <span className="text-gray-600 dark:text-gray-400 font-semibold">{t('info.field.created')}</span>
                                 <span className="font-semibold text-gray-900 dark:text-gray-100 font-mono">
-                                    {item.createdAt || '2026-07-01 09:15'}
+                                    {item.createdAt || '—'}
                                 </span>
-                            </div>
-                        </div>
-
-                        {/* Description field */}
-                        <div className="space-y-2 pt-2">
-                            <div className="flex items-center justify-between">
-                                <h4 className="font-bold text-gray-900 dark:text-gray-100 text-xs uppercase tracking-wider text-[11px]">
-                                    {t('info.desc.heading')}
-                                </h4>
-                                {savedDescSuccess && (
-                                    <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1 text-[11px] animate-fade-in">
-                                        <Check className="w-3.5 h-3.5" /> {t('info.desc.saved')}
-                                    </span>
-                                )}
-                            </div>
-                            <textarea
-                                value={description}
-                                onChange={(e) => setDescription(e.target.value)}
-                                placeholder={t('info.desc.placeholder')}
-                                rows={3}
-                                className="w-full p-3 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-[#282a2c] text-gray-900 dark:text-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-xs leading-relaxed"
-                            />
-                            <div className="flex justify-end">
-                                <button
-                                    onClick={handleSaveDescription}
-                                    disabled={isSavingDesc}
-                                    className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-200 font-bold border border-gray-300 dark:border-transparent rounded-lg text-xs transition-colors cursor-pointer"
-                                >
-                                    {isSavingDesc ? t('info.desc.saving') : t('info.desc.save')}
-                                </button>
                             </div>
                         </div>
                     </>

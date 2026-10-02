@@ -820,9 +820,6 @@ const en = {
   'info.field.modified': 'Modified',
   'info.field.created': 'Created',
   'info.location.subfolder': 'A subfolder',
-  'info.desc.placeholder': 'Add a description...',
-  'info.desc.saving': 'Saving...',
-  'info.desc.save': 'Save description',
   'info.refresh': 'Refresh',
   'info.activity.loading': 'Loading the activity history...',
   'info.activity.empty': 'No activity yet',
@@ -1243,8 +1240,6 @@ const en = {
   // ── File details drawer (FileInfoDrawer) ──
   'info.access.heading': 'Access & group',
   'info.access.manage': 'Manage',
-  'info.desc.heading': 'Description',
-  'info.desc.saved': 'Saved',
   'info.activity.loadFailed': "Couldn't load the activity log",
   'info.activity.actor': 'By:',
   'info.versions.heading': 'File version history',

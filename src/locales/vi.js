@@ -839,9 +839,6 @@ const vi = {
   'info.field.modified': 'Sửa đổi (Modified)',
   'info.field.created': 'Ngày tạo (Created)',
   'info.location.subfolder': 'Thư mục con',
-  'info.desc.placeholder': 'Thêm mô tả cho mục này...',
-  'info.desc.saving': 'Đang lưu...',
-  'info.desc.save': 'Lưu mô tả',
   'info.refresh': 'Làm mới',
   'info.activity.loading': 'Đang tải lịch sử hoạt động...',
   'info.activity.empty': 'Chưa có hoạt động nào',
@@ -1262,8 +1259,6 @@ const vi = {
   // ── Ngăn thông tin chi tiết (FileInfoDrawer) ──
   'info.access.heading': 'Quyền truy cập & Nhóm',
   'info.access.manage': 'Quản lý',
-  'info.desc.heading': 'Mô tả',
-  'info.desc.saved': 'Đã lưu',
   'info.activity.loadFailed': 'Không thể tải lịch sử hoạt động',
   'info.activity.actor': 'Người thực hiện:',
   'info.activity.emptyHint': 'Chưa có ghi nhận thay đổi nào cho tệp này.',

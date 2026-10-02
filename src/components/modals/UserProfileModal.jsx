@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -101,7 +100,6 @@ export default function UserProfileModal({ isOpen, onClose }) {
   const { user, refreshUser, deleteAccount } = useAuth();
   const { t, language } = useLanguage();
   const locale = localeTagOf(language);
-  const navigate = useNavigate();
   const fileInputRef = useRef(null);
   // Cờ theo dõi component còn mounted hay không, tránh setState sau khi unmount
   const isMountedRef = useRef(true);
@@ -414,11 +412,9 @@ export default function UserProfileModal({ isOpen, onClose }) {
     setIsDeletingAccount(true);
     let isAccountDeleted = false;
     try {
-      // deleteAccount() xoá token + user trong AuthContext => component này bị unmount ngay sau đó
+      // deleteAccount() xoá phiên rồi TẢI LẠI trang về /login (trang đó tự báo "đã xoá").
       await deleteAccount(isLocal ? deletePassword : null);
       isAccountDeleted = true;
-      toast.success(t('profile.delete.done'));
-      navigate('/login', { replace: true });
     } catch (err) {
       toast.error(err.message || t('profile.delete.failed'));
     } finally {

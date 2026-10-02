@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { authApi, userApi, startSessionKeeper } from '../services/api';
 import { writeDiscoverableByEmail } from '../constants/privacy';
 import { LEGAL_VERSION, needsTermsAcceptance } from '../constants/legal';
@@ -88,9 +88,14 @@ export function AuthProvider({ children }) {
 
       const nextToken = e.newValue;
       if (!nextToken) {
-        // Tab khác đăng xuất → tab này cũng phải rời phiên.
+        // Tab khác đăng xuất → tab này cũng phải rời phiên, và cũng bằng TẢI LẠI như
+        // `endSession`: chỉ xoá `user` thì panel AI / danh sách tệp của người vừa đăng xuất
+        // vẫn nằm trên màn /login của tab này cho ai ngồi vào máy tiếp theo (##69).
+        // `reload()` giữ nguyên URL: route /app tự đưa về /login, còn tab đang ở trang chia
+        // sẻ công khai thì ở lại đó.
         setAccessToken(null);
         setUser(null);
+        window.location.reload();
         return;
       }
 
@@ -138,9 +143,22 @@ export function AuthProvider({ children }) {
    *   nữa sẽ bắt CAPTCHA (docs/sercurity.md mục 5), và cách này không phải sửa
    *   lại chữ ký mỗi lần thêm field.
    */
+  // Người dùng mà TRANG NÀY đã nạp dữ liệu cho (id), kể cả sau khi `user` về null. Chỉ một
+  // lần tải lại trang mới xoá được nó — đúng như dữ liệu trong RAM mà nó canh. Xem
+  // `applySession`.
+  const pageOwnerRef = useRef(null);
+  useEffect(() => {
+    if (user?.id) pageOwnerRef.current = user.id;
+  }, [user?.id]);
+
   /**
    * Lưu phiên vừa nhận được. Dùng chung cho bước 2 của đăng nhập (`verifyLoginOtp`) —
    * tách ra để chỗ nào phát sinh phiên cũng ghi localStorage + state theo đúng một cách.
+   *
+   * Phiên MỚI thuộc người KHÁC người trang này đã phục vụ (vd đang đăng nhập A, mở /login
+   * qua một link trong app rồi đăng nhập B, không qua nút Đăng xuất) ⇒ tải lại trang vào
+   * /app. Panel AI, danh sách tệp, hàng đợi upload… của A đang nằm trong RAM và không gắn
+   * với user nào; vá từng chỗ là sớm muộn sót một chỗ (##69).
    */
   const applySession = useCallback((data) => {
     const token = data.accessToken || data.token;
@@ -149,6 +167,11 @@ export function AuthProvider({ children }) {
       setAccessToken(token);
     }
     const userProfile = data.user || data;
+    const nextOwner = subjectOf(token) ?? userProfile?.id ?? null;
+    if (pageOwnerRef.current && nextOwner && nextOwner !== pageOwnerRef.current) {
+      window.location.replace('/app');
+      return userProfile;
+    }
     setUser(userProfile);
     return userProfile;
   }, []);
@@ -329,8 +352,15 @@ export function AuthProvider({ children }) {
    * không xoá được) và phiên vẫn còn trong DB. Bỏ qua bước này thì máy dùng chung
    * giữ nguyên cookie 7 ngày, và lần refresh sau đó dựng lại đúng phiên vừa "đăng
    * xuất" — cho tài khoản khác đang ngồi trên chính trình duyệt đó.
+   *
+   * KẾT THÚC BẰNG TẢI LẠI TRANG tới `redirectTo`, không phải `navigate`. Panel AI
+   * (`AiPanelProvider`), danh sách tệp + dung lượng (`FileContext`), hàng đợi upload… nằm
+   * TRÊN router và không gắn với user nào, nên chuyển trang kiểu SPA giữ nguyên chúng: đo
+   * ngày 02/10/2026, người đăng nhập kế tiếp trong cùng tab bấm vào bong bóng AI là đọc
+   * nguyên cuộc trò chuyện của người trước, và thấy danh sách tệp của họ cho tới khi
+   * request của mình về (##69). Tải lại là cách duy nhất không phải nhớ từng chỗ.
    */
-  const logout = useCallback(async () => {
+  const endSession = useCallback(async (redirectTo) => {
     try {
       await authApi.logout();
     } catch (err) {
@@ -339,12 +369,19 @@ export function AuthProvider({ children }) {
       safeLocalStorage.removeItem('accessToken');
       setAccessToken(null);
       setUser(null);
-      // Các bộ đệm ở phạm vi module (URL xem trước, nội dung tệp, danh sách
-      // phiên) không chết theo việc unmount cây React — phải đốt bằng tay, nếu
-      // không người đăng nhập tiếp theo trên máy này sẽ đọc trúng dữ liệu cũ.
-      resetSharedCaches();
+      // Các bộ đệm trên ĐĨA (IndexedDB, cache Service Worker) sống qua lần tải lại — phải
+      // xoá xong rồi mới rời trang, nếu không giao dịch đang dở bị huỷ theo trang. Có trần
+      // thời gian: đĩa treo không được giữ người dùng ở lại trong phiên vừa đăng xuất.
+      await Promise.race([
+        resetSharedCaches(),
+        new Promise((resolve) => setTimeout(resolve, 1500)),
+      ]);
+      window.location.replace(redirectTo);
     }
   }, []);
+
+  // Bọc lại để không nhận tham số: `onClick={logout}` truyền sự kiện chuột vào đây.
+  const logout = useCallback(() => endSession('/login'), [endSession]);
 
   /**
    * Người đang đăng nhập bấm đồng ý ở màn chặn (`TermsAcceptanceGate`).
@@ -379,7 +416,9 @@ export function AuthProvider({ children }) {
       setIsLoading(true);
       setError(null);
       const res = await userApi.deleteMyAccount(password);
-      await logout();
+      // Trang tải lại nên toast "đã xoá" của modal không sống được — trang đăng nhập tự báo
+      // theo `?notice=`.
+      await endSession('/login?notice=account_deleted');
       return res;
     } catch (err) {
       setError(err.message || t('account.deleteFailed'));
@@ -387,7 +426,7 @@ export function AuthProvider({ children }) {
     } finally {
       setIsLoading(false);
     }
-  }, [logout, t]);
+  }, [endSession, t]);
 
   // Bọc trong useMemo: object literal trần ở đây là một reference MỚI sau mỗi
   // lần AuthProvider render, nên mọi component gọi useAuth() — Sidebar, Header,

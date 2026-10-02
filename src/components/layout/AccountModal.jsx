@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { User as UserIcon, LogOut, ShieldCheck } from 'lucide-react';
@@ -8,7 +7,6 @@ import UserProfileModal from '../modals/UserProfileModal';
 export default function AccountModal({ isOpen, onClose }) {
     const { user, logout } = useAuth();
     const { t } = useLanguage();
-    const navigate = useNavigate();
     const modalRef = useRef(null);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
 
@@ -39,15 +37,10 @@ export default function AccountModal({ isOpen, onClose }) {
 
     if (!isOpen) return null;
 
-    // `await`: logout() nay còn gọi POST /auth/logout để server xoá cookie
-    // refreshToken (HttpOnly, JS không đụng được) và thu hồi phiên trong DB. Rời
-    // trang trước khi lượt gọi đó xong là cookie có thể sống sót — máy dùng chung
-    // sẽ refresh lại được đúng phiên vừa đăng xuất.
-    const handleLogout = async () => {
-        await logout();
-        onClose && onClose();
-        navigate('/login');
-    };
+    // logout() gọi POST /auth/logout (xoá cookie refreshToken HttpOnly + thu hồi phiên
+    // trong DB) rồi TẢI LẠI trang về /login. Không `navigate` ở đây: chuyển trang kiểu SPA
+    // giữ nguyên panel AI và danh sách tệp của người vừa đăng xuất cho người kế tiếp (##69).
+    const handleLogout = () => logout();
 
     const getProviderBadge = (provider) => {
         if (provider === 'google') return 'Google';

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { Lock, Mail, ArrowRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -73,6 +74,12 @@ export default function LoginPage() {
       setLocalError(t('login.accountLocked'));
     } else if (reason === 'device_banned') {
       setLocalError(t('login.deviceBanned'));
+    }
+    // Xoá tài khoản xong thì trang được TẢI LẠI về đây (xem `AuthContext.endSession`), nên
+    // toast của modal xoá không sống được — báo lại ở đây. `id` cố định: StrictMode chạy
+    // effect hai lần thì vẫn chỉ một toast.
+    if (params.get('notice') === 'account_deleted') {
+      toast.success(t('profile.delete.done'), { id: 'account-deleted' });
     }
   }, [location.search, t]);
 

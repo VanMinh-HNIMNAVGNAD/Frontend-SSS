@@ -278,6 +278,10 @@ export function invalidateAfterFileMutation(fileId) {
 /**
  * Đăng xuất / đổi tài khoản phải xoá sạch: các bộ đệm này nằm ở phạm vi module
  * nên không tự chết theo việc unmount cây React như state thường.
+ *
+ * Trả về promise của phần xoá trên ĐĨA (không bao giờ reject). Phần lớn chỗ gọi bỏ qua
+ * nó; `AuthContext.logout` thì chờ (có trần) vì ngay sau đó trang bị tải lại, và một
+ * giao dịch IndexedDB đang dở sẽ bị huỷ theo trang — để lại dữ liệu của người vừa rời đi.
  */
 export function resetSharedCaches() {
   plansCache.clear();
@@ -292,17 +296,17 @@ export function resetSharedCaches() {
   largestFilesCache.clear();
   // Thumbnail nằm trên IndexedDB nên KHÔNG tự chết khi đóng tab — đây là nội dung
   // tệp của một người dùng cụ thể, để lại trên máy dùng chung là để nó loé lên
-  // trong phiên của người kế tiếp. Không await: đăng xuất không được phép chờ đĩa.
-  void clearThumbnails();
+  // trong phiên của người kế tiếp.
+  //
   // Lớp THỨ HAI giữ đúng những byte ấy: cache của Service Worker (`public/sw.js`).
   // Xoá cùng lúc, cùng một lý do — bỏ sót nó là mở lại đúng lỗ hổng mà dòng trên
   // vừa đóng, chỉ khác chỗ lưu.
-  void clearThumbnailCache();
+  //
   // Cùng lý do, cho lớp bền dùng chung: danh sách tệp, nội dung xem trước, danh
   // sách Bộ nhớ dùng chung. `clear()` của từng bộ ở trên chỉ xoá namespace của
   // NGƯỜI DÙNG HIỆN TẠI, mà lúc đăng xuất token có thể đã bị gỡ khỏi localStorage
   // rồi — nên phải quét sạch, xem `clearPersistentCache`.
-  void clearPersistentCache();
+  return Promise.allSettled([clearThumbnails(), clearThumbnailCache(), clearPersistentCache()]);
 }
 
 /**

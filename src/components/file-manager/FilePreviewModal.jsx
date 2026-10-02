@@ -18,7 +18,8 @@ import {
   AlertTriangle,
   VolumeX,
   EyeOff,
-  Sparkles
+  Sparkles,
+  MessageSquarePlus
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useFiles } from '../../context/FileContext';
@@ -35,7 +36,9 @@ import DocxRenderer from './DocxRenderer';
 import SheetPreview from './SheetPreview';
 import ZoomableImage from './ZoomableImage';
 import ImageStagePill from './ImageStagePill';
-import { usePreviewImage } from '../../hooks/usePreviewImage';
+import CommentsPanel from './CommentsPanel';
+import { useFileComments } from '../../hooks/useFileComments';
+import { prefetchPreviewImage, usePreviewImage } from '../../hooks/usePreviewImage';
 import { useFileThumbnail } from '../../hooks/useFileThumbnail';
 import { thumbnailFingerprint } from '../../utils/thumbnailStore';
 import { useZoomPan, useWheelZoom, ZOOM_MIN, ZOOM_MAX } from '../../hooks/useZoomPan';
@@ -407,12 +410,21 @@ function MediaSupportNotice({ diagnosis, fileName, onDownload, t, inline = false
   );
 }
 
-export default function FilePreviewModal({ item, onClose }) {
+export default function FilePreviewModal({ item, siblings = null, onNavigate, onClose }) {
   const { t } = useLanguage();
   const { getPreviewUrl } = useFiles();
   // Panel AI dùng chung với menu chuột phải (`AiPanelProvider`). `aiItem` ở đây KHÔNG phải
   // để hiển thị gì — nó là thứ cho biết panel đang đè lên trên, dùng ở nhánh phím tắt.
-  const { openAi, aiItem } = useAiPanel();
+  const { openAi, aiItem, closeAi } = useAiPanel();
+  // Cột "Nhận xét" bên phải (kiểu Google Drive). Nạp danh sách ngay khi mở tệp để nút hiện
+  // được số lượng; cột chỉ dựng khi mở. Cột này và panel AI cùng chiếm mép phải nên mở cái
+  // này là đóng cái kia.
+  const comments = useFileComments(item?.id);
+  const [commentsOpen, setCommentsOpen] = useState(false);
+  const toggleComments = useCallback(() => {
+    if (aiItem) closeAi();
+    setCommentsOpen((open) => !open);
+  }, [aiItem, closeAi]);
   const [url, setUrl] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -439,6 +451,30 @@ export default function FilePreviewModal({ item, onClose }) {
     loadPreview: () => storageApi.getPreviewImage(item.id),
     cacheKey: item ? thumbnailFingerprint(item) : null,
   });
+
+  // ── ‹ › sang tệp kế bên trong danh sách đang hiện (kiểu Google Drive) ──
+  const siblingIndex = Array.isArray(siblings) && item ? siblings.findIndex((f) => f.id === item.id) : -1;
+  const prevItem = siblingIndex > 0 ? siblings[siblingIndex - 1] : null;
+  const nextItem =
+    siblingIndex >= 0 && siblingIndex < siblings.length - 1 ? siblings[siblingIndex + 1] : null;
+  const goPrev = useCallback(() => {
+    if (prevItem && onNavigate) onNavigate(prevItem);
+  }, [prevItem, onNavigate]);
+  const goNext = useCallback(() => {
+    if (nextItem && onNavigate) onNavigate(nextItem);
+  }, [nextItem, onNavigate]);
+
+  // Ảnh hiện tại đã nét rồi thì chuẩn bị sẵn bản 2048 của ảnh trước/sau: bấm ‹ › là có ngay.
+  // Đợi tới lúc này để hai lượt tải trước không giành băng thông với chính ảnh đang mở.
+  const currentImageReady = previewImage.stage === 'preview' || previewImage.stage === 'original';
+  useEffect(() => {
+    if (!currentImageReady) return;
+    for (const neighbour of [nextItem, prevItem]) {
+      if (neighbour) {
+        prefetchPreviewImage(neighbour, () => storageApi.getPreviewImage(neighbour.id), thumbnailFingerprint(neighbour));
+      }
+    }
+  }, [currentImageReady, nextItem, prevItem]);
 
   // Đổi giá trị là buộc thẻ <video>/<audio> dựng lại từ đầu. Cần đến vì hai chữ
   // ký sinh trong cùng một giây có thể ra ĐÚNG một URL — lúc đó setUrl() không
@@ -537,14 +573,23 @@ export default function FilePreviewModal({ item, onClose }) {
         (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
       if (typing) return;
 
-      if (e.key === 'Escape') onClose && onClose();
+      if (e.key === 'Escape') {
+        // Cột nhận xét đang mở thì Esc đóng cột trước, lần sau mới đóng cửa sổ.
+        if (commentsOpen) setCommentsOpen(false);
+        else if (onClose) onClose();
+      }
       if (e.key === '=' || e.key === '+') handleZoomIn();
       if (e.key === '-') handleZoomOut();
       if (e.key === 'r' || e.key === 'R') handleRotate();
+      // ←/→ sang tệp kế bên — trừ khi đang ở trong trình phát video/âm thanh (ở đó hai
+      // phím này là tua lùi/tới).
+      const inPlayer = el instanceof HTMLMediaElement;
+      if (!inPlayer && e.key === 'ArrowLeft') goPrev();
+      if (!inPlayer && e.key === 'ArrowRight') goNext();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onClose, aiItem, handleZoomIn, handleZoomOut]);
+  }, [onClose, aiItem, handleZoomIn, handleZoomOut, goPrev, goNext, commentsOpen]);
 
   const handleRotate = () => setRotation((prev) => (prev + 90) % 360);
   const handleReset = () => {
@@ -889,12 +934,35 @@ export default function FilePreviewModal({ item, onClose }) {
         </div>
 
         <div className="flex items-center gap-1.5 @lg:gap-2 shrink-0 pr-1">
+          {/* Cửa sổ hẹp: nút "Nhận xét" nằm trên thanh đầu (rộng thì là viên ở góc trên trái). */}
+          {comments.supported && (
+            <button
+              type="button"
+              onClick={toggleComments}
+              className={`@2xl:hidden relative p-2 rounded-full border transition-colors cursor-pointer ${
+                commentsOpen ? 'bg-white/15 border-white/40' : 'border-white/30 hover:bg-white/10'
+              }`}
+              title={t('preview.comments.title')}
+              aria-label={t('preview.comments.title')}
+            >
+              <MessageSquarePlus className="w-4 h-4" />
+              {comments.count > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-sky-500 text-[10px] leading-4 font-semibold">
+                  {comments.count}
+                </span>
+              )}
+            </button>
+          )}
+
           {/* Hỏi AI ngay tại chỗ: trước đây muốn hỏi về tệp đang xem thì phải đóng cửa sổ
               này, tìm lại tệp trong danh sách rồi bấm chuột phải. Panel AI mở ra ở cạnh
               phải và ĐÈ lên chứ không đóng cửa sổ xem trước, nên vẫn nhìn được tài liệu
               trong lúc đọc câu trả lời — đó mới là điểm của cái nút này. */}
           <button
-            onClick={() => openAi(item, 'chat')}
+            onClick={() => {
+              setCommentsOpen(false);
+              openAi(item, 'chat');
+            }}
             className="flex items-center gap-2 px-2.5 @lg:px-4 py-2 rounded-full border border-white/30 hover:bg-white/10 text-white text-sm font-medium transition-colors cursor-pointer"
             title={t('preview.askAi')}
           >
@@ -914,14 +982,59 @@ export default function FilePreviewModal({ item, onClose }) {
         </div>
       </div>
 
+      {/* Hàng giữa: vùng xem (trong suốt) + cột "Nhận xét" khi mở. */}
+      <div className="flex-1 min-h-0 flex relative">
       {/* Main Preview Container — trong suốt, nhìn xuyên xuống app phía sau */}
-      <div className="flex-1 flex items-center justify-center overflow-hidden p-2 @lg:p-6 relative">
-        {/* Viên công cụ phóng/xoay: cửa sổ rộng thì nổi ở góc trên bên trái như Google;
-            cửa sổ hẹp thì nằm ở thanh dưới (xem cuối tệp). */}
-        {zoomControls && (
-          <div className="hidden @2xl:flex absolute top-1 left-3 z-10 items-center gap-0.5 px-1.5 py-1 rounded-full bg-neutral-800/95 shadow-lg shadow-black/40">
-            {zoomControls}
+      <div className="flex-1 min-w-0 flex items-center justify-center overflow-hidden p-2 @lg:p-6 relative">
+        {/* Góc trên bên trái, như Google: viên phóng/xoay + viên "Nhận xét". Cửa sổ hẹp thì
+            viên phóng/xoay nằm ở thanh dưới, nút nhận xét nằm trên thanh đầu. */}
+        {(zoomControls || comments.supported) && (
+          <div className="hidden @2xl:flex absolute top-1 left-3 z-10 items-center gap-2">
+            {zoomControls && (
+              <div className="flex items-center gap-0.5 px-1.5 py-1 rounded-full bg-neutral-800/95 shadow-lg shadow-black/40">
+                {zoomControls}
+              </div>
+            )}
+            {comments.supported && (
+              <button
+                type="button"
+                onClick={toggleComments}
+                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium shadow-lg shadow-black/40 transition-colors cursor-pointer ${
+                  commentsOpen ? 'bg-[#a8c7fa] text-[#062e6f]' : 'bg-neutral-800/95 text-white/90 hover:bg-neutral-700'
+                }`}
+              >
+                <MessageSquarePlus className="w-[18px] h-[18px]" />
+                {t('preview.comments.button')}
+                {comments.count > 0 && (
+                  <span className={`text-xs ${commentsOpen ? 'text-[#062e6f]/70' : 'text-white/55'}`}>{comments.count}</span>
+                )}
+              </button>
+            )}
           </div>
+        )}
+
+        {/* ‹ › sang tệp trước/sau trong danh sách đang hiện — như Google Drive. */}
+        {prevItem && (
+          <button
+            type="button"
+            onClick={goPrev}
+            className="absolute left-2 @2xl:left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 @2xl:w-11 @2xl:h-11 rounded-full flex items-center justify-center bg-neutral-800/90 hover:bg-neutral-700 border border-white/25 text-white shadow-lg shadow-black/40 transition-colors cursor-pointer"
+            title={t('preview.prevFile', { name: prevItem.name })}
+            aria-label={t('preview.prevFile', { name: prevItem.name })}
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+        )}
+        {nextItem && (
+          <button
+            type="button"
+            onClick={goNext}
+            className="absolute right-2 @2xl:right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 @2xl:w-11 @2xl:h-11 rounded-full flex items-center justify-center bg-neutral-800/90 hover:bg-neutral-700 border border-white/25 text-white shadow-lg shadow-black/40 transition-colors cursor-pointer"
+            title={t('preview.nextFile', { name: nextItem.name })}
+            aria-label={t('preview.nextFile', { name: nextItem.name })}
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
         )}
 
         {loading && (
@@ -959,6 +1072,7 @@ export default function FilePreviewModal({ item, onClose }) {
                 fitToBox={previewImage.stage !== 'original' || Boolean(previewImage.fullSize)}
                 fullSize={previewImage.fullSize}
                 onDemand={previewImage.reportDemand}
+                onSwipe={(direction) => (direction === 'next' ? goNext() : goPrev())}
               />
             )}
             {isImage && !previewImage.src && (
@@ -1267,18 +1381,31 @@ export default function FilePreviewModal({ item, onClose }) {
         )}
       </div>
 
+      {commentsOpen && comments.supported && (
+        <CommentsPanel
+          comments={comments}
+          onClose={() => setCommentsOpen(false)}
+          // Rộng: một cột cạnh vùng xem (vùng xem co lại, không bị che). Hẹp: tấm trượt từ
+          // đáy lên, chiếm phần dưới màn hình như bảng bình luận trên điện thoại.
+          className="absolute inset-x-0 bottom-0 h-[70%] z-30 rounded-t-2xl border-t @2xl:static @2xl:h-auto @2xl:w-[22rem] @2xl:shrink-0 @2xl:rounded-none @2xl:border-t-0 @2xl:border-l"
+        />
+      )}
+      </div>
+
       {/* Bottom Info Bar — cửa sổ rộng: dòng phím tắt. Hẹp (điện thoại): không có bàn phím nên
           dòng đó vô nghĩa và tốn hai dòng chữ; chỗ này nhường cho bộ nút phóng/xoay (chỉ
           khi tệp có), không có thì ẩn luôn thanh để phần xem được thêm chỗ. */}
       <div className={`px-3 py-2 @2xl:px-6 @2xl:py-2.5 bg-gradient-to-t from-black/50 to-transparent items-center justify-center @2xl:justify-end text-xs text-white/45 ${
-        zoomControls ? 'flex' : 'hidden @2xl:flex'
+        // Màn hình cảm ứng (máy tính bảng) không có bàn phím: dòng phím tắt vô nghĩa, và
+        // không có viên phóng/xoay thì ẩn luôn cả thanh.
+        zoomControls ? 'flex @2xl:pointer-coarse:hidden' : 'hidden @2xl:flex @2xl:pointer-coarse:hidden'
       }`}>
         {zoomControls && (
           <div className="flex @2xl:hidden items-center gap-0.5 px-1.5 py-1 rounded-full bg-neutral-800/95 shadow-lg shadow-black/40">
             {zoomControls}
           </div>
         )}
-        <span className="hidden @2xl:inline">{t('preview.shortcuts')}</span>
+        <span className="hidden @2xl:inline pointer-coarse:hidden">{t('preview.shortcuts')}</span>
       </div>
     </div>
   );

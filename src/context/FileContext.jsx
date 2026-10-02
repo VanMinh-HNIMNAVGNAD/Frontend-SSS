@@ -831,15 +831,28 @@ export function FileProvider({ children }) {
 
   // Preview modal state
   const [previewItem, setPreviewItem] = useState(null);
+  // Danh sách tệp ĐANG HIỂN THỊ (đúng thứ tự sắp xếp) lúc mở xem trước — để nút ‹ › và
+  // phím ←/→ trong cửa sổ xem trước đi sang tệp kế bên, như Google Drive. Chỉ tệp, bỏ thư
+  // mục. Không truyền thì không có nút chuyển (vd. mở từ ngăn thông tin).
+  const [previewList, setPreviewList] = useState(null);
 
-  const openPreview = useCallback((item) => {
+  const openPreview = useCallback((item, list) => {
     if (item && !item.isFolder && item.type !== 'folder') {
       setPreviewItem(item);
+      setPreviewList(
+        Array.isArray(list) ? list.filter((f) => f && !f.isFolder && f.type !== 'folder') : null,
+      );
     }
+  }, []);
+
+  /** Chuyển sang tệp khác TRONG cùng danh sách — giữ nguyên `previewList`. */
+  const showPreviewItem = useCallback((item) => {
+    if (item && !item.isFolder && item.type !== 'folder') setPreviewItem(item);
   }, []);
 
   const closePreview = useCallback(() => {
     setPreviewItem(null);
+    setPreviewList(null);
   }, []);
 
   // Info drawer state
@@ -3251,7 +3264,9 @@ export function FileProvider({ children }) {
    */
   const previewValue = useMemo(() => ({
     previewItem,
+    previewList,
     openPreview,
+    showPreviewItem,
     closePreview,
     infoDrawerItem,
     isInfoDrawerOpen,
@@ -3259,7 +3274,7 @@ export function FileProvider({ children }) {
     openInfoDrawer,
     closeInfoDrawer,
   }), [
-    previewItem, openPreview, closePreview,
+    previewItem, previewList, openPreview, showPreviewItem, closePreview,
     infoDrawerItem, isInfoDrawerOpen, infoDrawerTab, openInfoDrawer, closeInfoDrawer,
   ]);
 

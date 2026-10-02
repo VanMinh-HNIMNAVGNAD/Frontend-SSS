@@ -1235,6 +1235,20 @@ export const chunkedApi = {
   status: (data) => api.post('/files/upload-chunk/status', data),
 };
 
+/**
+ * Nhận xét trên tệp (nút "Nhận xét" trong cửa sổ xem trước). Ai xem được tệp thì đọc/viết
+ * được; quyền sửa/xoá do backend tính sẵn ở `canEdit`/`canDelete` của từng nhận xét.
+ */
+export const commentsApi = {
+  list: (fileId) => api.get(`/files/${fileId}/comments`, { meta: { noProgressBar: true } }),
+  create: (fileId, content) =>
+    api.post(`/files/${fileId}/comments`, { content }, { meta: { noProgressBar: true } }),
+  update: (fileId, commentId, content) =>
+    api.patch(`/files/${fileId}/comments/${commentId}`, { content }, { meta: { noProgressBar: true } }),
+  remove: (fileId, commentId) =>
+    api.delete(`/files/${fileId}/comments/${commentId}`, { meta: { noProgressBar: true } }),
+};
+
 // Sharing APIs — Public share link & access management
 export const sharingApi = {
   /** Lấy thông tin tệp qua token chia sẻ (không cần đăng nhập) */

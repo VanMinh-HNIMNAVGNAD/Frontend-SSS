@@ -1343,6 +1343,27 @@ const en = {
 
   'card.sharedBadge': 'Shared',
 
+  // ── File navigation + comments in the preview ──
+  'preview.prevFile': 'Previous file: {name}',
+  'preview.nextFile': 'Next file: {name}',
+  'preview.comments.title': 'Comments',
+  'preview.comments.button': 'Comment',
+  'preview.comments.placeholder': 'Add a comment…',
+  'preview.comments.send': 'Comment',
+  'preview.comments.hint': 'Ctrl + Enter to send',
+  'preview.comments.empty': 'No comments yet. Be the first to leave one.',
+  'preview.comments.loadFailed': "Couldn't load comments.",
+  'preview.comments.retry': 'Try again',
+  'preview.comments.edit': 'Edit',
+  'preview.comments.save': 'Save',
+  'preview.comments.cancel': 'Cancel',
+  'preview.comments.delete': 'Delete',
+  'preview.comments.confirmDelete': 'Click again to delete',
+  'preview.comments.edited': 'edited',
+  'preview.comments.unknownUser': 'User',
+  'preview.comments.sendFailed': "Couldn't post the comment. Try again later.",
+  'preview.comments.deleteFailed': "Couldn't delete the comment. Try again later.",
+
   // ── Staged image preview (hooks/usePreviewImage.js) ──
   'preview.image.loadingSharp': 'Loading sharper version…',
   'preview.image.loadingOriginal': 'Loading original…',

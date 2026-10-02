@@ -170,9 +170,10 @@ export default function FileGridView() {
         if (item.type === 'folder' && !item.isTrash && !item.isSpam) {
             openFolder(item);
         } else {
-            openPreview(item);
+            // Kèm danh sách đang hiện để cửa sổ xem trước có nút ‹ › sang tệp kế bên.
+            openPreview(item, files);
         }
-    }, [openFolder, openPreview]);
+    }, [openFolder, openPreview, files]);
 
     // Thư mục -> backend nén ZIP; tệp -> presigned URL. Trước đây nhánh thư mục
     // chỉ alert('Đang tạo liên kết...') rồi return, không tải gì cả.
@@ -361,7 +362,7 @@ export default function FileGridView() {
                 onUploadFolder={() => folderInputRef.current?.click()}
                 onCreateFolder={handleCreateFolderPrompt}
                 isBuildingTree={isBuildingTree}
-                onPreview={(item) => openPreview(item)}
+                onPreview={(item) => openPreview(item, files)}
                 onDownload={handleDownloadItem}
                 onRename={(item) => setRenameItemTarget(item)}
                 onCut={(targetItem) => {

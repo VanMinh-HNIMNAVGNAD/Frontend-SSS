@@ -358,6 +358,8 @@ function SortHeader({ field, label, className = '', onSort, sortField, sortDirec
     );
 }
 
+const EMPTY_LIST = [];
+
 export default function FileListView() {
     const { t } = useLanguage();
     const {
@@ -518,16 +520,19 @@ export default function FileListView() {
         : { onSort: handleSort, sortField, sortDirection };
 
     // Folders and files are already sorted by FileContext
-    const sortedFolders = folders || [];
-    const sortedFiles = files || [];
+    const sortedFolders = folders || EMPTY_LIST;
+    // Hằng dùng chung chứ không `[]` mới mỗi lần render: `sortedFiles` nằm trong deps của
+    // `handleItemDoubleClick` (để cửa sổ xem trước có nút ‹ › đi trong đúng danh sách này).
+    const sortedFiles = files || EMPTY_LIST;
 
     const handleItemDoubleClick = useCallback((item) => {
         if (item.type === 'folder' && !item.isTrash && !item.isSpam) {
             openFolder(item);
         } else {
-            openPreview(item);
+            // Kèm danh sách đang hiện để cửa sổ xem trước có nút ‹ › sang tệp kế bên.
+            openPreview(item, sortedFiles);
         }
-    }, [openFolder, openPreview]);
+    }, [openFolder, openPreview, sortedFiles]);
 
     const handleQuickCopyLink = useCallback(async (item) => {
         // Toast chờ là bắt buộc ở đây, không chỉ để cho đẹp: "sao chép liên kết" tạo một
@@ -778,7 +783,7 @@ export default function FileListView() {
                 onUploadFolder={() => folderInputRef.current?.click()}
                 onCreateFolder={handleCreateFolderPrompt}
                 isBuildingTree={isBuildingTree}
-                onPreview={(item) => openPreview(item)}
+                onPreview={(item) => openPreview(item, sortedFiles)}
                 onDownload={(item) => downloadSingleItem(item, getDownloadUrl, { t })}
                 onRename={(item) => setRenameItemTarget(item)}
                 onCut={(targetItem) => {

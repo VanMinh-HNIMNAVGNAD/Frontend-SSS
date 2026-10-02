@@ -52,7 +52,7 @@ const SectionTable = ({ itemList, emptyMessage, onItemOpen, onToggleStar, onCont
             {itemList.map((item) => (
                 <div
                     key={item.id}
-                    onDoubleClick={() => onItemOpen && onItemOpen(item)}
+                    onDoubleClick={() => onItemOpen && onItemOpen(item, itemList)}
                     onContextMenu={(e) => onContextMenu && onContextMenu(e, item)}
                     title={t('home.doubleClickToOpen')}
                     className="flex items-center justify-between py-2.5 px-3 hover:bg-gray-100/70 dark:hover:bg-white/5 transition-colors cursor-pointer rounded-lg select-none"
@@ -118,7 +118,7 @@ const SectionGrid = ({ itemList, emptyMessage, onItemOpen, onToggleStar, onConte
             {itemList.map((item) => (
                 <div
                     key={item.id}
-                    onDoubleClick={() => onItemOpen && onItemOpen(item)}
+                    onDoubleClick={() => onItemOpen && onItemOpen(item, itemList)}
                     onContextMenu={(e) => onContextMenu && onContextMenu(e, item)}
                     title={t('home.doubleClickToOpen')}
                     className="bg-white dark:bg-[#282a2c] border border-gray-300/80 dark:border-gray-700/60 rounded-xl p-2 hover:shadow-md hover:border-blue-400 transition-all cursor-pointer flex flex-col group h-44 select-none shadow-2xs"
@@ -262,12 +262,13 @@ export default function HomePage() {
 
     // Mở bằng BẤM ĐÚP (giống MyDrive/FileListView) — trước đây một cú click đã mở
     // luôn nên rất dễ mở nhầm tệp khi chỉ muốn bấm ngôi sao hay quét chọn.
-    const handleItemOpen = useCallback((item) => {
+    const handleItemOpen = useCallback((item, list) => {
         if (item.type === 'folder') {
             setActiveTab('my-drive');
             openFolder(item);
         } else {
-            openPreview(item);
+            // `list` = các mục của CHÍNH mục (Gần đây / Gợi ý…) vừa bấm — nút ‹ › đi trong đó.
+            openPreview(item, list);
         }
     }, [setActiveTab, openFolder, openPreview]);
 

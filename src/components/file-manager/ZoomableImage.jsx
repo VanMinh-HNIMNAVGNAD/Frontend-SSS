@@ -19,6 +19,11 @@ import { useWheelZoom, zoomAt, INITIAL_VIEW, DOUBLE_CLICK_ZOOM } from '../../hoo
  *  • `onDemand`  — `(px) => void`: với mức phóng hiện tại, cạnh dài cần bao nhiêu điểm ảnh
  *    THẬT trên màn hình (đã nhân `devicePixelRatio`). Nơi gọi dùng để biết khi nào phải
  *    nạp ảnh gốc.
+ *  • `onSwipe`   — `('prev' | 'next') => void`: vuốt ngang bằng NGÓN TAY khi ảnh đang vừa
+ *    khung (zoom ≤ 100%) — điện thoại/máy tính bảng sang tệp kế bên như ứng dụng ảnh.
+ *
+ * Cảm ứng (02/10/2026): chụm hai ngón để phóng quanh điểm giữa hai ngón, chạm đúp để phóng
+ * tại chỗ — trước đây trên điện thoại chỉ có hai nút +/− ở thanh dưới.
  */
 export default function ZoomableImage({
   src,
@@ -30,6 +35,7 @@ export default function ZoomableImage({
   fitToBox = false,
   fullSize = null,
   onDemand,
+  onSwipe,
 }) {
   const [box, setBox] = useState(null);
   const imgRef = useRef(null);
@@ -148,34 +154,124 @@ export default function ZoomableImage({
     };
   }, []);
 
+  // Mọi ngón/con trỏ đang ấn: id → { x, y }. Hai ngón = chụm để phóng.
+  const pointersRef = useRef(new Map());
+  const pinchRef = useRef(null); // { dist, zoom }
+  const swipeRef = useRef(null); // { x, y, t } — ngón đầu tiên khi ảnh đang vừa khung
+  const lastTapRef = useRef(null); // { x, y, t } — để nhận chạm đúp
+  const suppressDblClickUntil = useRef(0);
+
+  const distanceOf = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+
+  const zoomAtPoint = (clientX, clientY, makeView) => {
+    const [ax, ay] = anchorOf({ clientX, clientY });
+    onViewChange((v) => clampPan(makeView(v, ax, ay)));
+  };
+
   const handlePointerDown = (e) => {
-    if (view.zoom <= 1 || e.button !== 0) return;
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     try {
       e.currentTarget.setPointerCapture(e.pointerId);
-    } catch {}
-    dragRef.current = { px: e.clientX, py: e.clientY, x: view.x, y: view.y, id: e.pointerId };
-    setDragging(true);
-    setIsInteracting(true);
+    } catch {
+      /* trình duyệt cũ: vẫn nhận được sự kiện trong khung */
+    }
+
+    if (pointersRef.current.size === 2) {
+      // Ngón thứ hai chạm xuống: bỏ kéo/vuốt, bắt đầu chụm.
+      const [a, b] = [...pointersRef.current.values()];
+      pinchRef.current = { dist: distanceOf(a, b) || 1, zoom: view.zoom };
+      dragRef.current = null;
+      swipeRef.current = null;
+      setDragging(false);
+      setIsInteracting(true);
+      return;
+    }
+    if (pointersRef.current.size > 2) return;
+
+    if (view.zoom > 1) {
+      dragRef.current = { px: e.clientX, py: e.clientY, x: view.x, y: view.y, id: e.pointerId };
+      setDragging(true);
+      setIsInteracting(true);
+    } else if (e.pointerType !== 'mouse') {
+      swipeRef.current = { x: e.clientX, y: e.clientY, t: Date.now() };
+    }
   };
 
   const handlePointerMove = (e) => {
+    if (!pointersRef.current.has(e.pointerId)) return;
+    pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    const pinch = pinchRef.current;
+    if (pinch && pointersRef.current.size >= 2) {
+      const [a, b] = [...pointersRef.current.values()];
+      const nextZoom = pinch.zoom * (distanceOf(a, b) / pinch.dist);
+      zoomAtPoint((a.x + b.x) / 2, (a.y + b.y) / 2, (v, ax, ay) => zoomAt(v, nextZoom, ax, ay));
+      return;
+    }
+
     const d = dragRef.current;
     if (!d) return;
     onViewChange((v) => clampPan({ ...v, x: d.x + e.clientX - d.px, y: d.y + e.clientY - d.py }));
   };
 
-  const endDrag = (e) => {
+  const endPointer = (e) => {
+    const start = pointersRef.current.get(e.pointerId);
+    pointersRef.current.delete(e.pointerId);
+    try {
+      if (e?.pointerId != null) e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {
+      /* đã nhả */
+    }
+
+    if (pinchRef.current) {
+      // Nhấc một ngón khỏi cú chụm: chưa phải vuốt, chưa phải chạm.
+      if (pointersRef.current.size < 2) {
+        pinchRef.current = null;
+        setIsInteracting(false);
+      }
+      return;
+    }
+
     if (dragRef.current) {
-      try {
-        if (e?.pointerId != null) e.currentTarget.releasePointerCapture(e.pointerId);
-      } catch {}
       dragRef.current = null;
       setDragging(false);
       setIsInteracting(false);
     }
+
+    const swipe = swipeRef.current;
+    swipeRef.current = null;
+    if (!swipe || e.type === 'pointercancel' || !start) return;
+    const dx = e.clientX - swipe.x;
+    const dy = e.clientY - swipe.y;
+    const elapsed = Date.now() - swipe.t;
+
+    // Vuốt ngang rõ ràng → sang tệp kế bên.
+    if (onSwipe && Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5 && elapsed < 800) {
+      onSwipe(dx < 0 ? 'next' : 'prev');
+      lastTapRef.current = null;
+      return;
+    }
+
+    // Chạm (gần như không di chuyển) — hai lần liền nhau là chạm đúp.
+    if (Math.abs(dx) < 10 && Math.abs(dy) < 10 && elapsed < 300) {
+      const now = Date.now();
+      const last = lastTapRef.current;
+      if (last && now - last.t < 320 && Math.hypot(e.clientX - last.x, e.clientY - last.y) < 30) {
+        lastTapRef.current = null;
+        suppressDblClickUntil.current = now + 500; // trình duyệt có thể bắn thêm `dblclick`
+        setIsInteracting(false);
+        zoomAtPoint(e.clientX, e.clientY, (v, ax, ay) =>
+          v.zoom > 1 ? INITIAL_VIEW : zoomAt(v, DOUBLE_CLICK_ZOOM, ax, ay),
+        );
+      } else {
+        lastTapRef.current = { x: e.clientX, y: e.clientY, t: now };
+      }
+    }
   };
 
   const handleDoubleClick = (e) => {
+    if (Date.now() < suppressDblClickUntil.current) return;
     const [ax, ay] = anchorOf(e);
     setIsInteracting(false); // Bật animation chuyển động mượt khi bấm đúp
     onViewChange((v) => (v.zoom > 1 ? INITIAL_VIEW : clampPan(zoomAt(v, DOUBLE_CLICK_ZOOM, ax, ay))));
@@ -188,8 +284,8 @@ export default function ZoomableImage({
       ref={setBox}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
-      onPointerUp={endDrag}
-      onPointerCancel={endDrag}
+      onPointerUp={endPointer}
+      onPointerCancel={endPointer}
       onDoubleClick={handleDoubleClick}
       className={`w-full h-full flex items-center justify-center overflow-hidden touch-none select-none ${cursor} ${className}`}
     >

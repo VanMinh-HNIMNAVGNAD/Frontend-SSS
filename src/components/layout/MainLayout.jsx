@@ -54,6 +54,8 @@ export default function MainLayout() {
         infoDrawerTab,
         closeInfoDrawer,
         previewItem,
+        previewList,
+        showPreviewItem,
         closePreview,
     } = useFilePreview();
 
@@ -289,6 +291,8 @@ export default function MainLayout() {
                     <Suspense fallback={null}>
                         <FilePreviewModal
                             item={previewItem}
+                            siblings={previewList}
+                            onNavigate={showPreviewItem}
                             onClose={closePreview}
                         />
                     </Suspense>

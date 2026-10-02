@@ -1362,6 +1362,27 @@ const vi = {
 
   'card.sharedBadge': 'Được chia sẻ',
 
+  // ── Chuyển tệp + Nhận xét trong cửa sổ xem trước ──
+  'preview.prevFile': 'Tệp trước: {name}',
+  'preview.nextFile': 'Tệp sau: {name}',
+  'preview.comments.title': 'Nhận xét',
+  'preview.comments.button': 'Nhận xét',
+  'preview.comments.placeholder': 'Thêm nhận xét…',
+  'preview.comments.send': 'Bình luận',
+  'preview.comments.hint': 'Ctrl + Enter để gửi',
+  'preview.comments.empty': 'Chưa có nhận xét nào. Hãy là người đầu tiên góp ý.',
+  'preview.comments.loadFailed': 'Không tải được nhận xét.',
+  'preview.comments.retry': 'Thử lại',
+  'preview.comments.edit': 'Sửa',
+  'preview.comments.save': 'Lưu',
+  'preview.comments.cancel': 'Huỷ',
+  'preview.comments.delete': 'Xoá',
+  'preview.comments.confirmDelete': 'Bấm lần nữa để xoá',
+  'preview.comments.edited': 'đã sửa',
+  'preview.comments.unknownUser': 'Người dùng',
+  'preview.comments.sendFailed': 'Không gửi được nhận xét. Thử lại sau.',
+  'preview.comments.deleteFailed': 'Không xoá được nhận xét. Thử lại sau.',
+
   // ── Ảnh xem trước theo tầng (hooks/usePreviewImage.js) ──
   'preview.image.loadingSharp': 'Đang tải bản nét…',
   'preview.image.loadingOriginal': 'Đang tải ảnh gốc…',

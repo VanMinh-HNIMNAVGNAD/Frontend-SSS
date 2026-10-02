@@ -83,6 +83,28 @@ async function fetchBlobWithProgress(url, { signal, totalHint, onProgress }) {
   return new Blob(chunks, { type });
 }
 
+const prefetching = new Set();
+
+/**
+ * Chuẩn bị SẴN bản 2048 của một ảnh (tệp kế bên trong danh sách) — bấm ‹ › là hiện ngay,
+ * như Google Drive tải trước ảnh trước/sau. Chỉ đi tầng 2: không bao giờ kéo ảnh gốc.
+ */
+export function prefetchPreviewImage(file, loadPreview, cacheKey) {
+  if (!wantsPreviewImage(file) || typeof loadPreview !== 'function' || cacheKey == null) return;
+  const key = `${file.id}|${cacheKey}`;
+  if (readCached(key) || prefetching.has(key)) return;
+  prefetching.add(key);
+  Promise.resolve()
+    .then(() => loadPreview())
+    .then(async (res) => {
+      if (!res?.url) return;
+      await decodeImage(res.url);
+      previewCache.set(key, { value: { status: 'ready', ...res }, at: Date.now() });
+    })
+    .catch(() => {})
+    .finally(() => prefetching.delete(key));
+}
+
 /**
  * @param {object}   args
  * @param {object}   args.file            tệp đang xem (`id`, `name`, `sizeBytes`)

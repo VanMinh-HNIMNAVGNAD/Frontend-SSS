@@ -691,7 +691,12 @@ export const userApi = {
     sessionsCache.invalidate('me');
     return res;
   },
-  deleteMyAccount: (password) => api.delete('/users/me', { data: { password } }),
+  /**
+   * `credentials` = `{ password }` (tài khoản có mật khẩu) hoặc `{ code }` (mã email cho tài
+   * khoản chỉ đăng nhập Google/GitHub — xin bằng `requestDeleteCode`).
+   */
+  deleteMyAccount: (credentials = {}) => api.delete('/users/me', { data: credentials }),
+  requestDeleteCode: () => api.post('/users/me/delete-code'),
 };
 
 /**
@@ -1302,6 +1307,10 @@ export const sharingApi = {
   /** Thu hồi quyền truy cập của một người dùng (yêu cầu đăng nhập) */
   removeShareAccess: (id, userId) =>
     afterShareMutation(id, api.delete(`/files/${id}/share-access/${userId}`)),
+  /** Số link công khai còn hiệu lực của một mục (chỉ chủ mục) → `{ activeCount, links }` */
+  getShareLinks: (id) => api.get(`/files/${id}/share-links`),
+  /** Tắt NGAY mọi link công khai của một mục → `{ revokedCount }` */
+  revokeShareLinks: (id) => afterShareMutation(id, api.delete(`/files/${id}/share-links`)),
 };
 
 // Shared Drives APIs

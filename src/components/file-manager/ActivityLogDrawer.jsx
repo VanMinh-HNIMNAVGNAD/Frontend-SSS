@@ -47,7 +47,7 @@ const ACTION_GROUPS = {
     share: {
         id: 'share',
         labelKey: 'activity.group.share',
-        filter: (act) => ['SHARE_LINK_CREATED', 'SHARE_ACCESS_ADDED', 'SHARE_ACCESS_REMOVED'].includes(act),
+        filter: (act) => ['SHARE_LINK_CREATED', 'SHARE_LINK_REVOKED', 'SHARE_ACCESS_ADDED', 'SHARE_ACCESS_REMOVED'].includes(act),
     },
     rename_move: {
         id: 'rename_move',
@@ -259,6 +259,14 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                     iconColor: 'text-blue-600 dark:text-blue-400',
                     bgBadge: 'bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300',
                     timelineDot: 'bg-blue-500 ring-blue-100 dark:ring-blue-900',
+                };
+            case 'SHARE_LINK_REVOKED':
+                return {
+                    label: t('activity.action.shareLinkRevoked'),
+                    icon: UserMinus,
+                    iconColor: 'text-purple-600 dark:text-purple-400',
+                    bgBadge: 'bg-purple-50 dark:bg-purple-950/50 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300',
+                    timelineDot: 'bg-purple-500 ring-purple-100 dark:ring-purple-900',
                 };
             case 'SHARE_ACCESS_ADDED':
                 return {
@@ -482,6 +490,12 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                     </div>
                 );
             }
+            case 'SHARE_LINK_REVOKED':
+                return (
+                    <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                        {t('activity.desc.shareLinkRevoked', { count: Number(d.revokedCount) || 0 })}
+                    </div>
+                );
             case 'SHARE_LINK_CREATED': {
                 const accessMap = {
                     ANYONE_WITH_LINK: t('activity.access.anyoneWithLink'),

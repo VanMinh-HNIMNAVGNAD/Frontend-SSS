@@ -663,6 +663,11 @@ const vi = {
   'share.previewOnly': 'Chỉ cho phép xem trước',
   'share.copied': 'Đã sao chép!',
   'share.copyLink': 'Sao chép đường liên kết',
+  'share.links.active': 'Đang có {count} liên kết công khai còn hiệu lực',
+  'share.links.revoke': 'Tắt mọi liên kết công khai',
+  'share.links.revokeConfirm': 'Bấm lần nữa để tắt',
+  'share.links.revoked': 'Đã tắt {count} liên kết — người giữ link cũ không mở được nữa',
+  'share.links.revokeFailed': 'Không tắt được liên kết: {reason}',
   // ── Modal chia sẻ Bộ nhớ dùng chung + Xem trước tệp + Trang chủ ──
   'driveShare.title': 'Chia sẻ "{name}"',
   'driveShare.role.admin': 'Quản trị viên',
@@ -782,6 +787,7 @@ const vi = {
   'activity.action.emptyTrash': 'Dọn sạch thùng rác',
   'activity.action.copy': 'Tạo bản sao',
   'activity.action.shareLink': 'Tạo liên kết chia sẻ',
+  'activity.action.shareLinkRevoked': 'Tắt liên kết công khai',
   'activity.action.shareAdd': 'Thêm quyền chia sẻ',
   'activity.action.shareRemove': 'Thu hồi chia sẻ',
   'activity.action.other': 'Hoạt động',
@@ -799,6 +805,7 @@ const vi = {
   'activity.desc.shareAdded': 'Chia sẻ quyền {name} tới {email}',
   'activity.desc.shareRemoved': 'Thu hồi quyền truy cập trên tệp {name}',
   'activity.desc.shareLink': 'Tạo liên kết chia sẻ: quyền {role} ({access})',
+  'activity.desc.shareLinkRevoked': 'Đã tắt {count} liên kết công khai',
   'activity.role.editorLong': 'Chỉnh sửa (Editor)',
   'activity.role.viewerLong': 'Xem (Viewer)',
   'activity.access.anyoneWithLink': 'Bất kỳ ai có liên kết',
@@ -1173,6 +1180,13 @@ const vi = {
   'profile.delete.oauthConfirm':
     'Tôi xác nhận rằng tôi đã sao lưu toàn bộ dữ liệu quan trọng và đồng ý xoá vĩnh viễn tài khoản {provider}.',
   'profile.delete.typeKeyword': 'Gõ chữ {keyword} để xác nhận',
+  'profile.delete.stepCode': 'Nhập mã xác nhận gửi tới {email}',
+  'profile.delete.codePlaceholder': 'Mã 6 chữ số',
+  'profile.delete.sendCode': 'Gửi mã',
+  'profile.delete.resendCode': 'Gửi lại mã',
+  'profile.delete.codeSent': 'Đã gửi mã xác nhận tới {email}',
+  'profile.delete.codeSendFailed': 'Không gửi được mã xác nhận',
+  'profile.delete.needCode': 'Vui lòng nhập mã 6 chữ số đã gửi tới email của bạn',
   'profile.delete.confirmButton': 'Xoá vĩnh viễn tài khoản',
 
 

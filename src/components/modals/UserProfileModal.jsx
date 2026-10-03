@@ -153,6 +153,13 @@ export default function UserProfileModal({ isOpen, onClose }) {
   const [deleteConfirmedCheckbox, setDeleteConfirmedCheckbox] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  // Tài khoản KHÔNG có mật khẩu (chỉ Google/GitHub) xác nhận xoá bằng mã gửi về email.
+  const [deleteCode, setDeleteCode] = useState('');
+  const [isSendingDeleteCode, setIsSendingDeleteCode] = useState(false);
+  const [deleteCodeSent, setDeleteCodeSent] = useState(false);
+  // Theo `hasPassword` của /users/me, không theo `provider`: tài khoản gộp từ trước có thể
+  // mang provider google mà vẫn có mật khẩu. `null` = server cũ chưa trả cờ này.
+  const [serverHasPassword, setServerHasPassword] = useState(null);
 
   // Theo dõi lifecycle để chặn mọi cập nhật state sau khi component unmount
   useEffect(() => {
@@ -178,6 +185,8 @@ export default function UserProfileModal({ isOpen, onClose }) {
       setDeletePassword('');
       setDeleteConfirmedCheckbox(false);
       setDeleteConfirmText('');
+      setDeleteCode('');
+      setDeleteCodeSent(false);
 
       // Đồng bộ thông tin mới nhất từ API
       userApi
@@ -198,6 +207,9 @@ export default function UserProfileModal({ isOpen, onClose }) {
 
           if (profileData?.fullName) {
             setFullName(profileData.fullName);
+          }
+          if (typeof profileData?.hasPassword === 'boolean') {
+            setServerHasPassword(profileData.hasPassword);
           }
           // typeof === 'boolean' để không đè giá trị đúng bằng undefined khi
           // response thiếu field (cùng lý do như trong AuthContext).
@@ -252,6 +264,10 @@ export default function UserProfileModal({ isOpen, onClose }) {
   }, [isOpen, activeTab, fetchSessions]);
 
   if (!isOpen || !user) return null;
+
+  // Xác nhận xoá tài khoản bằng mật khẩu hay bằng mã email — xem `serverHasPassword`.
+  const needsPassword =
+    serverHasPassword ?? (typeof user.hasPassword === 'boolean' ? user.hasPassword : user.provider === 'local');
 
   // 1. Xử lý Upload Avatar
   const handleAvatarChange = async (e) => {
@@ -392,15 +408,32 @@ export default function UserProfileModal({ isOpen, onClose }) {
   };
 
   // 6. Xử lý Xoá tài khoản vĩnh viễn
+  const handleSendDeleteCode = async () => {
+    setIsSendingDeleteCode(true);
+    try {
+      await userApi.requestDeleteCode();
+      setDeleteCodeSent(true);
+      toast.success(t('profile.delete.codeSent', { email: user.email }));
+    } catch (err) {
+      toast.error(err.message || t('profile.delete.codeSendFailed'));
+    } finally {
+      if (isMountedRef.current) setIsSendingDeleteCode(false);
+    }
+  };
+
   const handleDeleteAccount = async () => {
-    const isLocal = user.provider === 'local';
-    if (isLocal && !deletePassword) {
+    if (needsPassword && !deletePassword) {
       toast.error(t('profile.delete.needPassword'));
       return;
     }
 
-    if (!isLocal && !deleteConfirmedCheckbox) {
+    if (!needsPassword && !deleteConfirmedCheckbox) {
       toast.error(t('profile.delete.needCheckbox'));
+      return;
+    }
+
+    if (!needsPassword && !/^\d{6}$/.test(deleteCode.trim())) {
+      toast.error(t('profile.delete.needCode'));
       return;
     }
 
@@ -413,7 +446,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
     let isAccountDeleted = false;
     try {
       // deleteAccount() xoá phiên rồi TẢI LẠI trang về /login (trang đó tự báo "đã xoá").
-      await deleteAccount(isLocal ? deletePassword : null);
+      await deleteAccount(needsPassword ? { password: deletePassword } : { code: deleteCode.trim() });
       isAccountDeleted = true;
     } catch (err) {
       toast.error(err.message || t('profile.delete.failed'));
@@ -453,7 +486,9 @@ export default function UserProfileModal({ isOpen, onClose }) {
   // Kiểm tra điều kiện enable nút Xoá tài khoản
   const isDeleteButtonEnabled =
     deleteConfirmText.trim() === 'DELETE' &&
-    (user.provider === 'local' ? deletePassword.length >= 1 : deleteConfirmedCheckbox);
+    (needsPassword
+      ? deletePassword.length >= 1
+      : deleteConfirmedCheckbox && /^\d{6}$/.test(deleteCode.trim()));
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
@@ -1016,7 +1051,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
 
             {/* Inputs Confirmation */}
             <div className="space-y-4">
-              {user.provider === 'local' ? (
+              {needsPassword ? (
                 <div>
                   <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
                     {t('profile.delete.step1Password')}
@@ -1043,9 +1078,38 @@ export default function UserProfileModal({ isOpen, onClose }) {
                 </label>
               )}
 
+              {!needsPassword && (
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
+                    {t('profile.delete.stepCode', { email: user.email })}
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      maxLength={6}
+                      value={deleteCode}
+                      onChange={(e) => setDeleteCode(e.target.value.replace(/\D/g, ''))}
+                      placeholder={t('profile.delete.codePlaceholder')}
+                      className="flex-1 min-w-0 px-3.5 py-2.5 bg-white dark:bg-[#282a2c] border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-mono tracking-[0.3em] focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleSendDeleteCode}
+                      disabled={isSendingDeleteCode || isDeletingAccount}
+                      className="shrink-0 px-3 py-2.5 rounded-xl text-xs font-bold text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
+                    >
+                      {isSendingDeleteCode && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                      {deleteCodeSent ? t('profile.delete.resendCode') : t('profile.delete.sendCode')}
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div>
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-1.5">
-                  {user.provider === 'local' ? '2. ' : ''}
+                  {needsPassword ? '2. ' : ''}
                   {tRich(t('profile.delete.typeKeyword'), {
                     keyword: (
                       <span className="text-rose-600 dark:text-rose-400 font-mono font-black">DELETE</span>

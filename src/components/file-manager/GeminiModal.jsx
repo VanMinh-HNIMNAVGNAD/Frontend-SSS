@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { marked } from 'marked';
+import { renderAiMarkdownSafe, safeHref } from '../../utils/safeMarkdown';
 import toast from 'react-hot-toast';
 import {
     Sparkles,
@@ -209,17 +209,11 @@ function SearchSuggestions({ html }) {
 }
 
 /**
- * Câu trả lời của model là markdown do máy sinh ra — escape HTML TRƯỚC khi parse.
- * marked không tự dọn HTML thô, mà chuỗi này đi thẳng vào dangerouslySetInnerHTML;
- * escape trước là chặn được thẻ script/onerror mà vẫn giữ nguyên markdown (kể cả
- * các khối code chứa dấu ngoặc nhọn, vì chúng được escape rồi mới bọc trong <code>).
+ * Câu trả lời của model là markdown do máy sinh ra — lọc bằng `renderAiMarkdownSafe`
+ * (escape HTML thô, chỉ cho link http(s)/mailto, bỏ ảnh ngoài). Xem chú thích ở đó.
  */
 function renderMarkdown(text) {
-    const escaped = String(text)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;');
-    return marked.parse(escaped, { breaks: true, gfm: true });
+    return renderAiMarkdownSafe(text);
 }
 
 /**
@@ -1210,7 +1204,7 @@ export default function GeminiModal({
                             <li key={src.uri} className="flex gap-1.5 text-[11px] min-w-0">
                                 <span className="text-gray-400 dark:text-gray-500 shrink-0">{i + 1}.</span>
                                 <a
-                                    href={src.uri}
+                                    href={safeHref(src.uri) ?? undefined}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     title={src.uri}

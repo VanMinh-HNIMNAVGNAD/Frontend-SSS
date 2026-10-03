@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
+import { neutralizeUnsafeLinks } from '../../utils/safeMarkdown';
 
 /**
  * Xem trước .docx GIỮ NGUYÊN ĐỊNH DẠNG.
@@ -79,6 +80,10 @@ export default function DocxRenderer({ url, onDownload }) {
           useBase64URL: true,
           trimXmlDeclaration: true,
         });
+        // docx-preview chép nguyên đích hyperlink trong tệp — kể cả `javascript:…`. Tệp
+        // .docx do người khác chia sẻ (hay qua link công khai) mà để vậy thì bấm vào một
+        // dòng chữ là chạy script trong origin của app.
+        neutralizeUnsafeLinks(host);
 
         if (!cancelled) setStatus('ready');
       } catch (err) {

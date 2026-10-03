@@ -644,6 +644,11 @@ const en = {
   'share.previewOnly': 'Preview only',
   'share.copied': 'Copied',
   'share.copyLink': 'Copy link',
+  'share.links.active': '{count} public link(s) currently active',
+  'share.links.revoke': 'Turn off all public links',
+  'share.links.revokeConfirm': 'Click again to turn off',
+  'share.links.revoked': 'Turned off {count} link(s) — anyone holding an old link can no longer open it',
+  'share.links.revokeFailed': 'Could not turn off the links: {reason}',
   // ── Shared-drive share modal + file preview + home page ──
   'driveShare.title': 'Share "{name}"',
   'driveShare.role.admin': 'Administrator',
@@ -763,6 +768,7 @@ const en = {
   'activity.action.emptyTrash': 'Trash emptied',
   'activity.action.copy': 'Copied',
   'activity.action.shareLink': 'Share link created',
+  'activity.action.shareLinkRevoked': 'Public links turned off',
   'activity.action.shareAdd': 'Access granted',
   'activity.action.shareRemove': 'Access revoked',
   'activity.action.other': 'Activity',
@@ -780,6 +786,7 @@ const en = {
   'activity.desc.shareAdded': 'Granted access to {name} for {email}',
   'activity.desc.shareRemoved': 'Revoked access to {name}',
   'activity.desc.shareLink': 'Share link created: {role} ({access})',
+  'activity.desc.shareLinkRevoked': 'Turned off {count} public link(s)',
   'activity.role.editorLong': 'Editor',
   'activity.role.viewerLong': 'Viewer',
   'activity.access.anyoneWithLink': 'Anyone with the link',
@@ -1155,6 +1162,13 @@ const en = {
   'profile.delete.oauthConfirm':
     'I confirm that I have backed up everything important and agree to permanently delete this {provider} account.',
   'profile.delete.typeKeyword': 'Type {keyword} to confirm',
+  'profile.delete.stepCode': 'Enter the confirmation code sent to {email}',
+  'profile.delete.codePlaceholder': '6-digit code',
+  'profile.delete.sendCode': 'Send code',
+  'profile.delete.resendCode': 'Resend code',
+  'profile.delete.codeSent': 'Confirmation code sent to {email}',
+  'profile.delete.codeSendFailed': 'Could not send the confirmation code',
+  'profile.delete.needCode': 'Enter the 6-digit code sent to your email',
   'profile.delete.confirmButton': 'Permanently delete account',
 
 

@@ -411,11 +411,11 @@ export function AuthProvider({ children }) {
     }
   }, [t]);
 
-  const deleteAccount = useCallback(async (password) => {
+  const deleteAccount = useCallback(async (credentials) => {
     try {
       setIsLoading(true);
       setError(null);
-      const res = await userApi.deleteMyAccount(password);
+      const res = await userApi.deleteMyAccount(credentials);
       // Trang tải lại nên toast "đã xoá" của modal không sống được — trang đăng nhập tự báo
       // theo `?notice=`.
       await endSession('/login?notice=account_deleted');

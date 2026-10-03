@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { UserPlus, X, Copy, Check, Lock, Shield, Eye, Edit3, Loader2, AlertCircle, HelpCircle } from 'lucide-react';
+import { UserPlus, X, Copy, Check, Lock, Shield, Eye, Edit3, Loader2, AlertCircle, HelpCircle, Link2Off } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { useLanguage } from '../../context/LanguageContext';
 import { sharingApi } from '../../services/api';
 import { readDefaultShareRole } from '../../constants/privacy';
@@ -69,6 +70,11 @@ export default function ShareModal({ isOpen, item, onClose }) {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [removingId, setRemovingId] = useState(null);
     const [errorMsg, setErrorMsg] = useState('');
+    // Số link công khai đang sống của mục này. `null` = chưa biết / không phải chủ mục
+    // (backend trả 404) — khi đó không hiện nút tắt.
+    const [activeLinkCount, setActiveLinkCount] = useState(null);
+    const [isRevokingLinks, setIsRevokingLinks] = useState(false);
+    const [confirmRevokeLinks, setConfirmRevokeLinks] = useState(false);
 
     const loadMembers = useCallback(async () => {
         if (!item?.id) return;
@@ -83,6 +89,16 @@ export default function ShareModal({ isOpen, item, onClose }) {
         }
     }, [item?.id]);
 
+    const loadShareLinks = useCallback(async () => {
+        if (!item?.id) return;
+        try {
+            const data = await sharingApi.getShareLinks(item.id);
+            setActiveLinkCount(Number(data?.activeCount) || 0);
+        } catch {
+            setActiveLinkCount(null);
+        }
+    }, [item?.id]);
+
     useEffect(() => {
         const handleKeyDown = (e) => {
             if (e.key === 'Escape' && isOpen) {
@@ -92,11 +108,12 @@ export default function ShareModal({ isOpen, item, onClose }) {
         if (isOpen) {
             window.addEventListener('keydown', handleKeyDown);
             loadMembers();
+            loadShareLinks();
         }
         return () => {
             window.removeEventListener('keydown', handleKeyDown);
         };
-    }, [isOpen, loadMembers, onClose]);
+    }, [isOpen, loadMembers, loadShareLinks, onClose]);
 
     // MainLayout.jsx luôn render <ShareModal isOpen={!!shareTargetItem} …>, modal
     // chỉ `return null` chứ KHÔNG unmount — nên useState ở trên chỉ chạy đúng MỘT
@@ -120,6 +137,9 @@ export default function ShareModal({ isOpen, item, onClose }) {
             setRole(readDefaultShareRole());
             setEmail('');
             setErrorMsg('');
+            setGeneratedUrl('');
+            setActiveLinkCount(null);
+            setConfirmRevokeLinks(false);
         }
     }
 
@@ -208,10 +228,34 @@ export default function ShareModal({ isOpen, item, onClose }) {
             const fullShareUrl = `${window.location.origin}/share/${res.shareToken}`;
             await navigator.clipboard.writeText(fullShareUrl);
             setGeneratedUrl(fullShareUrl);
+            setActiveLinkCount((count) => (count ?? 0) + 1);
+            setConfirmRevokeLinks(false);
             setCopied(true);
             setTimeout(() => setCopied(false), 2500);
         } catch (err) {
             setErrorMsg(t('share.linkFailed', { reason: err.message || err }));
+        }
+    };
+
+    // Bấm hai lần: lần đầu đổi nút sang câu xác nhận, lần hai mới tắt — tắt nhầm là mọi
+    // người đang giữ link mất quyền ngay, không hoàn tác được (chỉ tạo link mới).
+    const handleRevokeLinks = async () => {
+        if (!confirmRevokeLinks) {
+            setConfirmRevokeLinks(true);
+            return;
+        }
+        setErrorMsg('');
+        try {
+            setIsRevokingLinks(true);
+            const res = await sharingApi.revokeShareLinks(item.id);
+            setActiveLinkCount(0);
+            setGeneratedUrl('');
+            toast.success(t('share.links.revoked', { count: Number(res?.revokedCount) || 0 }));
+        } catch (err) {
+            setErrorMsg(t('share.links.revokeFailed', { reason: err.message || err }));
+        } finally {
+            setIsRevokingLinks(false);
+            setConfirmRevokeLinks(false);
         }
     };
 
@@ -416,6 +460,23 @@ export default function ShareModal({ isOpen, item, onClose }) {
                                 <span>{t('share.previewOnly')}</span>
                             </label>
                         </div>
+
+                        {activeLinkCount > 0 && (
+                            <div className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-rose-50/70 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30">
+                                <span className="text-xs text-rose-800 dark:text-rose-200">
+                                    {t('share.links.active', { count: activeLinkCount })}
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={handleRevokeLinks}
+                                    disabled={isRevokingLinks}
+                                    className="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-500/20 transition-colors disabled:opacity-50 cursor-pointer"
+                                >
+                                    {isRevokingLinks ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Link2Off className="w-3.5 h-3.5" />}
+                                    <span>{confirmRevokeLinks ? t('share.links.revokeConfirm') : t('share.links.revoke')}</span>
+                                </button>
+                            </div>
+                        )}
                     </div>
 
                     {/* Footer */}

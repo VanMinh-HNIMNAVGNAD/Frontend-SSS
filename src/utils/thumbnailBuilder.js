@@ -1,4 +1,5 @@
 import { recordThumbnailBytes } from './requestMetrics';
+import { openPdf } from './pdfRange';
 
 /**
  * Dựng THÀNH PHẨM thumbnail — phần thuần tính toán, không biết gì về React.
@@ -299,11 +300,12 @@ const PDF_RENDER_EDGE = VARIANT_SIZES.t384;
  * `fetch().arrayBuffer()` rồi đưa `data` vào.
  *
  * Bản cũ kéo NGUYÊN tệp về chỉ để vẽ một ô 384px — một bản scan hợp đồng 80MB tốn
- * đúng 80MB cho việc đó. Với `url` + `disableAutoFetch`, pdf.js xin theo HTTP Range
- * và thường chỉ lấy vài trăm KB (bảng tham chiếu ở cuối tệp + trang 1).
+ * đúng 80MB cho việc đó. `openPdf` xin theo HTTP Range và thường chỉ lấy vài trăm KB
+ * (bảng tham chiếu ở cuối tệp + trang 1).
  *
- * Nếu kho không hỗ trợ Range, hoặc CORS chưa expose `Accept-Ranges`/`Content-Range`,
- * pdf.js TỰ lùi về tải cả tệp — tức là mất phần tiết kiệm chứ không hỏng chức năng.
+ * Không đưa thẳng `url` cho pdf.js nữa: nó chỉ dùng Range khi đọc được `Accept-Ranges`,
+ * mà CORS của bucket không expose header đó — tức trước đây vẫn âm thầm tải cả tệp. Kho
+ * không hỗ trợ Range thì `openPdf` lùi về tải cả tệp — mất phần tiết kiệm, không hỏng.
  */
 export function buildVariantsFromPdfUrl(url) {
   return heavyGate(() => renderPdfFirstPage(url));
@@ -311,12 +313,14 @@ export function buildVariantsFromPdfUrl(url) {
 
 async function renderPdfFirstPage(url) {
   const pdfjsLib = await loadPdfjs();
-  const doc = await pdfjsLib.getDocument({
-    url,
-    disableAutoFetch: true,
-    disableStream: false,
-    rangeChunkSize: 65_536,
-  }).promise;
+  const opened = openPdf(pdfjsLib, url);
+  let doc;
+  try {
+    doc = await opened.promise;
+  } catch (err) {
+    opened.destroy();
+    throw err;
+  }
 
   try {
     const page = await doc.getPage(1);

@@ -32,6 +32,7 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { renderMarkdownSafe } from '../../utils/safeMarkdown';
 import * as pdfjsLib from 'pdfjs-dist';
+import { openPdf } from '../../utils/pdfRange';
 import DocxRenderer from './DocxRenderer';
 import SheetPreview from './SheetPreview';
 import ZoomableImage from './ZoomableImage';
@@ -169,7 +170,7 @@ const needsPlaybackInfo = (item) => {
 /**
  * Component Canvas chuyên dụng xem PDF nhiều trang, hỗ trợ High-DPI
  */
-function PdfCanvasViewer({ url, zoom = 1, rotation = 0, onWheelZoom }) {
+function PdfCanvasViewer({ url, sizeBytes, zoom = 1, rotation = 0, onWheelZoom }) {
   const { t } = useLanguage();
   // Ctrl/⌘ + lăn chuột (hoặc chụm touchpad) để phóng; lăn thường vẫn là cuộn trang.
   const [scrollBox, setScrollBox] = useState(null);
@@ -192,7 +193,8 @@ function PdfCanvasViewer({ url, zoom = 1, rotation = 0, onWheelZoom }) {
   const canvasRef = useRef(null);
   const renderTaskRef = useRef(null);
 
-  // 1. Tải tài liệu PDF nhị phân từ URL
+  // 1. Mở tài liệu PDF THEO ĐOẠN (HTTP Range) — chỉ tải phần cần cho trang đang xem, không
+  //    kéo nguyên tệp vào RAM như bản cũ. Xem `utils/pdfRange.js` (kể cả khi nào lùi về cũ).
   useEffect(() => {
     if (!url || typeof url !== 'string') return;
 
@@ -201,35 +203,35 @@ function PdfCanvasViewer({ url, zoom = 1, rotation = 0, onWheelZoom }) {
     setError(null);
     setCurrentPage(1);
 
-    (async () => {
-      try {
-        const response = await fetch(url);
-        if (!response.ok) {
-          throw new Error(t('preview.pdf.httpError', { status: response.status }));
-        }
-        const pdfData = await response.arrayBuffer();
+    const opened = openPdf(pdfjsLib, url, {
+      sizeHint: sizeBytes,
+      onError: (err) => {
+        console.error('[PDF Preview Error]', err);
+        if (isMounted) setError(t('preview.pdf.readFailed'));
+      },
+    });
+    opened.promise
+      .then((loadedPdf) => {
         if (!isMounted) return;
-
-        const loadingTask = pdfjsLib.getDocument({ data: pdfData });
-        const loadedPdf = await loadingTask.promise;
-        if (!isMounted) return;
-
         setPdfDoc(loadedPdf);
         setNumPages(loadedPdf.numPages);
-      } catch (err) {
-        if (isMounted) {
-          console.error('[PDF Preview Error]', err);
-          setError(t('preview.pdf.readFailed'));
-        }
-      } finally {
+      })
+      .catch((err) => {
+        if (!isMounted || err?.name === 'AbortError') return;
+        console.error('[PDF Preview Error]', err);
+        setError(t('preview.pdf.readFailed'));
+      })
+      .finally(() => {
         if (isMounted) setLoading(false);
-      }
-    })();
+      });
 
     return () => {
       isMounted = false;
+      // Huỷ request đang bay và giải phóng tài liệu bên worker — bản cũ không bao giờ
+      // `destroy`, nên mỗi PDF đã mở nằm lại trong RAM worker tới khi tải lại trang.
+      opened.destroy();
     };
-  }, [url, t]);
+  }, [url, sizeBytes, t]);
 
   // 2. Vẽ trang PDF lên Canvas
   useEffect(() => {
@@ -1197,7 +1199,7 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
             {/* Render PDF Canvas chất lượng cao không bị popup tải về */}
             {isPdf && (
               <div className="w-full h-full max-w-5xl rounded-2xl overflow-hidden bg-slate-900/80 border border-white/10 shadow-2xl flex flex-col items-center justify-center">
-                <PdfCanvasViewer url={url} zoom={zoom} rotation={rotation} onWheelZoom={zoomBy} />
+                <PdfCanvasViewer url={url} sizeBytes={item.sizeBytes} zoom={zoom} rotation={rotation} onWheelZoom={zoomBy} />
               </div>
             )}
 

@@ -7,6 +7,7 @@ import { API_BASE_URL } from '../constants/api';
 import { triggerDownload, zipTicketUrl, isZipTicketUnavailable } from '../utils/downloadItems';
 import { formatBytes } from '../utils/formatFileSize';
 import * as pdfjsLib from 'pdfjs-dist';
+import { openPdf } from '../utils/pdfRange';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { renderMarkdownSafe } from '../utils/safeMarkdown';
@@ -157,7 +158,7 @@ function SharePageError({ message, onGoHome }) {
 }
 
 // ─── PDF Canvas Viewer (dùng pdfjs-dist, không dùng iframe) ──────────────────
-function PdfCanvasViewer({ url, zoom: externalZoom, rotation: externalRotation }) {
+function PdfCanvasViewer({ url, sizeBytes, zoom: externalZoom, rotation: externalRotation }) {
   const { t } = useLanguage();
   const [pdfDoc, setPdfDoc]       = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -171,7 +172,8 @@ function PdfCanvasViewer({ url, zoom: externalZoom, rotation: externalRotation }
   const effectiveZoom = externalZoom !== undefined ? externalZoom : zoom;
   const effectiveRotation = externalRotation !== undefined ? externalRotation : 0;
 
-  // 1. Tải binary PDF từ presigned URL
+  // 1. Mở PDF THEO ĐOẠN (HTTP Range) — người nhận link không phải tải cả tệp vào RAM mới
+  //    thấy trang 1. Xem `utils/pdfRange.js`.
   useEffect(() => {
     if (!url) return;
     let mounted = true;
@@ -179,29 +181,33 @@ function PdfCanvasViewer({ url, zoom: externalZoom, rotation: externalRotation }
     setError(null);
     setCurrentPage(1);
 
-    (async () => {
-      try {
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.arrayBuffer();
-        if (!mounted) return;
-        const task = pdfjsLib.getDocument({ data });
-        const doc  = await task.promise;
+    const opened = openPdf(pdfjsLib, url, {
+      sizeHint: sizeBytes,
+      onError: (err) => {
+        console.error('[PDF]', err);
+        if (mounted) setError(t('sharePage.pdf.failed'));
+      },
+    });
+    opened.promise
+      .then((doc) => {
         if (!mounted) return;
         setPdfDoc(doc);
         setNumPages(doc.numPages);
-      } catch (err) {
-        if (mounted) {
-          console.error('[PDF]', err);
-          setError(t('sharePage.pdf.failed'));
-        }
-      } finally {
+      })
+      .catch((err) => {
+        if (!mounted || err?.name === 'AbortError') return;
+        console.error('[PDF]', err);
+        setError(t('sharePage.pdf.failed'));
+      })
+      .finally(() => {
         if (mounted) setLoading(false);
-      }
-    })();
+      });
 
-    return () => { mounted = false; };
-  }, [url, t]);
+    return () => {
+      mounted = false;
+      opened.destroy();
+    };
+  }, [url, sizeBytes, t]);
 
   // 2. Vẽ trang lên canvas khi page/zoom thay đổi
   useEffect(() => {
@@ -566,7 +572,7 @@ function PreviewArea({ file, previewUrl, loadingPreview, previewBlocked, token, 
     );
   }
   if (PREVIEW_PDF(mimeType, name)) {
-    return <PdfCanvasViewer url={previewUrl} />;
+    return <PdfCanvasViewer url={previewUrl} sizeBytes={file.sizeBytes} />;
   }
   if ((PREVIEW_DOCX(mimeType, name) || PREVIEW_SHEET(mimeType, name)) && isTooLargeToRender(file)) {
     return (
@@ -861,7 +867,7 @@ function ChildFilePreviewModal({
 
             {isPdf && (
               <div className="w-full h-full max-w-5xl rounded-2xl overflow-hidden bg-slate-900/80 border border-white/10 shadow-2xl flex flex-col items-center justify-center">
-                <PdfCanvasViewer url={previewUrl} zoom={zoom} rotation={rotation} />
+                <PdfCanvasViewer url={previewUrl} sizeBytes={file.sizeBytes} zoom={zoom} rotation={rotation} />
               </div>
             )}
 

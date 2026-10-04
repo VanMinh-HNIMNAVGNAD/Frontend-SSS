@@ -1365,8 +1365,6 @@ const vi = {
   // ── Tooltip trên thẻ tệp/thư mục + nhãn thuộc tính còn ghi cứng ──
   'card.fileOptions': 'Tuỳ chọn tệp',
   'info.field.owner': 'Người sở hữu',
-  'info.field.group': 'Nhóm',
-  'info.field.permissions': 'Quyền',
   'auth.nickname.label': 'Nickname',
 
   'card.sharedBadge': 'Được chia sẻ',

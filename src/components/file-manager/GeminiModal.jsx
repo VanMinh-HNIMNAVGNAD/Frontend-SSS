@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { renderAiMarkdownSafe, safeHref } from '../../utils/safeMarkdown';
+import { renderAiMarkdownSafe, safeHref, sanitizeSearchWidgetHtml } from '../../utils/safeMarkdown';
 import toast from 'react-hot-toast';
 import {
     Sparkles,
@@ -175,7 +175,8 @@ function formatClock(seconds, language) {
  * ngoài không lọt vào, và widget trông đúng như Google thiết kế.
  *
  * Nội dung đã kiểm trên phản hồi thật: chỉ `<style> <div> <a> <svg> <path> <circle>`,
- * KHÔNG có `<script>`, không có handler `on*`. Nguồn của nó là phản hồi Vertex qua backend
+ * KHÔNG có `<script>`, không có handler `on*` — vẫn lọc qua `sanitizeSearchWidgetHtml`
+ * vì shadow DOM KHÔNG chặn script (##74). Nguồn của nó là phản hồi Vertex qua backend
  * của mình, không phải nội dung tệp người dùng tải lên — nên nó không nằm trong đường tiêm
  * lệnh mà luật AN TOÀN đang chặn.
  *
@@ -191,7 +192,8 @@ function SearchSuggestions({ html }) {
         if (!host || !html) return;
 
         const root = host.shadowRoot ?? host.attachShadow({ mode: 'open' });
-        root.innerHTML = html;
+        // Shadow DOM không chặn được handler `on*` — lọc trước khi đổ vào.
+        root.innerHTML = sanitizeSearchWidgetHtml(html);
         root.querySelectorAll('a').forEach((a) => {
             a.setAttribute('target', '_blank');
             a.setAttribute('rel', 'noopener noreferrer');
@@ -473,16 +475,17 @@ export default function GeminiModal({
                     // Hạn mức mới về kèm mỗi lượt tải — không phải gọi thêm request nào.
                     if (res.quota) setFileQuota(res.quota);
                 } catch (err) {
-                    const message =
-                        err?.response?.data?.message || err?.message || t('ai.attach.failed');
+                    const message = err?.message || t('ai.attach.failed');
                     setAttachments((prev) =>
                         prev.map((a) => (a.key === key ? { ...a, status: 'error', error: message } : a)),
                     );
                     // Hết hạn mức thì mọi tệp còn lại trong lượt chọn này cũng sẽ hỏng y
                     // hệt — dừng luôn thay vì bắt người dùng xem ba thông báo giống nhau.
-                    if (err?.response?.data?.error === 'AI_FILE_QUOTA_EXCEEDED') {
+                    // Lỗi đã qua interceptor axios: mã nằm ở `err.errorCode`, hạn mức ở
+                    // `err.details` — không còn `err.response`.
+                    if (err?.errorCode === 'AI_FILE_QUOTA_EXCEEDED') {
                         setAttachError(message);
-                        if (err?.response?.data?.quota) setFileQuota(err.response.data.quota);
+                        if (err.details?.quota) setFileQuota(err.details.quota);
                         break;
                     }
                 }

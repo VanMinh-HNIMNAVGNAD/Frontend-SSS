@@ -455,22 +455,6 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                                 </span>
                             </div>
 
-                            {/* Property item: Group */}
-                            <div className="flex justify-between py-1.5 border-b border-gray-200 dark:border-gray-800">
-                                <span className="text-gray-600 dark:text-gray-400 font-semibold">{t('info.field.group')}</span>
-                                <span className="font-semibold text-gray-900 dark:text-gray-100 font-mono">
-                                    {item.group || 'users'}
-                                </span>
-                            </div>
-
-                            {/* Property item: Permissions */}
-                            <div className="flex justify-between py-1.5 border-b border-gray-200 dark:border-gray-800">
-                                <span className="text-gray-600 dark:text-gray-400 font-semibold">{t('info.field.permissions')}</span>
-                                <span className="font-mono font-bold px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-700">
-                                    {item.permissions || (isFolder ? 'rwxr-xr-x' : 'rw-r--r--')}
-                                </span>
-                            </div>
-
                             {/* Property item: Sửa đổi lần cuối */}
                             <div className="flex justify-between py-1.5 border-b border-gray-200 dark:border-gray-800">
                                 <span className="text-gray-600 dark:text-gray-400 font-semibold">{t('info.field.modified')}</span>

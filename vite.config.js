@@ -57,6 +57,29 @@ function assertApiBaseUrl(env) {
   }
 }
 
+/**
+ * Chặn biến `VITE_*` mang tên của một bí mật (secret/private/password/key_file).
+ *
+ * Mọi biến `VITE_*` bị nhúng NGUYÊN VĂN vào bundle JS công khai — đặt nhầm
+ * `VITE_JWT_SECRET` hay `VITE_DB_PASSWORD` là ai mở DevTools cũng đọc được. Chốt này
+ * trước đây nằm ở `backend/src/config/validate-config.ts`, chỉ chạy được khi hai bên
+ * còn đọc chung một `.env`; tách `.env` xong thì backend không còn thấy biến VITE_ nào,
+ * nên chốt chuyển về đây — đúng chỗ biến bị đóng gói (##74). Chạy cả `dev` lẫn `build`.
+ * Site key Turnstile, URL API… là giá trị công khai, không khớp các nhãn này.
+ *
+ * @param {Record<string, string>} env
+ */
+function assertNoSecretsInViteEnv(env) {
+  const leaked = Object.keys(env).filter((key) => /secret|private|password|key_file/i.test(key))
+  if (leaked.length > 0) {
+    throw new Error(
+      `Biến ${leaked.join(', ')} có tiền tố VITE_ nhưng tên lại là của một bí mật — dừng.\n` +
+        '  Biến VITE_* được đóng gói CÔNG KHAI vào JS gửi cho mọi trình duyệt.\n' +
+        '  Bí mật thuộc về backend/.env (hoặc env của Cloud Run), không phải frontend.',
+    )
+  }
+}
+
 // https://vite.dev/config/
 export default defineConfig(({ command, mode }) => {
   // loadEnv ưu tiên biến đã có sẵn trong process.env (cách Vercel/CI truyền vào)
@@ -65,6 +88,7 @@ export default defineConfig(({ command, mode }) => {
 
   // Chỉ soi lúc `vite build`. `vite dev` vẫn chạy được khi chưa có `.env` nhờ giá
   // trị dự phòng ở src/constants/api.js.
+  assertNoSecretsInViteEnv(env)
   if (command === 'build') assertApiBaseUrl(env)
 
   return {

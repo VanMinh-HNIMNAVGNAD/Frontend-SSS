@@ -1346,8 +1346,6 @@ const en = {
   // ── File/folder card tooltips + hardcoded property labels ──
   'card.fileOptions': 'File options',
   'info.field.owner': 'Owner',
-  'info.field.group': 'Group',
-  'info.field.permissions': 'Permissions',
   'auth.nickname.label': 'Nickname',
 
   'card.sharedBadge': 'Shared',

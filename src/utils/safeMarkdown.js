@@ -114,3 +114,27 @@ export function neutralizeUnsafeLinks(root) {
     }
   });
 }
+
+// Instance riêng cho widget Google: hook mở-tab-mới của `purifier` không áp ở đây (widget tự
+// gắn `target` sau khi dựng), và cấu hình cho phép `<style>`/SVG không lan sang markdown.
+const widgetPurifier = createDOMPurify(window);
+
+/**
+ * HTML widget "Search Suggestions" của Google (grounding) → HTML đã lọc, để đổ vào shadow DOM.
+ *
+ * Shadow DOM chỉ cách ly CSS, KHÔNG cách ly script: `<img onerror>`/`<svg onload>` trong
+ * `shadowRoot.innerHTML` vẫn chạy trong origin của app. Nguồn là Vertex chứ không phải tệp
+ * người dùng, nhưng nó đi qua backend + lịch sử hội thoại trước khi tới đây — lọc là rẻ.
+ * Giữ `<style>` (widget cần, và nằm trong shadow root nên không phủ được app) và SVG
+ * (biểu tượng Google); bỏ mọi `on*`, form, iframe, link không phải http(s).
+ */
+export function sanitizeSearchWidgetHtml(html) {
+  return widgetPurifier.sanitize(String(html ?? ''), {
+    USE_PROFILES: { html: true, svg: true },
+    ADD_TAGS: ['style'],
+    // Không có FORCE_BODY thì `<style>` đứng đầu chuỗi bị trình phân tích đẩy vào <head> và mất.
+    FORCE_BODY: true,
+    FORBID_TAGS: ['form', 'input', 'button', 'textarea', 'select', 'option', 'iframe', 'script'],
+    ALLOWED_URI_REGEXP: /^https?:/i,
+  });
+}

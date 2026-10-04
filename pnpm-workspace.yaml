@@ -1,2 +1,7 @@
 minimumReleaseAgeExclude:
   - postcss@8.5.20
+
+# Bản vá cho parser chạy trên tệp của NGƯỜI KHÁC (ledger ##74): mammoth kéo @xmldom/xmldom
+# ^0.8.6, bản < 0.8.15 có ReDoS/quadratic khi đọc docx dựng sẵn → treo tab người xem.
+overrides:
+  '@xmldom/xmldom': ^0.8.15

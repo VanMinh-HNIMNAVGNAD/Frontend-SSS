@@ -22,6 +22,7 @@ import {
     Star,
     AlertTriangle,
     Loader2,
+    LogOut,
 } from 'lucide-react';
 import { sharedDrivesApi } from '../services/api';
 
@@ -58,6 +59,8 @@ export default function SharedDrivesPage() {
     const [isSavingRename, setIsSavingRename] = useState(false);
     const [deleteTarget, setDeleteTarget] = useState(null);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [leaveTarget, setLeaveTarget] = useState(null);
+    const [isLeaving, setIsLeaving] = useState(false);
 
     // Nạp lại danh sách sau mỗi thao tác. KHÔNG gọi thẳng một hàm setState từ thân
     // effect (cascading render — `react-hooks/set-state-in-effect`): thao tác chỉ tăng
@@ -203,6 +206,21 @@ export default function SharedDrivesPage() {
             toast.error(err.message || t('drives.deleteFailed'));
         } finally {
             setIsDeleting(false);
+        }
+    };
+
+    const handleConfirmLeave = async () => {
+        if (!leaveTarget || !user?.id) return;
+        try {
+            setIsLeaving(true);
+            await sharedDrivesApi.leave(leaveTarget.id, user.id);
+            setLeaveTarget(null);
+            toast.success(t('drives.left'));
+            reloadDrives();
+        } catch (err) {
+            toast.error(err.message || t('drives.leaveFailed'));
+        } finally {
+            setIsLeaving(false);
         }
     };
 
@@ -405,6 +423,7 @@ export default function SharedDrivesPage() {
                 onCopy={handleCopyName}
                 onShare={(drive) => setShareTarget(drive)}
                 onDeletePermanently={(drive) => setDeleteTarget(drive)}
+                onLeaveDrive={(drive) => setLeaveTarget(drive)}
             />
 
             {/* Create Modal */}
@@ -575,6 +594,53 @@ export default function SharedDrivesPage() {
                         >
                             {isDeleting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                             {t('common.deleteForever')}
+                        </button>
+                    </div>
+                </div>
+            </Modal>
+            )}
+
+            {/* Xác nhận rời drive — tệp mình đã tải lên vẫn ở lại drive (và vẫn tính vào dung
+                lượng của mình, vì quota đếm theo người tải lên), nên phải nói rõ trước khi bấm */}
+            {leaveTarget && (
+            <Modal
+                isOpen
+                onClose={() => setLeaveTarget(null)}
+                title={t('drives.leave.title')}
+                maxWidth="max-w-md"
+            >
+                <div className="space-y-4">
+                    <div className="flex gap-3 p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-500/15 border border-amber-200 dark:border-amber-900/50">
+                        <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                        <div className="text-[13px] text-amber-900 dark:text-amber-200 leading-relaxed">
+                            <p>
+                                {tRich(t('drives.leave.body'), {
+                                    name: <strong>&quot;{leaveTarget?.name}&quot;</strong>,
+                                })}
+                            </p>
+                        </div>
+                    </div>
+
+                    <p className="text-xs text-slate-500 dark:text-gray-400 leading-relaxed">
+                        {t('drives.leave.filesStay')}
+                    </p>
+
+                    <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-100 dark:border-gray-700">
+                        <button
+                            type="button"
+                            onClick={() => setLeaveTarget(null)}
+                            className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl transition-colors cursor-pointer"
+                        >
+                            {t('common.cancel')}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleConfirmLeave}
+                            disabled={isLeaving}
+                            className="px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-all shadow-sm flex items-center gap-2 cursor-pointer"
+                        >
+                            {isLeaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <LogOut className="w-3.5 h-3.5" />}
+                            {t('drives.leave.confirm')}
                         </button>
                     </div>
                 </div>

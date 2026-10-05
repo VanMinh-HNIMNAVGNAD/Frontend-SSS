@@ -32,6 +32,7 @@ import {
     ChevronRight,
     Plus,
     Upload,
+    LogOut,
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { SHORTCUT_HINTS } from '../../hooks/useGlobalShortcuts';
@@ -362,7 +363,7 @@ export default function ContextMenu({
     item,
     // 'item'  → menu cho tệp/thư mục (mặc định, hành vi cũ của mọi trang)
     // 'drive' → menu cho thẻ Bộ nhớ dùng chung: chỉ Đổi tên / Gắn sao / Sao chép /
-    //           Chia sẻ / Xóa. Bỏ hẳn Xem trước, Tải xuống, Cắt, Dán, Hỏi Gemini,
+    //           Chia sẻ / Xóa (người tạo) hoặc Rời drive (người khác). Bỏ hẳn Xem trước, Tải xuống, Cắt, Dán, Hỏi Gemini,
     //           Thùng rác — không mục nào trong số đó áp dụng được cho một drive.
     variant = 'item',
     isTrashTab = false,
@@ -383,6 +384,7 @@ export default function ContextMenu({
     onRestore,
     onNotSpam,
     onDeletePermanently,
+    onLeaveDrive,           // chỉ variant 'drive': thành viên không phải người tạo tự rời drive
     onToggleStar,
     onShowInfo,
     onDismissSuggestion,
@@ -640,7 +642,8 @@ export default function ContextMenu({
 
                 <MenuSeparator />
 
-                {/* Xóa drive — chỉ người tạo. Trang sẽ mở hộp thoại xác nhận trước khi gọi API */}
+                {/* Người tạo: Xóa drive. Người khác: Rời drive (backend cho mọi vai tự gỡ chính
+                    mình, trừ người tạo). Cả hai đều mở hộp thoại xác nhận trước khi gọi API. */}
                 {item.canDelete ? (
                     <MenuRow
                         tone="danger"
@@ -649,7 +652,12 @@ export default function ContextMenu({
                         onClick={() => { onDeletePermanently?.(item); closeMenu(); }}
                     />
                 ) : (
-                    <MenuRowLocked label={t('menu.deleteDrive')} hint={t('menu.creatorOnly')} />
+                    <MenuRow
+                        tone="danger"
+                        icon={<LogOut className="w-4 h-4" />}
+                        label={t('menu.leaveDrive')}
+                        onClick={() => { onLeaveDrive?.(item); closeMenu(); }}
+                    />
                 )}
             </div>
         );

@@ -1349,6 +1349,9 @@ export const sharedDrivesApi = {
   addMember: (id, data) => afterDriveMutation(api.post(`/shared-drives/${id}/members`, data)),
   removeMember: (id, userId) =>
     afterDriveMutation(api.delete(`/shared-drives/${id}/members/${userId}`)),
+  // Tự rời drive = gỡ CHÍNH MÌNH qua cùng route. Mọi vai gọi được, trừ người tạo (403).
+  leave: (id, myUserId) =>
+    afterDriveMutation(api.delete(`/shared-drives/${id}/members/${myUserId}`)),
 };
 
 // Billing / Thanh toán (payOS)

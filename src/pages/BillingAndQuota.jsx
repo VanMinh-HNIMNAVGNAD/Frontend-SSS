@@ -379,8 +379,9 @@ export default function BillingAndQuota() {
 
       // Lỗi 400 là lỗi "vĩnh viễn" với lựa chọn hiện tại: bấm lại cũng vẫn 400. Đóng modal để
       // khách quay ra chọn gói/chu kỳ khác, đồng thời nạp lại gói đang chạy — 400 chống hạ cấp
-      // thường có nghĩa là state ở client đã lệch so với server.
-      if (err?.status === 400) {
+      // thường có nghĩa là state ở client đã lệch so với server. 409 cũng vậy: hoá đơn trước
+      // vừa được trả nên gói đã đổi, báo giá trong modal tính theo gói cũ (##78).
+      if (err?.status === 400 || err?.status === 409) {
         setSelectedPlan(null);
         await fetchSubscription();
       }
@@ -1050,6 +1051,17 @@ export default function BillingAndQuota() {
                         bold: <strong>{t('billing.confirm.reenableBold')}</strong>,
                       })}
                       {t('billing.confirm.reenableTail')}
+                    </p>
+                  </div>
+                )}
+
+                {/* Thanh toán sẽ HUỶ hoá đơn đang chờ (backend `closeOpenLinks`, ##78) — nói trước
+                    để khách không chuyển khoản theo mã QR cũ còn mở ở tab khác. */}
+                {quote?.openInvoiceCount > 0 && (
+                  <div className="mt-4 flex items-start gap-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/25 border border-amber-200 dark:border-amber-500/30 px-4 py-3">
+                    <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />
+                    <p className="text-[13.5px] text-amber-800 dark:text-amber-200 leading-snug">
+                      {t('billing.confirm.closesOpenInvoice')}
                     </p>
                   </div>
                 )}

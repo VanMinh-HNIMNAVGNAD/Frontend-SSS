@@ -36,6 +36,7 @@ export default function MainLayout() {
         activeTab,
         currentFolderId,
         currentSharedDriveId,
+        isInForeignFolder,
         folders,
         files,
         getSelectedItems,
@@ -68,15 +69,20 @@ export default function MainLayout() {
 
     /**
      * Ở tab "Bộ nhớ dùng chung", phải mở một Shared Drive cụ thể thì mới biết
-     * ghi file/thư mục vào đâu — chặn sớm giống NewButton.jsx.
+     * ghi file/thư mục vào đâu — chặn sớm giống NewButton.jsx. Thư mục người khác
+     * chia sẻ thì không ghi được (##78) — nói lý do thay vì để backend báo sai.
      */
     const blockedBySharedDrive = useCallback(() => {
+        if (isInForeignFolder) {
+            toast.error(t('newBtn.foreignFolder'), { duration: 6000 });
+            return true;
+        }
         if (activeTab === 'shared-drives' && !currentSharedDriveId && !currentFolderId) {
             toast.error(t('shortcutToast.needDrive'));
             return true;
         }
         return false;
-    }, [activeTab, currentSharedDriveId, currentFolderId, t]);
+    }, [activeTab, currentSharedDriveId, currentFolderId, isInForeignFolder, t]);
 
     /** Danh sách mục đang được chọn ở khung nội dung hiện tại */
     const getSelection = useCallback(

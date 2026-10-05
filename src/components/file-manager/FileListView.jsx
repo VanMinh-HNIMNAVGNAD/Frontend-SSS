@@ -393,6 +393,7 @@ export default function FileListView() {
         currentFolderId,
         currentSharedDriveId,
         uploadEntries,
+        isInForeignFolder,
     } = useFiles();
 
     // Ba nhóm dưới đây đọc từ context riêng thay vì useFiles(): chúng đổi theo
@@ -497,6 +498,16 @@ export default function FileListView() {
             setIsBuildingTree(false);
         }
     }, [activeTab, currentSharedDriveId, currentFolderId, uploadEntries, t]);
+
+    // Thư mục người khác chia sẻ: menu chuột phải không có nhóm tạo mới (##78) — backend không
+    // nhận tải lên / tạo thư mục vào đó; nút "Mới" ở thanh bên nói lý do.
+    const createActions = isInForeignFolder
+        ? {}
+        : {
+              onUploadFile: () => fileInputRef.current?.click(),
+              onUploadFolder: () => folderInputRef.current?.click(),
+              onCreateFolder: handleCreateFolderPrompt,
+          };
 
     // ── Selection Helpers ──
     const allCurrentCount = (folders?.length || 0) + (files?.length || 0);
@@ -622,9 +633,7 @@ export default function FileListView() {
                     isSpamTab={activeTab === 'spam'}
                     activeTab={activeTab}
                     onClose={closeContextMenu}
-                    onUploadFile={() => fileInputRef.current?.click()}
-                    onUploadFolder={() => folderInputRef.current?.click()}
-                    onCreateFolder={handleCreateFolderPrompt}
+                    {...createActions}
                     isBuildingTree={isBuildingTree}
                     onPaste={(targetParentId) => pasteItems(targetParentId)}
                     canPaste={clipboard.items.length > 0}
@@ -779,9 +788,7 @@ export default function FileListView() {
                 isSpamTab={activeTab === 'spam'}
                 activeTab={activeTab}
                 onClose={closeContextMenu}
-                onUploadFile={() => fileInputRef.current?.click()}
-                onUploadFolder={() => folderInputRef.current?.click()}
-                onCreateFolder={handleCreateFolderPrompt}
+                {...createActions}
                 isBuildingTree={isBuildingTree}
                 onPreview={(item) => openPreview(item, sortedFiles)}
                 onDownload={(item) => downloadSingleItem(item, getDownloadUrl, { t })}

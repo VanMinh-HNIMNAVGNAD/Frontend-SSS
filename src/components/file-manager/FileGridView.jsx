@@ -45,6 +45,7 @@ export default function FileGridView() {
         currentFolderId,
         currentSharedDriveId,
         uploadEntries,
+        isInForeignFolder,
     } = useFiles();
 
     // Xem chú thích cùng chỗ trong FileListView: ba nhóm này đổi theo từng cú
@@ -166,6 +167,16 @@ export default function FileGridView() {
         }
     }, [activeTab, currentSharedDriveId, currentFolderId, uploadEntries, t]);
 
+    // Thư mục người khác chia sẻ: menu chuột phải không có nhóm tạo mới (##78) — backend không
+    // nhận tải lên / tạo thư mục vào đó; nút "Mới" ở thanh bên nói lý do.
+    const createActions = isInForeignFolder
+        ? {}
+        : {
+              onUploadFile: () => fileInputRef.current?.click(),
+              onUploadFolder: () => folderInputRef.current?.click(),
+              onCreateFolder: handleCreateFolderPrompt,
+          };
+
     const handleItemDoubleClick = useCallback((item) => {
         if (item.type === 'folder' && !item.isTrash && !item.isSpam) {
             openFolder(item);
@@ -238,9 +249,7 @@ export default function FileGridView() {
                     isSpamTab={activeTab === 'spam'}
                     activeTab={activeTab}
                     onClose={closeContextMenu}
-                    onUploadFile={() => fileInputRef.current?.click()}
-                    onUploadFolder={() => folderInputRef.current?.click()}
-                    onCreateFolder={handleCreateFolderPrompt}
+                    {...createActions}
                     isBuildingTree={isBuildingTree}
                     onPaste={(targetParentId) => pasteItems(targetParentId)}
                     canPaste={clipboard.items.length > 0}
@@ -358,9 +367,7 @@ export default function FileGridView() {
                 isSpamTab={activeTab === 'spam'}
                 activeTab={activeTab}
                 onClose={closeContextMenu}
-                onUploadFile={() => fileInputRef.current?.click()}
-                onUploadFolder={() => folderInputRef.current?.click()}
-                onCreateFolder={handleCreateFolderPrompt}
+                {...createActions}
                 isBuildingTree={isBuildingTree}
                 onPreview={(item) => openPreview(item, files)}
                 onDownload={handleDownloadItem}

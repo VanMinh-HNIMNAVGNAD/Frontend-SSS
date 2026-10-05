@@ -243,6 +243,7 @@ const en = {
   'newBtn.needDrive.folder': 'Open a shared cloudSSS first, then create the folder.',
   'newBtn.needDrive.file': 'Open a shared cloudSSS first, then upload the file.',
   'newBtn.needDrive.uploadFolder': 'Open a shared cloudSSS first, then upload the folder.',
+  'newBtn.foreignFolder': "This folder was shared with you by someone else — you can't upload or create folders here yet. Do that in My cloudSSS or a Shared cloudSSS instead.",
   // ── Right sidebar (components/layout/RightSideBar.jsx) ──
   'theme.toggle.toLight': 'Light mode',
   'theme.toggle.toDark': 'Dark mode',
@@ -1015,6 +1016,7 @@ const en = {
   'billing.confirm.renew': 'Confirm renewal',
   'billing.confirm.upgrade': 'Confirm upgrade',
   'billing.confirm.renewNote': ' The new cycle is added on top of your current expiry date.',
+  'billing.confirm.closesOpenInvoice': 'You have an unpaid invoice. Continuing cancels it — do not pay with the old QR code.',
   'billing.confirm.reenableNote': 'This plan is set to stop at period end. A successful payment will {bold}',
   'billing.confirm.reenableBold': 'renew the plan and undo the scheduled stop',
   'billing.confirm.planPrice': '{cycle} plan price',

@@ -314,6 +314,10 @@ export function FileProvider({ children }) {
 
   const folderMatch = matchPath('/app/:tab/folders/:folderId', location.pathname);
   const currentFolderId = folderMatch ? folderMatch.params.folderId : null;
+  // Đang đứng trong thư mục NGƯỜI KHÁC chia sẻ: backend không nhận tải lên / tạo thư mục vào đó
+  // (##78). Nút "Mới", menu chuột phải và phím tắt đọc cờ này để nói trước — trước đây người dùng
+  // chọn tệp, tải lên xong mới nhận câu sai "Thư mục cha không tồn tại".
+  const isInForeignFolder = activeTab === 'shared-with-me' && Boolean(currentFolderId);
 
   const [currentSharedDriveId, setCurrentSharedDriveId] = useState(null);
 
@@ -3144,6 +3148,7 @@ export function FileProvider({ children }) {
     setCurrentFolderId: handleSetCurrentFolderId,
     currentSharedDriveId,
     setCurrentSharedDriveId: handleSetCurrentSharedDriveId,
+    isInForeignFolder,
     openFolder,
     activeTab,
     setActiveTab: handleSetActiveTab,
@@ -3237,7 +3242,7 @@ export function FileProvider({ children }) {
     isLoading, isRefreshing, error, viewMode, isSidebarCollapsed,
     currentPage, pageSize, totalItems, totalPages, breadcrumb,
     // ── Điều hướng / tab ──
-    activeTab, currentFolderId, currentSharedDriveId,
+    activeTab, currentFolderId, currentSharedDriveId, isInForeignFolder,
     handleSetActiveTab, handleSetCurrentFolderId, handleSetCurrentSharedDriveId,
     openFolder, toggleSidebar, setViewMode,
     // ── Tìm kiếm / lọc / sắp xếp ──

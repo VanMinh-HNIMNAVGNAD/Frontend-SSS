@@ -246,6 +246,7 @@ const vi = {
   'newBtn.needDrive.folder': 'Vui lòng mở một cloudSSS dùng chung trước khi tạo thư mục mới.',
   'newBtn.needDrive.file': 'Vui lòng mở một cloudSSS dùng chung trước khi tải tệp lên.',
   'newBtn.needDrive.uploadFolder': 'Vui lòng mở một cloudSSS dùng chung trước khi tải thư mục lên.',
+  'newBtn.foreignFolder': 'Thư mục này do người khác chia sẻ với bạn — chưa thể tải lên hay tạo thư mục mới ở đây. Hãy làm việc đó trong cloudSSS của tôi hoặc Bộ nhớ dùng chung.',
   // ── Cột phải (components/layout/RightSideBar.jsx) ──
   'theme.toggle.toLight': 'Chế độ sáng',
   'theme.toggle.toDark': 'Chế độ tối',
@@ -1034,6 +1035,7 @@ const vi = {
   'billing.confirm.renew': 'Xác nhận gia hạn',
   'billing.confirm.upgrade': 'Xác nhận nâng cấp',
   'billing.confirm.renewNote': ' Chu kỳ mới được cộng tiếp vào ngày hết hạn hiện tại.',
+  'billing.confirm.closesOpenInvoice': 'Bạn đang có hoá đơn chưa thanh toán. Tiếp tục sẽ huỷ hoá đơn đó — đừng chuyển khoản theo mã QR cũ nữa.',
   'billing.confirm.reenableNote': 'Bạn đang hẹn dừng gói này. Thanh toán thành công sẽ {bold}',
   'billing.confirm.reenableBold': 'gia hạn gói và huỷ lệnh hẹn dừng',
   'billing.confirm.planPrice': 'Giá gói {cycle}',

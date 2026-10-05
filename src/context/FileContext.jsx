@@ -338,8 +338,21 @@ export function FileProvider({ children }) {
     }
   }, [navigate, activeTab]);
 
+  // Từ khoá tìm kiếm. Khai báo TRƯỚC `openFolder` vì nó xoá từ khoá (React Compiler không
+  // cho đọc biến khai báo phía sau). Các bộ lọc còn lại nằm ở mục "Search & Filters".
+  const [searchQuery, setSearchQueryState] = useState('');
+  const debouncedQuery = useDebounce(searchQuery, 400); // B8: chỉ gọi API sau 400ms idle
+  // Xoá từ khoá thì có hiệu lực NGAY, không chờ 400ms: mở một thư mục từ kết quả tìm kiếm
+  // (`openFolder` xoá từ khoá) mà còn chờ thì thư mục mới bị tải một lượt với từ khoá cũ —
+  // một request thừa và một nhịp hiện danh sách đã lọc trước khi hiện đủ.
+  const debouncedSearch = searchQuery.trim() === '' ? '' : debouncedQuery;
+
   const openFolder = useCallback((folder) => {
     setCurrentPage(1);
+    // Mở một thư mục là ĐI TỚI nó, không phải lọc tiếp trong nó: từ khoá còn đọng lại thì
+    // thư mục vừa mở chỉ hiện những mục khớp từ khoá (tìm kiếm nay đi cả cây con — ##77),
+    // trông như thư mục bị thiếu tệp. Google Drive cũng xoá ô tìm kiếm khi mở một kết quả.
+    setSearchQueryState('');
     if (!folder || !folder.id) {
       navigate(`/app/${activeTab}`);
       return;
@@ -347,7 +360,10 @@ export function FileProvider({ children }) {
     if (folder.sharedDriveId) {
       setCurrentSharedDriveId(folder.sharedDriveId);
       navigate(`/app/shared-drives/folders/${folder.id}`);
-    } else if (activeTab === 'shared-with-me') {
+    } else if (activeTab === 'shared-with-me' || folder.isSharedWithMe) {
+      // `isSharedWithMe`: thư mục của NGƯỜI KHÁC mở từ Trang chủ (mục "Được chia sẻ với tôi",
+      // "Đã mở gần đây", kết quả tìm kiếm). Đi đường Drive của tôi thì backend lọc
+      // `owner_id = tôi` nên thư mục hiện ra RỖNG (##77).
       navigate(`/app/shared-with-me/folders/${folder.id}`);
     } else {
       navigate(`/app/my-drive/folders/${folder.id}`);
@@ -395,9 +411,7 @@ export function FileProvider({ children }) {
     { id: null, nameKey: 'file.breadcrumb.myDrive' },
   ]);
 
-  // Search & Filters
-  const [searchQuery, setSearchQueryState] = useState('');
-  const debouncedSearch = useDebounce(searchQuery, 400); // B8: chỉ gọi API sau 400ms idle
+  // Search & Filters — state từ khoá khai báo ở trên, trước `openFolder` (nó xoá từ khoá).
   const [filterType, setFilterTypeState] = useState('all');
   const [filterDate, setFilterDateState] = useState('all');
   const [filterOwner, setFilterOwnerState] = useState('all');
@@ -2035,6 +2049,8 @@ export function FileProvider({ children }) {
       .map((item) => ({
         id: item.id,
         parentId: item.parentId ?? null,
+        // Để `pasteItems` phân biệt gốc Bộ nhớ chung với gốc Drive của tôi (cả hai `parentId` null).
+        sharedDriveId: item.sharedDriveId ?? null,
         name: item.name,
         type: item.type,
       }));
@@ -2057,6 +2073,8 @@ export function FileProvider({ children }) {
       .map((item) => ({
         id: item.id,
         parentId: item.parentId ?? null,
+        // Để `pasteItems` phân biệt gốc Bộ nhớ chung với gốc Drive của tôi (cả hai `parentId` null).
+        sharedDriveId: item.sharedDriveId ?? null,
         name: item.name,
         type: item.type,
       }));
@@ -2081,10 +2099,28 @@ export function FileProvider({ children }) {
 
       const destId = targetParentId !== undefined ? targetParentId : (currentFolderIdRef.current || null);
 
-      // No-op check dùng snapshot đã lưu: nếu mode cut và paste vào đúng folder ban đầu thì bỏ qua
+      // Dán vào GỐC (không có thư mục đích) phải nói rõ gốc CỦA AI (##77): gốc Bộ nhớ chung đang
+      // mở, hay gốc Drive của tôi (`null`). Không nói thì backend tự đoán theo vùng chứa của mục
+      // — tệp cắt từ Bộ nhớ chung dán vào gốc Drive của tôi chỉ quay về gốc drive cũ, bản sao
+      // dán vào gốc một drive lại rơi về Drive của tôi.
+      const view = viewRef.current;
+      const rootDriveId = view?.activeTab === 'shared-drives' ? view.currentSharedDriveId || null : null;
+      // Trang danh sách các Bộ nhớ chung (chưa vào drive nào) không có "gốc" nào để dán vào —
+      // Ctrl+V ở đó trước đây âm thầm chuyển mục về Drive của tôi.
+      if (!destId && view?.activeTab === 'shared-drives' && !rootDriveId) return;
+      const destination = destId
+        ? { targetParentId: destId }
+        : { targetParentId: null, targetSharedDriveId: rootDriveId };
+
+      // No-op check dùng snapshot đã lưu: nếu mode cut và paste vào đúng folder ban đầu thì bỏ qua.
+      // Ở gốc thì phải cùng cả VÙNG: gốc Bộ nhớ chung và gốc Drive của tôi đều có `parentId` null.
+      const isSamePlace = (entry) =>
+        destId
+          ? (entry.parentId ?? null) === destId
+          : (entry.parentId ?? null) === null && (entry.sharedDriveId ?? null) === rootDriveId;
       const toProcess =
         currentClip.mode === 'cut'
-          ? currentClip.items.filter((entry) => (entry.parentId ?? null) !== (destId ?? null))
+          ? currentClip.items.filter((entry) => !isSamePlace(entry))
           : currentClip.items;
 
       // Nếu cut vào chính nơi cũ -> hoàn tất êm, xoá clipboard
@@ -2101,9 +2137,9 @@ export function FileProvider({ children }) {
         results = await Promise.allSettled(
           toProcess.map(async (entry) => {
             if (currentClip.mode === 'cut') {
-              return await filesApi.moveItem(entry.id, { targetParentId: destId });
+              return await filesApi.moveItem(entry.id, destination);
             } else {
-              return await filesApi.copyItem(entry.id, { targetParentId: destId });
+              return await filesApi.copyItem(entry.id, destination);
             }
           })
         );

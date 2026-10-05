@@ -108,7 +108,13 @@ export default function MyDrivePage() {
       {/* Header Toolbar */}
       <div className="flex items-center justify-between gap-3 mb-2 pb-2 border-b border-gray-200 dark:border-gray-700">
         <div className="flex-1 min-w-0">
-          <Breadcrumb path={breadcrumb} onNavigate={(id) => openFolder({ id })} />
+          {/* Bỏ chặng gốc (`id: null`) mà backend luôn trả về: `Breadcrumb` tự vẽ nút gốc
+              "cloudSSS của tôi" rồi, truyền nguyên thì gốc hiện HAI lần ("cloudSSS của tôi ›
+              cloudSSS của tôi › …") — cùng cách SharedWithMePage vẫn làm (##77). */}
+          <Breadcrumb
+            path={breadcrumb.filter((crumb) => crumb.id !== null)}
+            onNavigate={(id) => openFolder({ id })}
+          />
         </div>
 
         {/* Action Buttons & View Switcher */}

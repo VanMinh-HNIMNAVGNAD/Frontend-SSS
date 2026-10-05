@@ -264,13 +264,16 @@ export default function HomePage() {
     // luôn nên rất dễ mở nhầm tệp khi chỉ muốn bấm ngôi sao hay quét chọn.
     const handleItemOpen = useCallback((item, list) => {
         if (item.type === 'folder') {
-            setActiveTab('my-drive');
+            // `openFolder` tự chọn đúng tab theo thư mục (Bộ nhớ chung / được chia sẻ / của tôi).
+            // Bản cũ gọi `setActiveTab('my-drive')` trước: thư mục được chia sẻ mở ra RỖNG (đi
+            // đường Drive của tôi), và lịch sử có thêm một bước `/app/my-drive` nên bấm Quay lại
+            // không về Trang chủ (##77).
             openFolder(item);
         } else {
             // `list` = các mục của CHÍNH mục (Gần đây / Gợi ý…) vừa bấm — nút ‹ › đi trong đó.
             openPreview(item, list);
         }
-    }, [setActiveTab, openFolder, openPreview]);
+    }, [openFolder, openPreview]);
 
     // Ba mục dưới đây đều lọc `dismissed` TRƯỚC khi `slice(0, 6)`, không phải sau:
     // cắt trước rồi mới bỏ mục ẩn thì ẩn một mục là mất luôn một ô trong hàng, và

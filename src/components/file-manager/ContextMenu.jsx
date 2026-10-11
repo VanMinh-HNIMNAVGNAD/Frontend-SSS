@@ -35,6 +35,7 @@ import {
     LogOut,
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
+import { useDriveAccess } from '../../context/FileContext';
 import { SHORTCUT_HINTS } from '../../hooks/useGlobalShortcuts';
 import ColorPickerPanel from './ColorPickerPanel';
 
@@ -397,6 +398,9 @@ export default function ContextMenu({
 }) {
     const menuRef = useRef(null);
     const { t } = useLanguage();
+    // Vai trò của mình trong Bộ nhớ chung chứa mục đang mở menu (##79). `null` = mục cá nhân hoặc
+    // chưa nạp xong vai trò ⇒ hiện như cũ, backend vẫn là nơi chặn.
+    const { driveRoleOf, currentUserId } = useDriveAccess();
 
     // Reposition menu to stay inside window bounds
     const [pos, setPos] = useState({ top: y, left: x });
@@ -674,12 +678,22 @@ export default function ContextMenu({
     // VIEWER: chỉ Preview + Download + Sao chép + Star + Hỏi Gemini + Thông tin
     // EDITOR: thêm Đổi tên + Cắt (di chuyển trong drive của chủ sở hữu). Không có
     // Thùng rác / Chia sẻ — hai việc đó vẫn chỉ chủ sở hữu mới làm được.
-    const canRename = !isShared || isEditorInShared;
-    const canCut = !isShared || isEditorInShared;
-    const canTrash = !isShared;
-    const canShare = !isShared; // Chỉ owner mới chia sẻ được
+    //
+    // Trong Bộ nhớ chung (##79): VIEWER chỉ xem — không Đổi tên / Cắt / Thùng rác / Đổi màu / Dán
+    // vào thư mục; Chia sẻ (link + chia sẻ riêng) là của ADMIN, hoặc MEMBER với mục MÌNH tải lên
+    // (backend `findSharingTarget`); xoá vĩnh viễn chỉ ADMIN.
+    const driveRole = item.sharedDriveId ? driveRoleOf(item.sharedDriveId) : null;
+    const isDriveViewer = driveRole === 'VIEWER';
+    const isDriveSharingLocked =
+        isDriveViewer || (driveRole === 'MEMBER' && currentUserId != null && item.ownerId !== currentUserId);
+    const canDeleteForever = !item.sharedDriveId || driveRole == null || driveRole === 'ADMIN';
+
+    const canRename = (!isShared || isEditorInShared) && !isDriveViewer;
+    const canCut = (!isShared || isEditorInShared) && !isDriveViewer;
+    const canTrash = !isShared && !isDriveViewer;
+    const canShare = !isShared && !isDriveSharingLocked; // Chỉ owner (hoặc ADMIN drive) mới chia sẻ được
     // Dán VÀO một thư mục được chia sẻ cần quyền EDITOR — VIEWER bấm vào chỉ nhận 403
-    const canPasteIntoItem = !isShared || !isFolder || isEditorInShared;
+    const canPasteIntoItem = (!isShared || !isFolder || isEditorInShared) && !isDriveViewer;
     // Dấu sao lưu trên chính hàng `files` (cột is_starred) nên nó là dấu sao CỦA CHỦ
     // SỞ HỮU, không phải của từng người xem. Backend vì thế chỉ cho owner đổi; ẩn nút
     // đi thay vì để người dùng bấm rồi nhận 403.
@@ -735,12 +749,18 @@ export default function ContextMenu({
                         onClick={() => { onRestore?.(item); closeMenu(); }}
                     />
 
-                    <MenuRow
-                        tone="danger"
-                        icon={<Trash2 className="w-4 h-4" />}
-                        label={t('common.deleteForever')}
-                        onClick={() => { onDeletePermanently?.(item); closeMenu(); }}
-                    />
+                    {/* Mục trong Bộ nhớ chung: chỉ ADMIN xoá vĩnh viễn (MEMBER khôi phục được, xoá
+                        hẳn thì không — "Dọn thùng rác" cũng giữ lại chúng). */}
+                    {canDeleteForever ? (
+                        <MenuRow
+                            tone="danger"
+                            icon={<Trash2 className="w-4 h-4" />}
+                            label={t('common.deleteForever')}
+                            onClick={() => { onDeletePermanently?.(item); closeMenu(); }}
+                        />
+                    ) : (
+                        <MenuRowLocked label={t('common.deleteForever')} hint={t('menu.needAdmin')} />
+                    )}
                 </>
             ) : (
                 <>
@@ -880,7 +900,7 @@ export default function ContextMenu({
                         Bảng màu bung SANG PHẢI (submenu) chứ không chèn vào giữa menu:
                         ColorPickerPanel định vị `absolute` theo chính div bọc này, nên
                         div này bắt buộc phải là `relative`. */}
-                    {onChangeColor && !item.isSharedWithMe && (
+                    {onChangeColor && !item.isSharedWithMe && !isDriveViewer && (
                         <div className="relative">
                             <MenuRow
                                 icon={<Palette className="w-4 h-4 text-gray-700 dark:text-gray-300" />}

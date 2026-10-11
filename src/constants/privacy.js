@@ -15,7 +15,8 @@
 //   • PRIVACY_SHARE_ROLE_KEY — vẫn LƯU THUẦN CLIENT: bảng `users` chưa có cột
 //     nào cho nó, mà `UpdateProfileDto` bật `forbidNonWhitelisted: true` nên
 //     PATCH kèm trường chưa khai báo sẽ bị ValidationPipe chặn (400) chứ không
-//     lặng lẽ bỏ qua.
+//     lặng lẽ bỏ qua. Khoá thật là `PRIVACY_SHARE_ROLE_KEY:<userId>` — mỗi tài
+//     khoản một giá trị trên cùng trình duyệt (xem `bindShareRoleOwner`).
 //
 // TODO(backend): muốn đồng bộ nốt quyền chia sẻ mặc định thì làm ĐỦ 4 bước, theo
 // đúng thứ tự đã dùng cho khoá trên:
@@ -96,20 +97,62 @@ export function writeDiscoverableByEmail(value) {
   }
 }
 
+// ── Quyền chia sẻ mặc định: lưu THEO TỪNG TÀI KHOẢN (##79) ─────────────────────
+// Trước đây một khoá cho cả trình duyệt: A chọn "Được chỉnh sửa" rồi đăng xuất, B đăng nhập
+// trên cùng máy thì hộp "Thêm người" của B mặc định cấp quyền SỬA — B mời ai cũng vô tình cho
+// người đó sửa tệp của mình. Nay khoá mang id tài khoản; AuthContext gắn id qua
+// `bindShareRoleOwner` mỗi khi hồ sơ về. Chưa gắn (chưa đăng nhập) ⇒ luôn 'VIEWER', không ghi.
+let shareRoleOwnerId = null;
+const shareRoleKey = () => (shareRoleOwnerId ? `${PRIVACY_SHARE_ROLE_KEY}:${shareRoleOwnerId}` : null);
+
 /**
- * Quyền mặc định gán cho người được chia sẻ khi tạo link nhanh.
+ * Gắn quyền mặc định vào tài khoản đang đăng nhập (`null` khi đăng xuất). Xoá luôn khoá
+ * CŨ dùng chung cả trình duyệt: không biết nó là của ai, nên không được áp cho ai.
+ *
+ * @param {string|null|undefined} userId
+ */
+export function bindShareRoleOwner(userId) {
+  shareRoleOwnerId = userId || null;
+  try {
+    localStorage.removeItem(PRIVACY_SHARE_ROLE_KEY);
+  } catch {
+    /* trình duyệt chặn storage — không có gì để dọn */
+  }
+}
+
+/**
+ * Quyền mặc định của ô vai trò trong hộp "Thêm người có quyền truy cập" (chia sẻ riêng).
+ * Link công khai KHÔNG dùng giá trị này: backend không đọc `role` của link — link luôn
+ * chỉ xem/tải.
  *
  * Luôn trả về một giá trị hợp lệ: chưa từng lưu, giá trị lạ còn sót lại từ bản
- * cũ, hay localStorage bị chặn đều rơi về 'VIEWER' — nhánh lỗi phải nghiêng về
- * quyền THẤP hơn, không bao giờ tự nâng lên 'EDITOR'.
+ * cũ, chưa đăng nhập, hay localStorage bị chặn đều rơi về 'VIEWER' — nhánh lỗi
+ * phải nghiêng về quyền THẤP hơn, không bao giờ tự nâng lên 'EDITOR'.
  *
  * @returns {'VIEWER'|'EDITOR'}
  */
 export function readDefaultShareRole() {
+  const key = shareRoleKey();
+  if (!key) return DEFAULT_SHARE_ROLE;
   try {
-    const saved = localStorage.getItem(PRIVACY_SHARE_ROLE_KEY);
+    const saved = localStorage.getItem(key);
     return SHARE_ROLES.includes(saved) ? saved : DEFAULT_SHARE_ROLE;
   } catch {
     return DEFAULT_SHARE_ROLE;
+  }
+}
+
+/**
+ * Ghi quyền mặc định cho tài khoản đang đăng nhập. Chưa đăng nhập thì không ghi gì.
+ *
+ * @param {'VIEWER'|'EDITOR'} role
+ */
+export function writeDefaultShareRole(role) {
+  const key = shareRoleKey();
+  if (!key || !SHARE_ROLES.includes(role)) return;
+  try {
+    localStorage.setItem(key, role);
+  } catch {
+    /* trình duyệt chặn storage — phiên này vẫn chạy đúng, chỉ là không nhớ được */
   }
 }

@@ -213,13 +213,9 @@ export default function ShareModal({ isOpen, item, onClose }) {
         }
 
         try {
+            // Không gửi `role`: link công khai luôn chỉ xem/tải (backend không đọc trường này),
+            // còn quyền mặc định trong Cài đặt là cho ô "Thêm người" ở trên (##79).
             const res = await sharingApi.createShareLink(item.id, {
-                // Đọc lại từ Cài đặt ngay lúc bấm, KHÔNG dùng state `role` ở trên:
-                // ô đó là quyền cho người sắp được mời qua email, người dùng có thể
-                // vừa đổi nó cho một lời mời cụ thể mà không có ý đổi luôn quyền của
-                // link công khai. Thiếu trường này thì backend rơi về default 'VIEWER'
-                // của CreateShareLinkDto, bỏ qua lựa chọn trong Cài đặt.
-                role: readDefaultShareRole(),
                 password: sharePassword || undefined,
                 expiresInDays,
                 isDownloadAllowed: allowDownload,

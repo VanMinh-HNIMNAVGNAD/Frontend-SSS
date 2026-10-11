@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { useFiles } from '../../context/FileContext';
+import { useFiles, useDriveAccess } from '../../context/FileContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { Plus, FolderPlus, FileUp, FolderUp, Loader2, Info } from 'lucide-react';
 import { collectInputEntries } from '../../utils/uploadTree';
@@ -17,7 +17,16 @@ export default function NewButton({ isCollapsed }) {
     activeTab,
     isInForeignFolder,
   } = useFiles();
+  const { isDriveReadOnly } = useDriveAccess();
   const { t } = useLanguage();
+  // Chỗ đang đứng không ghi được: thư mục người khác chia sẻ (##78) hoặc Bộ nhớ chung mình chỉ là
+  // VIEWER (##79). Khoá ba lệnh và nói lý do ngay trong menu.
+  const writeLockKey = isInForeignFolder
+    ? 'newBtn.foreignFolder'
+    : isDriveReadOnly
+      ? 'newBtn.driveViewer'
+      : null;
+  const isWriteLocked = Boolean(writeLockKey);
 
   const dropdownRef   = useRef(null);
   const fileInputRef  = useRef(null); // upload nhiều file
@@ -141,17 +150,17 @@ export default function NewButton({ isCollapsed }) {
         <div className="absolute top-full mt-2 bg-white dark:bg-[#282a2c] rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 py-2 w-64 z-50 animate-in fade-in zoom-in-95 duration-150 left-0">
           {/* Thư mục người khác chia sẻ: nói lý do NGAY trong menu và khoá ba lệnh — không để
               người dùng chọn tệp, tải lên rồi mới bị từ chối (##78). */}
-          {isInForeignFolder && (
+          {isWriteLocked && (
             <div role="note" className="mx-2 mb-1 flex items-start gap-2 rounded-xl bg-amber-50 dark:bg-amber-950/25 border border-amber-200 dark:border-amber-500/30 px-3 py-2">
               <Info className="w-4 h-4 mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />
-              <p className="text-[12.5px] leading-snug text-amber-800 dark:text-amber-200">{t('newBtn.foreignFolder')}</p>
+              <p className="text-[12.5px] leading-snug text-amber-800 dark:text-amber-200">{t(writeLockKey)}</p>
             </div>
           )}
 
           {/* Tạo thư mục mới */}
           <button
             onClick={handleCreateFolderPrompt}
-            disabled={isInForeignFolder}
+            disabled={isWriteLocked}
             className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors text-left disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
           >
             <FolderPlus className="w-5 h-5 text-gray-600 dark:text-gray-300" />
@@ -166,7 +175,7 @@ export default function NewButton({ isCollapsed }) {
               setIsOpen(false);
               fileInputRef.current?.click();
             }}
-            disabled={isInForeignFolder}
+            disabled={isWriteLocked}
             className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors text-left disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
           >
             <FileUp className="w-5 h-5 text-blue-500" />
@@ -181,9 +190,9 @@ export default function NewButton({ isCollapsed }) {
               setIsOpen(false);
               folderInputRef.current?.click();
             }}
-            disabled={isBuildingTree || isInForeignFolder}
+            disabled={isBuildingTree || isWriteLocked}
             className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors text-left ${
-              isInForeignFolder
+              isWriteLocked
                 ? 'disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent'
                 : 'disabled:opacity-60 disabled:cursor-wait'
             }`}

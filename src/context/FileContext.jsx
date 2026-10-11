@@ -5,6 +5,7 @@ import {
   filesApi,
   storageApi,
   sharingApi,
+  sharedDrivesApi,
   chunkedApi,
   isBackendUnreachable,
   UPLOAD_BATCH_SIZE,
@@ -80,6 +81,9 @@ const uploadItemError = (item) => {
 const SelectionContext = createContext();
 const ClipboardContext = createContext();
 const PreviewContext = createContext();
+// Vai trò của người dùng trong các Bộ nhớ chung — tách riêng để menu chuột phải không render lại
+// theo từng thay đổi của danh sách tệp. Xem `driveAccessValue`.
+const DriveAccessContext = createContext(null);
 
 // ── Kiểu hiển thị (list / grid) ─────────────────────────────────────────────
 // Khoá localStorage riêng cho preference này. Đọc/ghi bọc try/catch vì chế độ
@@ -214,7 +218,9 @@ const formatApiItem = (item, isSharedWithMe = false, locale = 'vi-VN') => {
 
   return {
     ...base,
-    owner: null,
+    // Mục của thành viên KHÁC (Bộ nhớ chung, Thùng rác, Gắn sao): backend kèm `ownerName` (##79).
+    // Trước đây luôn `null` nên cột "Chủ sở hữu" ghi "Tôi" cho mọi tệp trong drive.
+    owner: item.ownerName || null,
   };
 };
 
@@ -326,6 +332,31 @@ export function FileProvider({ children }) {
       setCurrentSharedDriveId(null);
     }
   }, [activeTab]);
+
+  // Vai trò của mình trong từng Bộ nhớ chung (driveId → 'ADMIN' | 'MEMBER' | 'VIEWER'), đọc từ
+  // GET /shared-drives — đã có bộ đệm `sharedDrivesCache` (60 giây, xoá khi drive đổi) nên đổi tab
+  // không tốn request. Trước ##79 giao diện không biết vai trò: VIEWER vẫn thấy Đổi tên / Cắt / Xoá /
+  // Chia sẻ / Đổi màu / Tải lên, MEMBER thấy "Xoá vĩnh viễn" ở Thùng rác — bấm vào mới nhận 403.
+  // Nạp ở MỌI tab chứ không riêng Bộ nhớ chung: mục drive còn hiện ở Thùng rác, Gắn sao, Gần đây.
+  const [driveRoles, setDriveRoles] = useState(() => new Map());
+  useEffect(() => {
+    // Đổi tài khoản thì trang được tải lại (xem `pageOwnerRef` ở AuthContext) nên không cần xoá
+    // bảng vai trò lúc đăng xuất.
+    if (!isAuthenticated) return undefined;
+    let cancelled = false;
+    sharedDrivesApi
+      .getAll()
+      .then((drives) => {
+        if (cancelled || !Array.isArray(drives)) return;
+        setDriveRoles(new Map(drives.map((d) => [d.id, d.userRole])));
+      })
+      .catch(() => {
+        /* không đọc được vai trò ⇒ giữ hành vi cũ (hiện đủ lệnh, backend vẫn là nơi chặn) */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, activeTab, currentSharedDriveId]);
 
   const setActiveTab = useCallback((tab) => {
     if (tab !== 'shared-drives') {
@@ -1906,15 +1937,33 @@ export function FileProvider({ children }) {
     }
   }, []);
 
-  const emptyTrash = useCallback(async (id) => {
+  /**
+   * Dọn thùng rác. Trả `{ ok, deletedCount, skippedCount }` (không throw) để phía gọi biết kết
+   * quả thật — trước ##79 lỗi bị nuốt ở đây nên hộp "Dọn dẹp nhanh" vẫn báo "đã dọn xong".
+   *
+   * `skippedCount`: mục trong Bộ nhớ chung mà mình chỉ là MEMBER — thùng rác hiện chúng (để khôi
+   * phục được) nhưng chỉ ADMIN xoá vĩnh viễn. Còn mục bị giữ lại thì nạp lại danh sách thay vì xoá
+   * trắng: xoá trắng là danh sách rỗng giả, F5 lại hiện ra.
+   */
+  const emptyTrash = useCallback(async () => {
     try {
-      await filesApi.emptyTrash();
-      setItems([]);
+      const res = await filesApi.emptyTrash();
+      const skippedCount = Number(res?.skippedCount) || 0;
+      if (skippedCount > 0) {
+        // `silent`: bỏ qua bộ đệm danh sách (còn "tươi" < 60 giây nên `fetchFiles()` thường sẽ
+        // vẽ lại đúng bản cũ — kể cả các tệp vừa xoá — mà không hỏi server) và trộn kết quả mới.
+        fetchFiles(0, { silent: true });
+        toast(t('trash.empty.keptDriveItems', { count: skippedCount }), { icon: 'ℹ️', duration: 7000 });
+      } else {
+        setItems([]);
+      }
       fetchAnalytics();
+      return { ok: true, deletedCount: Number(res?.deletedCount) || 0, skippedCount };
     } catch (err) {
       toast.error(t('file.emptyTrash.failed', { reason: err.message }));
+      return { ok: false, error: err };
     }
-  }, [fetchAnalytics, t]);
+  }, [fetchAnalytics, fetchFiles, t]);
 
   /**
    * Đổi tên một tệp hoặc thư mục.
@@ -3319,18 +3368,50 @@ export function FileProvider({ children }) {
     infoDrawerItem, isInfoDrawerOpen, infoDrawerTab, openInfoDrawer, closeInfoDrawer,
   ]);
 
+  /**
+   * Drive đang đứng và vai trò của mình trong đó. `currentSharedDriveId` chỉ có khi vào drive từ
+   * thẻ (state trong RAM) — F5 giữa một thư mục drive thì đọc từ chính các mục đang hiện. Chưa biết
+   * vai trò (đang nạp, thư mục rỗng sau F5) ⇒ `null` ⇒ giao diện giữ hành vi cũ, backend vẫn chặn.
+   */
+  const currentDriveId =
+    activeTab === 'shared-drives'
+      ? currentSharedDriveId || items.find((item) => item.sharedDriveId)?.sharedDriveId || null
+      : null;
+  const currentUserId = user?.id ?? null;
+  const driveAccessValue = useMemo(() => {
+    const driveRoleOf = (driveId) => (driveId ? driveRoles.get(driveId) ?? null : null);
+    const currentDriveRole = driveRoleOf(currentDriveId);
+    return {
+      driveRoleOf,
+      currentDriveRole,
+      // VIEWER chỉ xem: không tải lên, không tạo thư mục, không sửa/xoá gì trong drive.
+      isDriveReadOnly: currentDriveRole === 'VIEWER',
+      // Để menu biết mục nào là của mình (MEMBER chỉ chia sẻ được mục mình tải lên).
+      currentUserId,
+    };
+  }, [driveRoles, currentDriveId, currentUserId]);
+
   return (
     <FileContext.Provider value={contextValue}>
       <SelectionContext.Provider value={selectionValue}>
         <ClipboardContext.Provider value={clipboardValue}>
           <PreviewContext.Provider value={previewValue}>
-            {children}
+            <DriveAccessContext.Provider value={driveAccessValue}>
+              {children}
+            </DriveAccessContext.Provider>
           </PreviewContext.Provider>
         </ClipboardContext.Provider>
       </SelectionContext.Provider>
     </FileContext.Provider>
   );
 }
+
+/**
+ * Vai trò trong Bộ nhớ chung: `driveRoleOf(driveId)`, `currentDriveRole`, `isDriveReadOnly`.
+ * Ngoài `FileProvider` (harness, trang công khai) trả bản "không biết gì" — mọi lệnh hiện như cũ.
+ */
+const NO_DRIVE_ACCESS = { driveRoleOf: () => null, currentDriveRole: null, isDriveReadOnly: false, currentUserId: null };
+export const useDriveAccess = () => useContext(DriveAccessContext) ?? NO_DRIVE_ACCESS;
 
 export const useFiles = () => useContext(FileContext);
 

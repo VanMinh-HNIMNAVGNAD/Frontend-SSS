@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import toast from 'react-hot-toast';
-import { useFiles, useFileSelection, useClipboard } from '../../context/FileContext';
+import { useFiles, useFileSelection, useClipboard, useDriveAccess } from '../../context/FileContext';
 import { downloadItemsAsZip, triggerDownload } from '../../utils/downloadItems';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -50,10 +50,7 @@ export default function Header({ toggleRightSidebar }) {
         restoreFromTrash,
         markNotSpam,
         deletePermanentlyBulk,
-        moveItem,
-        copyItem,
         getDownloadUrl,
-        triggerReload,
         refreshStorageInfo
     } = useFiles();
 
@@ -97,6 +94,23 @@ export default function Header({ toggleRightSidebar }) {
 
     const isTrashTab = activeTab === 'trash';
     const isSpamTab = activeTab === 'spam';
+
+    // Nút hàng loạt chỉ hiện khi MỌI mục đang chọn cho phép — cùng luật với menu chuột phải
+    // (ContextMenu.jsx). Trước ##79 Xoá/Cắt luôn hiện ở tab "Được chia sẻ" và trong Bộ nhớ chung
+    // chỉ-xem, bấm vào là nhận một toast lỗi cho từng mục; "Xoá vĩnh viễn" mục drive cũng vậy với
+    // MEMBER. Vai trò chưa nạp (`null`) ⇒ hiện như cũ, backend vẫn là nơi chặn.
+    const { driveRoleOf } = useDriveAccess();
+    const selectedItems = selectedCount > 0 ? getSelectedItems(folders, files) : [];
+    const isForeign = (it) => it.isSharedWithMe || activeTab === 'shared-with-me';
+    const isDriveViewerItem = (it) => Boolean(it.sharedDriveId) && driveRoleOf(it.sharedDriveId) === 'VIEWER';
+    const canTrashSelection = selectedItems.every((it) => !isForeign(it) && !isDriveViewerItem(it));
+    const canCutSelection = selectedItems.every(
+        (it) => (!isForeign(it) || it.sharedRole === 'EDITOR') && !isDriveViewerItem(it),
+    );
+    const canDeleteForeverSelection = selectedItems.every((it) => {
+        const role = it.sharedDriveId ? driveRoleOf(it.sharedDriveId) : null;
+        return !it.sharedDriveId || role == null || role === 'ADMIN';
+    });
     const allCurrentSelected = (folders?.length + files?.length) > 0 && selectedCount >= (folders?.length + files?.length);
 
     /**
@@ -263,43 +277,6 @@ export default function Header({ toggleRightSidebar }) {
         if (succeeded > 0) refreshStorageInfo();
     };
 
-    const handleMoveSelected = async () => {
-        const items = getSelectedItems(folders, files);
-        if (!items.length) return;
-        const targetId = prompt(t('header.prompt.moveTarget'));
-        if (targetId === null) return;
-
-        const succeeded = await runBatch(
-            items,
-            (item) => moveItem(item.id, targetId || null, { silent: true }),
-            'header.success.move',
-            'header.error.move',
-            'header.error.movePartial',
-        );
-        // moveItem/copyItem ở chế độ silent KHÔNG tự tải lại danh sách — nếu để
-        // nó tự làm thì mỗi mục là một lần tải lại cả trang cho cùng kết quả.
-        if (succeeded > 0) await triggerReload();
-    };
-
-    const handleCopySelected = async () => {
-        const items = getSelectedItems(folders, files);
-        if (!items.length) return;
-        const targetId = prompt(t('header.prompt.copyTarget'));
-        if (targetId === null) return;
-
-        const succeeded = await runBatch(
-            items,
-            (item) => copyItem(item.id, targetId || null, { silent: true }),
-            'header.success.copy',
-            'header.error.copy',
-            'header.error.copyPartial',
-        );
-        if (succeeded > 0) {
-            await triggerReload();
-            refreshStorageInfo();
-        }
-    };
-
     const handleDownloadSelected = async () => {
         const items = getSelectedItems(folders, files);
         if (!items.length) return;
@@ -365,10 +342,13 @@ export default function Header({ toggleRightSidebar }) {
                 <div className="flex items-center gap-0.5 sm:gap-2 shrink-0">
                     {!isTrashTab && !isSpamTab ? (
                         <>
+                            {canTrashSelection && (
                             <button onClick={handleDeleteSelected} className="flex items-center gap-1.5 px-3 py-2 hover:bg-red-500/90 rounded-lg transition-colors text-sm font-medium cursor-pointer" title={t('common.delete')}>
                                 <Trash2 className="w-4 h-4" />
                                 <span className="hidden lg:inline">{t('common.delete')}</span>
                             </button>
+                            )}
+                            {canCutSelection && (
                             <button 
                                 onClick={() => {
                                     cutItems(Array.from(selectedIds));
@@ -379,6 +359,7 @@ export default function Header({ toggleRightSidebar }) {
                                 <Scissors className="w-4 h-4" />
                                 <span className="hidden lg:inline">{t('common.cut')}</span>
                             </button>
+                            )}
                             <button 
                                 onClick={() => {
                                     copyItems(Array.from(selectedIds));
@@ -400,10 +381,12 @@ export default function Header({ toggleRightSidebar }) {
                                 <RotateCcw className="w-4 h-4" />
                                 <span className="hidden lg:inline">{t('common.restore')}</span>
                             </button>
+                            {canDeleteForeverSelection && (
                             <button onClick={handlePermanentDeleteSelected} className="flex items-center gap-1.5 px-3 py-2 hover:bg-red-500/90 rounded-lg transition-colors text-sm font-medium cursor-pointer" title={t('common.deleteForever')}>
                                 <AlertCircle className="w-4 h-4" />
                                 <span className="hidden lg:inline">{t('common.deleteForever')}</span>
                             </button>
+                            )}
                         </>
                     )}
                 </div>

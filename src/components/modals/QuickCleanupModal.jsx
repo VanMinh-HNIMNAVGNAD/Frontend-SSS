@@ -5,10 +5,15 @@ import { filesApi } from '../../services/api';
 import { Trash2, HardDrive, X, Sparkles, Check, AlertTriangle, FileText } from 'lucide-react';
 
 export default function QuickCleanupModal({ isOpen, onClose }) {
-  const { items, emptyTrash, moveToTrash, storageInfo } = useFiles();
+  const { emptyTrash, moveToTrash, storageInfo } = useFiles();
   const { t } = useLanguage();
   const [isCleaningTrash, setIsCleaningTrash] = useState(false);
   const [largeFiles, setLargeFiles] = useState(null);
+  // Số mục trong thùng rác, hỏi SERVER mỗi lần mở (`meta.total`). Trước ##79 đếm từ `items` của
+  // trang đang mở: modal mở từ thanh bên, nên ở Drive của tôi luôn ra "0 tệp" và nút bị khoá; ở
+  // Thùng rác thì chỉ đếm trang 1. `null` = đang hỏi.
+  const [trashCount, setTrashCount] = useState(null);
+  const [trashReloadToken, setTrashReloadToken] = useState(0);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -26,21 +31,37 @@ export default function QuickCleanupModal({ isOpen, onClose }) {
     };
   }, [isOpen]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+    filesApi
+      .getFilesAndFolders({ tab: 'trash', page: 1, limit: 1 }, { background: true })
+      .then((res) => {
+        if (!cancelled) setTrashCount(Number(res?.meta?.total) || 0);
+      })
+      .catch(() => {
+        if (!cancelled) setTrashCount(0);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, trashReloadToken]);
+
   if (!isOpen) return null;
 
-  const trashItems = items.filter((i) => i.isTrash);
-  const trashBytes = trashItems.reduce((acc, curr) => acc + Number(curr.sizeBytes || curr.size || 0), 0);
+  // Byte thùng rác tính vào dung lượng CỦA MÌNH — cùng nguồn với biểu đồ dung lượng.
+  const trashBytes = Number(storageInfo?.categories?.trashed?.bytes) || 0;
   const trashMB = (trashBytes / (1024 * 1024)).toFixed(2);
 
   const handleEmptyTrashNow = async () => {
+    setIsCleaningTrash(true);
     try {
-      setIsCleaningTrash(true);
-      await emptyTrash();
-      alert(t('cleanup.done'));
-    } catch (err) {
-      alert(t('cleanup.failed', { reason: err.message }));
+      // `emptyTrash` không throw: lỗi đã có toast riêng. Chỉ báo "xong" khi server nói xong.
+      const res = await emptyTrash();
+      if (res?.ok) alert(t('cleanup.done'));
     } finally {
       setIsCleaningTrash(false);
+      setTrashReloadToken((n) => n + 1);
     }
   };
 
@@ -82,7 +103,7 @@ export default function QuickCleanupModal({ isOpen, onClose }) {
               <Trash2 className="w-5 h-5 text-amber-600 dark:text-amber-400" />
               <div>
                 <div className="text-xs font-bold text-gray-900 dark:text-gray-100">
-                  {t('cleanup.emptyTrash', { count: trashItems.length })}
+                  {t('cleanup.emptyTrash', { count: trashCount ?? '…' })}
                 </div>
                 <div className="text-[11px] text-gray-500 dark:text-gray-400">
                   {t('cleanup.reclaimable', { size: trashMB })}
@@ -91,7 +112,7 @@ export default function QuickCleanupModal({ isOpen, onClose }) {
             </div>
             <button
               onClick={handleEmptyTrashNow}
-              disabled={isCleaningTrash || trashItems.length === 0}
+              disabled={isCleaningTrash || !trashCount}
               className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl transition-colors disabled:opacity-50"
             >
               {isCleaningTrash ? t('cleanup.trashing') : t('cleanup.trashNow')}

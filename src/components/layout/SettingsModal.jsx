@@ -13,10 +13,10 @@ import { userApi } from '../../services/api';
 import { STARTUP_PAGE_KEY, STARTUP_PAGES, readStartupPage } from '../../constants/routes';
 import {
   PRIVACY_DISCOVERABLE_KEY,
-  PRIVACY_SHARE_ROLE_KEY,
   SHARE_ROLES,
   readDiscoverableByEmail,
   readDefaultShareRole,
+  writeDefaultShareRole,
 } from '../../constants/privacy';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -159,18 +159,16 @@ export default function SettingsModal({ isOpen, onClose }) {
 
   const handleChangeShareRole = (role) => {
     setDefaultShareRole(role);
-    safeSetItem(PRIVACY_SHARE_ROLE_KEY, role);
+    // Lưu theo tài khoản đang đăng nhập (##79) — xem `bindShareRoleOwner`.
+    writeDefaultShareRole(role);
     // TODO(backend): nối PATCH /api/v1/users/me như handler ngay trên.
     //
     // Bên ĐỌC: ShareModal.jsx gọi readDefaultShareRole() để khởi tạo ô quyền của
     // form "Thêm người có quyền truy cập", và đọc lại mỗi lần modal MỞ nên đổi ở
     // đây có hiệu lực ngay ở lần mở kế tiếp, khỏi F5.
     //
-    // Luồng tạo LINK công khai (POST /files/:id/share) cũng đã gửi `role`:
-    // ShareModal.handleCopyLink, FileGridView.handleQuickCopyLink và
-    // FileListView.handleQuickCopyLink đều truyền readDefaultShareRole(). Nhãn "khi
-    // tạo Link" giờ đúng với CẢ HAI luồng — mời qua email và tạo link công khai.
-    // Ba chỗ đó đọc tại thời điểm bấm nên không cần F5 sau khi đổi ở đây.
+    // KHÔNG áp cho link công khai: backend không đọc `role` của link (link luôn chỉ
+    // xem/tải), nên trước ##79 lựa chọn "Được chỉnh sửa" cho link là lời hứa suông.
   };
 
   // Không cần useEffect áp dụng theme lúc mount: src/hooks/useTheme.js áp dụng

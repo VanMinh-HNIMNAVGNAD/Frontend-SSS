@@ -1,11 +1,10 @@
 import { useState, useCallback, useRef, memo } from 'react';
-import { useFiles, useFileSelection, useClipboard, useFilePreview } from '../../context/FileContext';
+import { useFiles, useFileSelection, useClipboard, useFilePreview, useDriveAccess } from '../../context/FileContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAiPanel } from '../../context/AiPanelContext';
 import { getFileIcon as getSharedFileIcon } from '../../utils/getFileIcon';
 import { getCardColorVars } from '../../utils/fileColors';
 import { sharingApi } from '../../services/api';
-import { readDefaultShareRole } from '../../constants/privacy';
 import toast from 'react-hot-toast';
 import { formatBytes } from '../../utils/formatFileSize';
 import FileSkeleton from '../common/FileSkeleton';
@@ -499,9 +498,10 @@ export default function FileListView() {
         }
     }, [activeTab, currentSharedDriveId, currentFolderId, uploadEntries, t]);
 
-    // Thư mục người khác chia sẻ: menu chuột phải không có nhóm tạo mới (##78) — backend không
-    // nhận tải lên / tạo thư mục vào đó; nút "Mới" ở thanh bên nói lý do.
-    const createActions = isInForeignFolder
+    // Thư mục người khác chia sẻ (##78) hoặc Bộ nhớ chung mình chỉ là VIEWER (##79): menu chuột phải
+    // không có nhóm tạo mới / Dán — backend không nhận ghi vào đó; nút "Mới" ở thanh bên nói lý do.
+    const { isDriveReadOnly } = useDriveAccess();
+    const createActions = isInForeignFolder || isDriveReadOnly
         ? {}
         : {
               onUploadFile: () => fileInputRef.current?.click(),
@@ -552,11 +552,8 @@ export default function FileListView() {
         // là hoàn toàn im lặng và người dùng bấm lại lần nữa, tạo thêm một link nữa.
         const toastId = toast.loading(t('list.share.copying'));
         try {
+            // Không gửi `role`: link công khai luôn chỉ xem/tải, backend không đọc nó (##79).
             const res = await sharingApi.createShareLink(item.id, {
-                // Sao chép nhanh không có giao diện chọn quyền — lấy "Quyền chia sẻ
-                // mặc định khi tạo Link" trong Cài đặt. Đọc tại chỗ (không cache theo
-                // useCallback) để đổi trong Cài đặt là có hiệu lực ngay ở lần bấm sau.
-                role: readDefaultShareRole(),
                 isDownloadAllowed: true,
                 isPreviewOnly: false,
             });
@@ -636,7 +633,7 @@ export default function FileListView() {
                     {...createActions}
                     isBuildingTree={isBuildingTree}
                     onPaste={(targetParentId) => pasteItems(targetParentId)}
-                    canPaste={clipboard.items.length > 0}
+                    canPaste={clipboard.items.length > 0 && !isDriveReadOnly}
                     isPasting={isPasting}
                 />
             </div>
@@ -808,7 +805,7 @@ export default function FileListView() {
                     }
                 }}
                 onPaste={(targetParentId) => pasteItems(targetParentId)}
-                canPaste={clipboard.items.length > 0}
+                canPaste={clipboard.items.length > 0 && !isDriveReadOnly}
                 isPasting={isPasting}
                 onShare={(item) => setShareItemTarget(item)}
                 onQuickCopyLink={handleQuickCopyLink}

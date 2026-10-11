@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { authApi, userApi, startSessionKeeper } from '../services/api';
-import { writeDiscoverableByEmail } from '../constants/privacy';
+import { writeDiscoverableByEmail, bindShareRoleOwner } from '../constants/privacy';
 import { LEGAL_VERSION, needsTermsAcceptance } from '../constants/legal';
 import { subjectOf } from '../utils/jwt';
 import { resetSharedCaches } from '../utils/ttlCache';
@@ -133,6 +133,12 @@ export function AuthProvider({ children }) {
       writeDiscoverableByEmail(user.isDiscoverableByEmail);
     }
   }, [user]);
+
+  // Quyền chia sẻ mặc định là cài đặt của TÀI KHOẢN, không của trình duyệt (##79): người đăng
+  // nhập sau trên cùng máy không được thừa hưởng "Được chỉnh sửa" của người trước.
+  useEffect(() => {
+    bindShareRoleOwner(user?.id ?? null);
+  }, [user?.id]);
 
   /**
    * @param {string} email

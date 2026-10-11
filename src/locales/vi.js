@@ -39,17 +39,17 @@ const vi = {
   'settings.privacy.discoverable.title': 'Hiển thị thông tin cá nhân',
   'settings.privacy.discoverable.desc':
     'Cho phép người dùng khác tìm thấy bạn qua Email khi chia sẻ tệp',
-  'settings.privacy.shareRole.label': 'Quyền chia sẻ mặc định khi tạo Link',
+  'settings.privacy.shareRole.label': 'Quyền mặc định khi chia sẻ cho người khác',
   'settings.privacy.shareRole.viewer': 'Chỉ xem (Viewer)',
   'settings.privacy.shareRole.editor': 'Được chỉnh sửa (Editor)',
   'settings.privacy.shareRole.hint':
-    'Áp dụng cho lần chia sẻ tiếp theo; các link đã tạo trước đó giữ nguyên quyền cũ.',
+    'Áp dụng cho ô "Thêm người" ở lần chia sẻ tiếp theo; người đã được chia sẻ giữ nguyên quyền. Link công khai luôn chỉ cho xem/tải.',
   // Chỉ còn nói về ô "Quyền chia sẻ mặc định": công tắc "Hiển thị thông tin cá
   // nhân" đã lưu ở máy chủ (cột users.is_discoverable_by_email) nên nó đồng bộ
   // giữa các thiết bị. Khoá 'settings.privacy.discoverable.notEnforced' cũ đã bị
   // xoá cùng lượt — máy chủ giờ thực thi thật ở FilesService.addShareAccess.
   'settings.privacy.localOnly':
-    'Quyền chia sẻ mặc định hiện chỉ lưu trên trình duyệt của bạn, chưa đồng bộ giữa các thiết bị.',
+    'Quyền chia sẻ mặc định chỉ lưu trên trình duyệt này (riêng cho từng tài khoản), chưa đồng bộ giữa các thiết bị.',
 
   // Lỗi khi PATCH /users/me thất bại lúc bật/tắt công tắc. Câu này luôn hiện,
   // còn `err.message` của backend (nếu có) được ghép thêm phía sau như phần lý do.
@@ -135,16 +135,12 @@ const vi = {
   'header.confirm.notSpam': 'Gỡ {count} mục khỏi Nội dung rác và trả về thư mục cũ?',
   'header.confirm.deleteForever':
     'Xóa vĩnh viễn {count} mục? Hành động này không thể hoàn tác!',
-  'header.prompt.moveTarget': 'Nhập ID thư mục đích (để trống = gốc):',
-  'header.prompt.copyTarget': 'Nhập ID thư mục đích cho sao chép (để trống = gốc):',
   // Thông báo thành công — gộp cho cả thao tác nhiều mục, nên luôn nêu {count}
   'header.success.delete': 'Đã chuyển {count} mục vào thùng rác',
   'header.success.restore': 'Đã khôi phục {count} mục',
   'header.success.notSpam': 'Đã gỡ {count} mục khỏi Nội dung rác',
   'header.success.notSpamTo': 'Các mục đã quay lại thư mục "{folder}"',
   'header.success.deleteForever': 'Đã xóa vĩnh viễn {count} mục',
-  'header.success.move': 'Đã di chuyển {count} mục',
-  'header.success.copy': 'Đã sao chép {count} mục',
   'header.success.download': 'Đã tải {count} tệp',
   'header.zip.creating': 'Đang tạo tệp ZIP...',
   'header.zip.started': 'Đã bắt đầu tải ZIP — xem tiến trình ở mục tải xuống của trình duyệt',
@@ -160,10 +156,6 @@ const vi = {
   'header.error.deleteForever': 'Không xóa vĩnh viễn được "{name}": {reason}',
   'header.error.deleteForeverPartial':
     'Có {failed}/{total} mục không xóa vĩnh viễn được (vd. "{name}")',
-  'header.error.move': 'Không di chuyển được "{name}": {reason}',
-  'header.error.movePartial': 'Có {failed}/{total} mục không di chuyển được (vd. "{name}")',
-  'header.error.copy': 'Không sao chép được "{name}": {reason}',
-  'header.error.copyPartial': 'Có {failed}/{total} mục không sao chép được (vd. "{name}")',
   'header.error.download': 'Không tải được "{name}": {reason}',
   'header.error.downloadPartial': 'Có {failed}/{total} tệp không tải được (vd. "{name}")',
   'header.error.noDownloadUrl': 'không nhận được link tải',
@@ -247,6 +239,7 @@ const vi = {
   'newBtn.needDrive.file': 'Vui lòng mở một cloudSSS dùng chung trước khi tải tệp lên.',
   'newBtn.needDrive.uploadFolder': 'Vui lòng mở một cloudSSS dùng chung trước khi tải thư mục lên.',
   'newBtn.foreignFolder': 'Thư mục này do người khác chia sẻ với bạn — chưa thể tải lên hay tạo thư mục mới ở đây. Hãy làm việc đó trong cloudSSS của tôi hoặc Bộ nhớ dùng chung.',
+  'newBtn.driveViewer': 'Bạn chỉ có quyền xem trong cloudSSS dùng chung này — không thể tải lên, tạo thư mục hay dán vào đây. Hãy nhờ Quản trị viên của nó cấp quyền Thành viên.',
   // ── Cột phải (components/layout/RightSideBar.jsx) ──
   'theme.toggle.toLight': 'Chế độ sáng',
   'theme.toggle.toDark': 'Chế độ tối',
@@ -303,6 +296,7 @@ const vi = {
   'myDrive.paste': 'Dán ({count})',
   'trash.empty.button': 'Dọn sạch thùng rác',
   'trash.empty.confirm': 'Bạn có chắc chắn muốn dọn sạch thùng rác? Tất cả các tệp sẽ bị xóa vĩnh viễn.',
+  'trash.empty.keptDriveItems': 'Đã dọn thùng rác. Còn {count} mục trong cloudSSS dùng chung được giữ lại — chỉ Quản trị viên của nó mới xoá vĩnh viễn được (bạn vẫn khôi phục được chúng).',
   'trash.banner.title': 'Trạng thái lưu trữ Thùng rác:',
   'trash.banner.body': 'Các tệp trong thùng rác sẽ tự động bị xóa vĩnh viễn sau 30 ngày.',
   'spam.banner.title': 'Cảnh báo an toàn tệp nghi ngờ:',
@@ -486,7 +480,6 @@ const vi = {
   'cleanup.trashNow': 'Dọn ngay',
   'cleanup.moveToTrash': 'Chuyển vào Thùng rác',
   'cleanup.done': 'Đã dọn dẹp sạch Thùng rác! Thu hồi bộ nhớ thành công.',
-  'cleanup.failed': 'Lỗi dọn thùng rác: {reason}',
   // ── Trợ lý AI (menu chuột phải + khung trò chuyện) ──
   // Bộ khoá 'gemini.*' cũ đã bỏ: nó phục vụ câu trả lời GIẢ LẬP bằng setTimeout,
   // không còn chỗ dùng sau khi khung chat gọi thật Vertex AI.

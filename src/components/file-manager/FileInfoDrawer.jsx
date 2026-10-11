@@ -49,6 +49,8 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
     const locale = localeTagOf(language);
     const [currentTab, setCurrentTab] = useState(activeTab);
     const [versions, setVersions] = useState(null);
+    // `{ id, message }` — lỗi nạp phiên bản của tệp `id` (##79: trước đây chỉ console.error).
+    const [versionsError, setVersionsError] = useState(null);
     const [activityLogs, setActivityLogs] = useState([]);
     const [activityError, setActivityError] = useState(null);
     const [loadingTab, setLoadingTab] = useState(false);
@@ -80,9 +82,10 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
         if (!isOpen || !item) return;
         if (currentTab === 'versions' && item.type !== 'folder') {
             setLoadingTab(true);
-            filesApi.getFileVersions(item.id)
+            const forId = item.id;
+            filesApi.getFileVersions(forId)
                 .then((data) => setVersions(data))
-                .catch((err) => console.error(err))
+                .catch((err) => setVersionsError({ id: forId, message: err.message || t('info.versions.none') }))
                 .finally(() => setLoadingTab(false));
         } else if (currentTab === 'activity') {
             fetchActivityLogs();
@@ -106,6 +109,11 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
     if (!isOpen || !item) return null;
 
     const isFolder = item.type === 'folder';
+    // Chỉ hiện dữ liệu/lỗi phiên bản CỦA ĐÚNG tệp đang mở. Ngăn này không remount khi đổi tệp,
+    // nên trước ##79 tệp nạp lỗi (vd. 404) vẫn hiện "Phiên bản hiện tại" — tên, dung lượng — của
+    // tệp xem TRƯỚC đó.
+    const shownVersions = versions?.currentVersion?.id === item.id ? versions : null;
+    const shownVersionsError = versionsError?.id === item.id ? versionsError.message : null;
 
     const getFileIconLarge = () => {
         if (isFolder) return <Folder className="w-16 h-16 text-amber-500 fill-amber-500/20 stroke-1" />;
@@ -583,20 +591,20 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                         </h4>
                         {loadingTab ? (
                             <p className="text-xs text-gray-400">{t('info.versions.loading')}</p>
-                        ) : versions ? (
+                        ) : shownVersions ? (
                             <div className="space-y-3">
                                 {/* Current Version */}
                                 <div className="p-3 rounded-2xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
                                     <div className="flex items-center justify-between mb-1">
                                         <span className="font-extrabold text-blue-700 dark:text-blue-400 text-xs">{t('info.versions.current')}</span>
-                                        <span className="text-[10px] font-mono text-blue-600">{formatBytes(versions.currentVersion.sizeBytes)}</span>
+                                        <span className="text-[10px] font-mono text-blue-600">{formatBytes(shownVersions.currentVersion.sizeBytes)}</span>
                                     </div>
-                                    <p className="text-[11px] text-blue-900 dark:text-blue-200 font-medium">{versions.currentVersion.name}</p>
+                                    <p className="text-[11px] text-blue-900 dark:text-blue-200 font-medium">{shownVersions.currentVersion.name}</p>
                                 </div>
 
                                 {/* Past Versions */}
-                                {versions.pastVersions && versions.pastVersions.length > 0 ? (
-                                    versions.pastVersions.map((v) => (
+                                {shownVersions.pastVersions && shownVersions.pastVersions.length > 0 ? (
+                                    shownVersions.pastVersions.map((v) => (
                                         <div key={v.id} className="p-3 rounded-2xl bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 flex items-center justify-between">
                                             <div>
                                                 <div className="font-bold text-gray-900 dark:text-gray-100 text-xs">
@@ -613,7 +621,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                                 )}
                             </div>
                         ) : (
-                            <p className="text-xs text-gray-400 py-4 text-center">{t('info.versions.none')}</p>
+                            <p className="text-xs text-gray-400 py-4 text-center">{shownVersionsError || t('info.versions.none')}</p>
                         )}
                     </div>
                 )}

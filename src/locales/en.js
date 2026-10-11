@@ -35,18 +35,18 @@ const en = {
   'settings.privacy.discoverable.title': 'Show my personal information',
   'settings.privacy.discoverable.desc':
     'Let other people find you by email when they share files',
-  'settings.privacy.shareRole.label': 'Default link sharing permission',
+  'settings.privacy.shareRole.label': 'Default permission when sharing with people',
   'settings.privacy.shareRole.viewer': 'Viewer only',
   'settings.privacy.shareRole.editor': 'Editor',
   'settings.privacy.shareRole.hint':
-    'Applies to your next share; links you already created keep their current permission.',
+    'Applies to the "Add people" box next time you share; people you already shared with keep their permission. Public links are always view/download only.',
   // Now about the default-share-permission select only: the "Show my personal
   // information" switch is stored server-side (users.is_discoverable_by_email),
   // so it does sync across devices. The old
   // 'settings.privacy.discoverable.notEnforced' key was dropped in the same
   // change — the server now enforces the switch in FilesService.addShareAccess.
   'settings.privacy.localOnly':
-    'The default sharing permission is stored in this browser only — it does not sync across devices yet.',
+    'The default sharing permission is stored in this browser only (separately for each account) — it does not sync across devices yet.',
 
   // Shown when PATCH /users/me fails while toggling the switch. Always shown;
   // the backend's `err.message`, if any, is appended after it as the reason.
@@ -132,17 +132,12 @@ const en = {
   'header.confirm.notSpam': 'Remove {count} item(s) from Spam and send them back to their folder?',
   'header.confirm.deleteForever':
     'Permanently delete {count} item(s)? This cannot be undone!',
-  'header.prompt.moveTarget': 'Enter the destination folder ID (leave empty for root):',
-  'header.prompt.copyTarget':
-    'Enter the destination folder ID for the copy (leave empty for root):',
   // Success messages — also used for batch actions, hence the {count}
   'header.success.delete': 'Moved {count} item(s) to trash',
   'header.success.restore': 'Restored {count} item(s)',
   'header.success.notSpam': 'Removed {count} item(s) from Spam',
   'header.success.notSpamTo': 'Items are back in "{folder}"',
   'header.success.deleteForever': 'Permanently deleted {count} item(s)',
-  'header.success.move': 'Moved {count} item(s)',
-  'header.success.copy': 'Copied {count} item(s)',
   'header.success.download': 'Downloaded {count} file(s)',
   'header.zip.creating': 'Creating ZIP file...',
   'header.zip.started': 'ZIP download started — track progress in your browser downloads',
@@ -157,10 +152,6 @@ const en = {
   'header.error.deleteForever': 'Could not permanently delete "{name}": {reason}',
   'header.error.deleteForeverPartial':
     'Could not permanently delete {failed}/{total} item(s) (e.g. "{name}")',
-  'header.error.move': 'Could not move "{name}": {reason}',
-  'header.error.movePartial': 'Could not move {failed}/{total} item(s) (e.g. "{name}")',
-  'header.error.copy': 'Could not copy "{name}": {reason}',
-  'header.error.copyPartial': 'Could not copy {failed}/{total} item(s) (e.g. "{name}")',
   'header.error.download': 'Could not download "{name}": {reason}',
   'header.error.downloadPartial': 'Could not download {failed}/{total} file(s) (e.g. "{name}")',
   'header.error.noDownloadUrl': 'no download link returned',
@@ -244,6 +235,7 @@ const en = {
   'newBtn.needDrive.file': 'Open a shared cloudSSS first, then upload the file.',
   'newBtn.needDrive.uploadFolder': 'Open a shared cloudSSS first, then upload the folder.',
   'newBtn.foreignFolder': "This folder was shared with you by someone else — you can't upload or create folders here yet. Do that in My cloudSSS or a Shared cloudSSS instead.",
+  'newBtn.driveViewer': "You can only view this shared cloudSSS — you can't upload, create folders or paste here. Ask one of its admins to make you a member.",
   // ── Right sidebar (components/layout/RightSideBar.jsx) ──
   'theme.toggle.toLight': 'Light mode',
   'theme.toggle.toDark': 'Dark mode',
@@ -300,6 +292,7 @@ const en = {
   'myDrive.paste': 'Paste ({count})',
   'trash.empty.button': 'Empty trash',
   'trash.empty.confirm': 'Empty the trash? Every file in it will be deleted permanently.',
+  'trash.empty.keptDriveItems': 'Trash emptied. {count} item(s) from shared cloudSSS were kept — only their admins can delete them permanently (you can still restore them).',
   'trash.banner.title': 'About the trash:',
   'trash.banner.body': 'Files in the trash are deleted permanently after 30 days.',
   'spam.banner.title': 'Suspicious file warning:',
@@ -474,7 +467,6 @@ const en = {
   'cleanup.trashNow': 'Clean now',
   'cleanup.moveToTrash': 'Move to trash',
   'cleanup.done': 'Trash emptied — the space has been reclaimed.',
-  'cleanup.failed': 'Could not empty the trash: {reason}',
   // ── AI assistant (right-click menu + chat panel) ──
   'ai.menu.title': 'Ask AI about this',
   'ai.menu.subtitle': 'Quick actions',

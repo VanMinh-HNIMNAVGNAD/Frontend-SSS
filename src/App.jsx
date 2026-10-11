@@ -44,8 +44,6 @@ export default function App() {
                                     },
                                 }}
                             />
-                            {/* Thanh "đang xử lý" ở đỉnh trang — đặt trong LanguageProvider
-                                vì nó dùng t(), và ngoài AppRouter để mọi route đều có. */}
                             <GlobalProgressBar />
                             <AppRouter />
                             </AiPanelProvider>

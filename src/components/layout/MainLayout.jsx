@@ -1,7 +1,7 @@
 import { lazy, Suspense, useState, useRef, useCallback } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { useFiles, useFilePreview } from '../../context/FileContext';
+import { useFiles, useFilePreview, useDriveAccess } from '../../context/FileContext';
 import { useLanguage } from '../../context/LanguageContext';
 import useGlobalShortcuts from '../../hooks/useGlobalShortcuts';
 import Sidebar from './SideBar';
@@ -72,9 +72,15 @@ export default function MainLayout() {
      * ghi file/thư mục vào đâu — chặn sớm giống NewButton.jsx. Thư mục người khác
      * chia sẻ thì không ghi được (##78) — nói lý do thay vì để backend báo sai.
      */
+    const { isDriveReadOnly } = useDriveAccess();
     const blockedBySharedDrive = useCallback(() => {
         if (isInForeignFolder) {
             toast.error(t('newBtn.foreignFolder'), { duration: 6000 });
+            return true;
+        }
+        // VIEWER của Bộ nhớ chung chỉ xem (##79) — nói lý do thay vì để backend trả 403.
+        if (isDriveReadOnly) {
+            toast.error(t('newBtn.driveViewer'), { duration: 6000 });
             return true;
         }
         if (activeTab === 'shared-drives' && !currentSharedDriveId && !currentFolderId) {
@@ -82,7 +88,7 @@ export default function MainLayout() {
             return true;
         }
         return false;
-    }, [activeTab, currentSharedDriveId, currentFolderId, isInForeignFolder, t]);
+    }, [activeTab, currentSharedDriveId, currentFolderId, isInForeignFolder, isDriveReadOnly, t]);
 
     /** Danh sách mục đang được chọn ở khung nội dung hiện tại */
     const getSelection = useCallback(

@@ -14,6 +14,7 @@ import { Folder, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
 import { collectInputEntries } from '../../utils/uploadTree';
 import { downloadSingleItem } from '../../utils/downloadItems';
 import tRich from '../../utils/tRich';
+import { FOLDER_GRID_CLASS, FILE_GRID_CLASS } from './gridLayout';
 
 export default function FileGridView() {
     const { t } = useLanguage();
@@ -267,7 +268,7 @@ export default function FileGridView() {
                 Làm mờ và khoá tương tác thay vì thay bằng skeleton: xoá cả lưới đi
                 rồi dựng lại sau mỗi 400ms gõ phím là màn hình nhấp nháy liên tục. */}
             <div
-                className={`space-y-6 overflow-y-auto pr-1 transition-opacity duration-150 ${
+                className={`space-y-6 phone:space-y-4 overflow-y-auto pr-1 transition-opacity duration-150 ${
                     isRefreshing ? 'opacity-50 pointer-events-none' : ''
                 }`}
                 aria-busy={isRefreshing}
@@ -275,11 +276,11 @@ export default function FileGridView() {
                 {/* Section 1: Thư mục (Folders) */}
                 {folders && folders.length > 0 && (
                     <div>
-                        <div className="flex items-center gap-2 mb-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        <div className="flex items-center gap-2 mb-3 phone:mb-2 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                             <Folder className="w-4 h-4 text-amber-500" />
                             <span>{t('list.group.folders', { count: folders.length })}</span>
                         </div>
-                        <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-3.5">
+                        <div className={FOLDER_GRID_CLASS}>
                             {folders.map((folder) => (
                                 <FolderCard
                                     key={folder.id}
@@ -300,11 +301,11 @@ export default function FileGridView() {
                 {/* Section 2: Tệp (Files) */}
                 {files && files.length > 0 && (
                     <div>
-                        <div className="flex items-center gap-2 mb-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        <div className="flex items-center gap-2 mb-3 phone:mb-2 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                             <FileText className="w-4 h-4 text-blue-500" />
                             <span>{t('list.group.files', { count: files.length })}</span>
                         </div>
-                        <div className="grid grid-cols-[repeat(auto-fill,minmax(210px,1fr))] gap-4">
+                        <div className={FILE_GRID_CLASS}>
                             {files.map((file) => (
                                 <FileCard
                                     key={file.id}
@@ -341,7 +342,7 @@ export default function FileGridView() {
                             <ChevronLeft className="w-4 h-4" />
                         </button>
                         <span className="px-2 font-medium">
-                            Trang {currentPage} / {totalPages}
+                            {t('list.pagination.page', { page: currentPage, total: totalPages })}
                         </span>
                         <button
                             disabled={currentPage === totalPages}

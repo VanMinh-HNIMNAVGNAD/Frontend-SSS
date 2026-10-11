@@ -762,7 +762,7 @@ export default function FileListView() {
                             <ChevronLeft className="w-4 h-4" />
                         </button>
                         <span className="px-2 font-semibold text-gray-800 dark:text-gray-200">
-                            Trang {currentPage} / {totalPages}
+                            {t('list.pagination.page', { page: currentPage, total: totalPages })}
                         </span>
                         <button
                             disabled={currentPage === totalPages}

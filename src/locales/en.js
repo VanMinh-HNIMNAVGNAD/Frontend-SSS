@@ -97,6 +97,7 @@ const en = {
   'sidebar.storage.cleanupTitle': 'Free up space now',
 
   // ── 10. Shared verbs — other screens will reuse these ───────────────────
+  'common.done': 'Done',
   'common.close': 'Close',
   'common.delete': 'Delete',
   'common.deleteForever': 'Delete permanently',
@@ -267,6 +268,7 @@ const en = {
   'list.role.editor': 'Edit',
   'list.role.viewer': 'View',
   'list.owner.me': 'Me',
+  'upload.itemFailed': 'This file could not be processed.',
   'list.suspicious': 'File flagged as suspicious',
   'list.empty.title': 'Nothing here yet',
   'list.empty.gridTitle': 'This folder is empty',
@@ -277,6 +279,7 @@ const en = {
   'file.download.failed': 'Could not download this file, please try again.',
   'list.share.copied': 'Share link copied',
   'list.share.copyFailed': 'Could not copy the share link',
+  'list.pagination.page': 'Page {page} / {total}',
   'list.pagination.showing': 'Showing {from} - {to} of {total} items',
   // ── List pages (src/pages/*Page.jsx) ──
   'view.list': 'List view',
@@ -712,6 +715,7 @@ const en = {
   'preview.text.loading': 'Loading content...',
   'preview.text.empty': 'No text content',
   'preview.copied': '✓ Copied',
+  'preview.wordDocument': 'Word document',
   'preview.copy': 'Copy',
   'preview.tooBig': 'This file is larger than 10MB — download it to view.',
   'preview.unsupported': 'This format cannot be previewed here.',
@@ -1348,6 +1352,9 @@ const en = {
   'info.field.owner': 'Owner',
   'auth.nickname.label': 'Nickname',
 
+  'card.select': 'Select',
+  'card.deselect': 'Deselect',
+  'card.starredBadge': 'Starred',
   'card.sharedBadge': 'Shared',
 
   // ── File navigation + comments in the preview ──

@@ -20,6 +20,28 @@ body {
    vẫn giữ nguyên khoảng thoáng cũ. */
 @custom-variant short (@media (max-height: 780px));
 
+/* Chế độ Lưới trên màn hẹp / màn cảm ứng (FileGridView, FolderCard, FileCard, lưới Trang chủ).
+   Ngưỡng cũ (thẻ thư mục ≥240px, thẻ tệp ≥210px) chỉ hợp với máy tính: điện thoại còn ~340px
+   nội dung nên lưới rơi về MỘT cột, mỗi thư mục thành một dải ngang như chế độ Danh sách.
+   - `phone`  : < 640px — điện thoại dọc, lưới 2 cột.
+   - `tablet` : 640–1023px (tablet dọc, điện thoại xoay ngang) HOẶC màn cảm ứng rộng hơn (tablet
+                xoay ngang ≥1024px vẫn là thẻ gọn, không nhận cỡ thẻ của máy tính dùng chuột).
+   - `compact`: hợp của hai cái trên — kiểu dáng thẻ gọn dùng chung.
+   `phone` và `tablet` loại trừ nhau nên không phụ thuộc thứ tự sinh CSS khi cùng đặt một thuộc tính.
+   `compact` thì chồng lên cả hai: thuộc tính nào khác giá trị giữa điện thoại và tablet phải viết
+   bằng `tablet:` + `phone:`, KHÔNG `compact:` + `phone:` (hai luật cùng khớp, bên sinh sau thắng). */
+@custom-variant phone (@media (width < 40rem));
+@custom-variant tablet {
+  @media (width >= 40rem) and (width < 64rem), (width >= 40rem) and (pointer: coarse) {
+    @slot;
+  }
+}
+@custom-variant compact {
+  @media (width < 64rem), (pointer: coarse) {
+    @slot;
+  }
+}
+
 :root {
   color-scheme: light;
   --app-bg: #f3f6fa;

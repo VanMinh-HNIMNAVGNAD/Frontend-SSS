@@ -60,3 +60,17 @@ export function translate(language, key, params) {
 export function tOutsideReact(key, params) {
   return translate(readSavedLanguage(), key, params);
 }
+
+/**
+ * Header báo cho backend biết ngôn ngữ giao diện (##81) — backend dùng nó để trả câu báo lỗi /
+ * câu xác nhận đúng tiếng. Thiếu header thì backend trả tiếng Việt như trước.
+ *
+ * Header riêng chứ không phải `Accept-Language`: trình duyệt tự gắn `Accept-Language` theo
+ * ngôn ngữ MÁY, nên người chọn tiếng Việt trên máy cài tiếng Anh sẽ nhận câu tiếng Anh ở mọi
+ * đường gọi quên gắn header này.
+ */
+export const LANGUAGE_HEADER = 'X-Lang';
+
+export function languageHeaders() {
+  return { [LANGUAGE_HEADER]: readSavedLanguage() };
+}

@@ -101,6 +101,7 @@ const vi = {
   'sidebar.storage.cleanupTitle': 'Dọn dẹp bộ nhớ ngay',
 
   // ── 10. Động từ dùng chung — nhiều màn hình khác cũng sẽ dùng lại ───────
+  'common.done': 'Xong',
   'common.close': 'Đóng',
   'common.delete': 'Xóa',
   'common.deleteForever': 'Xóa vĩnh viễn',
@@ -271,6 +272,7 @@ const vi = {
   'list.role.editor': 'Sửa',
   'list.role.viewer': 'Xem',
   'list.owner.me': 'Tôi',
+  'upload.itemFailed': 'Không xử lý được tệp này.',
   'list.suspicious': 'Tệp bị gắn cờ đáng ngờ',
   'list.empty.title': 'Chưa có tệp hoặc thư mục nào ở đây',
   'list.empty.gridTitle': 'Thư mục này chưa có tệp hoặc thư mục nào',
@@ -281,6 +283,7 @@ const vi = {
   'file.download.failed': 'Không tải được tệp này, vui lòng thử lại.',
   'list.share.copied': 'Đã sao chép liên kết chia sẻ',
   'list.share.copyFailed': 'Không thể sao chép liên kết chia sẻ',
+  'list.pagination.page': 'Trang {page} / {total}',
   'list.pagination.showing': 'Hiển thị {from} - {to} trong {total} mục',
   // ── Các trang danh sách (src/pages/*Page.jsx) ──
   'view.list': 'Xem dạng danh sách',
@@ -732,6 +735,7 @@ const vi = {
   'preview.text.loading': 'Đang tải nội dung...',
   'preview.text.empty': 'Không có nội dung văn bản',
   'preview.copied': '✓ Đã sao chép',
+  'preview.wordDocument': 'Tài liệu Word',
   'preview.copy': 'Sao chép',
   'preview.tooBig': 'Dung lượng tệp lớn (>10MB), vui lòng tải về để xem.',
   'preview.unsupported': 'Định dạng tệp không hỗ trợ xem trước trực tiếp.',
@@ -1368,6 +1372,9 @@ const vi = {
   'info.field.owner': 'Người sở hữu',
   'auth.nickname.label': 'Nickname',
 
+  'card.select': 'Chọn',
+  'card.deselect': 'Bỏ chọn',
+  'card.starredBadge': 'Đã gắn sao',
   'card.sharedBadge': 'Được chia sẻ',
 
   // ── Chuyển tệp + Nhận xét trong cửa sổ xem trước ──

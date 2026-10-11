@@ -1210,7 +1210,7 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
                     <span className="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block shrink-0" />
                     <span className="hidden @lg:inline font-semibold text-slate-800 dark:text-slate-200 truncate">{item.name}</span>
                   </div>
-                  <span>Word Document • {formatBytes(item.sizeBytes)}</span>
+                  <span>{t('preview.wordDocument')} • {formatBytes(item.sizeBytes)}</span>
                 </div>
                 {/* Không còn class typography nào ở đây: `docx-preview` dựng lại
                     font, cỡ chữ, lề và khổ giấy ĐÚNG như trong tệp, nên mọi thứ áp

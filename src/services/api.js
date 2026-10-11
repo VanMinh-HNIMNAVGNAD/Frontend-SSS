@@ -20,7 +20,7 @@ import { createBatchLoader } from '../utils/batchLoader';
 import { solvePow } from '../utils/powSolver';
 // api.js chạy NGOÀI cây React nên không gọi được `useLanguage()`. Những câu dự
 // phòng dưới đây vẫn hiện thẳng lên toast, nên chúng phải theo ngôn ngữ đang chọn.
-import { tOutsideReact } from '../utils/translate';
+import { LANGUAGE_HEADER, readSavedLanguage, tOutsideReact } from '../utils/translate';
 import { safeLocalStorage } from '../utils/safeStorage';
 
 const api = axios.create({
@@ -167,6 +167,9 @@ api.interceptors.request.use(
     if (deviceId) {
       config.headers['X-Device-Id'] = deviceId;
     }
+    // Câu báo lỗi / xác nhận từ backend theo ngôn ngữ đang chọn (##81). Đọc lúc GỬI chứ không
+    // lúc tạo instance: đổi ngôn ngữ xong thì lượt gọi kế tiếp đã đúng tiếng, không cần F5.
+    config.headers[LANGUAGE_HEADER] = readSavedLanguage();
     if (tracksProgress(config)) {
       config.__progressTracked = true;
       inFlightCount += 1;
@@ -1528,6 +1531,7 @@ async function postSse(path, payload, { signal, onEvent, onActivity, method = 'P
           : {}),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...(deviceId ? { 'X-Device-Id': deviceId } : {}),
+        [LANGUAGE_HEADER]: readSavedLanguage(),
       },
       ...(payload !== null && payload !== undefined
         ? { body: JSON.stringify(payload) }

@@ -4,6 +4,7 @@ import { useFileThumbnail, getFileTypeCategory } from '../../hooks/useFileThumbn
 import { useInViewport } from '../../hooks/useInViewport';
 import { getCardColorVars } from '../../utils/fileColors';
 import { useLanguage } from '../../context/LanguageContext';
+import { FILE_CARD_HEIGHT_CLASS } from './gridLayout';
 import { 
     FileText, 
     FileSpreadsheet, 
@@ -81,7 +82,7 @@ function FileCard({ file, onDoubleClick, onContextMenu, isSelected, isCut = fals
             onDoubleClick={() => onDoubleClick && onDoubleClick(file)}
             onContextMenu={(e) => onContextMenu && onContextMenu(e, file)}
             style={colorVars}
-            className={`group relative flex flex-col px-2.5 pt-1.5 pb-1.5 rounded-2xl cursor-pointer transition-all duration-200 border shadow-sm hover:shadow-md hover:-translate-y-0.5 h-52
+            className={`group relative flex flex-col px-2.5 phone:px-2 pt-1.5 pb-1.5 rounded-2xl cursor-pointer transition-all duration-200 border shadow-sm hover:shadow-md hover:-translate-y-0.5 ${FILE_CARD_HEIGHT_CLASS}
                 bg-[var(--fc-surface-l)] dark:bg-[var(--fc-surface-d)]
                 hover:bg-[var(--fc-hover-l)] dark:hover:bg-[var(--fc-hover-d)]
                 border-[var(--fc-border-l)] dark:border-[var(--fc-border-d)] ${
@@ -112,7 +113,7 @@ function FileCard({ file, onDoubleClick, onContextMenu, isSelected, isCut = fals
                                 ? 'opacity-100 text-blue-600 dark:text-blue-400'
                                 : 'opacity-0 group-hover:opacity-100 text-[var(--fc-muted-l)] dark:text-[var(--fc-muted-d)] hover:text-blue-600 dark:hover:text-blue-400'
                         }`}
-                        title={isSelected ? 'Bỏ chọn' : 'Chọn'}
+                        title={isSelected ? t('card.deselect') : t('card.select')}
                     >
                         {isSelected
                             ? <CheckSquare className="w-3.5 h-3.5" />
@@ -129,7 +130,7 @@ function FileCard({ file, onDoubleClick, onContextMenu, isSelected, isCut = fals
                 {file.isSpam && (
                     <span
                         className="shrink-0 text-amber-600 dark:text-amber-400"
-                        title={file.suspiciousReason || 'Tệp bị gắn cờ đáng ngờ'}
+                        title={file.suspiciousReason || t('list.suspicious')}
                     >
                         <ShieldAlert className="w-3.5 h-3.5" />
                     </span>

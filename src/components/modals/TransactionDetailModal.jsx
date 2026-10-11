@@ -14,6 +14,7 @@ import {
   X,
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
+import { displayPlanName } from '../../utils/planName';
 import { billingApi } from '../../services/api';
 import { localeTagOf } from '../../utils/locale';
 import {
@@ -120,7 +121,7 @@ export default function TransactionDetailModal({ transaction, onClose, onCancell
       key: 'plan',
       Icon: Package,
       label: t('tx.field.plan'),
-      value: transaction.planName || t('billing.tx.deletedPlan'),
+      value: displayPlanName(transaction.planName, language) || t('billing.tx.deletedPlan'),
     },
     {
       key: 'cycle',

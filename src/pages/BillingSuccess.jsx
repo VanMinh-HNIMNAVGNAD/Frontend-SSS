@@ -12,6 +12,7 @@ import {
 import { billingApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { displayPlanName } from '../utils/planName';
 import { localeTagOf } from '../utils/locale';
 import tRich from '../utils/tRich';
 // Dùng chung với trang Gói cước thay vì giữ bản copy cục bộ: bản copy cũ ghi mức
@@ -217,7 +218,7 @@ function RequestFailed({ message, onRetry }) {
 }
 
 function Result({ transaction, timedOut, onRetry }) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const status = transaction?.status;
 
   if (status === 'PAID') {
@@ -227,7 +228,7 @@ function Result({ transaction, timedOut, onRetry }) {
           {tRich(t('payResult.paid.body'), {
             plan: (
               <span className="font-bold text-gray-900 dark:text-gray-100">
-                {transaction.planName || t('payResult.paid.planFallback')}
+                {displayPlanName(transaction.planName, language) || t('payResult.paid.planFallback')}
               </span>
             ),
           })}
@@ -301,7 +302,7 @@ function TransactionDetails({ transaction }) {
 
   const rows = [
     [t('payResult.field.orderCode'), transaction.orderCode],
-    [t('payResult.field.plan'), transaction.planName],
+    [t('payResult.field.plan'), displayPlanName(transaction.planName, language)],
     [
       t('payResult.field.cycle'),
       CYCLE_LABEL_KEY[transaction.billingCycle] ? t(CYCLE_LABEL_KEY[transaction.billingCycle]) : null,

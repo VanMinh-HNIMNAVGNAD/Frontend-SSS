@@ -386,11 +386,12 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                             <div className="flex items-center justify-between p-3 rounded-2xl bg-gray-50 dark:bg-[#282a2c] border border-gray-100 dark:border-gray-800">
                                 <div className="flex items-center gap-3">
                                     <div className="w-8 h-8 rounded-full bg-blue-600 text-white font-bold flex items-center justify-center text-xs shadow-xs">
-                                        {(item.owner || 'T').charAt(0).toUpperCase()}
+                                        {(item.owner || t('list.owner.me')).charAt(0).toUpperCase()}
                                     </div>
                                     <div>
                                         <p className="font-semibold text-gray-800 dark:text-gray-200">{item.owner || t('list.owner.me')}</p>
-                                        <p className="text-[10px] text-gray-400">Group: {item.group || 'dev-team'}</p>
+                                        {/* Trước ##81 là dòng giữ chỗ "Group: dev-team" — dữ liệu giả, không dịch được. */}
+                                        <p className="text-[10px] text-gray-400">{t('list.col.owner')}</p>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-1.5">

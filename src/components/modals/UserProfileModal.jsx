@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { displayPlanName } from '../../utils/planName';
 import { localeTagOf } from '../../utils/locale';
 import tRich from '../../utils/tRich';
 import {
@@ -473,7 +474,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
     if (subscription === 'loading') return t('profile.plan.loading');
     if (subscription === 'error') return t('profile.plan.unavailable');
     if (!subscription?.planName) return t('profile.plan.free');
-    const name = t('profile.plan.current', { name: subscription.planName });
+    const name = t('profile.plan.current', { name: displayPlanName(subscription.planName, language) });
     // `remainingDays` chỉ nói thêm khi nó là một con số dương thật. 0 hoặc âm là
     // gói đã hết hạn mà bản ghi chưa kịp đóng — nói "còn 0 ngày" thì vô nghĩa.
     return subscription.remainingDays > 0

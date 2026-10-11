@@ -489,7 +489,7 @@ export default function ShareModal({ isOpen, item, onClose }) {
                             onClick={onClose}
                             className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl shadow-sm transition-all cursor-pointer"
                         >
-                            Xong
+                            {t('common.done')}
                         </button>
                     </div>
                 </div>

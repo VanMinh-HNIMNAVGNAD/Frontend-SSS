@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 import { localeTagOf } from '../utils/locale';
+import { languageHeaders } from '../utils/translate';
 import { sharingApi } from '../services/api';
 import { API_BASE_URL } from '../constants/api';
 import { triggerDownload, zipTicketUrl, isZipTicketUnavailable } from '../utils/downloadItems';
@@ -995,7 +996,11 @@ function FolderBrowser({ token, rootFolderName, isDownloadAllowed, onOpenFile, s
     if (zipLoading) return;
     setZipLoading(true);
     try {
-      const headers = shareAuthToken ? { Authorization: `Bearer ${shareAuthToken}` } : {};
+      // `X-Lang`: `fetch` trần không qua interceptor của axios, phải tự gắn để câu lỗi đúng tiếng (##81).
+      const headers = {
+        ...languageHeaders(),
+        ...(shareAuthToken ? { Authorization: `Bearer ${shareAuthToken}` } : {}),
+      };
 
       // Đường chính: xin vé rồi để trình duyệt tự tải — có thanh tiến trình, không gom
       // cả thư mục vào RAM của tab. `fetch` thô chứ không qua axios: interceptor của axios

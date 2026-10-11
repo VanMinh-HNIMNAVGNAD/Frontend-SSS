@@ -1,4 +1,5 @@
 import React from 'react';
+import { FILE_GRID_CLASS, FILE_CARD_HEIGHT_CLASS } from '../file-manager/gridLayout';
 
 export default function FileSkeleton({ count = 8, type = 'table' }) {
     // 1. Home Section Skeleton
@@ -27,9 +28,10 @@ export default function FileSkeleton({ count = 8, type = 'table' }) {
                 {/* Folders Grid Skeleton */}
                 <div>
                     <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-28 mb-3" />
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5">
-                        {[...Array(4)].map((_, i) => (
-                            <div key={i} className="px-2.5 pt-2.5 pb-2 rounded-2xl bg-gray-100/80 dark:bg-white/10 border border-gray-200/60 dark:border-gray-700/60 flex flex-col h-52">
+                    {/* Cùng số cột / chiều cao với lưới tệp thật (gridLayout.js) */}
+                    <div className={FILE_GRID_CLASS}>
+                        {[...Array(Math.min(count, 12))].map((_, i) => (
+                            <div key={i} className={`px-2.5 pt-2.5 pb-2 rounded-2xl bg-gray-100/80 dark:bg-white/10 border border-gray-200/60 dark:border-gray-700/60 flex flex-col ${FILE_CARD_HEIGHT_CLASS}`}>
                                 <div className="flex items-center gap-1.5 h-5">
                                     <div className="w-5 h-5 bg-gray-200 dark:bg-gray-700 rounded shrink-0" />
                                     <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded flex-1" />

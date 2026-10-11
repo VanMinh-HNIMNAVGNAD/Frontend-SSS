@@ -1,4 +1,5 @@
 import { useLanguage } from '../context/LanguageContext';
+import { displayPlanName } from '../utils/planName';
 import { localeTagOf } from '../utils/locale';
 import tRich from '../utils/tRich';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -565,7 +566,7 @@ export default function BillingAndQuota() {
 
                 <div className="min-w-0">
                   <p className="text-[15px] font-bold text-gray-900 dark:text-gray-100">
-                    {subscription.planName || t('billing.current.planName')}
+                    {displayPlanName(subscription.planName, language) || t('billing.current.planName')}
                     {subscription.billingCycle && (
                       <span className="ml-2 text-[13px] font-semibold text-gray-500 dark:text-gray-400">
                         {/* CYCLE_UNIT, không phải CYCLE_LABEL: nhãn kia mang sẵn phần
@@ -766,7 +767,7 @@ export default function BillingAndQuota() {
                       {/* 2. Tên gói (API) - Cố định h-14 để căn đều dù 1 hay 2 dòng */}
                       <div className="h-14 flex items-center mb-3">
                         <h3 className="text-lg lg:text-[19px] font-black text-gray-900 dark:text-gray-100 leading-tight">
-                          {plan.name}
+                          {displayPlanName(plan.name, language)}
                         </h3>
                       </div>
 
@@ -953,7 +954,7 @@ export default function BillingAndQuota() {
                               </div>
                             </td>
                             <td className="py-4 px-6">
-                              <div className="font-semibold text-gray-800 dark:text-gray-200">{row.planName || t('billing.tx.deletedPlan')}</div>
+                              <div className="font-semibold text-gray-800 dark:text-gray-200">{displayPlanName(row.planName, language) || t('billing.tx.deletedPlan')}</div>
                               <div className="text-sm text-gray-400 dark:text-gray-500 mt-0.5">
                                 {CYCLE_LABEL_KEY[row.billingCycle] ? t(CYCLE_LABEL_KEY[row.billingCycle]) : '—'}
                               </div>
@@ -1028,7 +1029,7 @@ export default function BillingAndQuota() {
                 </h3>
                 <p className="text-gray-500 dark:text-gray-400 text-[14px]">
                   {tRich(t('billing.confirm.planLine'), {
-                    plan: <span className="font-bold text-gray-900 dark:text-gray-100">{selectedPlan.name}</span>,
+                    plan: <span className="font-bold text-gray-900 dark:text-gray-100">{displayPlanName(selectedPlan.name, language)}</span>,
                     storage: selectedPlan.storageLabel,
                     cycle: (
                       <span className="font-semibold text-gray-800 dark:text-gray-200">

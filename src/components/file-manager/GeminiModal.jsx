@@ -34,6 +34,7 @@ import {
 import AiBubble from './AiBubble';
 import { aiApi } from '../../services/api';
 import { useLanguage } from '../../context/LanguageContext';
+import { displayPlanName } from '../../utils/planName';
 import { localeTagOf } from '../../utils/locale';
 
 /**
@@ -1478,7 +1479,7 @@ export default function GeminiModal({
                                         : t('ai.quota.usedPercent', { percent: usedPercent })}
                                 </span>
                                 <span className="text-gray-400 dark:text-gray-500 truncate hidden sm:inline">
-                                    · {quota.planName}
+                                    · {displayPlanName(quota.planName, language)}
                                 </span>
                             </span>
                             {resetLabel && (
@@ -1516,7 +1517,7 @@ export default function GeminiModal({
                             <p className="font-semibold text-gray-800 dark:text-gray-200">{t('ai.quota.blockedTitle')}</p>
                             <p className="text-xs text-gray-500 dark:text-gray-400 max-w-sm">
                                 {t('ai.quota.blockedDesc', {
-                                    plan: quota?.planName ?? '',
+                                    plan: displayPlanName(quota?.planName, language) ?? '',
                                     date: resetLabel ?? '',
                                 })}
                             </p>

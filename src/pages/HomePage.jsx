@@ -114,7 +114,7 @@ const SectionGrid = ({ itemList, emptyMessage, onItemOpen, onToggleStar, onConte
     }
 
     return (
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-3 py-2">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-3 phone:grid-cols-[repeat(auto-fill,minmax(136px,1fr))] phone:gap-2.5 py-2">
             {itemList.map((item) => (
                 <div
                     key={item.id}
@@ -138,7 +138,7 @@ const SectionGrid = ({ itemList, emptyMessage, onItemOpen, onToggleStar, onConte
                                 onContextMenu && onContextMenu(e, item);
                             }}
                             onDoubleClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
-                            className="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 p-0.5 rounded-full hover:bg-gray-100 dark:hover:bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                            className="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 p-0.5 rounded-full hover:bg-gray-100 dark:hover:bg-white/5 opacity-0 group-hover:opacity-100 pointer-coarse:opacity-100 transition-opacity shrink-0"
                             title={t('home.moreActions')}
                         >
                             <MoreVertical className="w-3.5 h-3.5" />

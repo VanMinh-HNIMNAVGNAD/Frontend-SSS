@@ -251,7 +251,7 @@ export default function ShareDriveModal({ isOpen, drive, onClose, onChanged }) {
                         onClick={onClose}
                         className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl shadow-sm transition-all cursor-pointer"
                     >
-                        Xong
+                        {t('common.done')}
                     </button>
                 </div>
             </div>

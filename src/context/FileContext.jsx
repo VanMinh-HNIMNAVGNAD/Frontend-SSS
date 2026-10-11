@@ -18,6 +18,7 @@ import { formatBytes } from '../utils/formatFileSize';
 import { buildSortedDirPaths } from '../utils/uploadTree';
 import { CHUNK_THRESHOLD, isResumableSize } from '../constants/upload';
 import { localeTagOf } from '../utils/locale';
+import { tOutsideReact } from '../utils/translate';
 import { dateFilterStart } from '../constants/fileFilters';
 import { readNamespace, writeManyCached, clearPersistentCache } from '../utils/persistentCache';
 import { primeThumbnailsForUpload } from '../utils/thumbnailPrimer';
@@ -59,7 +60,7 @@ const toUploadUrlPayload = (job) => ({
 
 /** Phần tử `ok: false` của một lô → Error mang `status` phẳng, giống lỗi của axios instance. */
 const uploadItemError = (item) => {
-  const err = new Error(item?.message || 'Không xử lý được tệp này.');
+  const err = new Error(item?.message || tOutsideReact('upload.itemFailed'));
   err.status = item?.status;
   return err;
 };

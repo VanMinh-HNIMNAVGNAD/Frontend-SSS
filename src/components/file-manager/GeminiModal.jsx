@@ -103,10 +103,6 @@ const resolveModelChoice = (models, picked) => {
     return (models.find((m) => m.id === picked) ?? models[0]).id;
 };
 
-// Số lượt gửi kèm làm lịch sử. Cắt ở đây chứ không gửi cả hội thoại: backend chặn
-// cứng ở 20 lượt (ArrayMaxSize), gửi thừa sẽ ăn 400 giữa cuộc trò chuyện.
-const MAX_HISTORY_TURNS = 16;
-
 /**
  * Trần nguồn ngữ cảnh mỗi lượt hỏi — mục Drive và tệp tải từ máy CỘNG LẠI.
  *
@@ -299,8 +295,8 @@ export default function GeminiModal({
 
     // Model người dùng bấm chọn dưới ô nhập (id Vertex, ví dụ 'gemini-2.5-flash').
     const [pickedModel, setPickedModel] = useState(readStoredModel);
-    // Đặt tên `historyList` chứ không `history`: trong `send()` đã có biến cục bộ tên
-    // `history` (mấy lượt gửi kèm cho Gemini), trùng tên là bẫy đọc nhầm.
+    // Danh sách cuộc trò chuyện của khung "Lịch sử" (không phải lịch sử gửi cho Gemini —
+    // phần đó backend tự nạp từ DB theo `conversationId`).
     const [historyList, setHistoryList] = useState({ items: [], nextBefore: null });
     const [historyLoading, setHistoryLoading] = useState(false);
     const [historyError, setHistoryError] = useState(null);
@@ -541,12 +537,12 @@ export default function GeminiModal({
             setMessages((prev) => [...prev, { sender: 'user', text: label, action }]);
 
             try {
-                // Lịch sử gửi kèm chỉ gồm những lượt đã hoàn tất; bong bóng vừa thêm
-                // ở trên KHÔNG nằm trong đó vì backend tự ghép câu hỏi hiện tại vào cuối.
-                const history = messages
-                    .slice(-MAX_HISTORY_TURNS)
-                    .map((m) => ({ role: m.sender === 'user' ? 'user' : 'model', text: m.text }));
-
+                // KHÔNG gửi `history` (##83). Backend đã thôi đọc trường này từ 07/09/2026 — nó
+                // tự nạp lịch sử từ DB theo `conversationId` — mà bản trước vẫn gửi NGUYÊN VĂN
+                // 16 tin gần nhất, trong khi DTO chặn mỗi tin > 8.000 ký tự: một câu trả lời dài
+                // (tóm tắt chi tiết, phân tích tài liệu) là mọi câu hỏi tiếp theo trong khung
+                // chat ăn 400 "text must be shorter than or equal to 8000 characters", kể cả khi
+                // mở lại cuộc đó từ Lịch sử. Mạch hội thoại giữ bằng `conversationId`.
                 const res = await aiApi.askStream(
                     {
                         // `itemId` (số ít) chứ không gộp vào `itemIds`: menu chuột phải là
@@ -556,7 +552,6 @@ export default function GeminiModal({
                         ...(readyAttachmentIds.length ? { attachmentIds: readyAttachmentIds } : {}),
                         action,
                         ...(action === 'chat' ? { prompt: text } : {}),
-                        ...(history.length ? { history } : {}),
                         ...(conversationId ? { conversationId } : {}),
                         ...(model ? { model } : {}),
                         lang: language === 'en' ? 'en' : 'vi',
@@ -680,7 +675,6 @@ export default function GeminiModal({
             item,
             isFolder,
             language,
-            messages,
             conversationId,
             t,
             readyAttachmentIds,

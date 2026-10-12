@@ -27,7 +27,8 @@ import {
     LayoutGrid,
     Home,
     File,
-    EyeOff
+    EyeOff,
+    FolderGit2
 } from 'lucide-react';
 
 // getFileIcon() có thể ném lỗi với item thiếu `name`/`mimeType` (dữ liệu cũ) —
@@ -180,7 +181,10 @@ export default function HomePage() {
         deletePermanently,
         renameItem,
         getDownloadUrl,
+        searchQuery,
     } = useFiles();
+    // Đang tìm kiếm: Trang chủ thêm mục "Bộ nhớ dùng chung" (FileContext hỏi thêm nguồn đó).
+    const isSearching = Boolean(searchQuery?.trim());
 
     // Bảng tạm và cửa sổ xem trước đi context riêng — xem chú thích ở FileContext.
     const { clipboard, isPasting, cutItems, copyItems, pasteItems } = useClipboard();
@@ -284,10 +288,17 @@ export default function HomePage() {
     );
 
     // 1. Mục của tôi (My Drive) - Top 5-6
+    // `sharedDriveId` chứ không `isSharedDrive`: cờ đó không nơi nào gán, nên điều kiện cũ luôn
+    // đúng và tệp mình tải vào Bộ nhớ chung (về từ nguồn "Gần đây") lọt vào "Mục của tôi".
     const myDriveItems = visible
-        .filter(item => !item.isSharedDrive && !item.isSharedWithMe)
+        .filter(item => !item.sharedDriveId && !item.isSharedWithMe)
         .sort((a, b) => (b.accessCount || 0) - (a.accessCount || 0))
         .slice(0, 6);
+
+    // 4. Kết quả trong Bộ nhớ dùng chung — chỉ khi đang tìm kiếm (##83).
+    const driveItems = isSearching
+        ? visible.filter(item => item.sharedDriveId && !item.isSharedWithMe).slice(0, 6)
+        : [];
 
     // 2. Đã mở gần đây (Recent) - Top 5-6
     const recentItems = [...visible]
@@ -474,6 +485,44 @@ export default function HomePage() {
                     />
                 )}
             </section>
+
+            {/* SECTION 4: SHARED DRIVES — chỉ khi đang tìm kiếm (##83) */}
+            {isSearching && (
+                <section className="space-y-2">
+                    <div className="flex items-center justify-between pb-1 border-b border-gray-200 dark:border-gray-700">
+                        <div className="flex items-center gap-2">
+                            <FolderGit2 className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                            <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{t('nav.sharedDrives')}</h2>
+                            <span className="text-xs text-gray-400 dark:text-gray-500 font-normal">
+                                {t('home.itemCount', { count: driveItems.length })}
+                            </span>
+                        </div>
+                        <button
+                            onClick={() => setActiveTab('shared-drives')}
+                            className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 flex items-center gap-1 hover:underline transition-all"
+                        >
+                            {t('home.viewAll')} <ArrowRight className="w-3.5 h-3.5" />
+                        </button>
+                    </div>
+                    {viewMode === 'grid' ? (
+                        <SectionGrid
+                            itemList={driveItems}
+                            emptyMessage={t('home.empty.drives')}
+                            onItemOpen={handleItemOpen}
+                            onToggleStar={toggleStar}
+                            onContextMenu={openContextMenu}
+                        />
+                    ) : (
+                        <SectionTable
+                            itemList={driveItems}
+                            emptyMessage={t('home.empty.drives')}
+                            onItemOpen={handleItemOpen}
+                            onToggleStar={toggleStar}
+                            onContextMenu={openContextMenu}
+                        />
+                    )}
+                </section>
+            )}
 
             {/* Context Menu floating */}
             <ContextMenu

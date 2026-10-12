@@ -30,6 +30,39 @@ import {
     ShieldAlert
 } from 'lucide-react';
 
+const TYPE_KEY_BY_EXT = [
+    // Cùng nhóm đuôi với icon (`utils/getFileIcon.jsx`) và bộ lọc "Loại tệp" của backend
+    // (`backend/src/files/file-filters.ts`). Trước ##83 bảng này chỉ biết vài đuôi: `.txt`,
+    // `.gif`, `.xls`, `.mov`, `.java`… đều ghi "Tệp tin" trong khi icon và bộ lọc xếp chúng
+    // vào đúng loại.
+    [/\.pdf$/, 'fileType.pdf'],
+    [/\.(xlsx|xls|xlsm|ods|csv|tsv|numbers)$/, 'fileType.spreadsheet'],
+    [/\.(docx|doc|odt|rtf|pages)$/, 'fileType.word'],
+    [/\.(txt|log|epub)$/, 'fileType.text'],
+    [/\.(pptx|ppt|pps|ppsx|odp)$/, 'fileType.ppt'],
+    [/\.svg$/, 'fileType.svg'],
+    [/\.(png|jpe?g|gif|webp|bmp|tiff?|ico|heic|heif|avif)$/, 'fileType.image'],
+    [/\.(psd|ai|sketch|xd)$/, 'fileType.design'],
+    [/\.fig$/, 'fileType.figma'],
+    [/\.(mp4|mkv|avi|mov|webm|m4v|wmv|flv|3gp|mpe?g)$/, 'fileType.video'],
+    [/\.(mp3|wav|aac|flac|ogg|oga|opus|m4a|wma|aiff)$/, 'fileType.audio'],
+    [/\.(py|pyw|ipynb)$/, 'fileType.python'],
+    [/\.(sql|db|sqlite3?|mdb|accdb)$/, 'fileType.sql'],
+    [/\.(md|markdown)$/, 'fileType.markdown'],
+    [/\.(exe|msi)$/, 'fileType.exe'],
+    [/\.(zip|rar|7z|tar|gz|tgz|bz2|xz|zst|iso|dmg|apk|deb|rpm)$/, 'fileType.archive'],
+    [/\.(js|jsx|mjs|cjs|ts|tsx|java|class|jar|kt|kts|scala|c|cpp|cc|cxx|h|hpp|cs|go|rs|rb|php|swift|dart|lua|r|pl|sh|bash|zsh|fish|bat|ps1|json|ya?ml|toml|ini|conf|env|xml|html?|css|scss|sass|less|vue|svelte|graphql|gql|prisma)$/, 'fileType.script'],
+];
+
+/** Đuôi lạ thì đoán theo MIME (tệp tải lên từ điện thoại hay mang tên không đuôi). */
+const TYPE_KEY_BY_MIME = [
+    [/^image\//, 'fileType.image'],
+    [/^video\//, 'fileType.video'],
+    [/^audio\//, 'fileType.audio'],
+    [/pdf/, 'fileType.pdf'],
+    [/^text\/plain/, 'fileType.text'],
+];
+
 /**
  * Trả về KHOÁ DỊCH của loại tệp, không phải chuỗi hiển thị.
  *
@@ -39,23 +72,12 @@ import {
  */
 const getFileTypeKey = (item) => {
     if (item.type === 'folder') return 'fileType.folder';
-    const name = item.name.toLowerCase();
-    if (name.endsWith('.pdf')) return 'fileType.pdf';
-    if (name.endsWith('.xlsx') || name.endsWith('.csv')) return 'fileType.spreadsheet';
-    if (name.endsWith('.docx') || name.endsWith('.doc')) return 'fileType.word';
-    if (name.endsWith('.pptx') || name.endsWith('.ppt')) return 'fileType.ppt';
-    if (name.endsWith('.png') || name.endsWith('.jpg') || name.endsWith('.jpeg')) return 'fileType.image';
-    if (name.endsWith('.svg')) return 'fileType.svg';
-    if (name.endsWith('.mp4') || name.endsWith('.mkv')) return 'fileType.video';
-    if (name.endsWith('.mp3') || name.endsWith('.wav')) return 'fileType.audio';
-    if (name.endsWith('.py')) return 'fileType.python';
-    if (name.endsWith('.js') || name.endsWith('.jsx') || name.endsWith('.ts')) return 'fileType.script';
-    if (name.endsWith('.sql') || name.endsWith('.db')) return 'fileType.sql';
-    if (name.endsWith('.zip') || name.endsWith('.rar') || name.endsWith('.7z')) return 'fileType.archive';
-    if (name.endsWith('.md')) return 'fileType.markdown';
-    if (name.endsWith('.fig')) return 'fileType.figma';
-    if (name.endsWith('.exe')) return 'fileType.exe';
-    return 'fileType.other';
+    const name = (item.name || '').toLowerCase();
+    const byExt = TYPE_KEY_BY_EXT.find(([re]) => re.test(name));
+    if (byExt) return byExt[1];
+    const mime = (item.mimeType || '').toLowerCase();
+    const byMime = TYPE_KEY_BY_MIME.find(([re]) => re.test(mime));
+    return byMime ? byMime[1] : 'fileType.other';
 };
 
 /**

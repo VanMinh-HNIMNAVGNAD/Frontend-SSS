@@ -12,7 +12,10 @@ import {
     Archive,
     Video,
     FileCode,
-    ArrowUpDown
+    ArrowUpDown,
+    UserRound,
+    User,
+    Users
 } from 'lucide-react';
 import { useFiles } from '../../context/FileContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -30,8 +33,29 @@ const TYPE_ICONS = {
     archive: Archive,
 };
 
+// Nhãn cột cho thứ tự đặt từ TIÊU ĐỀ CỘT của chế độ Danh sách mà ô "Sắp xếp" không có sẵn
+// (Chủ sở hữu, Loại tệp Z-A) — xem `sortOptions` bên dưới.
+const SORT_FIELD_LABEL_KEYS = {
+    name: 'list.col.name',
+    size: 'list.col.size',
+    type: 'list.col.type',
+    owner: 'list.col.owner',
+    updatedAt: 'list.col.modified',
+};
+
 /**
- * Reusable File Filter Bar Component (Common Component used across MyDrivePage, SharedWithMePage, StarredPage, SpamPage, TrashPage)
+ * Thanh lọc dùng chung cho mọi trang có danh sách tệp (cloudSSS của tôi, Được chia sẻ, Gần đây,
+ * Gắn sao, Nội dung rác, Thùng rác, bên trong một Bộ nhớ chung — và kết quả tìm kiếm trên mọi
+ * Bộ nhớ chung).
+ *
+ * Bộ lọc nằm trong FileContext và đi theo người dùng qua các trang, nên trang nào có danh sách
+ * mà KHÔNG hiện thanh này thì có bộ lọc vô hình: chọn "Hình ảnh" ở cloudSSS của tôi rồi sang
+ * Gần đây, trang Gần đây chỉ còn ảnh mà không có gì cho biết vì sao, cũng không có nút xoá (##83).
+ *
+ * `showSort={false}` cho trang giữ thứ tự của server (Gần đây = mở gần nhất trước).
+ * "Người sở hữu" chỉ hiện ở Bộ nhớ chung — nơi duy nhất backend lọc được theo chủ
+ * (`ownerFilterApplies` ở FileContext); trước ##83 chỉ chọn được nó trong bộ lọc của thanh tìm
+ * kiếm, còn thanh này thì không hiện, không cho đổi.
  */
 export default function FileFilterBar({
     filterType = 'all',
@@ -39,9 +63,11 @@ export default function FileFilterBar({
     filterDate = 'all',
     setFilterDate,
     filterOwner = 'all',
-    onReset
+    setFilterOwner,
+    onReset,
+    showSort = true,
 }) {
-    const { sortField, setSortField, sortDirection, setSortDirection } = useFiles();
+    const { sortField, setSortField, sortDirection, setSortDirection, ownerFilterApplies } = useFiles();
     const { t } = useLanguage();
 
     // Cùng một danh sách với bộ lọc nâng cao trên thanh tìm kiếm — xem constants/fileFilters.js.
@@ -77,6 +103,21 @@ export default function FileFilterBar({
         { value: 'updatedAt-asc', label: t('filter.sort.oldest') },
         { value: 'type-asc', label: t('filter.sort.type') },
     ];
+    // Thứ tự đặt từ tiêu đề cột mà danh sách trên không có: trước đây ô này hiện chữ "Sắp xếp"
+    // tô xanh mà không nói đang sắp theo gì.
+    const currentSort = `${sortField}-${sortDirection}`;
+    if (!sortOptions.some((o) => o.value === currentSort) && SORT_FIELD_LABEL_KEYS[sortField]) {
+        sortOptions.push({
+            value: currentSort,
+            label: `${t(SORT_FIELD_LABEL_KEYS[sortField])} ${sortDirection === 'desc' ? '↓' : '↑'}`,
+        });
+    }
+
+    const ownerOptions = [
+        { value: 'all', label: t('search.filter.owner.anyone') },
+        { value: 'me', label: t('search.filter.owner.me'), icon: User },
+        { value: 'others', label: t('search.filter.owner.others'), icon: Users },
+    ];
     
     const handleSortChange = (val) => {
         const [field, dir] = val.split('-');
@@ -86,16 +127,20 @@ export default function FileFilterBar({
 
     return (
         <div className="flex flex-wrap items-center gap-2 py-2 mb-3 border-b border-gray-200 dark:border-gray-700 select-none">
-            <SelectDropdown
-                label={t('filter.sort.label')}
-                icon={ArrowUpDown}
-                options={sortOptions}
-                value={`${sortField}-${sortDirection}`}
-                onChange={handleSortChange}
-                active={sortField !== 'name' || sortDirection !== 'asc'}
-            />
-            
-            <div className="w-px h-6 bg-gray-300 dark:bg-gray-700 mx-1"></div>
+            {showSort && (
+                <>
+                    <SelectDropdown
+                        label={t('filter.sort.label')}
+                        icon={ArrowUpDown}
+                        options={sortOptions}
+                        value={currentSort}
+                        onChange={handleSortChange}
+                        active={sortField !== 'name' || sortDirection !== 'asc'}
+                    />
+
+                    <div className="w-px h-6 bg-gray-300 dark:bg-gray-700 mx-1"></div>
+                </>
+            )}
 
             {/* Filter by File Type */}
             <SelectDropdown
@@ -116,6 +161,18 @@ export default function FileFilterBar({
                 onChange={setFilterDate}
                 active={filterDate !== 'all'}
             />
+
+            {/* Người sở hữu — chỉ ở Bộ nhớ chung */}
+            {ownerFilterApplies && setFilterOwner && (
+                <SelectDropdown
+                    label={t('search.filter.owner.label')}
+                    icon={UserRound}
+                    options={ownerOptions}
+                    value={filterOwner}
+                    onChange={setFilterOwner}
+                    active={filterOwner !== 'all'}
+                />
+            )}
 
             {/* Quick Reset Filters Button */}
             {hasActiveFilters && (

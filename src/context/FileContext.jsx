@@ -162,6 +162,27 @@ const VIEW_MODE_KEY = 'driver.viewMode';
 const VIEW_MODES = ['list', 'grid'];
 const DEFAULT_VIEW_MODE = 'list';
 
+/**
+ * Cột sắp xếp mà SERVER xếp được trước khi cắt trang (##83) — khớp `FILE_SORT_FIELDS` ở
+ * `backend/src/files/file-filters.ts` (backend có thêm `createdAt`, giao diện không dùng).
+ *
+ * Trước đây chỉ trình duyệt sắp, trên đúng 50 mục của trang đang mở: thư mục 120 tệp chọn
+ * "Kích thước (Lớn-Nhỏ)" không thấy tệp lớn nhất nếu nó nằm ở trang 2. `owner` vẫn chỉ sắp
+ * trong trang (tên chủ được gắn sau truy vấn ở backend).
+ */
+const SERVER_SORT_FIELDS = new Set(['name', 'size', 'type', 'updatedAt']);
+
+/**
+ * Backend CŨ (trước ##83) bật `forbidNonWhitelisted` và chưa biết `sortBy`/`sortDir`: nó trả
+ * 400 cho MỌI danh sách có hai tham số này. Frontend lên Vercel trước backend (Cloud Build lâu
+ * hơn vài phút) là cả app trắng danh sách trong khoảng đó — nên nhận ra đúng lỗi này để gửi
+ * lại không kèm sắp xếp, thay vì bắt người dùng chờ deploy.
+ */
+const isUnsupportedSortError = (err) =>
+  err?.status === 400 &&
+  Array.isArray(err?.details) &&
+  err.details.some((d) => d?.field === 'sortBy' || d?.field === 'sortDir');
+
 /** Lazy initializer của useState: chỉ chạy đúng một lần lúc mount. */
 function readViewMode() {
   try {
@@ -482,8 +503,26 @@ export function FileProvider({ children }) {
   const effectiveFilterOwner = ownerFilterApplies ? filterOwner : 'all';
 
   // Sorting
-  const [sortField, setSortField] = useState('name'); // 'name' | 'size' | 'type' | 'owner' | 'group' | 'updatedAt' | 'createdAt'
-  const [sortDirection, setSortDirection] = useState('asc'); // 'asc' | 'desc'
+  const [sortField, setSortFieldState] = useState('name'); // 'name' | 'size' | 'type' | 'owner' | 'group' | 'updatedAt' | 'createdAt'
+  const [sortDirection, setSortDirectionState] = useState('asc'); // 'asc' | 'desc'
+  // Đổi cách sắp là quay về trang 1 — từ ##83 server sắp TRƯỚC khi cắt trang, nên "trang 3"
+  // của thứ tự cũ không còn là trang 3 của thứ tự mới. Nhận cả hàm cập nhật như setState.
+  const setSortField = useCallback((value) => {
+    setSortFieldState(value);
+    setCurrentPage(1);
+  }, [setCurrentPage]);
+  const setSortDirection = useCallback((value) => {
+    setSortDirectionState(value);
+    setCurrentPage(1);
+  }, [setCurrentPage]);
+
+  // Server có xếp cột đang chọn không — xem `SERVER_SORT_FIELDS`. "Gần đây" luôn giữ thứ tự
+  // lượt mở do server trả. Chuỗi (không phải object) để làm dependency/khoá bộ đệm được.
+  const serverSortKey =
+    activeTab !== 'recent' && SERVER_SORT_FIELDS.has(sortField) ? `${sortField}:${sortDirection}` : '';
+  // `false` sau khi backend trả 400 vì chưa biết `sortBy` — xem `isUnsupportedSortError`.
+  // Ref chứ không state: chỉ cần đúng cho các lượt gọi SAU, không cần vẽ lại gì.
+  const serverSortSupportedRef = useRef(true);
 
   // Selection State
   const [selectedIds, setSelectedIds] = useState(new Set());
@@ -839,13 +878,15 @@ export function FileProvider({ children }) {
         filterType,
         filterDate,
         filterOwner: effectiveFilterOwner,
+        // Server cắt trang THEO cột sắp xếp (##83): cùng thư mục, sắp khác là trang khác.
+        sort: serverSortKey,
         page: currentPage,
         limit: pageSize,
         locale,
       }),
     [
       activeTab, currentFolderId, currentSharedDriveId, debouncedSearch,
-      filterType, filterDate, effectiveFilterOwner, currentPage, pageSize, locale,
+      filterType, filterDate, effectiveFilterOwner, serverSortKey, currentPage, pageSize, locale,
     ],
   );
 
@@ -1201,9 +1242,15 @@ export function FileProvider({ children }) {
     if (showRefreshing) setIsRefreshing(true);
     setError(null);
 
+    // Đang TÌM KIẾM thì hỏi thêm Bộ nhớ chung (##83): ô tìm kiếm hứa "tìm trong cloudSSS",
+    // nhưng ba nguồn mặc định không có tệp nào trong drive — gõ đúng tên một tệp của drive ở
+    // Trang chủ ra rỗng. Không tìm kiếm thì giữ ba nguồn như cũ (Trang chủ là gợi ý, không phải
+    // danh sách mọi drive).
+    const sourceTabs = debouncedSearch ? [...HOME_SOURCE_TABS, 'shared-drives'] : HOME_SOURCE_TABS;
+
     try {
       const responses = await Promise.all(
-        HOME_SOURCE_TABS.map((tab) =>
+        sourceTabs.map((tab) =>
           filesApi
             .getFilesAndFolders(
               {
@@ -1231,7 +1278,7 @@ export function FileProvider({ children }) {
 
       const mergedById = new Map();
       responses.forEach((response, index) => {
-        const isSharedSource = HOME_SOURCE_TABS[index] === 'shared-with-me';
+        const isSharedSource = sourceTabs[index] === 'shared-with-me';
         (response?.items || []).forEach((item) => {
           // Giữ bản xuất hiện đầu tiên (ưu tiên thứ tự trong HOME_SOURCE_TABS)
           if (!item || mergedById.has(item.id)) return;
@@ -1326,6 +1373,8 @@ export function FileProvider({ children }) {
       if (showRefreshing) setIsRefreshing(true);
 
       const doFetch = async (remainingRetries) => {
+        // Đọc ở MỖI lần thử: lần thử trước có thể vừa phát hiện backend cũ chưa hiểu sắp xếp.
+        const withServerSort = Boolean(serverSortKey) && serverSortSupportedRef.current;
         try {
           const response = await filesApi.getFilesAndFolders(
             {
@@ -1339,6 +1388,7 @@ export function FileProvider({ children }) {
               // không đưa vào dependency: "7 ngày qua" trôi theo từng mili giây.
               updatedFrom: dateFilterStart(filterDate)?.toISOString(),
               filterSender: effectiveFilterOwner !== 'all' ? effectiveFilterOwner : undefined,
+              ...(withServerSort ? { sortBy: sortField, sortDir: sortDirection } : {}),
               page: currentPage,
               limit: pageSize,
             },
@@ -1393,6 +1443,13 @@ export function FileProvider({ children }) {
         } catch (err) {
           if (requestId !== fetchRequestIdRef.current) return;
 
+          // Backend cũ chưa biết `sortBy`/`sortDir` (frontend lên trước backend): gửi lại NGAY,
+          // không kèm sắp xếp, và thôi gửi cho các lượt sau — trình duyệt vẫn sắp trong trang.
+          if (withServerSort && isUnsupportedSortError(err)) {
+            serverSortSupportedRef.current = false;
+            return await doFetch(remainingRetries);
+          }
+
           if (remainingRetries > 0) {
             console.warn(`Lỗi khi lấy danh sách file, đang thử lại sau 1s (còn ${remainingRetries} lần thử):`, err);
             if (showSkeleton || showRefreshing) setError(t('file.list.retrying'));
@@ -1426,7 +1483,7 @@ export function FileProvider({ children }) {
 
       await doFetch(retries);
     },
-    [isAuthenticated, isAuthLoading, isListCacheHydrated, activeTab, currentFolderId, currentSharedDriveId, debouncedSearch, filterType, filterDate, effectiveFilterOwner, currentPage, pageSize, fetchHomeItems, locale, t, cacheKey, scopeKey, readListCache, writeListCache]
+    [isAuthenticated, isAuthLoading, isListCacheHydrated, activeTab, currentFolderId, currentSharedDriveId, debouncedSearch, filterType, filterDate, effectiveFilterOwner, serverSortKey, sortField, sortDirection, currentPage, pageSize, fetchHomeItems, locale, t, cacheKey, scopeKey, readListCache, writeListCache]
   );
 
   /**
@@ -3298,7 +3355,7 @@ export function FileProvider({ children }) {
     // ── Tìm kiếm / lọc / sắp xếp ──
     searchQuery, filterType, filterDate, effectiveFilterOwner, ownerFilterApplies,
     setSearchQuery, setFilterType, setFilterDate, setFilterOwner,
-    sortField, sortDirection, resetFilters, uniqueOwners,
+    sortField, sortDirection, setSortField, setSortDirection, resetFilters, uniqueOwners,
     // ── Lưu trữ ──
     storageInfo, fetchAnalytics,
     // ── Hành động trên file/folder ──

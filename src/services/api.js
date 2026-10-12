@@ -1656,12 +1656,14 @@ export const aiApi = {
    * @param {string=}  payload.itemId  Mục được bấm chuột phải. Bỏ trống = hỏi chay.
    * @param {string=}  payload.action  'summarize' | 'explain' | 'keywords' | 'quiz' | 'improve' | 'chat'
    * @param {string=}  payload.prompt  Câu người dùng gõ (bắt buộc khi action = 'chat')
-   * @param {Array=}   payload.history [{ role: 'user' | 'model', text }] — cũ → mới, KHÔNG gồm câu đang hỏi
    * @param {string=}  payload.lang    'vi' | 'en'
    * @param {string=}  payload.conversationId  Cuộc trò chuyện đang mở; bỏ trống ở câu
    *                   đầu tiên rồi dùng `conversationId` mà backend trả về cho các câu
    *                   sau, để cả khung chat được lưu thành MỘT cuộc trong lịch sử.
    * @param {AbortSignal=} signal      Nút Dừng cắt đúng request đang chạy
+   *
+   * KHÔNG gửi `history` (##83): backend tự nạp lịch sử theo `conversationId`, và trường
+   * cũ chặn mỗi tin > 8.000 ký tự — câu trả lời dài làm câu hỏi tiếp theo ăn 400.
    *
    * Trả { answer, question, context: { mode, name, chars, seconds, truncated, childCount,
    * reason }, model, conversationId }.

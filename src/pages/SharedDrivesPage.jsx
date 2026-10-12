@@ -5,6 +5,7 @@ import { useLanguage } from '../context/LanguageContext';
 import tRich from '../utils/tRich';
 import FileListView from '../components/file-manager/FileListView';
 import FileGridView from '../components/file-manager/FileGridView';
+import FileFilterBar from '../components/common/FileFilterBar';
 import ContextMenu from '../components/file-manager/ContextMenu';
 import ShareDriveModal from '../components/file-manager/ShareDriveModal';
 import Modal from '../components/common/Modal';
@@ -35,8 +36,62 @@ export default function SharedDrivesPage() {
         setCurrentFolderId,
         currentSharedDriveId,
         setCurrentSharedDriveId,
+        searchQuery,
+        filterType,
+        setFilterType,
+        filterDate,
+        setFilterDate,
+        filterOwner,
+        setFilterOwner,
+        resetFilters,
     } = useFiles();
     const { user } = useAuth();
+
+    // Ở trang danh sách drive mà đang TÌM hoặc LỌC thì hiện kết quả trên mọi drive (##83).
+    // Trước đây trang này chỉ vẽ thẻ drive: gõ tìm kiếm ở đây, hay chọn "Vị trí: Bộ nhớ dùng
+    // chung" trong bộ lọc của thanh tìm kiếm, đều không hiện ra gì — kết quả có về (FileContext
+    // vẫn gọi `tab=shared-drives`) nhưng không chỗ nào vẽ chúng.
+    const isQuerying =
+        Boolean(searchQuery?.trim()) || filterType !== 'all' || filterDate !== 'all' || filterOwner !== 'all';
+
+    const filterBar = (
+        <FileFilterBar
+            filterType={filterType}
+            setFilterType={setFilterType}
+            filterDate={filterDate}
+            setFilterDate={setFilterDate}
+            filterOwner={filterOwner}
+            setFilterOwner={setFilterOwner}
+            onReset={resetFilters}
+        />
+    );
+
+    const viewSwitcher = (
+        <div className="flex items-center bg-gray-200/90 dark:bg-gray-700 rounded-full p-0.5 border border-gray-300 dark:border-gray-700 shrink-0">
+            <button
+                onClick={() => setViewMode('list')}
+                title={t('view.list')}
+                className={`p-1.5 rounded-full transition-colors ${
+                    viewMode === 'list'
+                        ? 'bg-white dark:bg-[#282a2c] shadow-xs text-blue-700 dark:text-blue-400 font-bold'
+                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+                }`}
+            >
+                <List className="w-4 h-4" />
+            </button>
+            <button
+                onClick={() => setViewMode('grid')}
+                title={t('view.grid')}
+                className={`p-1.5 rounded-full transition-colors ${
+                    viewMode === 'grid'
+                        ? 'bg-white dark:bg-[#282a2c] shadow-xs text-blue-700 dark:text-blue-400 font-bold'
+                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+                }`}
+            >
+                <LayoutGrid className="w-4 h-4" />
+            </button>
+        </div>
+    );
     
     const [drives, setDrives] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -261,31 +316,48 @@ export default function SharedDrivesPage() {
                         </div>
                     </div>
 
-                    <div className="flex items-center bg-gray-200/90 dark:bg-gray-700 rounded-full p-0.5 border border-gray-300 dark:border-gray-700">
-                        <button
-                            onClick={() => setViewMode('list')}
-                            title={t('view.list')}
-                            className={`p-1.5 rounded-full transition-colors ${
-                                viewMode === 'list'
-                                    ? 'bg-white dark:bg-[#282a2c] shadow-xs text-blue-700 dark:text-blue-400 font-bold'
-                                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
-                            }`}
-                        >
-                            <List className="w-4 h-4" />
-                        </button>
-                        <button
-                            onClick={() => setViewMode('grid')}
-                            title={t('view.grid')}
-                            className={`p-1.5 rounded-full transition-colors ${
-                                viewMode === 'grid'
-                                    ? 'bg-white dark:bg-[#282a2c] shadow-xs text-blue-700 dark:text-blue-400 font-bold'
-                                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
-                            }`}
-                        >
-                            <LayoutGrid className="w-4 h-4" />
-                        </button>
-                    </div>
+                    {viewSwitcher}
                 </div>
+
+                {/* Thanh lọc trong drive — trước ##83 không có: bộ lọc chọn ở trang khác vẫn áp
+                    vào đây mà không hiện, không xoá được. Có thêm ô "Người sở hữu". */}
+                {filterBar}
+
+                <div className="flex-1 overflow-y-auto">
+                    {viewMode === 'grid' ? <FileGridView /> : <FileListView />}
+                </div>
+            </div>
+        );
+    }
+
+    // Đang tìm / lọc ở trang danh sách drive: kết quả trên MỌI drive mình là thành viên.
+    if (isQuerying) {
+        return (
+            <div className="flex flex-col h-full" onContextMenu={suppressNativeMenu}>
+                <div className="flex items-center justify-between gap-3 mb-2 pb-2 border-b border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center gap-3 min-w-0">
+                        <button
+                            onClick={resetFilters}
+                            title={t('drives.results.back')}
+                            aria-label={t('drives.results.back')}
+                            className="p-1.5 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg text-gray-500 dark:text-gray-400 transition-colors shrink-0 cursor-pointer"
+                        >
+                            <ArrowLeft className="w-5 h-5" />
+                        </button>
+                        <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                            <FolderGit2 className="w-5 h-5" />
+                        </div>
+                        <div className="min-w-0">
+                            <h1 className="text-xl font-bold text-gray-800 dark:text-gray-200 truncate">
+                                {t('drives.results.title')}
+                            </h1>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{t('drives.results.hint')}</p>
+                        </div>
+                    </div>
+                    {viewSwitcher}
+                </div>
+
+                {filterBar}
 
                 <div className="flex-1 overflow-y-auto">
                     {viewMode === 'grid' ? <FileGridView /> : <FileListView />}

@@ -10,6 +10,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { billingApi } from '../services/api';
+import { aiStatusCache } from '../utils/ttlCache';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { displayPlanName } from '../utils/planName';
@@ -97,6 +98,9 @@ export default function BillingSuccess() {
           // với việc đánh dấu PAID. Nạp lại /auth/me để user.storageInfo (và thanh dung
           // lượng ở trang Gói dịch vụ) hiện đúng hạn mức vừa mua, khỏi phải F5.
           refreshUserRef.current?.();
+          // Hạn mức AI đổi theo gói vừa mua (##87: gói 6 tháng ⇒ hạn mức AI cả 6 tháng). Bộ đệm
+          // `/ai/status` sống 5 phút — không bỏ đi thì khung AI mở ngay sau đó còn hiện gói cũ.
+          aiStatusCache.invalidate('status');
           return;
         }
 

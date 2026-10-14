@@ -3,6 +3,8 @@ import { useFiles } from '../../context/FileContext';
 import { useLanguage } from '../../context/LanguageContext';
 import NewButton from './NewButton';
 import QuickCleanupModal from '../modals/QuickCleanupModal';
+import { formatBytes } from '../../utils/formatFileSize';
+import { getStorageStatus } from '../../utils/storageStatus';
 import {
   Home,
   HardDrive,
@@ -28,12 +30,24 @@ export default function Sidebar() {
   const spamCount = items.filter((i) => i.isSpam && !i.isTrash).length;
   const trashCount = items.filter((i) => i.isTrash).length;
 
-  // Dynamic vibrant progress bar color calculation
-  const getProgressBarColor = (percent) => {
-    if (percent > 90) return 'bg-gradient-to-r from-amber-500 to-rose-600 shadow-sm shadow-rose-500/40';
-    if (percent >= 70) return 'bg-gradient-to-r from-emerald-500 via-amber-400 to-amber-500';
+  // Đầy / vượt hạn mức tính từ BYTE (##87): `percentage` của backend bị kẹp ở 100 nên người hết
+  // gói, đang dùng 600% hạn mức Miễn phí, trước đây chỉ đọc được "Gần đầy!".
+  const storageStatus = getStorageStatus(storageInfo.usedBytes, storageInfo.limitBytes);
+
+  // Màu thanh theo MỨC chứ không theo con số: đầy và vượt mức là đỏ đặc — không tải lên được nữa.
+  const getProgressBarColor = (level) => {
+    if (level === 'over' || level === 'full') return 'bg-rose-600 shadow-sm shadow-rose-500/40';
+    if (level === 'almostFull') return 'bg-gradient-to-r from-amber-500 to-rose-600 shadow-sm shadow-rose-500/40';
+    if (level === 'warning') return 'bg-gradient-to-r from-emerald-500 via-amber-400 to-amber-500';
     return 'bg-gradient-to-r from-blue-500 via-teal-400 to-emerald-500';
   };
+
+  const storageBadge = {
+    over: { labelKey: 'sidebar.storage.full', tone: 'text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-500/15' },
+    full: { labelKey: 'sidebar.storage.full', tone: 'text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-500/15' },
+    almostFull: { labelKey: 'sidebar.storage.almostFull', tone: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/15' },
+    warning: { labelKey: 'sidebar.storage.warning', tone: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/15' },
+  }[storageStatus.level];
 
   const NavItem = ({
     id,
@@ -127,11 +141,21 @@ export default function Sidebar() {
               title={t('sidebar.storage.tooltip', {
                 used: storageInfo.usedGB,
                 total: storageInfo.totalGB,
-                percent: storageInfo.percentage,
+                percent: storageStatus.percent,
               })}
             >
-              <Cloud className="w-5 h-5 text-blue-600 dark:text-blue-400 mb-1" />
-              <span className="text-[10px] font-bold text-gray-700 dark:text-gray-300">{storageInfo.percentage}%</span>
+              <Cloud
+                className={`w-5 h-5 mb-1 ${
+                  storageStatus.isFull ? 'text-rose-600 dark:text-rose-400' : 'text-blue-600 dark:text-blue-400'
+                }`}
+              />
+              <span
+                className={`text-[10px] font-bold ${
+                  storageStatus.isFull ? 'text-rose-600 dark:text-rose-400' : 'text-gray-700 dark:text-gray-300'
+                }`}
+              >
+                {storageStatus.percent}%
+              </span>
             </div>
           ) : (
             <div className="px-3 py-2 bg-white dark:bg-white/5 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-2xs">
@@ -140,12 +164,11 @@ export default function Sidebar() {
                   <Cloud className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                   <span>{t('sidebar.storage.title')}</span>
                 </div>
-                {/* Dynamic warning badge */}
-                {storageInfo.percentage >= 70 && (
-                  <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/15 px-1.5 py-0.5 rounded-md">
-                    {storageInfo.percentage >= 90
-                      ? t('sidebar.storage.almostFull')
-                      : t('sidebar.storage.warning')}
+                {/* Nhãn cảnh báo theo mức: "Đã đầy!" khi dùng ≥ hạn mức (kể cả vượt xa sau khi
+                    gói hết hạn) — trước ##87 mọi mức ≥ 90% đều là "Gần đầy!". */}
+                {storageBadge && (
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${storageBadge.tone}`}>
+                    {t(storageBadge.labelKey)}
                   </span>
                 )}
               </div>
@@ -153,15 +176,29 @@ export default function Sidebar() {
               {/* Dynamic Color Progress Bar */}
               <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 mb-2 overflow-hidden">
                 <div
-                  className={`${getProgressBarColor(storageInfo.percentage)} h-full rounded-full transition-all duration-500`}
-                  style={{ width: `${Math.min(100, storageInfo.percentage)}%` }}
+                  className={`${getProgressBarColor(storageStatus.level)} h-full rounded-full transition-all duration-500`}
+                  style={{ width: `${storageStatus.barPercent}%` }}
                 />
               </div>
 
               <div className="text-xs text-gray-600 dark:text-gray-300 mb-3 short:mb-2">
                 {t('sidebar.storage.usedLabel')}{' '}
-                <span className="font-semibold text-gray-900 dark:text-gray-100">{storageInfo.usedFormatted || `${storageInfo.usedGB} GB`}</span>{' '}
+                <span
+                  className={`font-semibold ${
+                    storageStatus.isFull ? 'text-rose-600 dark:text-rose-400' : 'text-gray-900 dark:text-gray-100'
+                  }`}
+                >
+                  {storageInfo.usedFormatted || `${storageInfo.usedGB} GB`}
+                </span>{' '}
                 {t('sidebar.storage.ofTotal', { total: storageInfo.totalGB })}
+                {/* Đầy thì nói luôn hậu quả: tải lên bị chặn tới khi dọn bớt hoặc mua thêm. */}
+                {storageStatus.isFull && (
+                  <p className="mt-1 text-[11px] font-semibold leading-snug text-rose-600 dark:text-rose-400">
+                    {storageStatus.level === 'over'
+                      ? t('sidebar.storage.overBy', { size: formatBytes(storageStatus.overBytes) })
+                      : t('sidebar.storage.noSpace')}
+                  </p>
+                )}
               </div>
 
               {/* Action Buttons: Mua thêm & Quick Cleanup */}

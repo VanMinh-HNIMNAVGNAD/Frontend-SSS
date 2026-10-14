@@ -23,12 +23,13 @@ import {
   X,
   XCircle,
 } from 'lucide-react';
-import { billingApi, userApi } from '../services/api';
+import { aiApi, billingApi, userApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useFiles } from '../context/FileContext';
 import { formatBytes } from '../utils/formatFileSize';
+import { getStorageStatus } from '../utils/storageStatus';
 import TransactionDetailModal from '../components/modals/TransactionDetailModal';
-import { plansCache } from '../utils/ttlCache';
+import { aiStatusCache, plansCache } from '../utils/ttlCache';
 import {
   CYCLES,
   CYCLE_DISCOUNT,
@@ -40,6 +41,7 @@ import {
   formatPlanDate,
   formatStorage,
   formatVnd,
+  monthsTermKey,
   resolvePlanGridCols,
   resolvePlanUi,
   resolveStorageBytes,
@@ -84,6 +86,11 @@ export default function BillingAndQuota() {
   // Gói đang chạy, từ `GET /billing/subscription`. `null` = chưa từng mua (hạn mức mặc định).
   const [subscription, setSubscription] = useState(null);
 
+  // Hạn mức AI (`quota` của `GET /ai/status`) — cho dòng "hạn mức AI cho trọn N tháng" trong dải
+  // gói đang dùng (##87: hạn mức AI đi cùng kỳ của gói). Hỏng hoặc AI đang tắt thì chỉ mất dòng
+  // đó, trang vẫn dùng được.
+  const [aiQuota, setAiQuota] = useState(null);
+
   // Báo giá thật của gói đang chọn trong modal xác nhận — gồm cả tiền bù trừ gói cũ.
   const [quote, setQuote] = useState(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
@@ -116,6 +123,17 @@ export default function BillingAndQuota() {
       setSubscription(data || null);
     } catch {
       setSubscription(null);
+    }
+  }, []);
+
+  /** `fresh`: bỏ bộ đệm 5 phút của `/ai/status` — nút Làm mới phải hỏi lại thật. */
+  const fetchAiQuota = useCallback(async ({ fresh = false } = {}) => {
+    try {
+      if (fresh) aiStatusCache.invalidate('status');
+      const status = await aiApi.getStatus();
+      setAiQuota(status?.enabled === false ? null : status?.quota ?? null);
+    } catch {
+      setAiQuota(null);
     }
   }, []);
 
@@ -178,12 +196,28 @@ export default function BillingAndQuota() {
     })();
   }, [fetchSubscription]);
 
+  useEffect(() => {
+    (async () => {
+      await fetchAiQuota();
+    })();
+  }, [fetchAiQuota]);
+
   // ─────────────────────────── Dung lượng hiện tại ───────────────────────────
 
   const usedBytes = Number(user?.storageInfo?.usedBytes) || 0;
   const limitBytes = Number(user?.storageInfo?.limitBytes) || 0;
-  const usedPercent = limitBytes > 0 ? Math.min(100, Math.round((usedBytes / limitBytes) * 100)) : 0;
-  const freeBytes = Math.max(0, limitBytes - usedBytes);
+  // Đầy / vượt hạn mức tính từ byte (##87) — trước đây phần trăm bị kẹp 100 và chữ "Trống 0 Bytes"
+  // là tất cả những gì người dùng 600% hạn mức (gói vừa hết hạn) đọc được.
+  const storageStatus = getStorageStatus(usedBytes, limitBytes);
+  const usedPercent = storageStatus.percent;
+  const freeBytes = storageStatus.freeBytes;
+
+  // Dòng hạn mức AI trong dải gói đang dùng — chỉ khi backend báo hạn mức đi cùng gói
+  // (`periodMonths`, ##87). Backend cũ không có trường này ⇒ không hiện gì, khỏi nói sai.
+  const aiUsedPercent =
+    aiQuota && Number(aiQuota.limit) > 0
+      ? Math.min(100, Math.round((Number(aiQuota.used) / Number(aiQuota.limit)) * 100))
+      : 100;
 
   // ──────────────────────────── Tính giá hiển thị ────────────────────────────
 
@@ -294,6 +328,7 @@ export default function BillingAndQuota() {
       await userApi.recalculateQuota();
       await refreshUser();
       await refreshStorageInfo?.();
+      await fetchAiQuota({ fresh: true });
       toast.success(t('billing.quota.synced'));
     } catch (err) {
       toast.error(err.message || t('billing.quota.syncFailed'));
@@ -442,9 +477,10 @@ export default function BillingAndQuota() {
     setSelectedPlan(null);
   };
 
-  const getProgressColor = (percent) => {
-    if (percent > 90) return 'bg-rose-500';
-    if (percent > 70) return 'bg-amber-500';
+  const getProgressColor = (level) => {
+    if (level === 'over' || level === 'full') return 'bg-rose-600';
+    if (level === 'almostFull') return 'bg-rose-500';
+    if (level === 'warning') return 'bg-amber-500';
     return 'bg-blue-600 dark:bg-blue-500';
   };
 
@@ -513,8 +549,8 @@ export default function BillingAndQuota() {
           {/* Thanh quota để tràn sang 2 bên */}
           <div className="w-full bg-gray-200 dark:bg-gray-700/60 rounded-full h-3 overflow-hidden">
             <div
-              className={`h-full rounded-full transition-all duration-700 ease-out ${getProgressColor(usedPercent)}`}
-              style={{ width: `${Math.min(100, Math.max(usedBytes > 0 ? 1 : 0, usedPercent))}%` }}
+              className={`h-full rounded-full transition-all duration-700 ease-out ${getProgressColor(storageStatus.level)}`}
+              style={{ width: `${Math.max(usedBytes > 0 ? 1 : 0, storageStatus.barPercent)}%` }}
             />
           </div>
 
@@ -529,11 +565,36 @@ export default function BillingAndQuota() {
               </span>
             </div>
             <div className="flex items-center gap-2 text-sm font-semibold text-gray-500 dark:text-gray-400">
-              <span>{t('billing.quota.usedPercent', { percent: usedPercent })}</span>
+              <span className={storageStatus.isFull ? 'text-rose-600 dark:text-rose-400' : undefined}>
+                {t('billing.quota.usedPercent', { percent: usedPercent })}
+              </span>
               <span>•</span>
-              <span>{t('billing.quota.freeSpace', { size: formatBytes(freeBytes) })}</span>
+              {storageStatus.level === 'over' ? (
+                <span className="text-rose-600 dark:text-rose-400">
+                  {t('billing.quota.overBy', { size: formatBytes(storageStatus.overBytes) })}
+                </span>
+              ) : (
+                <span>{t('billing.quota.freeSpace', { size: formatBytes(freeBytes) })}</span>
+              )}
             </div>
           </div>
+
+          {/* Đầy / vượt hạn mức: nói rõ hậu quả (tải lên bị chặn) và hai lối ra. Ca hay gặp nhất
+              là gói vừa hết hạn — hạn mức về mức Miễn phí trong khi dữ liệu vẫn còn nguyên. */}
+          {storageStatus.isFull && (
+            <div className="flex items-start gap-2.5 rounded-2xl border border-rose-200 dark:border-rose-500/30 bg-rose-50/70 dark:bg-rose-950/30 px-4 py-3">
+              <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-rose-600 dark:text-rose-400" />
+              <p className="text-[14px] text-rose-800 dark:text-rose-200 leading-snug">
+                {storageStatus.level === 'over'
+                  ? t('billing.quota.overNotice', {
+                      used: formatBytes(usedBytes),
+                      limit: formatStorage(limitBytes),
+                      size: formatBytes(storageStatus.overBytes),
+                    })
+                  : t('billing.quota.fullNotice', { limit: formatStorage(limitBytes) })}
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Dải thông tin gói đang chạy + tắt tự động gia hạn.
@@ -595,6 +656,21 @@ export default function BillingAndQuota() {
                       </span>
                     )}
                   </p>
+
+                  {/* Hạn mức AI đi cùng kỳ của gói (##87) — gói 6 tháng là AI 6 tháng, hết hạn
+                      cùng ngày với gói. Nói ra ở đây vì đây là nơi khách xem gói của mình. */}
+                  {aiQuota?.periodMonths ? (
+                    <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-1 flex items-start gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 mt-0.5 shrink-0 text-blue-500 dark:text-blue-400" />
+                      <span>
+                        {t('billing.current.aiQuota', {
+                          term: t(monthsTermKey(aiQuota.periodMonths), { count: aiQuota.periodMonths }),
+                          percent: aiUsedPercent,
+                          date: formatPlanDate(aiQuota.resetAt, locale),
+                        })}
+                      </span>
+                    </p>
+                  ) : null}
                 </div>
               </div>
 
@@ -1039,6 +1115,23 @@ export default function BillingAndQuota() {
                   })}
                   {quote?.isRenewal && t('billing.confirm.renewNote')}
                 </p>
+
+                {/* Hạn mức AI đi kèm phủ TRỌN kỳ đang mua (##87): mua 6 tháng là AI 6 tháng, hết hạn
+                    cùng ngày với gói. `endsAt` do backend tính bằng đúng phép cộng lúc kích hoạt —
+                    backend cũ không trả trường này thì không nói gì, vì khi đó AI vẫn chia 30 ngày. */}
+                {quote?.endsAt && !selectedPlan.isFree && (
+                  <div className="mt-4 flex items-start gap-2.5 rounded-xl bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 px-4 py-3">
+                    <Sparkles className="w-4 h-4 mt-0.5 shrink-0 text-blue-600 dark:text-blue-400" />
+                    <p className="text-[13.5px] text-blue-900 dark:text-blue-200 leading-snug">
+                      {t(quote.isRenewal ? 'billing.confirm.aiTermRenew' : 'billing.confirm.aiTerm', {
+                        term: t(monthsTermKey(CYCLE_MONTHS[billingCycle] || 1), {
+                          count: CYCLE_MONTHS[billingCycle] || 1,
+                        }),
+                        date: formatPlanDate(quote.endsAt, locale),
+                      })}
+                    </p>
+                  </div>
+                )}
 
                 {/* `resumesAutoRenew` = khách đang hẹn dừng CHÍNH gói này, nên lần thanh toán
                     này rút lại lệnh huỷ (backend xoá `cancel_at_period_end` khi settle). Phải

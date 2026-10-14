@@ -1,14 +1,22 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useFiles } from '../../context/FileContext';
 import { useLanguage } from '../../context/LanguageContext';
-import { User as UserIcon, LogOut, ShieldCheck } from 'lucide-react';
+import { User as UserIcon, LogOut, ShieldCheck, CreditCard, ChevronRight } from 'lucide-react';
 import UserProfileModal from '../modals/UserProfileModal';
+import useMySubscription from '../../hooks/useMySubscription';
+import { PLAN_TERM_KEY, formatPlanDate } from '../../constants/billing';
+import { displayPlanName } from '../../utils/planName';
+import { localeTagOf } from '../../utils/locale';
 
 export default function AccountModal({ isOpen, onClose }) {
     const { user, logout } = useAuth();
-    const { t } = useLanguage();
+    const { setActiveTab } = useFiles();
+    const { t, language } = useLanguage();
     const modalRef = useRef(null);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
+    // Gói đang dùng (##87) — hỏi lại mỗi lần mở menu, xem `useMySubscription`.
+    const { subscription } = useMySubscription(Boolean(isOpen));
 
     useEffect(() => {
         const handleClickOutside = (e) => {
@@ -50,6 +58,26 @@ export default function AccountModal({ isOpen, onClose }) {
 
     const initialLetter = (user?.fullName || user?.email || 'U').charAt(0).toUpperCase();
 
+    // Dòng gói dưới huy hiệu tài khoản. 'loading' / 'error' KHÔNG được hiện thành "Miễn phí" —
+    // đoán sai gói ngay trong menu tài khoản là đúng kiểu lỗi ##87 đang sửa.
+    const hasPlan = Boolean(subscription && typeof subscription === 'object' && subscription.planName);
+    const planText = (() => {
+        if (subscription === 'loading') return t('profile.plan.loadingShort');
+        if (subscription === 'error') return t('profile.plan.unavailableShort');
+        if (!hasPlan) return t('profile.plan.freeName');
+        const termKey = PLAN_TERM_KEY[subscription.billingCycle];
+        const name = displayPlanName(subscription.planName, language);
+        return termKey ? `${name} · ${t(termKey)}` : name;
+    })();
+    const planUntil = hasPlan
+        ? t('account.planUntil', { date: formatPlanDate(subscription.endDate, localeTagOf(language)) })
+        : null;
+
+    const openBilling = () => {
+        setActiveTab?.('billing');
+        onClose && onClose();
+    };
+
     return (
         <div 
             ref={modalRef}
@@ -72,6 +100,27 @@ export default function AccountModal({ isOpen, onClose }) {
                     </span>
                 </div>
             </div>
+
+            {/* Gói đang dùng — bấm là sang trang Gói dịch vụ. */}
+            <button
+                type="button"
+                onClick={openBilling}
+                className="mt-3 w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors text-left cursor-pointer"
+            >
+                <CreditCard className={`w-4 h-4 shrink-0 ${hasPlan ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400'}`} />
+                <span className="flex-1 min-w-0">
+                    <span className="block text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                        {t('profile.plan.sectionTitle')}
+                    </span>
+                    <span className="block text-sm font-semibold text-gray-900 dark:text-gray-100 truncate" title={planText}>
+                        {planText}
+                    </span>
+                    {planUntil && (
+                        <span className="block text-xs text-gray-500 dark:text-gray-400 truncate">{planUntil}</span>
+                    )}
+                </span>
+                <ChevronRight className="w-4 h-4 shrink-0 text-gray-400 dark:text-gray-500" />
+            </button>
 
             {/* Menu Options */}
             <div className="pt-2 space-y-1">

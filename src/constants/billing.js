@@ -107,6 +107,25 @@ export const CYCLE_UNIT_KEY = {
   yearly: 'billing.unit.yearly',
 };
 
+/**
+ * Khoá dịch cho KỲ của một gói ĐÃ mua ("6 tháng", ghép sau tên gói) — hồ sơ và menu tài khoản (##87). Không
+ * dùng `CYCLE_LABEL_KEY` (mang phần chiết khấu, chỉ có nghĩa lúc chọn mua) hay `CYCLE_UNIT_KEY`
+ * ("tháng" — đơn vị của giá "/ tháng").
+ */
+export const PLAN_TERM_KEY = {
+  monthly: 'billing.term.monthly',
+  '3_months': 'billing.term.3months',
+  '6_months': 'billing.term.6months',
+  yearly: 'billing.term.yearly',
+};
+
+/**
+ * Khoá dịch cho "N tháng" — `t(monthsTermKey(n), { count: n })`. Hai khoá vì tiếng Anh phân biệt
+ * số ít ("1 month") với số nhiều ("6 months"); câu nào nói về kỳ hạn mức AI (##87) nhận cả cụm
+ * này qua chỗ trống `{term}` thay vì tự ghép "{months} tháng".
+ */
+export const monthsTermKey = (n) => (Number(n) === 1 ? 'billing.months.one' : 'billing.months.other');
+
 /** Khoá dịch cho nhãn chu kỳ đầy đủ (kèm mức giảm giá). */
 export const CYCLE_LABEL_KEY = {
   monthly: 'billing.cycleLabel.monthly',

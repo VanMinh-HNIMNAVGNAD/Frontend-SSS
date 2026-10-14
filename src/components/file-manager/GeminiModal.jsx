@@ -35,6 +35,7 @@ import AiBubble from './AiBubble';
 import { aiApi } from '../../services/api';
 import { useLanguage } from '../../context/LanguageContext';
 import { displayPlanName } from '../../utils/planName';
+import { monthsTermKey } from '../../constants/billing';
 import { localeTagOf } from '../../utils/locale';
 
 /**
@@ -1239,6 +1240,13 @@ export default function GeminiModal({
             : null;
     const resetLabel = formatResetDate(quota?.resetAt);
     const fileResetLabel = formatResetDate(fileQuota?.resetAt) ?? resetLabel ?? '—';
+    // Gói trả phí: MỘT hạn mức cho trọn kỳ đã mua, hết hạn cùng ngày với gói (##87) — `resetAt`
+    // khi đó là ngày GÓI hết hạn, không phải ngày "cấp lại". Gói Miễn phí (và backend cũ chưa có
+    // `periodMonths`) vẫn là chu kỳ 30 ngày cấp lại.
+    const planTerm = Boolean(quota?.periodMonths);
+    // "6 tháng" / "6 months" / "1 month" — chèn vào các câu hạn mức của gói trả phí.
+    const quotaTermLabel = planTerm ? t(monthsTermKey(quota.periodMonths), { count: quota.periodMonths }) : '';
+    const fileTerm = Boolean(fileQuota?.periodMonths ?? quota?.periodMonths);
     const inputLocked = aiDisabled || quotaBlocked;
 
     /**
@@ -1461,16 +1469,35 @@ export default function GeminiModal({
                         <div className="flex items-center justify-between gap-3 text-[11px]">
                             <span
                                 className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400 min-w-0"
-                                title={t('ai.quota.tooltip', {
-                                    used: quota.used.toLocaleString(locale),
-                                    limit: quota.limit.toLocaleString(locale),
-                                })}
+                                title={
+                                    planTerm
+                                        ? t('ai.quota.tooltipPlan', {
+                                              used: quota.used.toLocaleString(locale),
+                                              limit: quota.limit.toLocaleString(locale),
+                                              term: quotaTermLabel,
+                                              date: resetLabel ?? '—',
+                                          })
+                                        : t('ai.quota.tooltip', {
+                                              used: quota.used.toLocaleString(locale),
+                                              limit: quota.limit.toLocaleString(locale),
+                                          })
+                                }
                             >
                                 <Gauge className="w-3.5 h-3.5 shrink-0" />
-                                <span className="truncate">
+                                {/* `sm:shrink-0`: từ sm tên gói hiện bên cạnh và CHỈ nó co lại khi thiếu chỗ.
+                                    Để cả hai cùng co thì Chrome cắt "…" ở con số đã dùng chỉ vì lệch phần lẻ
+                                    pixel (đo trên bản build: hai phần cùng co là "Đã dùng 5% hạn mức AI của g…").
+                                    Màn hẹp hơn sm không có tên gói nên dòng này vẫn co + "…" như cũ. */}
+                                <span className="truncate sm:shrink-0">
+                                    {/* Gói trả phí nói luôn KỲ của hạn mức ("hạn mức AI 6 tháng") ngay trong câu
+                                        chính — phần tên gói bên cạnh có thể bị cắt khi khung hẹp. */}
                                     {quotaBlocked
-                                        ? t('ai.quota.empty')
-                                        : t('ai.quota.usedPercent', { percent: usedPercent })}
+                                        ? planTerm
+                                            ? t('ai.quota.emptyPlan', { term: quotaTermLabel })
+                                            : t('ai.quota.empty')
+                                        : planTerm
+                                          ? t('ai.quota.usedPercentPlan', { percent: usedPercent, term: quotaTermLabel })
+                                          : t('ai.quota.usedPercent', { percent: usedPercent })}
                                 </span>
                                 <span className="text-gray-400 dark:text-gray-500 truncate hidden sm:inline">
                                     · {displayPlanName(quota.planName, language)}
@@ -1478,7 +1505,7 @@ export default function GeminiModal({
                             </span>
                             {resetLabel && (
                                 <span className="text-gray-400 dark:text-gray-500 shrink-0">
-                                    {t('ai.quota.reset', { date: resetLabel })}
+                                    {t(planTerm ? 'ai.quota.until' : 'ai.quota.reset', { date: resetLabel })}
                                 </span>
                             )}
                         </div>
@@ -1508,12 +1535,20 @@ export default function GeminiModal({
                     ) : quotaBlocked && messages.length === 0 ? (
                         <div className="h-full flex flex-col items-center justify-center text-center px-8 gap-3">
                             <Gauge className="w-6 h-6 text-amber-600 dark:text-amber-400" />
-                            <p className="font-semibold text-gray-800 dark:text-gray-200">{t('ai.quota.blockedTitle')}</p>
+                            <p className="font-semibold text-gray-800 dark:text-gray-200">
+                                {t(planTerm ? 'ai.quota.blockedTitlePlan' : 'ai.quota.blockedTitle')}
+                            </p>
                             <p className="text-xs text-gray-500 dark:text-gray-400 max-w-sm">
-                                {t('ai.quota.blockedDesc', {
-                                    plan: displayPlanName(quota?.planName, language) ?? '',
-                                    date: resetLabel ?? '',
-                                })}
+                                {planTerm
+                                    ? t('ai.quota.blockedDescPlan', {
+                                          plan: displayPlanName(quota?.planName, language) ?? '',
+                                          term: quotaTermLabel,
+                                          date: resetLabel ?? '',
+                                      })
+                                    : t('ai.quota.blockedDesc', {
+                                          plan: displayPlanName(quota?.planName, language) ?? '',
+                                          date: resetLabel ?? '',
+                                      })}
                             </p>
                         </div>
                     ) : messages.length === 0 && !isThinking ? (
@@ -1645,7 +1680,7 @@ export default function GeminiModal({
                 {quotaBlocked && !aiDisabled && (
                     <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-800 flex items-center justify-between gap-3">
                         <p className="text-[11px] text-gray-500 dark:text-gray-400 min-w-0">
-                            {t('ai.quota.upgradeHint')}
+                            {t(planTerm ? 'ai.quota.upgradeHintPlan' : 'ai.quota.upgradeHint')}
                         </p>
                         <Link
                             to="/app/billing"
@@ -1776,7 +1811,7 @@ export default function GeminiModal({
                             disabled={inputLocked || slotsLeft === 0 || uploading || fileQuotaOut}
                             title={
                                 fileQuotaOut
-                                    ? t('ai.attach.quotaOut', {
+                                    ? t(fileTerm ? 'ai.attach.quotaOutPlan' : 'ai.attach.quotaOut', {
                                           limit: fileQuota?.limit ?? 0,
                                           date: fileResetLabel,
                                       })

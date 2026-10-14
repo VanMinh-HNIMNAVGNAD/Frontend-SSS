@@ -1,7 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
+import { useFiles } from '../../context/FileContext';
 import { useLanguage } from '../../context/LanguageContext';
+import useMySubscription from '../../hooks/useMySubscription';
+import { PLAN_TERM_KEY, formatPlanDate, formatStorage, monthsTermKey } from '../../constants/billing';
+import { formatBytes } from '../../utils/formatFileSize';
+import { getStorageStatus } from '../../utils/storageStatus';
 import { displayPlanName } from '../../utils/planName';
 import { localeTagOf } from '../../utils/locale';
 import tRich from '../../utils/tRich';
@@ -26,8 +31,11 @@ import {
   HardDrive,
   Clock,
   ShieldAlert,
+  CreditCard,
+  Sparkles,
+  ChevronRight,
 } from 'lucide-react';
-import { billingApi, userApi } from '../../services/api';
+import { userApi } from '../../services/api';
 
 /**
  * Helper phân tích User-Agent để hiển thị icon và tên thiết bị thân thiện
@@ -124,17 +132,13 @@ export default function UserProfileModal({ isOpen, onClose }) {
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
-  // Gói cước đang chạy, cho dòng chú thích dưới thanh dung lượng.
-  //
-  // BA trạng thái, không phải hai — và đó là điểm của biến này. Trước đây chỗ đó
-  // hard-code `t('profile.plan.free')`, nên người đã mua Pro/Plus/Max vẫn đọc được
-  // "Gói cước: Miễn phí (Mặc định)" ngay bên cạnh một thanh dung lượng 100 GB.
-  //   'loading' → chưa hỏi xong
-  //   'error'   → hỏi mà không trả lời được (mất mạng, 500). KHÔNG được rơi về
-  //               "Miễn phí": im lặng đoán sai đúng là cái lỗi đang sửa.
-  //   null      → server ĐÃ trả lời và câu trả lời là "chưa từng mua gói nào"
-  //   {..}      → gói thật, lấy `planName` từ GET /billing/subscription
-  const [subscription, setSubscription] = useState('loading');
+  // Gói cước đang chạy + hạn mức AI, cho thẻ "Gói đang dùng" (##87). BA trạng thái của
+  // `subscription` ('loading' | 'error' | null | {…}) — xem `useMySubscription`. Trước đây hồ sơ
+  // chỉ có một dòng chữ 11px dưới thanh dung lượng, và trước nữa thì hard-code "Miễn phí" ngay
+  // cạnh một thanh dung lượng 100 GB.
+  const { subscription, aiQuota } = useMySubscription(Boolean(isOpen && user));
+  // Nút "Quản lý gói" mở trang Gói dịch vụ — `setActiveTab` của app, không phải tab của modal.
+  const { setActiveTab: openAppTab } = useFiles();
 
   // Tab 2: Password State
   const [currentPassword, setCurrentPassword] = useState('');
@@ -222,24 +226,8 @@ export default function UserProfileModal({ isOpen, onClose }) {
           console.error('[UserProfileModal] Failed to get latest user profile:', err);
         });
 
-      // Gói cước KHÔNG nằm trong /users/me (không có join sang storage_plans ở
-      // endpoint nóng đó), nên phải hỏi riêng. Cố ý không cache: hỏi lại mỗi lần
-      // mở modal là đủ rẻ, và người vừa thanh toán xong mở hồ sơ ra xem thì phải
-      // thấy gói mới chứ không phải bản cũ 15 phút.
-      setSubscription('loading');
-      billingApi
-        .getMySubscription()
-        .then((data) => {
-          if (!isMountedRef.current) return;
-          // `null` từ API = chưa từng mua gói. Giữ nguyên null, đừng đổi thành
-          // 'error' — hai chuyện đó hiện ra hai câu khác nhau.
-          setSubscription(data ?? null);
-        })
-        .catch((err) => {
-          if (!isMountedRef.current) return;
-          console.error('[UserProfileModal] Failed to get subscription:', err);
-          setSubscription('error');
-        });
+      // Gói cước KHÔNG nằm trong /users/me (không có join sang storage_plans ở endpoint nóng
+      // đó) — `useMySubscription` ở trên hỏi riêng mỗi lần modal mở.
     }
   }, [isOpen, user]);
 
@@ -462,25 +450,59 @@ export default function UserProfileModal({ isOpen, onClose }) {
     }
   };
 
-  // Tính toán dung lượng lưu trữ
-  const storageUsedGB = user?.storageInfo?.usedGB || (Number(user?.storageUsedBytes || 0) / (1024 * 1024 * 1024)).toFixed(2);
-  const storageLimitGB = user?.storageInfo?.limitGB || (Number(user?.storageLimitBytes || 2147483648) / (1024 * 1024 * 1024)).toFixed(2);
-  const storagePercentage = user?.storageInfo?.percentage ?? Math.min(100, Math.round((Number(user?.storageUsedBytes || 0) / Number(user?.storageLimitBytes || 2147483648)) * 100));
+  // Dung lượng tính từ BYTE (##87). `storageInfo.percentage` không dùng được: `/users/me` kẹp ở
+  // 100 còn phản hồi đăng nhập/refresh thì không kẹp — cùng một người có lúc thấy "(100%)", có
+  // lúc "(615%)" kèm "-515% còn trống", và không lúc nào thấy chữ "đầy".
+  const storageUsedBytes = Number(user?.storageInfo?.usedBytes ?? user?.storageUsedBytes ?? 0) || 0;
+  const storageLimitBytes = Number(user?.storageInfo?.limitBytes ?? user?.storageLimitBytes) || 2147483648;
+  const storageStatus = getStorageStatus(storageUsedBytes, storageLimitBytes);
 
-  // Nhãn gói cước dưới thanh dung lượng. Mỗi trạng thái của `subscription` ra một
-  // câu riêng — kể cả trạng thái "không hỏi được", vốn là chỗ dễ bị lười nhất: rơi
-  // về câu "Miễn phí" ở đó là dựng lại đúng cái lỗi đang sửa, chỉ khó thấy hơn.
-  const planLabel = (() => {
-    if (subscription === 'loading') return t('profile.plan.loading');
-    if (subscription === 'error') return t('profile.plan.unavailable');
-    if (!subscription?.planName) return t('profile.plan.free');
-    const name = t('profile.plan.current', { name: displayPlanName(subscription.planName, language) });
-    // `remainingDays` chỉ nói thêm khi nó là một con số dương thật. 0 hoặc âm là
-    // gói đã hết hạn mà bản ghi chưa kịp đóng — nói "còn 0 ngày" thì vô nghĩa.
-    return subscription.remainingDays > 0
-      ? `${name} · ${t('profile.plan.remaining', { days: subscription.remainingDays })}`
-      : name;
+  const hasPlan = Boolean(subscription && typeof subscription === 'object' && subscription.planName);
+  const planDisplayName = hasPlan ? displayPlanName(subscription.planName, language) : null;
+  const planTermKey = hasPlan ? PLAN_TERM_KEY[subscription.billingCycle] : null;
+
+  // Tên gói ở dòng tiêu đề của thẻ. Mỗi trạng thái của `subscription` một câu riêng — kể cả
+  // "không hỏi được", chỗ dễ bị lười nhất: rơi về "Miễn phí" ở đó là dựng lại đúng lỗi cũ.
+  const planHeadline = (() => {
+    if (subscription === 'loading') return t('profile.plan.loadingShort');
+    if (subscription === 'error') return t('profile.plan.unavailableShort');
+    if (!hasPlan) return t('profile.plan.freeName');
+    return planDisplayName;
   })();
+
+  // Dòng hạn của gói. `remainingDays` chỉ nói thêm khi là số dương thật — 0 là gói đã qua hạn
+  // mà cron chưa kịp đóng, nói "còn 0 ngày" thì vô nghĩa.
+  const planTermLine = (() => {
+    if (!hasPlan) return null;
+    const date = formatPlanDate(subscription.endDate, locale);
+    const ends = subscription.cancelAtPeriodEnd
+      ? t('profile.plan.willEnd', { date })
+      : t('profile.plan.endsOn', { date });
+    return subscription.remainingDays > 0
+      ? `${ends} · ${t('profile.plan.remaining', { days: subscription.remainingDays })}`
+      : ends;
+  })();
+
+  // Hạn mức AI: gói trả phí là MỘT hạn mức cho trọn kỳ (`periodMonths`, ##87), Miễn phí là chu
+  // kỳ 30 ngày. Backend cũ không có `periodMonths` ⇒ rơi về câu chu kỳ, vẫn đúng với nó.
+  const aiLine = (() => {
+    if (!aiQuota) return null;
+    const percent =
+      Number(aiQuota.limit) > 0
+        ? Math.min(100, Math.round((Number(aiQuota.used) / Number(aiQuota.limit)) * 100))
+        : 100;
+    return aiQuota.periodMonths
+      ? t('profile.plan.aiQuota', {
+          term: t(monthsTermKey(aiQuota.periodMonths), { count: aiQuota.periodMonths }),
+          percent,
+        })
+      : t('profile.plan.aiQuotaCycle', { percent, date: formatPlanDate(aiQuota.resetAt, locale) });
+  })();
+
+  const openBilling = () => {
+    openAppTab?.('billing');
+    onClose?.();
+  };
 
   const initialLetter = (user?.fullName || user?.email || 'U').charAt(0).toUpperCase();
 
@@ -620,9 +642,120 @@ export default function UserProfileModal({ isOpen, onClose }) {
                     </span>
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">{user.email}</p>
+                  {/* Gói đang dùng ngay dưới email — chỗ đầu tiên mắt nhìn khi mở hồ sơ. */}
+                  {hasPlan && (
+                    <span className="mt-1.5 inline-flex max-w-full items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
+                      <CreditCard className="w-3 h-3 shrink-0" />
+                      <span className="truncate">
+                        {planDisplayName}
+                        {planTermKey ? ` · ${t(planTermKey)}` : ''}
+                      </span>
+                    </span>
+                  )}
                   
                 </div>
               </div>
+
+              {/* Gói đang dùng + dung lượng + hạn mức AI (##87). Trước đây hồ sơ chỉ có một dòng
+                  chữ 11px dưới thanh dung lượng nói tên gói — người dùng báo "chưa có hiển thị gói
+                  đang dùng trong profile". Đặt ngay dưới thẻ tên để không phải cuộn mới thấy. */}
+              <section className="p-4 rounded-2xl bg-gray-50/80 dark:bg-white/5 border border-gray-200 dark:border-gray-700 space-y-3">
+                {/* Điện thoại: nút xuống dưới phần chữ — chung một hàng thì tên gói chỉ còn
+                    "Gói Cá Nh…" và dòng hạn vỡ thành ba dòng (đã chụp ở 375px). */}
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1 sm:gap-3">
+                  <div className="flex items-start gap-3 min-w-0">
+                    <div className="shrink-0 w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                      <CreditCard className="w-5 h-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                        {t('profile.plan.sectionTitle')}
+                      </p>
+                      <p className="text-sm font-bold text-gray-900 dark:text-gray-100 break-words">
+                        {planHeadline}
+                        {planTermKey && (
+                          <span className="ml-1.5 text-xs font-semibold text-gray-500 dark:text-gray-400">
+                            · {t(planTermKey)}
+                          </span>
+                        )}
+                      </p>
+                      {planTermLine && (
+                        <p
+                          className={`text-xs mt-0.5 ${
+                            subscription.cancelAtPeriodEnd
+                              ? 'text-amber-700 dark:text-amber-400'
+                              : 'text-gray-500 dark:text-gray-400'
+                          }`}
+                        >
+                          {planTermLine}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={openBilling}
+                    className="self-start shrink-0 ml-9 sm:ml-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/15 transition-colors"
+                  >
+                    {/* "Nâng cấp" chỉ khi server ĐÃ trả lời là không có gói (`null`) — lúc đang tải hay
+                        lỗi mà hiện "Nâng cấp" là mời người đang có gói Pro mua lại từ đầu. */}
+                    {subscription === null ? t('profile.plan.upgrade') : t('profile.plan.manage')}
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                <div className="space-y-1.5 pt-3 border-t border-gray-200/70 dark:border-gray-700/60">
+                  <div className="flex items-center justify-between gap-2 text-xs font-bold">
+                    <span className="flex items-center gap-1.5 text-gray-800 dark:text-gray-200">
+                      <HardDrive className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                      {t('profile.storage.title')}
+                    </span>
+                    <span
+                      className={
+                        storageStatus.isFull ? 'text-rose-600 dark:text-rose-400' : 'text-gray-600 dark:text-gray-300'
+                      }
+                    >
+                      {formatBytes(storageUsedBytes)} / {formatStorage(storageLimitBytes)} ({storageStatus.percent}%)
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ${
+                        storageStatus.isFull
+                          ? 'bg-rose-600'
+                          : storageStatus.level === 'almostFull'
+                          ? 'bg-rose-500'
+                          : storageStatus.level === 'warning'
+                          ? 'bg-amber-500'
+                          : 'bg-gradient-to-r from-blue-500 to-indigo-600'
+                      }`}
+                      style={{ width: `${Math.max(2, storageStatus.barPercent)}%` }}
+                    />
+                  </div>
+                  {/* Đầy / vượt mức phải nói thẳng là KHÔNG tải lên được nữa — "0% còn trống" thì
+                      không ai hiểu là đã bị chặn, còn "-515% còn trống" thì vô nghĩa. */}
+                  <p
+                    className={`text-[11px] ${
+                      storageStatus.isFull
+                        ? 'font-semibold text-rose-600 dark:text-rose-400'
+                        : 'text-gray-500 dark:text-gray-400'
+                    }`}
+                  >
+                    {storageStatus.level === 'over'
+                      ? t('profile.storage.over', { size: formatBytes(storageStatus.overBytes) })
+                      : storageStatus.level === 'full'
+                      ? t('profile.storage.full')
+                      : t('profile.storage.free', { percent: 100 - storageStatus.percent })}
+                  </p>
+                </div>
+
+                {aiLine && (
+                  <p className="flex items-start gap-1.5 text-xs text-gray-600 dark:text-gray-300">
+                    <Sparkles className="w-3.5 h-3.5 mt-0.5 shrink-0 text-blue-500 dark:text-blue-400" />
+                    <span>{aiLine}</span>
+                  </p>
+                )}
+              </section>
 
               {/* Form Sửa Tên & Email */}
               <form onSubmit={handleUpdateProfile} className="space-y-4">
@@ -715,35 +848,6 @@ export default function UserProfileModal({ isOpen, onClose }) {
                   </button>
                 </div>
               </form>
-
-              {/* Thanh Dung lượng Lưu trữ */}
-              <div className="p-4 rounded-2xl bg-gray-50/80 dark:bg-white/5 border border-gray-200 dark:border-gray-700 space-y-2.5">
-                <div className="flex items-center justify-between text-xs font-bold">
-                  <span className="flex items-center gap-1.5 text-gray-800 dark:text-gray-200">
-                    <HardDrive className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                    {t('profile.storage.title')}
-                  </span>
-                  <span className="text-gray-600 dark:text-gray-300">
-                    {storageUsedGB} GB / {storageLimitGB} GB ({storagePercentage}%)
-                  </span>
-                </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all duration-500 ${
-                      storagePercentage > 90
-                        ? 'bg-rose-600'
-                        : storagePercentage > 70
-                        ? 'bg-amber-500'
-                        : 'bg-gradient-to-r from-blue-500 to-indigo-600'
-                    }`}
-                    style={{ width: `${Math.min(100, Math.max(2, storagePercentage))}%` }}
-                  />
-                </div>
-                <div className="flex justify-between items-center text-[11px] text-gray-500 dark:text-gray-400">
-                  <span className="truncate" title={planLabel}>{planLabel}</span>
-                  <span>{t('profile.storage.free', { percent: 100 - storagePercentage })}</span>
-                </div>
-              </div>
             </div>
           )}
 

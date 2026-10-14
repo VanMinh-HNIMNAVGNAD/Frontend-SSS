@@ -1781,6 +1781,9 @@ export function FileProvider({ children }) {
   // Storage Info Object
   const storageInfo = useMemo(() => ({
     usedBytes: analytics ? analytics.usedBytes : 0,
+    // Hạn mức theo BYTE — Sidebar tự tính "Đã đầy / Vượt hạn mức" từ đây (`getStorageStatus`),
+    // vì `percentage` của backend bị kẹp ở 100 nên không phân biệt được 100% với 600% (##87).
+    limitBytes: analytics ? Number(analytics.limitBytes) || 0 : 0,
     usedGB: analytics ? analytics.usedGB : '0.00',
     usedMB: analytics ? (analytics.usedBytes / (1024 * 1024)).toFixed(2) : '0.00',
     usedFormatted: analytics ? formatBytes(analytics.usedBytes) : '0 Bytes',

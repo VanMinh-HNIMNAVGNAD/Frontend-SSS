@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import { formatBytes } from '../../utils/formatFileSize';
 import { 
   X, 
@@ -28,11 +28,8 @@ import useMediaSupport from '../../hooks/useMediaSupport';
 import useFragmentedMp4, { supportsFragmentedMp4 } from '../../hooks/useFragmentedMp4';
 import { storageApi } from '../../services/api';
 import { useAiPanel } from '../../context/AiPanelContext';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { renderMarkdownSafe } from '../../utils/safeMarkdown';
-import * as pdfjsLib from 'pdfjs-dist';
-import { openPdf } from '../../utils/pdfRange';
+import { isChunkLoadError, reloadOnceForNewVersion } from '../../utils/chunkReload';
+import { loadPdfjs, openPdf } from '../../utils/pdfRange';
 import DocxRenderer from './DocxRenderer';
 import SheetPreview from './SheetPreview';
 import ZoomableImage from './ZoomableImage';
@@ -44,13 +41,11 @@ import { useFileThumbnail } from '../../hooks/useFileThumbnail';
 import { thumbnailFingerprint } from '../../utils/thumbnailStore';
 import { useZoomPan, useWheelZoom, ZOOM_MIN, ZOOM_MAX } from '../../hooks/useZoomPan';
 
-// Khởi tạo Worker an toàn cho PDF.js
-if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-    'pdfjs-dist/build/pdf.worker.min.mjs',
-    import.meta.url
-  ).toString();
-}
+// Tô màu mã nguồn là chunk RIÊNG, chỉ tải khi mở một tệp code/văn bản — xem `CodeHighlighter`.
+// pdf.js cũng vậy: `loadPdfjs()` trong `PdfCanvasViewer` (##85). Hai thứ này từng là import
+// tĩnh, nên mở một tấm ảnh cũng phải tải ~1MB JS không dùng tới.
+const CodeHighlighter = lazy(() => import('./CodeHighlighter'));
+const MarkdownPreview = lazy(() => import('./MarkdownPreview'));
 
 /**
  * Trình duyệt có dùng lõi Chromium (Edge, Chrome, Opera...) hay không.
@@ -199,25 +194,34 @@ function PdfCanvasViewer({ url, sizeBytes, zoom = 1, rotation = 0, onWheelZoom }
     if (!url || typeof url !== 'string') return;
 
     let isMounted = true;
+    let opened = null;
     setLoading(true);
     setError(null);
     setCurrentPage(1);
 
-    const opened = openPdf(pdfjsLib, url, {
-      sizeHint: sizeBytes,
-      onError: (err) => {
-        console.error('[PDF Preview Error]', err);
-        if (isMounted) setError(t('preview.pdf.readFailed'));
-      },
-    });
-    opened.promise
+    // pdf.js nạp lười (lần đầu trong phiên mới tải), rồi mới mở tài liệu.
+    loadPdfjs()
+      .then((pdfjsLib) => {
+        if (!isMounted) return null;
+        opened = openPdf(pdfjsLib, url, {
+          sizeHint: sizeBytes,
+          onError: (err) => {
+            console.error('[PDF Preview Error]', err);
+            if (isMounted) setError(t('preview.pdf.readFailed'));
+          },
+        });
+        return opened.promise;
+      })
       .then((loadedPdf) => {
-        if (!isMounted) return;
+        if (!isMounted || !loadedPdf) return;
         setPdfDoc(loadedPdf);
         setNumPages(loadedPdf.numPages);
       })
       .catch((err) => {
         if (!isMounted || err?.name === 'AbortError') return;
+        // Chunk pdf.js của bản build cũ không còn trên server (vừa deploy) — tải lại trang một
+        // lần như mọi chunk lười khác (ledger ##64), thay vì báo "không đọc được PDF".
+        if (isChunkLoadError(err) && reloadOnceForNewVersion()) return;
         console.error('[PDF Preview Error]', err);
         setError(t('preview.pdf.readFailed'));
       })
@@ -229,7 +233,7 @@ function PdfCanvasViewer({ url, sizeBytes, zoom = 1, rotation = 0, onWheelZoom }
       isMounted = false;
       // Huỷ request đang bay và giải phóng tài liệu bên worker — bản cũ không bao giờ
       // `destroy`, nên mỗi PDF đã mở nằm lại trong RAM worker tới khi tải lại trang.
-      opened.destroy();
+      opened?.destroy();
     };
   }, [url, sizeBytes, t]);
 
@@ -1299,12 +1303,18 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
                     </div>
                   ) : textContent ? (
                     isMd && mdViewMode === 'preview' ? (
-                      <div
-                        className="p-6 @lg:p-10 max-w-4xl mx-auto markdown-preview-content"
-                        dangerouslySetInnerHTML={{
-                          __html: renderMarkdownSafe(textContent)
-                        }}
-                      />
+                      <Suspense
+                        fallback={
+                          <pre className="m-0 p-6 @lg:p-10 max-w-4xl mx-auto text-sm text-slate-200 whitespace-pre-wrap">
+                            {textContent}
+                          </pre>
+                        }
+                      >
+                        <MarkdownPreview
+                          className="p-6 @lg:p-10 max-w-4xl mx-auto markdown-preview-content"
+                          text={textContent}
+                        />
+                      </Suspense>
                     ) : textContent.length > SYNTAX_HIGHLIGHT_MAX_CHARS ? (
                       // Ngưỡng preview nay là 10MB, nhưng Prism tokenize đồng bộ:
                       // đưa cho nó vài MB là treo tab. Tệp lớn hiển thị thô, đọc
@@ -1318,7 +1328,16 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
                         </pre>
                       </div>
                     ) : (
-                      <SyntaxHighlighter
+                      // Chữ thô hiện NGAY trong lúc chunk tô màu đang tải (lần đầu trong phiên),
+                      // thay vì một khung trống.
+                      <Suspense
+                        fallback={
+                          <pre className="m-0 p-4 text-xs font-mono text-slate-200 whitespace-pre">
+                            {textContent}
+                          </pre>
+                        }
+                      >
+                      <CodeHighlighter
                         language={(() => {
                           const ext = item?.name?.split('.').pop()?.toLowerCase();
                           const map = {
@@ -1347,13 +1366,13 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
                           };
                           return map[ext] || 'text';
                         })()}
-                        style={vscDarkPlus}
                         showLineNumbers={true}
                         customStyle={{ margin: 0, padding: '1rem', background: 'transparent', minHeight: '100%', color: '#e2e8f0' }}
                         wrapLines={true}
                       >
                         {textContent}
-                      </SyntaxHighlighter>
+                      </CodeHighlighter>
+                      </Suspense>
                     )
                   ) : (
                     <div className="text-slate-400 p-6 font-mono text-center">{t('preview.text.empty')}</div>

@@ -7,6 +7,7 @@ import {
 } from '../utils/thumbnailStore';
 import { recordThumbnailBytes } from '../utils/requestMetrics';
 import { noteThumbnailPipelineEnabled, uploadThumbnails } from '../utils/thumbnailUploader';
+import { rememberCdnOrigin } from '../utils/preconnect';
 import {
     VARIANT_FOR,
     buildVariantsFromImageUrl,
@@ -553,6 +554,8 @@ export function useFileThumbnail(file, { variant = 'full', enabled = true } = {}
     const mini = variant === 'mini';
     const cat = getFileTypeCategory(file?.name);
     const cdnUrl = file?.thumbUrls?.[VARIANT_FOR[mini ? 'mini' : 'full']] ?? null;
+    // Để lần mở app sau mở sẵn kết nối tới CDN — xem `utils/preconnect.js`.
+    rememberCdnOrigin(cdnUrl);
     const isFolder = file?.type === 'folder';
     const cacheKey = !isFolder ? thumbCacheKey(file, cat, mini) : null;
     const fingerprint = thumbnailFingerprint(file);

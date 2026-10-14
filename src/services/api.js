@@ -286,6 +286,16 @@ const NO_REFRESH_PATHS = [
 let refreshPromise = null;
 
 /**
+ * Hồ sơ người dùng đi kèm lượt refresh THÀNH CÔNG gần nhất (`{ token, user }`), hoặc null.
+ *
+ * Từ ##85 backend trả luôn `user` (đúng hình dạng `/auth/me`) trong `/auth/refresh` — nó vốn
+ * đã đọc hàng `users` để kiểm tài khoản còn hoạt động. `getSessionProfile()` dùng nó để lúc
+ * mở app không phải đi thêm `/auth/me`. Gắn kèm `token` để chỉ dùng khi nó ĐÚNG là hồ sơ của
+ * token đang nằm trong localStorage. Backend cũ không trả `user` ⇒ luôn null ⇒ đường cũ.
+ */
+let lastRefreshedSession = null;
+
+/**
  * Gọi /auth/refresh bằng axios GỐC để không đi qua interceptor này lần nữa.
  *
  * CHỐT CHẶN ĐỔI CHỦ: danh tính của lượt refresh do COOKIE quyết định, không phải
@@ -354,6 +364,8 @@ function refreshAccessToken() {
         }
 
         safeLocalStorage.setItem('accessToken', token);
+        const user = res.data?.data?.user ?? res.data?.user ?? null;
+        lastRefreshedSession = user ? { token, user } : null;
         return token;
       })
       .catch((err) => {
@@ -482,6 +494,12 @@ export function startSessionKeeper() {
   };
 }
 
+/** Token mà một request ĐÃ mang đi (header `Authorization: Bearer …`), hoặc null. */
+function bearerTokenOf(headers) {
+  const value = typeof headers?.get === 'function' ? headers.get('Authorization') : headers?.Authorization;
+  return typeof value === 'string' && value.startsWith('Bearer ') ? value.slice(7) : null;
+}
+
 // Response Interceptor: Handle 401 Unauthorized token expiration
 api.interceptors.response.use(
   (response) => {
@@ -538,7 +556,16 @@ api.interceptors.response.use(
 
     if (canRefresh) {
       try {
-        await refreshAccessToken();
+        // Token đã được làm mới TRONG LÚC request này bay (nhịp giữ phiên, hay một request
+        // khác vừa refresh xong) ⇒ 401 này là của token cũ: chỉ cần phát lại bằng token mới,
+        // KHÔNG refresh thêm lượt nữa. Đo trên log prod (##85): lúc mở app, `/auth/me` mang
+        // token hết hạn về tới server SAU khi lượt refresh của nhịp giữ phiên đã xong, nên bản
+        // cũ chạy lượt refresh THỨ HAI rồi mới phát lại — người dùng chờ thêm 1–2 giây.
+        const sentToken = bearerTokenOf(original.headers);
+        const currentToken = safeLocalStorage.getItem('accessToken');
+        if (!sentToken || !currentToken || sentToken === currentToken) {
+          await refreshAccessToken();
+        }
         original._retried = true;
         // Header Authorization cũ mang token đã hết hạn; xoá đi để request
         // interceptor gắn lại token mới vừa lưu.
@@ -656,6 +683,33 @@ export const authApi = {
   verifyResetOtp: (data) => api.post('/auth/verify-reset-otp', data),
   resetPassword: (data) => api.post('/auth/reset-password', data),
   getProfile: () => api.get('/auth/me'),
+
+  /**
+   * Hồ sơ người dùng cho lúc MỞ APP (##85) — cùng hình dạng `{ user }` với `getProfile()`.
+   *
+   * Access token chỉ sống 15 phút, nên gần như MỌI lần mở app nó đã hết hạn. Bản cũ gửi
+   * `/auth/me` bằng token chết (kèm một preflight CORS) → 401 → refresh → phát lại: 3–4 lượt
+   * đi-về nối tiếp trước khi biết người dùng là ai, và log prod còn thấy cả 2 lượt refresh.
+   * Nay: token sắp/đã hết hạn thì refresh TRƯỚC — `/auth/refresh` là request "đơn giản" của
+   * CORS (không preflight) và trả luôn hồ sơ ⇒ một lượt đi-về là đủ.
+   *
+   * Mọi trục trặc (refresh hỏng, backend cũ chưa trả `user`) đều lùi về đúng đường cũ
+   * `/auth/me` — nơi interceptor 401 lo phân loại lỗi và đăng xuất kèm lý do như trước.
+   */
+  getSessionProfile: async () => {
+    if (accessTokenNeedsRefresh()) {
+      try {
+        const token = await refreshAccessToken();
+        const session = lastRefreshedSession;
+        if (session?.user && session.token === token && token === safeLocalStorage.getItem('accessToken')) {
+          return { user: session.user };
+        }
+      } catch {
+        // Lùi về đường cũ bên dưới — xem docblock.
+      }
+    }
+    return api.get('/auth/me');
+  },
 
   // Đăng xuất PHẢI đi qua server: cookie `refreshToken` là HttpOnly nên JS không
   // xoá được, và bản thân phiên còn nằm trong bảng user_sessions. Trước đây

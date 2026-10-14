@@ -80,6 +80,46 @@ function assertNoSecretsInViteEnv(env) {
   }
 }
 
+/**
+ * Chèn `<link rel="preconnect">` tới backend vào `index.html` (##85).
+ *
+ * Request đầu tiên của app (`/auth/refresh`) chỉ bay đi SAU khi trình duyệt tải + chạy xong
+ * gói JS chính. Bắt tay DNS + TCP + TLS tới `*.run.app` (đo từ VN: ~25ms + ~45ms trên mạng
+ * tốt, 4G gấp vài lần) vì thế nằm nối đuôi sau JS. Khai trong HTML thì trình duyệt bắt tay
+ * NGAY khi đọc `<head>`, song song với lúc tải JS — tới lúc JS gọi API thì đường đã mở.
+ *
+ * HAI thẻ, vì trình duyệt dùng hai kết nối riêng cho cùng một origin:
+ *   • không `crossorigin` — cho request THẬT (axios `withCredentials`, gửi kèm cookie);
+ *   • `crossorigin` (ẩn danh) — cho lượt preflight OPTIONS của CORS, vốn không bao giờ mang
+ *     cookie. Thiếu thẻ này thì preflight đầu tiên vẫn phải tự bắt tay từ đầu.
+ *
+ * Địa chỉ lấy từ chính biến build đang dùng (`VITE_API_BASE_URL`), nên không bao giờ lệch
+ * với chỗ app thật sự gọi. Biến trống / không phải URL (dev chưa có `.env`) thì không chèn gì.
+ *
+ * @param {Record<string, string>} env
+ */
+function preconnectApiOrigin(env) {
+  return {
+    name: 'cloudsss-preconnect-api',
+    transformIndexHtml() {
+      let origin
+      try {
+        origin = new URL((env.VITE_API_BASE_URL || env.VITE_API_URL || '').trim()).origin
+      } catch {
+        return []
+      }
+      return [
+        { tag: 'link', attrs: { rel: 'preconnect', href: origin }, injectTo: 'head-prepend' },
+        {
+          tag: 'link',
+          attrs: { rel: 'preconnect', href: origin, crossorigin: true },
+          injectTo: 'head-prepend',
+        },
+      ]
+    },
+  }
+}
+
 // https://vite.dev/config/
 export default defineConfig(({ command, mode }) => {
   // loadEnv ưu tiên biến đã có sẵn trong process.env (cách Vercel/CI truyền vào)
@@ -92,7 +132,7 @@ export default defineConfig(({ command, mode }) => {
   if (command === 'build') assertApiBaseUrl(env)
 
   return {
-    plugins: [react(), tailwindcss()],
+    plugins: [react(), tailwindcss(), preconnectApiOrigin(env)],
     // KHÔNG khai `envDir`: Vite đọc `.env` ngay trong `frontend/`.
     // Trước đây là `envDir: '..'` để dùng chung `.env` ở gốc repo — nhưng như vậy Vite
     // nhìn thấy cả file chứa bí mật của backend, chỉ cần một khoá bị đặt nhầm tiền tố

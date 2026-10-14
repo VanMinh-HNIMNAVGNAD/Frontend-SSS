@@ -1,5 +1,5 @@
 import { recordThumbnailBytes } from './requestMetrics';
-import { openPdf } from './pdfRange';
+import { loadPdfjs, openPdf } from './pdfRange';
 
 /**
  * Dựng THÀNH PHẨM thumbnail — phần thuần tính toán, không biết gì về React.
@@ -271,24 +271,6 @@ export async function buildVariantsFromVideoFile(file) {
 }
 
 // ── PDF ──────────────────────────────────────────────────────────────────────
-
-/**
- * pdf.js nạp theo yêu cầu, KHÔNG import tĩnh — nó là một trong những phần lớn nhất
- * của gói JavaScript, mà phần lớn người dùng không mở tệp PDF nào.
- *
- * `import()` được ghi nhớ trong biến module nên chỉ tải một lần cho cả phiên.
- */
-let pdfjsPromise = null;
-export const loadPdfjs = () =>
-  (pdfjsPromise ??= import('pdfjs-dist').then((pdfjsLib) => {
-    // Worker phải trỏ đúng bản đi kèm phiên bản pdf.js vừa nạp — đặt ngay sau khi
-    // nạp xong thay vì lúc module này được import.
-    pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-      'pdfjs-dist/build/pdf.worker.min.mjs',
-      import.meta.url,
-    ).toString();
-    return pdfjsLib;
-  }));
 
 /** Cạnh dài của trang PDF sau khi render, trước khi thu xuống từng biến thể. */
 const PDF_RENDER_EDGE = VARIANT_SIZES.t384;

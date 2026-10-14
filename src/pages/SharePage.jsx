@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, lazy, Suspense } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 import { localeTagOf } from '../utils/locale';
@@ -7,11 +7,8 @@ import { sharingApi } from '../services/api';
 import { API_BASE_URL } from '../constants/api';
 import { triggerDownload, zipTicketUrl, isZipTicketUnavailable } from '../utils/downloadItems';
 import { formatBytes } from '../utils/formatFileSize';
-import * as pdfjsLib from 'pdfjs-dist';
-import { openPdf } from '../utils/pdfRange';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { renderMarkdownSafe } from '../utils/safeMarkdown';
+import { loadPdfjs, openPdf } from '../utils/pdfRange';
+import { isChunkLoadError, reloadOnceForNewVersion } from '../utils/chunkReload';
 import DocxRenderer from '../components/file-manager/DocxRenderer';
 import SheetPreview from '../components/file-manager/SheetPreview';
 import { safeSessionStorage } from '../utils/safeStorage';
@@ -20,13 +17,10 @@ import ImageStagePill from '../components/file-manager/ImageStagePill';
 import { usePreviewImage } from '../hooks/usePreviewImage';
 import { useZoomPan, ZOOM_MIN, ZOOM_MAX } from '../hooks/useZoomPan';
 
-// ─── Khởi tạo PDF.js Worker (an toàn, không trùng lặp) ───────────────────────
-if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-    'pdfjs-dist/build/pdf.worker.min.mjs',
-    import.meta.url,
-  ).toString();
-}
+// pdf.js (`loadPdfjs`) và bộ tô màu mã nguồn chỉ tải khi người nhận link mở đúng loại tệp đó —
+// trước ##85 chúng là import tĩnh, nên link chia sẻ một tấm ảnh cũng kéo theo ~1MB JS.
+const CodeHighlighter = lazy(() => import('../components/file-manager/CodeHighlighter'));
+const MarkdownPreview = lazy(() => import('../components/file-manager/MarkdownPreview'));
 
 // ─── Hằng số: loại MIME hỗ trợ preview ──────────────────────────────────────
 const PREVIEW_IMAGE = (mime, name) => mime?.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp|svg|bmp|ico)$/i.test(name ?? '');
@@ -178,25 +172,32 @@ function PdfCanvasViewer({ url, sizeBytes, zoom: externalZoom, rotation: externa
   useEffect(() => {
     if (!url) return;
     let mounted = true;
+    let opened = null;
     setLoading(true);
     setError(null);
     setCurrentPage(1);
 
-    const opened = openPdf(pdfjsLib, url, {
-      sizeHint: sizeBytes,
-      onError: (err) => {
-        console.error('[PDF]', err);
-        if (mounted) setError(t('sharePage.pdf.failed'));
-      },
-    });
-    opened.promise
+    loadPdfjs()
+      .then((pdfjsLib) => {
+        if (!mounted) return null;
+        opened = openPdf(pdfjsLib, url, {
+          sizeHint: sizeBytes,
+          onError: (err) => {
+            console.error('[PDF]', err);
+            if (mounted) setError(t('sharePage.pdf.failed'));
+          },
+        });
+        return opened.promise;
+      })
       .then((doc) => {
-        if (!mounted) return;
+        if (!mounted || !doc) return;
         setPdfDoc(doc);
         setNumPages(doc.numPages);
       })
       .catch((err) => {
         if (!mounted || err?.name === 'AbortError') return;
+        // Chunk pdf.js của bản build cũ vừa bị thay khi deploy — tải lại trang một lần.
+        if (isChunkLoadError(err) && reloadOnceForNewVersion()) return;
         console.error('[PDF]', err);
         setError(t('sharePage.pdf.failed'));
       })
@@ -206,7 +207,7 @@ function PdfCanvasViewer({ url, sizeBytes, zoom: externalZoom, rotation: externa
 
     return () => {
       mounted = false;
-      opened.destroy();
+      opened?.destroy();
     };
   }, [url, sizeBytes, t]);
 
@@ -461,22 +462,23 @@ function CodeTextPreview({ url, name }) {
       </div>
       <div className="overflow-auto max-h-[60vh] text-xs font-mono">
         {isMd && mdViewMode === 'preview' ? (
-          <div
-            className="p-6 sm:p-8 max-w-4xl mx-auto markdown-preview-content font-sans"
-            dangerouslySetInnerHTML={{
-              __html: renderMarkdownSafe(content)
-            }}
-          />
+          <Suspense fallback={<pre className="m-0 p-6 sm:p-8 text-white/80 whitespace-pre-wrap">{content}</pre>}>
+            <MarkdownPreview
+              className="p-6 sm:p-8 max-w-4xl mx-auto markdown-preview-content font-sans"
+              text={content}
+            />
+          </Suspense>
         ) : (
-          <SyntaxHighlighter
-            language={language}
-            style={vscDarkPlus}
-            showLineNumbers={true}
-            customStyle={{ margin: 0, padding: '1rem', background: 'transparent' }}
-            wrapLines={true}
-          >
-            {content}
-          </SyntaxHighlighter>
+          <Suspense fallback={<pre className="m-0 p-4 text-white/80 whitespace-pre">{content}</pre>}>
+            <CodeHighlighter
+              language={language}
+              showLineNumbers={true}
+              customStyle={{ margin: 0, padding: '1rem', background: 'transparent' }}
+              wrapLines={true}
+            >
+              {content}
+            </CodeHighlighter>
+          </Suspense>
         )}
       </div>
     </div>

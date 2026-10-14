@@ -28,7 +28,9 @@ export function AuthProvider({ children }) {
   const fetchProfile = useCallback(async () => {
     try {
       setIsLoading(true);
-      const profile = await authApi.getProfile();
+      // Token hết hạn (gần như mọi lần mở app) thì refresh trước và lấy hồ sơ đi kèm, khỏi
+      // gọi `/auth/me` — xem `authApi.getSessionProfile` (##85).
+      const profile = await authApi.getSessionProfile();
       // getProfile() trả { user: {...} } (wrapped bởi transform.interceptor)
       // login() đã xử lý đúng: data.user || data — áp dụng nhất quán ở đây
       const nextUser = profile.user ?? profile;

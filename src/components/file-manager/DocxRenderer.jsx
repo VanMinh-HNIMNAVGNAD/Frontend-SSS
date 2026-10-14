@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
-import { neutralizeUnsafeLinks } from '../../utils/safeMarkdown';
 
 /**
  * Xem trước .docx GIỮ NGUYÊN ĐỊNH DẠNG.
@@ -31,6 +30,11 @@ import { neutralizeUnsafeLinks } from '../../utils/safeMarkdown';
  */
 let docxPreviewPromise = null;
 const loadDocxPreview = () => (docxPreviewPromise ??= import('docx-preview'));
+// Bộ khử link nguy hiểm nằm chung tệp với marked + DOMPurify (72KB) — import tĩnh ở đây từng
+// kéo cả hai vào cửa sổ xem trước của MỌI loại tệp (##85). Nạp cùng lúc với docx-preview,
+// TRƯỚC khi dựng tài liệu: nạp hỏng thì không có gì được vẽ ra, không có cảnh link chưa khử.
+let linkGuardPromise = null;
+const loadLinkGuard = () => (linkGuardPromise ??= import('../../utils/safeMarkdown'));
 
 export default function DocxRenderer({ url, onDownload }) {
   const { t } = useLanguage();
@@ -51,7 +55,10 @@ export default function DocxRenderer({ url, onDownload }) {
         const response = await fetch(url);
         if (!response.ok) throw new Error(t('preview.docx.fetchFailed'));
         const blob = await response.blob();
-        const { renderAsync } = await loadDocxPreview();
+        const [{ renderAsync }, { neutralizeUnsafeLinks }] = await Promise.all([
+          loadDocxPreview(),
+          loadLinkGuard(),
+        ]);
         if (cancelled) return;
 
         const host = hostRef.current;

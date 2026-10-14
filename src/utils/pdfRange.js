@@ -49,6 +49,34 @@ export function totalFromContentRange(header) {
 }
 
 /**
+ * pdf.js nạp theo yêu cầu, KHÔNG import tĩnh — 419KB (128KB nén), một trong những khối lớn nhất
+ * của gói JS, mà phần lớn lần mở xem trước không phải PDF.
+ *
+ * Một chỗ nạp DUY NHẤT cho cả khung xem trước, trang chia sẻ và bộ dựng thumbnail (##85).
+ * Trước đây khung xem trước và trang chia sẻ `import * as pdfjsLib` tĩnh, nên mở một tấm ẢNH
+ * cũng phải tải + biên dịch trọn pdf.js trước khi cửa sổ vẽ được gì.
+ *
+ * Ghi nhớ ở phạm vi module: cả phiên chỉ tải một lần. Hỏng (mất mạng, chunk của bản build cũ)
+ * thì quên đi để lần mở sau còn thử lại được.
+ */
+let pdfjsPromise = null;
+export const loadPdfjs = () =>
+  (pdfjsPromise ??= import('pdfjs-dist')
+    .then((pdfjsLib) => {
+      // Worker phải trỏ đúng bản đi kèm phiên bản pdf.js vừa nạp — đặt ngay sau khi nạp xong
+      // thay vì lúc module này được import.
+      pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+        'pdfjs-dist/build/pdf.worker.min.mjs',
+        import.meta.url,
+      ).toString();
+      return pdfjsLib;
+    })
+    .catch((err) => {
+      pdfjsPromise = null;
+      throw err;
+    }));
+
+/**
  * @param {typeof import('pdfjs-dist')} pdfjsLib
  * @param {string} url  URL đọc được bằng GET (presigned)
  * @param {{ sizeHint?: number, onError?: (err: Error) => void }} [options]

@@ -139,3 +139,83 @@ export function buildSortedDirPaths({ entries = [], dirPaths = [] }) {
     return a.localeCompare(b);
   });
 }
+
+/**
+ * Trần của MỘT lượt `POST /files/folders/batch`.
+ *
+ * Body JSON của backend bị chặn ở 100KB (mặc định của Express): vượt là
+ * `PayloadTooLargeError` và cả lượt không tạo được thư mục nào. Cây vài nghìn thư mục
+ * (dự án có `node_modules`, kho ảnh chia theo ngày) vượt mốc đó rất dễ — và trước đây cả
+ * cây đi trong một request, nên đúng những thư mục LỚN NHẤT là những thư mục bị đổ phẳng.
+ * Backend còn trần 5000 đường dẫn mỗi lượt. Hai con số dưới đây thấp hơn hẳn cả hai, chừa
+ * chỗ cho `parentId`/`sharedDriveId` và cho chuỗi tổ tiên phải gửi lặp lại ở mỗi lô.
+ */
+export const FOLDER_BATCH_MAX_PATHS = 1000;
+export const FOLDER_BATCH_MAX_BYTES = 64 * 1024;
+
+const utf8 = new TextEncoder();
+
+/** Số byte một đường dẫn chiếm trong mảng JSON: chuỗi đã escape + dấu phẩy. */
+const jsonBytesOf = (dirPath) => utf8.encode(JSON.stringify(dirPath)).length + 1;
+
+/** 'a/b/c' → ['a', 'a/b', 'a/b/c'] */
+const withAncestors = (dirPath) => {
+  const parts = dirPath.split('/');
+  return parts.map((_, depth) => parts.slice(0, depth + 1).join('/'));
+};
+
+/** Thứ tự duyệt sâu: mỗi thư mục đứng ngay trước cả nhánh con của nó. */
+function compareDepthFirst(a, b) {
+  const partsA = a.split('/');
+  const partsB = b.split('/');
+  const shared = Math.min(partsA.length, partsB.length);
+  for (let i = 0; i < shared; i++) {
+    if (partsA[i] !== partsB[i]) return partsA[i] < partsB[i] ? -1 : 1;
+  }
+  return partsA.length - partsB.length;
+}
+
+/**
+ * Chia danh sách thư mục thành các lô cho `POST /files/folders/batch`, mỗi lô nằm dưới
+ * trần ở trên và TỰ ĐỦ: luôn có mặt mọi thư mục tổ tiên của từng đường trong nó.
+ *
+ * Tự đủ vì backend chỉ biết id của những thư mục có trong CHÍNH lô đó — gửi "a/b" một mình
+ * thì nó không biết "a" là thư mục nào. Tổ tiên gửi lặp ở lô sau không tạo thêm thư mục:
+ * backend tìm thấy thư mục cùng tên cùng cha và trả lại đúng id cũ. Vì vậy các lô phải gửi
+ * NỐI TIẾP, không song song (hai lô cùng lúc sẽ cùng tạo mới một tổ tiên).
+ *
+ * Xếp theo chiều sâu trước khi cắt để các nhánh nằm liền nhau: mỗi lô chỉ phải mang lại một
+ * chuỗi tổ tiên ở đầu lô. Xếp theo tầng (như `buildSortedDirPaths`) thì ở các tầng sâu, gần
+ * như đường nào cũng kéo theo cả chuỗi tổ tiên của riêng nó.
+ *
+ * @param {string[]} dirPaths  Đường thư mục tương đối, ví dụ kết quả `buildSortedDirPaths`.
+ * @returns {string[][]}
+ */
+export function chunkDirPaths(
+  dirPaths,
+  { maxPaths = FOLDER_BATCH_MAX_PATHS, maxBytes = FOLDER_BATCH_MAX_BYTES } = {},
+) {
+  const ordered = Array.from(new Set(dirPaths)).sort(compareDepthFirst);
+  const chunks = [];
+  let chunk = new Set();
+  let bytes = 0;
+
+  for (const dirPath of ordered) {
+    let needed = withAncestors(dirPath).filter((p) => !chunk.has(p));
+    let neededBytes = needed.reduce((sum, p) => sum + jsonBytesOf(p), 0);
+
+    if (chunk.size > 0 && (chunk.size + needed.length > maxPaths || bytes + neededBytes > maxBytes)) {
+      chunks.push(Array.from(chunk));
+      chunk = new Set();
+      bytes = 0;
+      needed = withAncestors(dirPath);
+      neededBytes = needed.reduce((sum, p) => sum + jsonBytesOf(p), 0);
+    }
+
+    needed.forEach((p) => chunk.add(p));
+    bytes += neededBytes;
+  }
+
+  if (chunk.size > 0) chunks.push(Array.from(chunk));
+  return chunks;
+}

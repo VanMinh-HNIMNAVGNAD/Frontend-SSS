@@ -15,7 +15,7 @@ import { useLanguage } from './LanguageContext';
 import { useDebounce } from '../hooks/useDebounce';
 import { useUploadActions } from './UploadContext';
 import { formatBytes } from '../utils/formatFileSize';
-import { buildSortedDirPaths } from '../utils/uploadTree';
+import { buildSortedDirPaths, chunkDirPaths } from '../utils/uploadTree';
 import { CHUNK_THRESHOLD, isResumableSize } from '../constants/upload';
 import { localeTagOf } from '../utils/locale';
 import { tOutsideReact } from '../utils/translate';
@@ -3093,7 +3093,7 @@ export function FileProvider({ children }) {
       const entries = tree?.entries || [];
       const dirPaths = tree?.dirPaths || [];
       if (entries.length === 0 && dirPaths.length === 0) {
-        return { fileCount: 0, folderCount: 0 };
+        return { fileCount: 0, folderCount: 0, skippedCount: 0 };
       }
 
       const view = viewRef.current;
@@ -3107,22 +3107,48 @@ export function FileProvider({ children }) {
 
       const sortedDirPaths = buildSortedDirPaths({ entries, dirPaths });
 
-      let batchFolderIdMap = {};
-      if (sortedDirPaths.length > 0) {
-        try {
-          batchFolderIdMap = await filesApi.createFoldersBatch(
-            sortedDirPaths,
-            targetParentId,
-            effectiveSharedDriveId,
-          );
-        } catch (error) {
-          console.error('Lỗi khi tạo hàng loạt thư mục:', error);
-          toast.error(t('file.folderTree.partial'));
-        }
-      }
+      // Tạo cây theo LÔ, gửi nối tiếp — xem `chunkDirPaths`. Gửi cả cây trong một request
+      // là thứ đã làm thư mục lớn bị đổ phẳng: request vượt trần body của backend, không
+      // thư mục nào được tạo, và mọi tệp rơi về thư mục đang mở. Một lô hỏng không kéo các
+      // lô sau theo: lô nào cũng tự mang đủ tổ tiên của nó.
+      const batchFolderIdMap = {};
+      let folderError = null;
+      const chunks = chunkDirPaths(sortedDirPaths);
 
-      // '' = thư mục đang mở
-      const folderIdMap = { '': targetParentId ?? null, ...batchFolderIdMap };
+      // Cây lớn tạo mất vài giây mà menu "Mới" đã đóng ngay khi chọn thư mục — không báo gì
+      // thì trông như bấm không ăn. Cây nhỏ xong trước hạn chờ nên không hiện gì cả.
+      let progressToastId = null;
+      const progressText = () =>
+        t('file.folderTree.progress', {
+          done: sortedDirPaths.filter((path) => batchFolderIdMap[path]).length,
+          total: sortedDirPaths.length,
+        });
+      const progressTimer =
+        chunks.length > 0
+          ? setTimeout(() => {
+              progressToastId = toast.loading(progressText());
+            }, 800)
+          : null;
+
+      try {
+        for (const chunk of chunks) {
+          try {
+            const created = await filesApi.createFoldersBatch(
+              chunk,
+              targetParentId,
+              effectiveSharedDriveId,
+            );
+            Object.assign(batchFolderIdMap, created);
+          } catch (error) {
+            console.error('Lỗi khi tạo hàng loạt thư mục:', error);
+            folderError ??= error;
+          }
+          if (progressToastId) toast.loading(progressText(), { id: progressToastId });
+        }
+      } finally {
+        clearTimeout(progressTimer);
+        if (progressToastId) toast.dismiss(progressToastId);
+      }
 
       // Thư mục gốc (cấp 1) là thứ duy nhất người dùng thấy ngay → chèn card cho
       // chúng. `skipExisting` vì khi tải trùng tên, backend trả về id thư mục CŨ;
@@ -3149,18 +3175,41 @@ export function FileProvider({ children }) {
         upsertItems(rootFolders, { skipExisting: true });
       }
 
+      // Tệp chỉ đi vào ĐÚNG thư mục của nó. Thư mục đó không tạo được thì tệp KHÔNG được
+      // tải lên: trước đây nó rơi về thư mục đang mở, nên một lỗi tạo cây là cả cây bị đổ
+      // phẳng vào một chỗ (tệp trùng tên còn bị đổi thành "a (1).txt"…) — sai mà khó dọn.
+      // Tệp nằm thẳng ở chỗ thả/chọn (`dirPath` rỗng) không cần thư mục nào.
+      let skippedCount = 0;
       entries.forEach(({ file, relativePath }) => {
-        const parts = relativePath.split('/');
-        const dirPath = parts.slice(0, -1).join('/');
-        const targetId = folderIdMap[dirPath] ?? targetParentId;
+        const dirPath = relativePath.split('/').slice(0, -1).join('/');
+        const targetId = dirPath ? batchFolderIdMap[dirPath] : (targetParentId ?? null);
+        if (dirPath && !targetId) {
+          skippedCount += 1;
+          return;
+        }
         enqueueUpload(file, targetId, undefined, effectiveSharedDriveId);
       });
+
+      const missingFolderCount = sortedDirPaths.filter((path) => !batchFolderIdMap[path]).length;
+      if (missingFolderCount > 0) {
+        const reason = folderError?.message || t('file.unknownError');
+        toast.error(
+          skippedCount > 0
+            ? t('file.folderTree.failed', { count: skippedCount, reason })
+            : t('file.createFolder.failed', { reason }),
+          { duration: 10000 },
+        );
+      }
 
       // Cây thư mục sâu (folder con) chỉ hiện ra khi người dùng mở vào — lần đồng
       // bộ im lặng sau khi hàng đợi rỗng sẽ chỉnh lại mọi thứ cho khớp server.
       scheduleSilentSync();
 
-      return { fileCount: entries.length, folderCount: sortedDirPaths.length };
+      return {
+        fileCount: entries.length - skippedCount,
+        folderCount: sortedDirPaths.length - missingFolderCount,
+        skippedCount,
+      };
     },
     [belongsToCurrentView, upsertItems, enqueueUpload, scheduleSilentSync, t],
   );

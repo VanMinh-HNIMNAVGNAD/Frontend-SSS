@@ -22,7 +22,7 @@ export default function MyDrivePage() {
     setFilterDate,
     filterOwner,
     setFilterOwner,
-    resetFilters,
+    clearFilters,
     uploadEntries,
     breadcrumb,
     openFolder,
@@ -168,7 +168,7 @@ export default function MyDrivePage() {
         setFilterDate={setFilterDate}
         filterOwner={filterOwner}
         setFilterOwner={setFilterOwner}
-        onReset={resetFilters}
+        onReset={clearFilters}
       />
 
       {/* View Container (List or Grid) */}

@@ -19,7 +19,7 @@ export default function SpamPage() {
         filterOwner,
         setFilterOwner,
         uniqueOwners,
-        resetFilters
+        clearFilters
     } = useFiles();
 
     return (
@@ -78,7 +78,7 @@ export default function SpamPage() {
                 filterOwner={filterOwner}
                 setFilterOwner={setFilterOwner}
                 uniqueOwners={uniqueOwners}
-                onReset={resetFilters}
+                onReset={clearFilters}
             />
 
             {/* View Container */}

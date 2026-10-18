@@ -40,6 +40,7 @@ export default function Header({ toggleRightSidebar }) {
         setSearchQuery, 
         toggleSidebar, 
         filterType,
+        filterDate,
         filterOwner,
         isSidebarCollapsed,
         getSelectedItems,
@@ -76,6 +77,7 @@ export default function Header({ toggleRightSidebar }) {
     // Nút mở bộ lọc — popover cần biết để cú bấm vào chính nút này không bị tính là
     // "bấm ra ngoài" (đóng) rồi ngay sau đó bị `onClick` mở lại.
     const filterToggleRef = useRef(null);
+    const searchInputRef = useRef(null);
 
     const handleLogoClick = () => {
         navigate('/app/home');
@@ -431,23 +433,48 @@ export default function Header({ toggleRightSidebar }) {
                     <Search className="w-5 h-5 text-gray-600 dark:text-gray-400 mr-2 sm:mr-3 shrink-0" />
                     <input
                         id="global-search-input"
+                        ref={searchInputRef}
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
+                        // Esc xoá từ khoá đang gõ (##90) — như ô tìm kiếm của Google Drive.
+                        onKeyDown={(e) => {
+                            if (e.key === 'Escape' && searchQuery) {
+                                e.preventDefault();
+                                setSearchQuery('');
+                            }
+                        }}
                         placeholder={t('header.search.placeholder')}
+                        aria-label={t('header.search.placeholder')}
                         // 16px trên điện thoại: Safari iOS tự phóng to cả trang khi chạm vào
                         // ô nhập có chữ nhỏ hơn 16px, và không tự thu lại sau đó.
                         className="w-full min-w-0 bg-transparent border-none outline-none text-base sm:text-sm font-medium text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 text-ellipsis"
                     />
+
+                    {/* Nút ✕ xoá từ khoá (##90): trước đây muốn bỏ tìm kiếm phải tự xoá từng chữ. */}
+                    {searchQuery && (
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setSearchQuery('');
+                                searchInputRef.current?.focus();
+                            }}
+                            title={t('header.search.clear')}
+                            aria-label={t('header.search.clear')}
+                            className="p-2 sm:p-1 rounded-full text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 hover:bg-gray-200 dark:hover:bg-white/10 transition-colors ml-1 shrink-0 cursor-pointer"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+                    )}
                     
-                    {/* Nút Bộ lọc tìm kiếm */}
+                    {/* Nút Bộ lọc tìm kiếm — tô xanh khi có bộ lọc nào đang áp (cả Ngày sửa đổi, ##90) */}
                     <button
                         ref={filterToggleRef}
                         onClick={() => setIsFilterOpen(!isFilterOpen)}
                         title={t('header.search.filter')}
                         aria-expanded={isFilterOpen}
                         className={`p-2 sm:p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-white/10 transition-colors ml-1 sm:ml-2 shrink-0 cursor-pointer ${
-                            isFilterOpen || filterType !== 'all' || filterOwner !== 'all' ? 'text-blue-700 dark:text-blue-400 bg-blue-100/80 dark:bg-blue-500/15' : 'text-gray-700 dark:text-gray-300'
+                            isFilterOpen || filterType !== 'all' || filterDate !== 'all' || filterOwner !== 'all' ? 'text-blue-700 dark:text-blue-400 bg-blue-100/80 dark:bg-blue-500/15' : 'text-gray-700 dark:text-gray-300'
                         }`}
                     >
                         <SlidersHorizontal className="w-4 h-4" />

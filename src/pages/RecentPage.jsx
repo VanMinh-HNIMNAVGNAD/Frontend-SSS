@@ -16,7 +16,7 @@ export default function RecentPage() {
         setFilterDate,
         filterOwner,
         setFilterOwner,
-        resetFilters,
+        clearFilters,
     } = useFiles();
 
     return (
@@ -60,7 +60,7 @@ export default function RecentPage() {
                 setFilterDate={setFilterDate}
                 filterOwner={filterOwner}
                 setFilterOwner={setFilterOwner}
-                onReset={resetFilters}
+                onReset={clearFilters}
                 showSort={false}
             />
 

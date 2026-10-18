@@ -13,6 +13,9 @@ const SELECT_CLASS =
  * mang hai tên (trước đây "Bộ nhớ dùng chung" ở Sidebar lại là "cloudSSS đã chia sẻ" ở đây).
  */
 const LOCATION_OPTIONS = [
+    // "Mọi nơi" = trang kết quả tìm kiếm của Trang chủ (##90). Chỉ có nghĩa khi đang có từ khoá:
+    // không tìm gì thì Trang chủ là trang gợi ý, không có danh sách nào để lọc — xem `locationOptions`.
+    { value: 'home', labelKey: 'search.filter.location.anywhere', needsQuery: true },
     { value: 'my-drive', labelKey: 'nav.myDrive' },
     { value: 'shared-with-me', labelKey: 'nav.sharedWithMe' },
     { value: 'shared-drives', labelKey: 'nav.sharedDrives' },
@@ -44,20 +47,27 @@ export default function SearchFilterModal({ isOpen, onClose, toggleRef }) {
  * Chọn xong rồi mới áp dụng. Trước đây Loại và Người sở hữu áp dụng NGAY khi đổi (mỗi
  * lần đổi là một lượt tải danh sách), còn nút "Áp dụng" chỉ lo Vị trí — bằng
  * `window.location.href`, tức tải lại cả trang và làm mất sạch bộ lọc vừa chọn. Nay
- * cả ba đi cùng một nhịp, và đổi Vị trí là điều hướng trong app nên bộ lọc giữ nguyên.
+ * mọi ô (cả "Ngày sửa đổi" thêm ở ##90) đi cùng một nhịp, và đổi Vị trí là điều hướng trong
+ * app nên bộ lọc giữ nguyên.
  */
 function FilterPanel({ onClose, toggleRef }) {
     const {
         filterType, setFilterType,
+        filterDate, setFilterDate,
         filterOwner, setFilterOwner,
         activeTab, setActiveTab,
+        searchQuery,
     } = useFiles();
     const { t } = useLanguage();
 
-    // Trang chủ và Thanh toán không có danh sách tệp: lọc từ đó thì đưa về cloudSSS của tôi.
-    const currentLocation = LOCATION_OPTIONS.some((o) => o.value === activeTab) ? activeTab : 'my-drive';
+    const hasQuery = Boolean(searchQuery?.trim());
+    const locationOptions = LOCATION_OPTIONS.filter((o) => !o.needsQuery || hasQuery);
+    // Trang chủ (khi không tìm gì) và Thanh toán không có danh sách tệp: lọc từ đó thì đưa về
+    // cloudSSS của tôi.
+    const currentLocation = locationOptions.some((o) => o.value === activeTab) ? activeTab : 'my-drive';
 
     const [draftType, setDraftType] = useState(filterType);
+    const [draftDate, setDraftDate] = useState(filterDate);
     const [draftOwner, setDraftOwner] = useState(filterOwner);
     const [draftLocation, setDraftLocation] = useState(currentLocation);
 
@@ -91,22 +101,35 @@ function FilterPanel({ onClose, toggleRef }) {
 
     const handleApply = () => {
         setFilterType(draftType);
+        setFilterDate(draftDate);
         setFilterOwner(ownerApplies ? draftOwner : 'all');
         // Cùng chỗ đang đứng thì ở lại đúng thư mục đang mở; khác chỗ mới chuyển tab.
-        if (draftLocation !== currentLocation || !LOCATION_OPTIONS.some((o) => o.value === activeTab)) {
+        if (draftLocation !== currentLocation || !locationOptions.some((o) => o.value === activeTab)) {
             setActiveTab(draftLocation);
         }
         onClose && onClose();
     };
 
-    // Xoá là xoá ngay những gì bảng này quản lý (Loại, Người sở hữu) — không cần bấm Áp
-    // dụng thêm một lần. Vị trí giữ nguyên: "xoá bộ lọc" không có nghĩa là đi chỗ khác.
+    // Xoá là xoá ngay những gì bảng này quản lý (Loại, Ngày, Người sở hữu) — không cần bấm Áp
+    // dụng thêm một lần. Vị trí và từ khoá giữ nguyên: "xoá bộ lọc" không có nghĩa là đi chỗ khác.
     const handleReset = () => {
         setDraftType('all');
+        setDraftDate('all');
         setDraftOwner('all');
         setFilterType('all');
+        setFilterDate('all');
         setFilterOwner('all');
     };
+
+    // Cùng danh sách với thanh lọc bên dưới (FileFilterBar) — trước ##90 popover này không có
+    // "Ngày sửa đổi", nên lọc theo ngày chỉ làm được ở thanh lọc.
+    const dateOptions = [
+        { value: 'all', label: t('filter.date.all') },
+        { value: 'today', label: t('filter.date.today') },
+        { value: '7days', label: t('filter.date.7days') },
+        { value: '30days', label: t('filter.date.30days') },
+        { value: 'this-year', label: t('filter.date.thisYear', { year: new Date().getFullYear() }) },
+    ];
 
     return (
         <div
@@ -115,7 +138,7 @@ function FilterPanel({ onClose, toggleRef }) {
         >
             <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3 sm:mb-4">{t('search.filter.title')}</h3>
 
-            <div className={`grid grid-cols-1 gap-3 sm:gap-4 mb-4 sm:mb-6 ${ownerApplies ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
+            <div className={`grid grid-cols-1 gap-3 sm:gap-4 mb-4 sm:mb-6 ${ownerApplies ? 'md:grid-cols-2' : 'md:grid-cols-3'}`}>
                 {/* Loại tệp — cùng danh sách với thanh lọc */}
                 <div>
                     <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">{t('filter.type.label')}</label>
@@ -127,6 +150,20 @@ function FilterPanel({ onClose, toggleRef }) {
                         <option value="all">{t('filter.type.all')}</option>
                         {FILE_TYPE_FILTER_OPTIONS.map(({ value, labelKey }) => (
                             <option key={value} value={value}>{t(labelKey)}</option>
+                        ))}
+                    </select>
+                </div>
+
+                {/* Ngày sửa đổi */}
+                <div>
+                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">{t('filter.date.label')}</label>
+                    <select
+                        value={draftDate}
+                        onChange={(e) => setDraftDate(e.target.value)}
+                        className={SELECT_CLASS}
+                    >
+                        {dateOptions.map(({ value, label }) => (
+                            <option key={value} value={value}>{label}</option>
                         ))}
                     </select>
                 </div>
@@ -155,7 +192,7 @@ function FilterPanel({ onClose, toggleRef }) {
                         onChange={(e) => setDraftLocation(e.target.value)}
                         className={SELECT_CLASS}
                     >
-                        {LOCATION_OPTIONS.map(({ value, labelKey }) => (
+                        {locationOptions.map(({ value, labelKey }) => (
                             <option key={value} value={value}>{t(labelKey)}</option>
                         ))}
                     </select>

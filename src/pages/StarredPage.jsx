@@ -19,7 +19,7 @@ export default function StarredPage() {
         filterOwner, 
         setFilterOwner, 
         uniqueOwners, 
-        resetFilters 
+        clearFilters 
     } = useFiles();
 
 
@@ -63,7 +63,7 @@ export default function StarredPage() {
                 filterOwner={filterOwner}
                 setFilterOwner={setFilterOwner}
                 uniqueOwners={uniqueOwners}
-                onReset={resetFilters}
+                onReset={clearFilters}
             />
 
             {/* View Container */}

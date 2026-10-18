@@ -10,7 +10,8 @@ import FileCard from './FileCard';
 import ContextMenu from './ContextMenu';
 import RenameModal from './RenameModal';
 import ShareModal from './ShareModal';
-import { Folder, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
+import MoveModal from './MoveModal';
+import { Folder, FileText, ChevronLeft, ChevronRight, SearchX } from 'lucide-react';
 import { collectInputEntries } from '../../utils/uploadTree';
 import { downloadSingleItem } from '../../utils/downloadItems';
 import tRich from '../../utils/tRich';
@@ -46,11 +47,18 @@ export default function FileGridView() {
         currentSharedDriveId,
         uploadEntries,
         isInForeignFolder,
+        openItemLocation,
+        searchQuery,
+        filterType,
+        filterDate,
+        filterOwner,
     } = useFiles();
+    // Rỗng vì đang TÌM / LỌC thì nói "không có kết quả", không phải "thư mục trống — kéo thả tệp vào".
+    const isQuerying = Boolean(searchQuery?.trim()) || filterType !== 'all' || filterDate !== 'all' || filterOwner !== 'all';
 
     // Xem chú thích cùng chỗ trong FileListView: ba nhóm này đổi theo từng cú
     // bấm chuột nên đi context riêng, không gộp vào useFiles().
-    const { selectedIds, isSelected, toggleSelect, selectRange } = useFileSelection();
+    const { selectedIds, isSelected, toggleSelect, selectRange, deselectAll } = useFileSelection();
 
     const { clipboard, isPasting, cutItems, copyItems, pasteItems } = useClipboard();
 
@@ -85,6 +93,8 @@ export default function FileGridView() {
     // Modals state
     const [renameItemTarget, setRenameItemTarget] = useState(null);
     const [shareItemTarget, setShareItemTarget] = useState(null);
+    // Các mục đang mở hộp thoại "Di chuyển tới…" (##90) — null = đóng
+    const [moveTargets, setMoveTargets] = useState(null);
 
     // Hidden inputs cho "Tải tệp lên" / "Tải thư mục lên" từ menu vùng nền trống
     const fileInputRef = useRef(null);
@@ -230,10 +240,14 @@ export default function FileGridView() {
                 className="flex flex-col items-center justify-center h-full py-20 text-gray-400 dark:text-gray-500"
             >
                 <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-3 text-gray-300">
-                    <Folder className="w-8 h-8" />
+                    {isQuerying ? <SearchX className="w-8 h-8" /> : <Folder className="w-8 h-8" />}
                 </div>
-                <p className="text-base font-medium text-gray-600 dark:text-gray-300">{t('list.empty.gridTitle')}</p>
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{t('list.empty.gridHint')}</p>
+                <p className="text-base font-medium text-gray-600 dark:text-gray-300">
+                    {isQuerying ? t('list.empty.noResults') : t('list.empty.gridTitle')}
+                </p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 text-center px-4">
+                    {isQuerying ? t('list.empty.noResultsHint') : t('list.empty.gridHint')}
+                </p>
 
                 <input type="file" ref={fileInputRef} onChange={handleFileInputChange} multiple className="hidden" aria-label={t('newBtn.aria.pickFiles')} />
                 <input type="file" ref={setFolderInputRef} onChange={handleFolderInputChange} multiple className="hidden" aria-label={t('newBtn.aria.pickFolder')} />
@@ -292,6 +306,7 @@ export default function FileGridView() {
                                     isCut={clipboard.mode === 'cut' && clipboard.items.some((e) => e.id === folder.id)}
                                     onToggleSelect={toggleSelect}
                                     onSelectRange={handleSelectRange}
+                                    onOpenLocation={openItemLocation}
                                 />
                             ))}
                         </div>
@@ -316,6 +331,7 @@ export default function FileGridView() {
                                     isCut={clipboard.mode === 'cut' && clipboard.items.some((e) => e.id === file.id)}
                                     onToggleSelect={toggleSelect}
                                     onSelectRange={handleSelectRange}
+                                    onOpenLocation={openItemLocation}
                                 />
                             ))}
                         </div>
@@ -384,6 +400,13 @@ export default function FileGridView() {
                         copyItems([targetItem.id]);
                     }
                 }}
+                // Như Cắt: bấm chuột phải lên một mục ĐANG nằm trong tập chọn thì chuyển cả tập.
+                onMove={(targetItem) => {
+                    const selected = selectedIds.has(targetItem.id) && selectedIds.size > 1
+                        ? [...folders, ...files].filter((it) => selectedIds.has(it.id))
+                        : [];
+                    setMoveTargets(selected.length > 1 ? selected : [targetItem]);
+                }}
                 onPaste={(targetParentId) => pasteItems(targetParentId)}
                 canPaste={clipboard.items.length > 0 && !isDriveReadOnly}
                 isPasting={isPasting}
@@ -411,6 +434,13 @@ export default function FileGridView() {
                 isOpen={!!shareItemTarget}
                 item={shareItemTarget}
                 onClose={() => setShareItemTarget(null)}
+            />
+
+            <MoveModal
+                isOpen={!!moveTargets}
+                items={moveTargets}
+                onClose={() => setMoveTargets(null)}
+                onMoved={deselectAll}
             />
 
         </div>

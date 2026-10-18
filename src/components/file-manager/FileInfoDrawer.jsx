@@ -450,9 +450,12 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                             {/* Property item: Vị trí */}
                             <div className="flex justify-between py-1.5 border-b border-gray-200 dark:border-gray-800">
                                 <span className="text-gray-600 dark:text-gray-400 font-semibold">{t('info.field.location')}</span>
-                                <span className="font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-1">
-                                    <FolderTree className="w-3.5 h-3.5" />
-                                    {item.parentId ? t('info.location.subfolder') : t('breadcrumb.myDriveRoot')}
+                                <span className="font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-1 min-w-0">
+                                    <FolderTree className="w-3.5 h-3.5 shrink-0" />
+                                    {/* Mở từ kết quả tìm kiếm thì có tên thư mục cha thật (`parentName`, ##90) */}
+                                    <span className="truncate">
+                                        {item.parentName || (item.parentId ? t('info.location.subfolder') : t('breadcrumb.myDriveRoot'))}
+                                    </span>
                                 </span>
                             </div>
 

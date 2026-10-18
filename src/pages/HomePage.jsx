@@ -15,6 +15,10 @@ import StarButton from '../components/common/StarButton';
 import ContextMenu from '../components/file-manager/ContextMenu';
 import RenameModal from '../components/file-manager/RenameModal';
 import ShareModal from '../components/file-manager/ShareModal';
+import MoveModal from '../components/file-manager/MoveModal';
+import FileListView from '../components/file-manager/FileListView';
+import FileGridView from '../components/file-manager/FileGridView';
+import FileFilterBar from '../components/common/FileFilterBar';
 import { getFileIcon } from '../utils/getFileIcon';
 import { downloadSingleItem } from '../utils/downloadItems';
 import {
@@ -28,7 +32,8 @@ import {
     Home,
     File,
     EyeOff,
-    FolderGit2
+    Search,
+    ArrowLeft,
 } from 'lucide-react';
 
 // getFileIcon() có thể ném lỗi với item thiếu `name`/`mimeType` (dữ liệu cũ) —
@@ -182,8 +187,17 @@ export default function HomePage() {
         renameItem,
         getDownloadUrl,
         searchQuery,
+        setSearchQuery,
+        totalItems,
+        filterType,
+        setFilterType,
+        filterDate,
+        setFilterDate,
+        filterOwner,
+        setFilterOwner,
+        clearFilters,
     } = useFiles();
-    // Đang tìm kiếm: Trang chủ thêm mục "Bộ nhớ dùng chung" (FileContext hỏi thêm nguồn đó).
+    // Đang tìm kiếm: Trang chủ thành trang kết quả trên mọi nơi (FileContext hỏi thêm Bộ nhớ chung).
     const isSearching = Boolean(searchQuery?.trim());
 
     // Bảng tạm và cửa sổ xem trước đi context riêng — xem chú thích ở FileContext.
@@ -223,6 +237,8 @@ export default function HomePage() {
     // Modals state
     const [renameItemTarget, setRenameItemTarget] = useState(null);
     const [shareItemTarget, setShareItemTarget] = useState(null);
+    // Mục đang mở hộp thoại "Di chuyển tới…" (##90) — null = đóng
+    const [moveTargets, setMoveTargets] = useState(null);
 
     const openContextMenu = useCallback((e, item) => {
         e.preventDefault();
@@ -295,11 +311,6 @@ export default function HomePage() {
         .sort((a, b) => (b.accessCount || 0) - (a.accessCount || 0))
         .slice(0, 6);
 
-    // 4. Kết quả trong Bộ nhớ dùng chung — chỉ khi đang tìm kiếm (##83).
-    const driveItems = isSearching
-        ? visible.filter(item => item.sharedDriveId && !item.isSharedWithMe).slice(0, 6)
-        : [];
-
     // 2. Đã mở gần đây (Recent) - Top 5-6
     const recentItems = [...visible]
         .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
@@ -309,6 +320,90 @@ export default function HomePage() {
     const sharedItems = visible
         .filter(item => item.isSharedWithMe)
         .slice(0, 6);
+
+    const viewSwitcher = (
+        <div className="flex items-center bg-gray-200/90 dark:bg-gray-700 rounded-full p-0.5 border border-gray-300 dark:border-gray-700 shrink-0">
+            <button
+                onClick={() => setViewMode('list')}
+                title={t('view.list')}
+                className={`p-1.5 rounded-full transition-colors ${viewMode === 'list'
+                        ? 'bg-white dark:bg-[#282a2c] shadow-xs text-blue-700 dark:text-blue-400 font-bold'
+                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+                    }`}
+            >
+                <List className="w-4 h-4" />
+            </button>
+            <button
+                onClick={() => setViewMode('grid')}
+                title={t('view.grid')}
+                className={`p-1.5 rounded-full transition-colors ${viewMode === 'grid'
+                        ? 'bg-white dark:bg-[#282a2c] shadow-xs text-blue-700 dark:text-blue-400 font-bold'
+                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+                    }`}
+            >
+                <LayoutGrid className="w-4 h-4" />
+            </button>
+        </div>
+    );
+
+    // ── Đang tìm kiếm: Trang chủ là trang KẾT QUẢ trên mọi nơi (##90) ───────────
+    //
+    // Trước đây kết quả vẫn bị chia vào các mục gợi ý — mỗi mục tối đa 6 ô, "Mục của tôi" xếp theo
+    // số lượt mở, "Đã mở gần đây" lặp lại chính các kết quả đó. Tìm "báo cáo" có 30 tệp khớp thì
+    // chỉ thấy vài tệp, trông như ô tìm kiếm không tìm được vào thư mục con. Nay là MỘT danh sách
+    // đầy đủ (Drive của tôi + Được chia sẻ + Bộ nhớ chung, cả cây con), có thanh lọc, sắp xếp, chọn
+    // nhiều, và mỗi kết quả ghi nó nằm ở đâu (`ItemLocation`).
+    if (isSearching) {
+        const shown = items.length;
+        return (
+            <div className="flex flex-col h-full">
+                <div className="flex items-center justify-between gap-3 mb-2 pb-2 border-b border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center gap-3 min-w-0">
+                        <button
+                            onClick={() => setSearchQuery('')}
+                            title={t('home.search.back')}
+                            aria-label={t('home.search.back')}
+                            className="p-1.5 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg text-gray-500 dark:text-gray-400 transition-colors shrink-0 cursor-pointer"
+                        >
+                            <ArrowLeft className="w-5 h-5" />
+                        </button>
+                        <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                            <Search className="w-5 h-5" />
+                        </div>
+                        <div className="min-w-0">
+                            <h1 className="text-xl font-bold text-gray-800 dark:text-gray-200 truncate">
+                                {t('home.search.title')}
+                            </h1>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">
+                                {t('home.search.hint', { count: Math.max(totalItems, shown), query: searchQuery.trim() })}
+                            </p>
+                        </div>
+                    </div>
+                    {viewSwitcher}
+                </div>
+
+                <FileFilterBar
+                    filterType={filterType}
+                    setFilterType={setFilterType}
+                    filterDate={filterDate}
+                    setFilterDate={setFilterDate}
+                    filterOwner={filterOwner}
+                    setFilterOwner={setFilterOwner}
+                    onReset={clearFilters}
+                />
+
+                {totalItems > shown && (
+                    <p className="mb-2 text-xs font-medium text-amber-700 dark:text-amber-300">
+                        {t('home.search.truncated', { shown, total: totalItems })}
+                    </p>
+                )}
+
+                <div className="flex-1 overflow-y-auto">
+                    {viewMode === 'grid' ? <FileGridView /> : <FileListView />}
+                </div>
+            </div>
+        );
+    }
 
     if (isLoading) {
         return (
@@ -357,28 +452,7 @@ export default function HomePage() {
                         </button>
                     )}
 
-                    <div className="flex items-center bg-gray-200/90 dark:bg-gray-700 rounded-full p-0.5 border border-gray-300 dark:border-gray-700">
-                        <button
-                            onClick={() => setViewMode('list')}
-                            title={t('view.list')}
-                            className={`p-1.5 rounded-full transition-colors ${viewMode === 'list'
-                                    ? 'bg-white dark:bg-[#282a2c] shadow-xs text-blue-700 dark:text-blue-400 font-bold'
-                                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
-                                }`}
-                        >
-                            <List className="w-4 h-4" />
-                        </button>
-                        <button
-                            onClick={() => setViewMode('grid')}
-                            title={t('view.grid')}
-                            className={`p-1.5 rounded-full transition-colors ${viewMode === 'grid'
-                                    ? 'bg-white dark:bg-[#282a2c] shadow-xs text-blue-700 dark:text-blue-400 font-bold'
-                                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
-                                }`}
-                        >
-                            <LayoutGrid className="w-4 h-4" />
-                        </button>
-                    </div>
+                    {viewSwitcher}
                 </div>
             </div>
 
@@ -486,44 +560,6 @@ export default function HomePage() {
                 )}
             </section>
 
-            {/* SECTION 4: SHARED DRIVES — chỉ khi đang tìm kiếm (##83) */}
-            {isSearching && (
-                <section className="space-y-2">
-                    <div className="flex items-center justify-between pb-1 border-b border-gray-200 dark:border-gray-700">
-                        <div className="flex items-center gap-2">
-                            <FolderGit2 className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-                            <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{t('nav.sharedDrives')}</h2>
-                            <span className="text-xs text-gray-400 dark:text-gray-500 font-normal">
-                                {t('home.itemCount', { count: driveItems.length })}
-                            </span>
-                        </div>
-                        <button
-                            onClick={() => setActiveTab('shared-drives')}
-                            className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 flex items-center gap-1 hover:underline transition-all"
-                        >
-                            {t('home.viewAll')} <ArrowRight className="w-3.5 h-3.5" />
-                        </button>
-                    </div>
-                    {viewMode === 'grid' ? (
-                        <SectionGrid
-                            itemList={driveItems}
-                            emptyMessage={t('home.empty.drives')}
-                            onItemOpen={handleItemOpen}
-                            onToggleStar={toggleStar}
-                            onContextMenu={openContextMenu}
-                        />
-                    ) : (
-                        <SectionTable
-                            itemList={driveItems}
-                            emptyMessage={t('home.empty.drives')}
-                            onItemOpen={handleItemOpen}
-                            onToggleStar={toggleStar}
-                            onContextMenu={openContextMenu}
-                        />
-                    )}
-                </section>
-            )}
-
             {/* Context Menu floating */}
             <ContextMenu
                 isOpen={contextMenu.isOpen}
@@ -538,6 +574,7 @@ export default function HomePage() {
                 onRename={(item) => setRenameItemTarget(item)}
                 onCut={(targetItem) => cutItems([targetItem.id])}
                 onCopy={(targetItem) => copyItems([targetItem.id])}
+                onMove={(targetItem) => setMoveTargets([targetItem])}
                 onPaste={(targetParentId) => pasteItems(targetParentId)}
                 canPaste={clipboard?.items?.length > 0}
                 isPasting={isPasting}
@@ -563,6 +600,12 @@ export default function HomePage() {
                 isOpen={!!shareItemTarget}
                 item={shareItemTarget}
                 onClose={() => setShareItemTarget(null)}
+            />
+
+            <MoveModal
+                isOpen={!!moveTargets}
+                items={moveTargets}
+                onClose={() => setMoveTargets(null)}
             />
 
         </div>

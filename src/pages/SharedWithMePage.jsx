@@ -20,7 +20,7 @@ export default function SharedWithMePage() {
         filterOwner,
         setFilterOwner,
         uniqueOwners,
-        resetFilters,
+        clearFilters,
         items,
         isLoading,
         error,
@@ -99,7 +99,7 @@ export default function SharedWithMePage() {
                 filterOwner={filterOwner}
                 setFilterOwner={setFilterOwner}
                 uniqueOwners={uniqueOwners}
-                onReset={resetFilters}
+                onReset={clearFilters}
             />
 
             {/* Error state */}

@@ -173,6 +173,19 @@ const DEFAULT_VIEW_MODE = 'list';
 const SERVER_SORT_FIELDS = new Set(['name', 'size', 'type', 'updatedAt']);
 
 /**
+ * Đang TÌM KIẾM thì Trang chủ là trang KẾT QUẢ trên mọi nơi (##90): Drive của tôi, Được chia sẻ với
+ * tôi, Bộ nhớ chung (##83) — cả ba đều tìm cả cây con. Không hỏi 'recent' như lúc gợi ý: tệp đã mở
+ * của mình vốn nằm trong hai nguồn kia, hỏi thêm chỉ là một request trùng.
+ */
+const HOME_SEARCH_SOURCE_TABS = ['my-drive', 'shared-with-me', 'shared-drives'];
+
+/**
+ * Mỗi nguồn của trang kết quả trả tối đa chừng này mục (trần backend 200). Còn nhiều hơn thì trang
+ * nói rõ "đang hiện N/M kết quả đầu" (`totalItems`) thay vì lặng lẽ cắt như 6 ô/mục trước đây.
+ */
+const HOME_SEARCH_LIMIT = 100;
+
+/**
  * Backend CŨ (trước ##83) bật `forbidNonWhitelisted` và chưa biết `sortBy`/`sortDir`: nó trả
  * 400 cho MỌI danh sách có hai tham số này. Frontend lên Vercel trước backend (Cloud Build lâu
  * hơn vài phút) là cả app trắng danh sách trong khoảng đó — nên nhận ra đúng lỗi này để gửi
@@ -361,6 +374,9 @@ export function FileProvider({ children }) {
   // Chia sẻ / Đổi màu / Tải lên, MEMBER thấy "Xoá vĩnh viễn" ở Thùng rác — bấm vào mới nhận 403.
   // Nạp ở MỌI tab chứ không riêng Bộ nhớ chung: mục drive còn hiện ở Thùng rác, Gắn sao, Gần đây.
   const [driveRoles, setDriveRoles] = useState(() => new Map());
+  // Tên từng Bộ nhớ chung (driveId → tên), nạp cùng lượt với vai trò: dòng "trong <nơi chứa>" của
+  // kết quả tìm kiếm cần tên drive cho mục nằm ở GỐC drive (##90).
+  const [driveNames, setDriveNames] = useState(() => new Map());
   useEffect(() => {
     // Đổi tài khoản thì trang được tải lại (xem `pageOwnerRef` ở AuthContext) nên không cần xoá
     // bảng vai trò lúc đăng xuất.
@@ -371,6 +387,7 @@ export function FileProvider({ children }) {
       .then((drives) => {
         if (cancelled || !Array.isArray(drives)) return;
         setDriveRoles(new Map(drives.map((d) => [d.id, d.userRole])));
+        setDriveNames(new Map(drives.map((d) => [d.id, d.name])));
       })
       .catch(() => {
         /* không đọc được vai trò ⇒ giữ hành vi cũ (hiện đủ lệnh, backend vẫn là nơi chặn) */
@@ -426,6 +443,29 @@ export function FileProvider({ children }) {
       navigate(`/app/my-drive/folders/${folder.id}`);
     }
   }, [navigate, activeTab]);
+
+  /**
+   * Mở NƠI CHỨA một mục — dòng "trong 📁 …" của kết quả tìm kiếm (##90): thư mục cha nếu người
+   * xem được thấy nó (backend chỉ gửi `parentName` khi đó), không thì gốc của vùng chứa mục (gốc
+   * Drive của tôi, gốc Bộ nhớ chung của nó, "Được chia sẻ với tôi"). Xoá từ khoá như `openFolder`.
+   */
+  const openItemLocation = useCallback((item) => {
+    if (!item) return;
+    if (item.parentId && item.parentName) {
+      openFolder({ id: item.parentId, sharedDriveId: item.sharedDriveId, isSharedWithMe: item.isSharedWithMe });
+      return;
+    }
+    setCurrentPage(1);
+    setSearchQueryState('');
+    if (item.sharedDriveId) {
+      setCurrentSharedDriveId(item.sharedDriveId);
+      navigate('/app/shared-drives');
+    } else if (item.isSharedWithMe) {
+      navigate('/app/shared-with-me');
+    } else {
+      navigate('/app/my-drive');
+    }
+  }, [navigate, openFolder]);
 
   // Kiểu hiển thị (danh sách / lưới) là lựa chọn của người dùng nên phải sống
   // sót qua F5 và qua việc đóng/mở lại app — useState thuần chỉ nằm trong RAM
@@ -1251,7 +1291,19 @@ export function FileProvider({ children }) {
     // nhưng ba nguồn mặc định không có tệp nào trong drive — gõ đúng tên một tệp của drive ở
     // Trang chủ ra rỗng. Không tìm kiếm thì giữ ba nguồn như cũ (Trang chủ là gợi ý, không phải
     // danh sách mọi drive).
-    const sourceTabs = debouncedSearch ? [...HOME_SOURCE_TABS, 'shared-drives'] : HOME_SOURCE_TABS;
+    //
+    // Và kết quả tìm kiếm tôn trọng thanh lọc + cách sắp của trang kết quả (##90) — trước đây Trang
+    // chủ bỏ qua mọi bộ lọc, nên chọn "Hình ảnh" xong gõ tìm ở đây vẫn ra đủ mọi loại.
+    const isSearch = Boolean(debouncedSearch);
+    const sourceTabs = isSearch ? HOME_SEARCH_SOURCE_TABS : HOME_SOURCE_TABS;
+    const searchFilters = isSearch
+      ? {
+          filterType: filterType !== 'all' ? filterType : undefined,
+          filterDate: filterDate !== 'all' ? filterDate : undefined,
+          updatedFrom: dateFilterStart(filterDate)?.toISOString(),
+          ...(serverSortKey && serverSortSupportedRef.current ? { sortBy: sortField, sortDir: sortDirection } : {}),
+        }
+      : {};
 
     try {
       const responses = await Promise.all(
@@ -1261,8 +1313,9 @@ export function FileProvider({ children }) {
               {
                 tab,
                 search: debouncedSearch || undefined,
+                ...searchFilters,
                 page: 1,
-                limit: pageSize,
+                limit: isSearch ? HOME_SEARCH_LIMIT : pageSize,
               },
               // Không bật thanh tiến trình toàn cục khi: (a) đây là lượt đồng bộ
               // nền sau upload, hoặc (b) người dùng ĐÃ có nội dung trên màn hình
@@ -1293,6 +1346,11 @@ export function FileProvider({ children }) {
 
       const allFailed = responses.every((response) => response === null);
       const merged = Array.from(mergedById.values());
+      // Tổng số kết quả THẬT của các nguồn (mỗi nguồn chỉ trả `HOME_SEARCH_LIMIT` mục đầu) — trang
+      // kết quả so với số đang hiện để nói "đang hiện N/M". Ba nguồn tìm kiếm không chồng nhau.
+      const totalItemsForView = isSearch
+        ? responses.reduce((sum, response) => sum + (response?.meta?.total ?? response?.items?.length ?? 0), 0)
+        : merged.length;
 
       // Cả ba nguồn cùng chết: giữ nguyên những gì đang hiện (có thể là bản cache
       // vừa vẽ ở trên) thay vì thay bằng một Trang chủ trống trơn.
@@ -1300,9 +1358,11 @@ export function FileProvider({ children }) {
         itemsKeyRef.current = key;
         itemsScopeRef.current = scopeKey;
         setItems((prev) => mergeItemsPreservingRefs(prev, merged));
+        setTotalItems(Math.max(totalItemsForView, merged.length));
+        setTotalPages(1);
         writeListCache(
           key,
-          { items: merged, breadcrumb: null, totalItems: merged.length, totalPages: 1 },
+          { items: merged, breadcrumb: null, totalItems: Math.max(totalItemsForView, merged.length), totalPages: 1 },
           { fromServer: true },
         );
       }
@@ -1314,7 +1374,7 @@ export function FileProvider({ children }) {
         setIsRefreshing(false);
       }
     }
-  }, [isAuthenticated, isAuthLoading, isListCacheHydrated, debouncedSearch, pageSize, locale, t, cacheKey, scopeKey, readListCache, writeListCache]);
+  }, [isAuthenticated, isAuthLoading, isListCacheHydrated, debouncedSearch, filterType, filterDate, serverSortKey, sortField, sortDirection, pageSize, locale, t, cacheKey, scopeKey, readListCache, writeListCache]);
 
   // Fetch Files and Folders from Backend API
   const fetchFiles = useCallback(
@@ -1650,6 +1710,18 @@ export function FileProvider({ children }) {
     setFilterDateState('all');
     setFilterOwnerState('all');
     setSearchQueryState('');
+    setCurrentPage(1);
+  }, [setCurrentPage]);
+
+  /**
+   * Nút "Xóa bộ lọc" của thanh lọc: CHỈ Loại / Ngày / Người sở hữu (##90). Trước đây nút này gọi
+   * `resetFilters`, nên đang tìm "báo cáo" + lọc "PDF" mà bấm bỏ bộ lọc là mất luôn từ khoá vừa gõ.
+   * `resetFilters` (xoá cả từ khoá) còn cho nút ← "về danh sách" của trang kết quả Bộ nhớ chung.
+   */
+  const clearFilters = useCallback(() => {
+    setFilterTypeState('all');
+    setFilterDateState('all');
+    setFilterOwnerState('all');
     setCurrentPage(1);
   }, [setCurrentPage]);
 
@@ -2336,6 +2408,60 @@ export function FileProvider({ children }) {
     },
     [clearClipboard, fetchFiles, fetchAnalytics, staleListViewsForFolders, t]
   );
+
+  /**
+   * "Di chuyển tới…" (##90): chuyển `entries` vào nơi chọn trong hộp thoại `MoveModal` — như Cắt
+   * rồi Dán vào đó, nhưng KHÔNG đi qua bảng tạm (bảng tạm đang giữ gì vẫn giữ nguyên).
+   *
+   * `destination`: `{ folderId }`, hoặc một GỐC `{ folderId: null, sharedDriveId }` (`null` = gốc
+   * Drive của tôi) — cùng hợp đồng `targetParentId` / `targetSharedDriveId` của Dán (##77). Mục đã
+   * nằm sẵn ở đó thì bỏ qua. Lỗi từng mục được báo ở đây (một toast); trả `{ moved, failed }`.
+   */
+  const moveItemsTo = useCallback(async (entries, { folderId = null, sharedDriveId = null } = {}) => {
+    const isSamePlace = (entry) =>
+      folderId
+        ? (entry.parentId ?? null) === folderId
+        : (entry.parentId ?? null) === null && (entry.sharedDriveId ?? null) === (sharedDriveId ?? null);
+    const toMove = (entries || []).filter((entry) => entry?.id && !isSamePlace(entry));
+    if (toMove.length === 0) return { moved: 0, failed: 0 };
+
+    const destination = folderId
+      ? { targetParentId: folderId }
+      : { targetParentId: null, targetSharedDriveId: sharedDriveId ?? null };
+    const results = await Promise.allSettled(
+      toMove.map((entry) => filesApi.moveItem(entry.id, destination)),
+    );
+
+    const rejected = [];
+    results.forEach((res, idx) => {
+      if (res.status === 'rejected') {
+        rejected.push({ name: toMove[idx].name, reason: res.reason?.message || t('file.unknownError') });
+      }
+    });
+    if (rejected.length > 0) {
+      // Cùng cách báo của Dán: số lượng + mục đầu tiên, chi tiết đầy đủ ra console.
+      console.error('Di chuyển thất bại:', rejected.map((r) => `${r.name}: ${r.reason}`).join('\n'));
+      const detail = `${rejected[0].name}: ${rejected[0].reason}`;
+      toast.error(
+        rejected.length === 1
+          ? t('file.moveTo.oneFailed', { detail })
+          : t('file.moveTo.manyFailed', { failed: rejected.length, total: toMove.length, detail }),
+      );
+    }
+
+    const moved = toMove.length - rejected.length;
+    if (moved > 0) {
+      // Như Dán, di chuyển không tự sửa `items` tại chỗ: phải làm cũ ô cache của nguồn lẫn đích
+      // trước lượt đồng bộ, nếu không trong 60 giây đầu màn hình đứng nguyên (xem `pasteItems`).
+      staleListViewsForFolders([folderId, ...toMove.map((entry) => entry.parentId ?? null)]);
+      try {
+        await fetchFiles();
+      } catch (syncErr) {
+        console.warn('Lỗi đồng bộ danh sách sau khi di chuyển:', syncErr);
+      }
+    }
+    return { moved, failed: rejected.length };
+  }, [fetchFiles, staleListViewsForFolders, t]);
 
   // ── Global Keyboard Shortcuts Listener ──
   useEffect(() => {
@@ -3347,6 +3473,7 @@ export function FileProvider({ children }) {
     setFilterOwner,
     ownerFilterApplies,
     resetFilters,
+    clearFilters,
     storageInfo,
     /**
      * Nạp lại /files/analytics theo yêu cầu. Cần cho hai chỗ mà dung lượng đổi mà
@@ -3376,6 +3503,8 @@ export function FileProvider({ children }) {
     createFolder,
     createFolderSilent,
     moveItem,
+    moveItemsTo,
+    openItemLocation,
     copyItem,
     uploadFile,
     enqueueUpload,
@@ -3414,13 +3543,13 @@ export function FileProvider({ children }) {
     // ── Tìm kiếm / lọc / sắp xếp ──
     searchQuery, filterType, filterDate, effectiveFilterOwner, ownerFilterApplies,
     setSearchQuery, setFilterType, setFilterDate, setFilterOwner,
-    sortField, sortDirection, setSortField, setSortDirection, resetFilters, uniqueOwners,
+    sortField, sortDirection, setSortField, setSortDirection, resetFilters, clearFilters, uniqueOwners,
     // ── Lưu trữ ──
     storageInfo, fetchAnalytics,
     // ── Hành động trên file/folder ──
     fetchFiles, toggleStar, moveToTrash, moveToTrashBulk, restoreFromTrash, markNotSpam,
     deletePermanently, deletePermanentlyBulk,
-    emptyTrash, createFolder, createFolderSilent, moveItem, copyItem, renameItem,
+    emptyTrash, createFolder, createFolderSilent, moveItem, moveItemsTo, openItemLocation, copyItem, renameItem,
     getDownloadUrl, getPreviewUrl, getFileTextContent, createShareLink,
     // ── Upload ──
     uploadFile, enqueueUpload, uploadEntries, retryUploadJob, uploadFileMock,
@@ -3497,16 +3626,18 @@ export function FileProvider({ children }) {
   const currentUserId = user?.id ?? null;
   const driveAccessValue = useMemo(() => {
     const driveRoleOf = (driveId) => (driveId ? driveRoles.get(driveId) ?? null : null);
+    const driveNameOf = (driveId) => (driveId ? driveNames.get(driveId) ?? null : null);
     const currentDriveRole = driveRoleOf(currentDriveId);
     return {
       driveRoleOf,
+      driveNameOf,
       currentDriveRole,
       // VIEWER chỉ xem: không tải lên, không tạo thư mục, không sửa/xoá gì trong drive.
       isDriveReadOnly: currentDriveRole === 'VIEWER',
       // Để menu biết mục nào là của mình (MEMBER chỉ chia sẻ được mục mình tải lên).
       currentUserId,
     };
-  }, [driveRoles, currentDriveId, currentUserId]);
+  }, [driveRoles, driveNames, currentDriveId, currentUserId]);
 
   return (
     <FileContext.Provider value={contextValue}>
@@ -3524,10 +3655,17 @@ export function FileProvider({ children }) {
 }
 
 /**
- * Vai trò trong Bộ nhớ chung: `driveRoleOf(driveId)`, `currentDriveRole`, `isDriveReadOnly`.
+ * Vai trò trong Bộ nhớ chung: `driveRoleOf(driveId)`, `currentDriveRole`, `isDriveReadOnly`; tên drive:
+ * `driveNameOf(driveId)`.
  * Ngoài `FileProvider` (harness, trang công khai) trả bản "không biết gì" — mọi lệnh hiện như cũ.
  */
-const NO_DRIVE_ACCESS = { driveRoleOf: () => null, currentDriveRole: null, isDriveReadOnly: false, currentUserId: null };
+const NO_DRIVE_ACCESS = {
+  driveRoleOf: () => null,
+  driveNameOf: () => null,
+  currentDriveRole: null,
+  isDriveReadOnly: false,
+  currentUserId: null,
+};
 export const useDriveAccess = () => useContext(DriveAccessContext) ?? NO_DRIVE_ACCESS;
 
 export const useFiles = () => useContext(FileContext);

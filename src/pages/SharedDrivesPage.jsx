@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useFiles } from '../context/FileContext';
+import { useFiles, useDriveAccess } from '../context/FileContext';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import tRich from '../utils/tRich';
@@ -44,8 +44,12 @@ export default function SharedDrivesPage() {
         filterOwner,
         setFilterOwner,
         resetFilters,
+        clearFilters,
     } = useFiles();
     const { user } = useAuth();
+    // Tên drive khi vào THẲNG một drive (mở thư mục / "nơi chứa" từ kết quả tìm kiếm, ##90): danh
+    // sách `drives` bên dưới chỉ nạp ở trang danh sách, nên trước đây tiêu đề rơi về câu chung chung.
+    const { driveNameOf } = useDriveAccess();
 
     // Ở trang danh sách drive mà đang TÌM hoặc LỌC thì hiện kết quả trên mọi drive (##83).
     // Trước đây trang này chỉ vẽ thẻ drive: gõ tìm kiếm ở đây, hay chọn "Vị trí: Bộ nhớ dùng
@@ -62,7 +66,7 @@ export default function SharedDrivesPage() {
             setFilterDate={setFilterDate}
             filterOwner={filterOwner}
             setFilterOwner={setFilterOwner}
-            onReset={resetFilters}
+            onReset={clearFilters}
         />
     );
 
@@ -302,7 +306,7 @@ export default function SharedDrivesPage() {
                         <div>
                             <div className="flex items-center gap-2">
                                 <h1 className="text-xl font-bold text-gray-800 dark:text-gray-200">
-                                    {currentDrive?.name || t('drives.contentTitle')}
+                                    {currentDrive?.name || driveNameOf(currentSharedDriveId) || t('drives.contentTitle')}
                                 </h1>
                                 <span className="px-2 py-0.5 text-[10px] font-bold bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 rounded-md border border-indigo-100 dark:border-indigo-800/60">
                                     {t('drives.groupSpace')}

@@ -33,6 +33,8 @@ import {
     Plus,
     Upload,
     LogOut,
+    SquarePen,
+    FolderSymlink,
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useDriveAccess } from '../../context/FileContext';
@@ -141,8 +143,10 @@ function MenuSeparator() {
 
 // Khung giống MENU_SHELL nhưng `absolute` (neo vào hàng cha) và nền đặc: một lớp
 // backdrop-blur lồng trong lớp backdrop-blur khác của menu cha là làm mờ hai lần.
+// Bề rộng (`w-56`) truyền riêng qua `SubmenuRow.panelWidth`: menu con "Chỉnh sửa" có hàng mang
+// phím tắt ("Dán vào thư mục này  Ctrl+V") nên cần rộng hơn "Tải lên ▸".
 const SUBMENU_SHELL =
-    'absolute z-10 w-56 max-w-[calc(100vw-16px)] bg-white dark:bg-[#282a2c] rounded-2xl ' +
+    'absolute z-10 max-w-[calc(100vw-16px)] bg-white dark:bg-[#282a2c] rounded-2xl ' +
     'shadow-2xl px-1.5 py-1.5 border border-gray-300 dark:border-gray-700/80 animate-fade-in';
 
 // Neo của menu con là <div className="relative"> bọc hàng cha — nằm trong padding 6px
@@ -170,7 +174,7 @@ const SubmenuContext = createContext(null);
  * Hàng mở menu con. Chuột: rê qua là mở. Chạm và bàn phím không có "rê qua" nên
  * bấm mới mở, và bấm lần nữa để gập lại.
  */
-function SubmenuRow({ path, icon, label, tone = 'default', children }) {
+function SubmenuRow({ path, icon, label, tone = 'default', panelWidth = 'w-56', children }) {
     const { openPath, setOpenPath, rootRef } = useContext(SubmenuContext);
     const isOpen = isInBranch(openPath, path);
     const wrapperRef = useRef(null);
@@ -259,7 +263,7 @@ function SubmenuRow({ path, icon, label, tone = 'default', children }) {
                 trailing={<ChevronRight className="w-3.5 h-3.5 shrink-0 text-gray-400 dark:text-gray-500" />}
             />
 
-            {isOpen && <SubmenuPanel>{children}</SubmenuPanel>}
+            {isOpen && <SubmenuPanel widthClass={panelWidth}>{children}</SubmenuPanel>}
         </div>
     );
 }
@@ -267,9 +271,10 @@ function SubmenuRow({ path, icon, label, tone = 'default', children }) {
 /**
  * Tấm menu con. Bung cùng hướng với tầng cha (tầng cha đã lật sang trái vì sát mép
  * phải thì tầng con bung sang phải sẽ đè lên chính menu gốc), chỉ đổi hướng khi hướng
- * đó không đủ chỗ. Cả hai bên đều chật (điện thoại) thì thả xuống ngay dưới hàng cha.
+ * đó không đủ chỗ. Cả hai bên đều chật (điện thoại) thì thả xuống ngay dưới hàng cha — hoặc
+ * bật lên ngay trên nó khi bên dưới không đủ chỗ.
  */
-function SubmenuPanel({ children }) {
+function SubmenuPanel({ widthClass, children }) {
     const ctx = useContext(SubmenuContext);
     const panelRef = useRef(null);
     const [pos, setPos] = useState(null);
@@ -306,6 +311,13 @@ function SubmenuPanel({ children }) {
             left = 0;
             width = rect.width;
             top = rect.height + 2;
+            // Thả xuống mà tràn đáy màn hình ⇒ bật LÊN trên hàng cha nếu đủ chỗ. Dời lên cho vừa
+            // màn hình (đoạn dưới) thì tấm che mất CHÍNH hàng cha: không còn thấy menu con thuộc
+            // hàng nào, cũng không bấm lại để gập được — hay gặp với "Chỉnh sửa ▸" (##90), menu
+            // con cao 6–7 hàng, mở từ nút ⋮ của một hàng ở nửa dưới màn hình điện thoại.
+            const fitsBelow = rect.top + top + h <= window.innerHeight - VIEWPORT_MARGIN;
+            const fitsAbove = rect.top - 2 - h >= VIEWPORT_MARGIN;
+            if (!fitsBelow && fitsAbove) top = -(h + 2);
         }
 
         const overflowBottom = rect.top + top + h - (window.innerHeight - VIEWPORT_MARGIN);
@@ -327,7 +339,7 @@ function SubmenuPanel({ children }) {
     return (
         <div
             ref={panelRef}
-            className={SUBMENU_SHELL}
+            className={`${SUBMENU_SHELL} ${widthClass}`}
             style={{
                 left: pos?.left ?? 0,
                 top: pos?.top ?? 0,
@@ -375,6 +387,7 @@ export default function ContextMenu({
     onRename,
     onCut,
     onCopy,
+    onMove,                 // "Di chuyển tới…" (##90) — mở MoveModal cho mục (hoặc cả tập đang chọn)
     onPaste,
     canPaste = false,
     isPasting = false,
@@ -587,7 +600,7 @@ export default function ContextMenu({
     if (variant === 'drive') {
         const isDriveAdmin = item.userRole === 'ADMIN';
 
-        return (
+        return withSubmenus(
             <div
                 ref={menuRef}
                 className={MENU_SHELL}
@@ -609,31 +622,42 @@ export default function ContextMenu({
                     )}
                 </div>
 
-                {/* Đổi tên — chỉ ADMIN của drive (backend PATCH /:id cũng chặn tương tự) */}
-                {isDriveAdmin ? (
+                {/* Chỉnh sửa ▸ (##90) — cùng nhóm với menu của tệp/thư mục: Đổi tên & mô tả,
+                    Sao chép tên, Gắn sao. */}
+                <SubmenuRow
+                    path="edit"
+                    panelWidth="w-64"
+                    icon={<SquarePen className="w-4 h-4 text-gray-700 dark:text-gray-300" />}
+                    label={t('menu.edit')}
+                >
+                    {/* Đổi tên — chỉ ADMIN của drive (backend PATCH /:id cũng chặn tương tự) */}
+                    {isDriveAdmin ? (
+                        <MenuRow
+                            icon={<Pencil className="w-4 h-4 text-gray-700 dark:text-gray-300" />}
+                            label={t('menu.renameAndDesc')}
+                            onClick={() => { onRename?.(item); closeMenu(); }}
+                        />
+                    ) : (
+                        <MenuRowLocked label={t('menu.renameAndDesc')} hint={t('menu.needAdmin')} />
+                    )}
+
+                    {/* Sao chép tên drive — KHÔNG có deep-link tới một drive nên không copy link được */}
                     <MenuRow
-                        icon={<Pencil className="w-4 h-4 text-gray-700 dark:text-gray-300" />}
-                        label={t('menu.renameAndDesc')}
-                        onClick={() => { onRename?.(item); closeMenu(); }}
+                        icon={<Copy className="w-4 h-4 text-gray-700 dark:text-gray-300" />}
+                        label={t('menu.copyName')}
+                        onClick={() => { onCopy?.(item); closeMenu(); }}
                     />
-                ) : (
-                    <MenuRowLocked label={t('menu.renameAndDesc')} hint={t('menu.needAdmin')} />
-                )}
 
-                {/* Gắn sao — mọi thành viên đều làm được, và là dấu sao RIÊNG của người đang
-                    đăng nhập (backend lưu ở hàng shared_drive_members của họ) */}
-                <MenuRow
-                    icon={<Star className={`w-4 h-4 ${item.isStarred ? 'text-amber-600 dark:text-amber-400 fill-amber-400' : 'text-gray-700 dark:text-gray-300'}`} />}
-                    label={item.isStarred ? t('menu.star.remove') : t('menu.star.add')}
-                    onClick={() => { onToggleStar?.(item); closeMenu(); }}
-                />
+                    <MenuSeparator />
 
-                {/* Sao chép tên drive — KHÔNG có deep-link tới một drive nên không copy link được */}
-                <MenuRow
-                    icon={<Copy className="w-4 h-4 text-gray-700 dark:text-gray-300" />}
-                    label={t('menu.copyName')}
-                    onClick={() => { onCopy?.(item); closeMenu(); }}
-                />
+                    {/* Gắn sao — mọi thành viên đều làm được, và là dấu sao RIÊNG của người đang
+                        đăng nhập (backend lưu ở hàng shared_drive_members của họ) */}
+                    <MenuRow
+                        icon={<Star className={`w-4 h-4 ${item.isStarred ? 'text-amber-600 dark:text-amber-400 fill-amber-400' : 'text-gray-700 dark:text-gray-300'}`} />}
+                        label={item.isStarred ? t('menu.star.remove') : t('menu.star.add')}
+                        onClick={() => { onToggleStar?.(item); closeMenu(); }}
+                    />
+                </SubmenuRow>
 
                 <MenuSeparator />
 
@@ -814,73 +838,98 @@ export default function ContextMenu({
                         onClick={() => { onDownload?.(item); closeMenu(); }}
                     />
 
-                    {/* 4. Đổi tên — ẩn nếu VIEWER trong shared-with-me.
-                        Chỉ in phím tắt ĐẦU TIÊN: chuỗi "Ctrl+Alt+E hoặc F2" dài hơn phần
-                        chỗ trống còn lại của hàng nên nó đẩy nhãn co lại và làm hàng này
-                        cao hơn mọi hàng khác. Phím còn lại nằm trong tooltip. */}
-                    {canRename ? (
-                        <MenuRow
-                            icon={<Pencil className="w-4 h-4 text-gray-700 dark:text-gray-300" />}
-                            label={t('menu.rename')}
-                            shortcut={RENAME_SHORTCUT_KEYS[0]}
-                            shortcutTitle={RENAME_SHORTCUT_KEYS.join(`  ${t('shortcuts.or')}  `)}
-                            onClick={() => { onRename?.(item); closeMenu(); }}
-                        />
-                    ) : (
-                        <MenuRowLocked label={t('menu.rename')} hint={t('menu.viewerOnly')} />
-                    )}
+                    {/* 4. Chỉnh sửa ▸ (##90) — Đổi tên, Cắt / Sao chép / Dán, Di chuyển tới…, Gắn sao.
+                        Trước đây sáu lệnh này nằm thẳng ở tầng đầu, kéo menu dài tới 16 hàng; gom
+                        vào một menu con (rê chuột là mở, chạm/bàn phím thì bấm) cho tầng đầu chỉ còn
+                        những việc làm NGAY: Hỏi AI, xem, tải, chia sẻ, chi tiết, thùng rác. Phím tắt
+                        của từng lệnh vẫn in bên phải hàng của nó. */}
+                    <SubmenuRow
+                        path="edit"
+                        panelWidth="w-64"
+                        icon={<SquarePen className="w-4 h-4 text-gray-700 dark:text-gray-300" />}
+                        label={t('menu.edit')}
+                    >
+                        {/* Đổi tên — khoá nếu VIEWER trong shared-with-me.
+                            Chỉ in phím tắt ĐẦU TIÊN: chuỗi "Ctrl+Alt+E hoặc F2" dài hơn phần
+                            chỗ trống còn lại của hàng nên nó đẩy nhãn co lại và làm hàng này
+                            cao hơn mọi hàng khác. Phím còn lại nằm trong tooltip. */}
+                        {canRename ? (
+                            <MenuRow
+                                icon={<Pencil className="w-4 h-4 text-gray-700 dark:text-gray-300" />}
+                                label={t('menu.rename')}
+                                shortcut={RENAME_SHORTCUT_KEYS[0]}
+                                shortcutTitle={RENAME_SHORTCUT_KEYS.join(`  ${t('shortcuts.or')}  `)}
+                                onClick={() => { onRename?.(item); closeMenu(); }}
+                            />
+                        ) : (
+                            <MenuRowLocked label={t('menu.rename')} hint={t('menu.viewerOnly')} />
+                        )}
 
-                    {/* Separator: nhóm clipboard */}
+                        {/* Separator: nhóm clipboard + di chuyển */}
+                        <MenuSeparator />
+
+                        {/* Cắt — ẩn trong shared-with-me */}
+                        {canCut && (
+                            <MenuRow
+                                icon={<Scissors className="w-4 h-4 text-gray-700 dark:text-gray-300" />}
+                                label={t('common.cut')}
+                                shortcut="Ctrl+X"
+                                onClick={() => { onCut?.(item); closeMenu(); }}
+                            />
+                        )}
+
+                        {/* Sao chép */}
+                        <MenuRow
+                            icon={<Copy className="w-4 h-4 text-gray-700 dark:text-gray-300" />}
+                            label={t('common.copy')}
+                            shortcut="Ctrl+C"
+                            onClick={() => { onCopy?.(item); closeMenu(); }}
+                        />
+
+                        {/* Dán — chỉ hiện khi có mục trong clipboard. Nằm ngay sau
+                            Cắt/Sao chép để ba lệnh clipboard đi liền một khối. */}
+                        {canPaste && canPasteIntoItem && (
+                            <MenuRow
+                                tone="accent"
+                                disabled={isPasting}
+                                icon={isPasting
+                                    ? <Loader2 className="w-4 h-4 text-blue-600 dark:text-blue-400 animate-spin" />
+                                    : <FolderInput className="w-4 h-4 text-blue-600 dark:text-blue-400" />}
+                                label={isFolder ? t('menu.pasteIntoFolder') : t('menu.paste')}
+                                shortcut="Ctrl+V"
+                                onClick={() => {
+                                    onPaste?.(isFolder ? item.id : undefined);
+                                    closeMenu();
+                                }}
+                            />
+                        )}
+
+                        {/* Di chuyển tới… — chọn thư mục đích trong hộp thoại (MoveModal), khỏi phải
+                            Cắt rồi tự đi tới đó Dán. Cùng quyền với Cắt. */}
+                        {canCut && onMove && (
+                            <MenuRow
+                                icon={<FolderSymlink className="w-4 h-4 text-gray-700 dark:text-gray-300" />}
+                                label={t('menu.moveTo')}
+                                onClick={() => { onMove(item); closeMenu(); }}
+                            />
+                        )}
+
+                        {/* Gắn dấu sao — ẩn với tệp được người khác chia sẻ */}
+                        {canToggleStar && (
+                            <>
+                                <MenuSeparator />
+                                <MenuRow
+                                    icon={<Star className={`w-4 h-4 ${item.isStarred ? 'text-amber-600 dark:text-amber-400 fill-amber-400' : 'text-gray-700 dark:text-gray-300'}`} />}
+                                    label={item.isStarred ? t('menu.star.remove') : t('menu.star.add')}
+                                    onClick={() => { onToggleStar?.(item); closeMenu(); }}
+                                />
+                            </>
+                        )}
+                    </SubmenuRow>
+
                     <MenuSeparator />
 
-                    {/* 5. Cắt — ẩn trong shared-with-me */}
-                    {canCut && (
-                        <MenuRow
-                            icon={<Scissors className="w-4 h-4 text-gray-700 dark:text-gray-300" />}
-                            label={t('common.cut')}
-                            shortcut="Ctrl+X"
-                            onClick={() => { onCut?.(item); closeMenu(); }}
-                        />
-                    )}
-
-                    {/* 6. Sao chép */}
-                    <MenuRow
-                        icon={<Copy className="w-4 h-4 text-gray-700 dark:text-gray-300" />}
-                        label={t('common.copy')}
-                        shortcut="Ctrl+C"
-                        onClick={() => { onCopy?.(item); closeMenu(); }}
-                    />
-
-                    {/* 7. Dán — chỉ hiện khi có mục trong clipboard. Nằm ngay sau
-                        Cắt/Sao chép để ba lệnh clipboard đi liền một khối. */}
-                    {canPaste && canPasteIntoItem && (
-                        <MenuRow
-                            tone="accent"
-                            disabled={isPasting}
-                            icon={isPasting
-                                ? <Loader2 className="w-4 h-4 text-blue-600 dark:text-blue-400 animate-spin" />
-                                : <FolderInput className="w-4 h-4 text-blue-600 dark:text-blue-400" />}
-                            label={isFolder ? t('menu.pasteIntoFolder') : t('menu.paste')}
-                            shortcut="Ctrl+V"
-                            onClick={() => {
-                                onPaste?.(isFolder ? item.id : undefined);
-                                closeMenu();
-                            }}
-                        />
-                    )}
-
-                    {/* 8. Gắn dấu sao — ẩn với tệp được người khác chia sẻ */}
-                    {canToggleStar && (
-                        <MenuRow
-                            icon={<Star className={`w-4 h-4 ${item.isStarred ? 'text-amber-600 dark:text-amber-400 fill-amber-400' : 'text-gray-700 dark:text-gray-300'}`} />}
-                            label={item.isStarred ? t('menu.star.remove') : t('menu.star.add')}
-                            onClick={() => { onToggleStar?.(item); closeMenu(); }}
-                        />
-                    )}
-
-                    <MenuSeparator />
-
-                    {/* 9. Chia sẻ — chỉ hiển thị khi là owner */}
+                    {/* 5. Chia sẻ — chỉ hiển thị khi là owner */}
                     {canShare && (
                         <MenuRow
                             icon={<UserPlus className="w-4 h-4 text-gray-700 dark:text-gray-300" />}
@@ -889,14 +938,14 @@ export default function ContextMenu({
                         />
                     )}
 
-                    {/* 10. Thông tin chi tiết & hoạt động */}
+                    {/* 6. Thông tin chi tiết & hoạt động */}
                     <MenuRow
                         icon={<Info className="w-4 h-4 text-gray-700 dark:text-gray-300" />}
                         label={t('menu.details')}
                         onClick={() => { onShowInfo?.(item, 'details'); closeMenu(); }}
                     />
 
-                    {/* 11. Đổi màu — chỉ hiện khi owner hoặc EDITOR trong shared.
+                    {/* 7. Đổi màu — chỉ hiện khi owner hoặc EDITOR trong shared.
                         Bảng màu bung SANG PHẢI (submenu) chứ không chèn vào giữa menu:
                         ColorPickerPanel định vị `absolute` theo chính div bọc này, nên
                         div này bắt buộc phải là `relative`. */}
@@ -933,7 +982,7 @@ export default function ContextMenu({
                     {/* Separator: nhóm huỷ bỏ */}
                     <MenuSeparator />
 
-                    {/* 12. Chuyển vào thùng rác — ẩn trong shared-with-me */}
+                    {/* 8. Chuyển vào thùng rác — ẩn trong shared-with-me */}
                     {canTrash ? (
                         <MenuRow
                             tone="dangerHover"
@@ -946,12 +995,14 @@ export default function ContextMenu({
                         <MenuRowLocked label={t('menu.moveToTrash')} hint={t('menu.viewerOnly')} />
                     )}
 
-                    {/* 13. Không phải mục đề xuất hữu ích — chỉ ẩn khỏi Trang chủ.
+                    {/* 9. Không phải mục đề xuất hữu ích — chỉ ẩn khỏi Trang chủ.
                          Khoá dịch trước đây là `menu.notSpam`, dùng lại từ nhóm Nội
                          dung rác: bản tiếng Việt đã được sửa thành câu đúng nhưng bản
                          tiếng Anh vẫn đọc là "Not spam", tức người chọn English được
                          mời gỡ một tệp khỏi thư mục rác mà nó chưa từng nằm trong đó. */}
-                    {activeTab === 'home' && (
+                    {/* Chỉ menu của các MỤC GỢI Ý (HomePage truyền `onDismissSuggestion`): trang kết quả
+                        tìm kiếm cũng ở tab 'home' nhưng không có gợi ý nào để ẩn (##90). */}
+                    {activeTab === 'home' && onDismissSuggestion && (
                         <MenuRow
                             icon={<ThumbsDown className="w-4 h-4 text-gray-500 dark:text-gray-400" />}
                             label={t('menu.dismissSuggestion')}

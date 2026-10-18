@@ -120,6 +120,7 @@ const en = {
   'header.logo.title': 'Back to My cloudSSS',
   'header.search.placeholder': 'Search files and folders in cloudSSS...',
   'header.search.filter': 'Advanced search filters',
+  'header.search.clear': 'Clear search',
   'header.activityLog': 'Activity history',
   'header.ai': 'Ask the AI assistant',
   'header.ai.needLogin': 'Sign in to use the AI assistant',
@@ -197,6 +198,26 @@ const en = {
   'menu.notSpamRestore': 'Not spam — send back to its folder',
   'menu.star.add': 'Add to starred',
   'menu.star.remove': 'Remove from starred',
+  // "Edit ▸" submenu (##90): Rename, Cut / Copy / Paste, Move to…, Star
+  'menu.edit': 'Edit',
+  'menu.moveTo': 'Move to…',
+  // ── "Move to…" dialog (components/file-manager/MoveModal.jsx, ##90) ──
+  'move.title.one': 'Move "{name}"',
+  'move.title.many': 'Move {count} items',
+  'move.allLocations': 'All locations',
+  'move.breadcrumb': 'Selected location',
+  'move.loading': 'Loading folders...',
+  'move.loadFailed': "Couldn't load the folder list.",
+  'move.retry': 'Try again',
+  'move.empty': 'No folders here',
+  'move.here': 'Move here',
+  'move.moving': 'Moving...',
+  'move.alreadyHere': 'Already in this location',
+  'move.pickFolder': 'Pick a folder to move into',
+  'move.viewerOnly': 'You can only view this folder',
+  'move.selfFolder': "A folder can't be moved into itself",
+  'move.truncated': 'Showing the first {count} folders',
+  'move.done': 'Moved {count} item(s) to "{name}"',
   // ── Filter bar (components/common/FileFilterBar.jsx) ──
   'filter.sort.label': 'Sort',
   'filter.type.label': 'File type',
@@ -278,6 +299,9 @@ const en = {
   'list.empty.title': 'Nothing here yet',
   'list.empty.gridTitle': 'This folder is empty',
   'list.empty.gridHint': 'Drop files here, or use the "+ New" button to get started',
+  // Empty because of a search / filter (##90) — not an "empty folder"
+  'list.empty.noResults': 'No files or folders match',
+  'list.empty.noResultsHint': 'Try other words (with or without Vietnamese accents), or remove some filters.',
   'list.group.folders': 'Folders ({count})',
   'list.group.files': 'Files ({count})',
   'list.zip.creating': 'Preparing the folder as a ZIP download...',
@@ -765,10 +789,14 @@ const en = {
   // ── Home page sections ──
   'home.myDrive.count': '({count} most-opened items)',
   'home.viewAll': 'View all',
+  // Home search results page (##90)
+  'home.search.title': 'Search results',
+  'home.search.hint': '{count} results for "{query}" — in My cloudSSS, items shared with me and shared drives, including every subfolder.',
+  'home.search.truncated': 'Showing the first {shown} of {total} results — type something more specific or use the filters to narrow it down.',
+  'home.search.back': 'Clear search, back to Home',
   'home.recent.subtitle': '(Recently edited)',
   'home.empty.recent': 'Nothing opened recently.',
   'home.empty.shared': 'Nothing has been shared with you yet.',
-  'home.empty.drives': 'No matches in your shared drives.',
   'home.dismissed': '"{name}" is hidden from Home. The file itself stays in My cloudSSS.',
   'home.restoreDismissed': 'Show {count} hidden item(s)',
   'home.restoreDismissed.hint': 'Bring every item you marked "not a useful suggestion" back to Home',
@@ -1184,6 +1212,8 @@ const en = {
   'myDrive.pasteTitle': "Paste {count} items into this folder (Ctrl+V) — Esc to cancel",
   'file.paste.oneFailed': "Could not process \"{detail}\"",
   'file.paste.manyFailed': "{failed} of {total} items failed ({detail}, ...)",
+  'file.moveTo.oneFailed': "Couldn't move \"{detail}\"",
+  'file.moveTo.manyFailed': "{failed} of {total} items couldn't be moved ({detail}, ...)",
   'billing.confirm.reenableTail': " and add the new cycle to your current expiry date.",
 
   // ── User profile (UserProfileModal) ──
@@ -1263,6 +1293,9 @@ const en = {
   'search.filter.owner.me': 'Owned by me',
   'search.filter.owner.others': 'Owned by others',
   'search.filter.location.label': 'Location',
+  'search.filter.location.anywhere': 'Anywhere',
+  // Location line under a search result (ItemLocation, ##90)
+  'search.location.open': 'Open location: {name}',
   'search.filter.apply': 'Apply filters',
 
 

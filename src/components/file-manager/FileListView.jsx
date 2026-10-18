@@ -11,8 +11,10 @@ import FileSkeleton from '../common/FileSkeleton';
 import ContextMenu from './ContextMenu';
 import RenameModal from './RenameModal';
 import ShareModal from './ShareModal';
+import MoveModal from './MoveModal';
 import StarButton from '../common/StarButton';
 import FileThumbnail from './FileThumbnail';
+import ItemLocation from './ItemLocation';
 import { collectInputEntries } from '../../utils/uploadTree';
 import tRich from '../../utils/tRich';
 import { downloadSingleItem } from '../../utils/downloadItems';
@@ -27,7 +29,8 @@ import {
     CheckSquare,
     Square,
     Minus,
-    ShieldAlert
+    ShieldAlert,
+    SearchX,
 } from 'lucide-react';
 
 const TYPE_KEY_BY_EXT = [
@@ -102,6 +105,7 @@ const FolderTableRow = memo(function FolderTableRow({
     onToggleSelect,
     onSelectRange,
     onToggleStar,
+    onOpenLocation,
 }) {
     const { t } = useLanguage();
     return (
@@ -154,9 +158,13 @@ const FolderTableRow = memo(function FolderTableRow({
                     <div className="p-1.5 rounded-lg shrink-0 bg-[var(--fc-surface-l)] dark:bg-[var(--fc-surface-d)] border border-[var(--fc-border-l)] dark:border-[var(--fc-border-d)]">
                         <Folder className="w-4 h-4 fill-current text-[var(--fc-icon-l)] dark:text-[var(--fc-icon-d)]" />
                     </div>
-                    <span className="font-semibold truncate max-w-[200px] text-[var(--fc-ink-l)] dark:text-[var(--fc-ink-d)]" title={folder.name}>
-                        {folder.name}
-                    </span>
+                    <div className="min-w-0 flex flex-col">
+                        <span className="font-semibold truncate max-w-[200px] text-[var(--fc-ink-l)] dark:text-[var(--fc-ink-d)]" title={folder.name}>
+                            {folder.name}
+                        </span>
+                        {/* Kết quả tìm kiếm: thư mục này nằm ở đâu (##90) */}
+                        <ItemLocation item={folder} onOpen={onOpenLocation} className="max-w-[200px]" />
+                    </div>
                 </div>
             </td>
 
@@ -226,6 +234,7 @@ const FileTableRow = memo(function FileTableRow({
     onToggleSelect,
     onSelectRange,
     onToggleStar,
+    onOpenLocation,
 }) {
     const { t } = useLanguage();
     return (
@@ -281,9 +290,13 @@ const FileTableRow = memo(function FileTableRow({
                         className="w-8 h-8 rounded-md bg-white dark:bg-white/5 border border-gray-200 dark:border-gray-700/60 shadow-2xs"
                         fallback={getFileIcon(file)}
                     />
-                    <span className="font-semibold truncate max-w-[180px] text-[var(--fc-ink-l)] dark:text-[var(--fc-ink-d)]" title={file.name}>
-                        {file.name}
-                    </span>
+                    <div className="min-w-0 flex flex-col">
+                        <span className="font-semibold truncate max-w-[180px] text-[var(--fc-ink-l)] dark:text-[var(--fc-ink-d)]" title={file.name}>
+                            {file.name}
+                        </span>
+                        {/* Kết quả tìm kiếm: tệp này nằm ở đâu (##90) */}
+                        <ItemLocation item={file} onOpen={onOpenLocation} className="max-w-[180px]" />
+                    </div>
                     {/* Lý do bị gắn cờ do Spam Guard — chỉ tệp trong mục Nội dung rác mới có */}
                     {file.isSpam && (
                         <span
@@ -415,7 +428,14 @@ export default function FileListView() {
         currentSharedDriveId,
         uploadEntries,
         isInForeignFolder,
+        openItemLocation,
+        searchQuery,
+        filterType,
+        filterDate,
+        filterOwner,
     } = useFiles();
+    // Rỗng vì đang TÌM / LỌC thì nói "không có kết quả", không phải "chưa có tệp nào ở đây".
+    const isQuerying = Boolean(searchQuery?.trim()) || filterType !== 'all' || filterDate !== 'all' || filterOwner !== 'all';
 
     // Ba nhóm dưới đây đọc từ context riêng thay vì useFiles(): chúng đổi theo
     // từng cú bấm chuột, gộp chung sẽ kéo cả Sidebar và Header render theo.
@@ -463,6 +483,8 @@ export default function FileListView() {
     // Modals state
     const [renameItemTarget, setRenameItemTarget] = useState(null);
     const [shareItemTarget, setShareItemTarget] = useState(null);
+    // Các mục đang mở hộp thoại "Di chuyển tới…" (##90) — null = đóng
+    const [moveTargets, setMoveTargets] = useState(null);
 
     // Hidden inputs cho "Tải tệp lên" / "Tải thư mục lên" từ menu vùng nền trống
     const fileInputRef = useRef(null);
@@ -637,8 +659,15 @@ export default function FileListView() {
                 onContextMenu={openBlankContextMenu}
                 className="flex flex-col items-center justify-center h-full py-20 text-gray-400 dark:text-gray-500 select-none"
             >
-                <FolderOpen className="w-16 h-16 stroke-1 text-gray-300 mb-3" />
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{t('list.empty.title')}</p>
+                {isQuerying
+                    ? <SearchX className="w-16 h-16 stroke-1 text-gray-300 mb-3" />
+                    : <FolderOpen className="w-16 h-16 stroke-1 text-gray-300 mb-3" />}
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                    {isQuerying ? t('list.empty.noResults') : t('list.empty.title')}
+                </p>
+                {isQuerying && (
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 text-center px-4">{t('list.empty.noResultsHint')}</p>
+                )}
 
                 <input type="file" ref={fileInputRef} onChange={handleFileInputChange} multiple className="hidden" aria-label={t('newBtn.aria.pickFiles')} />
                 <input type="file" ref={setFolderInputRef} onChange={handleFolderInputChange} multiple className="hidden" aria-label={t('newBtn.aria.pickFolder')} />
@@ -734,6 +763,7 @@ export default function FileListView() {
                                 onToggleSelect={toggleSelect}
                                 onSelectRange={handleSelectRange}
                                 onToggleStar={toggleStar}
+                                onOpenLocation={openItemLocation}
                             />
                         ))}
 
@@ -751,6 +781,7 @@ export default function FileListView() {
                                 onToggleSelect={toggleSelect}
                                 onSelectRange={handleSelectRange}
                                 onToggleStar={toggleStar}
+                                onOpenLocation={openItemLocation}
                             />
                         ))}
                     </tbody>
@@ -826,6 +857,13 @@ export default function FileListView() {
                         copyItems([targetItem.id]);
                     }
                 }}
+                // Như Cắt: bấm chuột phải lên một mục ĐANG nằm trong tập chọn thì chuyển cả tập.
+                onMove={(targetItem) => {
+                    const selected = selectedIds.has(targetItem.id) && selectedIds.size > 1
+                        ? [...sortedFolders, ...sortedFiles].filter((it) => selectedIds.has(it.id))
+                        : [];
+                    setMoveTargets(selected.length > 1 ? selected : [targetItem]);
+                }}
                 onPaste={(targetParentId) => pasteItems(targetParentId)}
                 canPaste={clipboard.items.length > 0 && !isDriveReadOnly}
                 isPasting={isPasting}
@@ -853,6 +891,13 @@ export default function FileListView() {
                 isOpen={!!shareItemTarget}
                 item={shareItemTarget}
                 onClose={() => setShareItemTarget(null)}
+            />
+
+            <MoveModal
+                isOpen={!!moveTargets}
+                items={moveTargets}
+                onClose={() => setMoveTargets(null)}
+                onMoved={deselectAll}
             />
 
         </div>

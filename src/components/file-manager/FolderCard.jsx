@@ -3,8 +3,9 @@ import { Folder, MoreVertical, Users, CheckSquare, Square, Star } from 'lucide-r
 import StarButton from '../common/StarButton';
 import { getCardColorVars } from '../../utils/fileColors';
 import { useLanguage } from '../../context/LanguageContext';
+import ItemLocation from './ItemLocation';
 
-function FolderCard({ folder, onDoubleClick, onContextMenu, onStarToggle, isSelected, isCut = false, onToggleSelect, onSelectRange }) {
+function FolderCard({ folder, onDoubleClick, onContextMenu, onStarToggle, isSelected, isCut = false, onToggleSelect, onSelectRange, onOpenLocation }) {
     const { t } = useLanguage();
     // Cả thẻ ăn theo màu hiệu lực (customColor, hoặc xám mặc định của thư mục):
     // nền, viền, tên và icon đều đọc từ cùng một bộ biến CSS đã cân tương phản.
@@ -100,6 +101,8 @@ function FolderCard({ folder, onDoubleClick, onContextMenu, onStarToggle, isSele
                             <span className="truncate">{t('card.sharedBadge')}</span>
                         </span>
                     )}
+                    {/* Kết quả tìm kiếm: thư mục này nằm ở đâu (##90) */}
+                    <ItemLocation item={folder} onOpen={onOpenLocation} />
                 </div>
             </div>
 

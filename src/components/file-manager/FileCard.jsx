@@ -5,6 +5,7 @@ import { useInViewport } from '../../hooks/useInViewport';
 import { getCardColorVars } from '../../utils/fileColors';
 import { useLanguage } from '../../context/LanguageContext';
 import { FILE_CARD_HEIGHT_CLASS } from './gridLayout';
+import ItemLocation from './ItemLocation';
 import { 
     FileText, 
     FileSpreadsheet, 
@@ -56,7 +57,7 @@ function getCatIcon(cat, size = 'w-5 h-5') {
     }
 }
 
-function FileCard({ file, onDoubleClick, onContextMenu, isSelected, isCut = false, onToggleSelect, onSelectRange }) {
+function FileCard({ file, onDoubleClick, onContextMenu, isSelected, isCut = false, onToggleSelect, onSelectRange, onOpenLocation }) {
     const { t } = useLanguage();
     const cat = getFileTypeCategory(file?.name);
 
@@ -230,11 +231,17 @@ function FileCard({ file, onDoubleClick, onContextMenu, isSelected, isCut = fals
 
             {/* Chân thẻ: nhãn định dạng góc dưới trái làm nhỏ đi và thụt sâu hơn xuống dưới,
                 dung lượng ở góc dưới phải căn đều đối xứng với icon góc trên trái */}
-            <div className="flex items-center justify-between h-3.5 mt-0.5 leading-none">
-                <span className="px-1 py-px rounded font-semibold text-[8px] tracking-wider uppercase bg-[var(--fc-badge-l)] text-[var(--fc-badge-fg-l)] dark:bg-[var(--fc-badge-d)] dark:text-[var(--fc-badge-fg-d)]">
-                    {file.name.split('.').pop() || 'FILE'}
-                </span>
-                <span className="font-mono text-[9.5px] font-medium text-[var(--fc-muted-l)] dark:text-[var(--fc-muted-d)]">
+            <div className="flex items-center justify-between gap-1.5 h-3.5 mt-0.5 leading-none">
+                {/* Kết quả tìm kiếm (##90): chỗ của nhãn định dạng nhường cho nơi chứa tệp — đuôi tệp
+                    đã nằm ngay trong tên ở hàng đầu, còn thẻ thì cao cố định, không thêm dòng được. */}
+                {file.parentName !== undefined ? (
+                    <ItemLocation item={file} onOpen={onOpenLocation} compact />
+                ) : (
+                    <span className="px-1 py-px rounded font-semibold text-[8px] tracking-wider uppercase bg-[var(--fc-badge-l)] text-[var(--fc-badge-fg-l)] dark:bg-[var(--fc-badge-d)] dark:text-[var(--fc-badge-fg-d)]">
+                        {file.name.split('.').pop() || 'FILE'}
+                    </span>
+                )}
+                <span className="shrink-0 font-mono text-[9.5px] font-medium text-[var(--fc-muted-l)] dark:text-[var(--fc-muted-d)]">
                     {formatBytes(file.size)}
                 </span>
             </div>

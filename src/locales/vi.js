@@ -124,6 +124,7 @@ const vi = {
   'header.logo.title': 'Về cloudSSS của tôi',
   'header.search.placeholder': 'Tìm kiếm tệp, thư mục trong cloudSSS...',
   'header.search.filter': 'Bộ lọc tìm kiếm nâng cao',
+  'header.search.clear': 'Xoá tìm kiếm',
   'header.activityLog': 'Lịch sử hoạt động',
   'header.ai': 'Hỏi trợ lý AI',
   'header.ai.needLogin': 'Đăng nhập để dùng trợ lý AI',
@@ -201,6 +202,26 @@ const vi = {
   'menu.notSpamRestore': 'Không phải rác — trả về thư mục cũ',
   'menu.star.add': 'Thêm vào mục gắn sao',
   'menu.star.remove': 'Bỏ khỏi mục gắn sao',
+  // Menu con "Chỉnh sửa ▸" (##90): Đổi tên, Cắt / Sao chép / Dán, Di chuyển tới…, Gắn sao
+  'menu.edit': 'Chỉnh sửa',
+  'menu.moveTo': 'Di chuyển tới…',
+  // ── Hộp thoại "Di chuyển tới…" (components/file-manager/MoveModal.jsx, ##90) ──
+  'move.title.one': 'Di chuyển "{name}"',
+  'move.title.many': 'Di chuyển {count} mục',
+  'move.allLocations': 'Tất cả vị trí',
+  'move.breadcrumb': 'Vị trí đang chọn',
+  'move.loading': 'Đang tải thư mục...',
+  'move.loadFailed': 'Không tải được danh sách thư mục.',
+  'move.retry': 'Thử lại',
+  'move.empty': 'Không có thư mục con nào ở đây',
+  'move.here': 'Di chuyển tới đây',
+  'move.moving': 'Đang di chuyển...',
+  'move.alreadyHere': 'Mục đang nằm sẵn ở đây',
+  'move.pickFolder': 'Chọn một thư mục để chuyển vào',
+  'move.viewerOnly': 'Bạn chỉ có quyền xem thư mục này',
+  'move.selfFolder': 'Không thể chuyển thư mục vào chính nó',
+  'move.truncated': 'Chỉ hiện {count} thư mục đầu tiên',
+  'move.done': 'Đã di chuyển {count} mục tới "{name}"',
   // ── Thanh bộ lọc (components/common/FileFilterBar.jsx) ──
   'filter.sort.label': 'Sắp xếp',
   'filter.type.label': 'Loại tệp',
@@ -282,6 +303,9 @@ const vi = {
   'list.empty.title': 'Chưa có tệp hoặc thư mục nào ở đây',
   'list.empty.gridTitle': 'Thư mục này chưa có tệp hoặc thư mục nào',
   'list.empty.gridHint': 'Kéo thả tệp vào đây hoặc nhấn nút "+ Mới" để bắt đầu',
+  // Rỗng vì đang tìm / lọc (##90) — không phải "thư mục trống"
+  'list.empty.noResults': 'Không tìm thấy tệp hoặc thư mục nào khớp',
+  'list.empty.noResultsHint': 'Thử từ khoá khác (gõ có dấu hay không dấu đều được), hoặc bỏ bớt bộ lọc.',
   'list.group.folders': 'Thư mục ({count})',
   'list.group.files': 'Tệp ({count})',
   'list.zip.creating': 'Đang tạo liên kết tải xuống thư mục dạng ZIP...',
@@ -785,10 +809,14 @@ const vi = {
   // ── Trang chủ — các khối mục ──
   'home.myDrive.count': '({count} mục hay mở nhất)',
   'home.viewAll': 'Xem tất cả',
+  // Trang kết quả tìm kiếm của Trang chủ (##90)
+  'home.search.title': 'Kết quả tìm kiếm',
+  'home.search.hint': '{count} kết quả cho "{query}" — trong cloudSSS của tôi, mục được chia sẻ với tôi và Bộ nhớ dùng chung, kể cả mọi thư mục con.',
+  'home.search.truncated': 'Đang hiện {shown}/{total} kết quả đầu tiên — gõ cụ thể hơn hoặc dùng bộ lọc để thu hẹp.',
+  'home.search.back': 'Xoá tìm kiếm, về Trang chủ',
   'home.recent.subtitle': '(Chỉnh sửa gần đây)',
   'home.empty.recent': 'Chưa có tệp nào mở gần đây.',
   'home.empty.shared': 'Chưa có tệp nào được chia sẻ với bạn.',
-  'home.empty.drives': 'Không có mục nào khớp trong Bộ nhớ dùng chung.',
   'home.dismissed': 'Đã ẩn "{name}" khỏi Trang chủ. Tệp vẫn nằm nguyên trong cloudSSS của tôi.',
   'home.restoreDismissed': 'Hiện lại {count} mục đã ẩn',
   'home.restoreDismissed.hint': 'Đưa mọi mục bạn đã đánh dấu "không phải đề xuất hữu ích" trở lại Trang chủ',
@@ -1203,6 +1231,8 @@ const vi = {
   'myDrive.pasteTitle': "Dán {count} mục vào thư mục này (Ctrl+V) — Esc để bỏ",
   'file.paste.oneFailed': "Không xử lý được \"{detail}\"",
   'file.paste.manyFailed': "Có {failed}/{total} mục xử lý thất bại ({detail}, ...)",
+  'file.moveTo.oneFailed': "Không di chuyển được \"{detail}\"",
+  'file.moveTo.manyFailed': "Có {failed}/{total} mục không di chuyển được ({detail}, ...)",
   'billing.confirm.reenableTail': " và cộng chu kỳ mới vào ngày hết hạn hiện tại.",
 
   // ── Hồ sơ người dùng (UserProfileModal) ──
@@ -1282,6 +1312,9 @@ const vi = {
   'search.filter.owner.me': 'Tôi sở hữu',
   'search.filter.owner.others': 'Người khác sở hữu',
   'search.filter.location.label': 'Vị trí',
+  'search.filter.location.anywhere': 'Mọi nơi',
+  // Dòng nơi chứa dưới tên một kết quả tìm kiếm (ItemLocation, ##90)
+  'search.location.open': 'Mở nơi chứa: {name}',
   'search.filter.apply': 'Áp dụng bộ lọc',
 
 

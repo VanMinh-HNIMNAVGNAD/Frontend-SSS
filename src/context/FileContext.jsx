@@ -20,7 +20,7 @@ import { CHUNK_THRESHOLD, isResumableSize } from '../constants/upload';
 import { localeTagOf } from '../utils/locale';
 import { tOutsideReact } from '../utils/translate';
 import { dateFilterStart } from '../constants/fileFilters';
-import { readNamespace, writeManyCached, clearPersistentCache } from '../utils/persistentCache';
+import { readNamespace, writeManyCached, clearPersistentCache, cacheScope } from '../utils/persistentCache';
 import { primeThumbnailsForUpload } from '../utils/thumbnailPrimer';
 import { createPipelinedBatcher } from '../utils/uploadBatcher';
 import { safeLocalStorage } from '../utils/safeStorage';
@@ -700,10 +700,13 @@ export function FileProvider({ children }) {
     if (!dirty.size) return;
 
     const rows = [];
+    const owner = cacheScope();
     for (const key of dirty) {
       const hit = listCacheRef.current.get(key);
-      // Có thể đã bị LRU đẩy ra trong lúc chờ — không có gì để ghi thì thôi.
-      if (hit) rows.push({ key, value: hit, expiresAt: hit.cachedAt + LIST_CACHE_TTL_MS });
+      // Có thể đã bị LRU đẩy ra trong lúc chờ — không có gì để ghi thì thôi. Bản của tài khoản
+      // KHÁC tài khoản đang giữ token thì không ghi: `writeManyCached` xếp nó vào ngăn của
+      // người đang đăng nhập (##89).
+      if (hit && hit.owner === owner) rows.push({ key, value: hit, expiresAt: hit.cachedAt + LIST_CACHE_TTL_MS });
     }
     dirty.clear();
     void writeManyCached(LIST_PERSIST_NS, rows);
@@ -713,6 +716,13 @@ export function FileProvider({ children }) {
     const cache = listCacheRef.current;
     const hit = cache.get(key);
     if (!hit) return null;
+    // Khoá khung nhìn không mang id tài khoản, nên mỗi bản ghi tự mang chủ của nó (##89). Trang
+    // mở bằng token của A rồi mới thành B (quay về từ Google/GitHub sau "Thêm tài khoản") đã kịp
+    // nạp bộ đệm của A từ đĩa — không có chốt này thì lần vẽ đầu của B là danh sách tệp của A.
+    if (hit.owner !== cacheScope()) {
+      cache.delete(key);
+      return null;
+    }
     // Quá hạn thì coi như chưa từng có: người dùng sẽ thấy skeleton một lần, đúng
     // như trước khi có bộ đệm. Xoá luôn để nó không nằm chiếm chỗ trong trần LRU.
     if (Date.now() - hit.cachedAt > LIST_CACHE_TTL_MS) {
@@ -742,7 +752,7 @@ export function FileProvider({ children }) {
     const cachedAt = fromServer ? Date.now() : previous?.cachedAt ?? Date.now();
 
     cache.delete(key);
-    cache.set(key, { ...snapshot, cachedAt });
+    cache.set(key, { ...snapshot, cachedAt, owner: cacheScope() });
     // Giữ trần để một phiên duyệt nhiều thư mục không phình bộ nhớ vô hạn
     while (cache.size > LIST_CACHE_MAX) {
       cache.delete(cache.keys().next().value);
@@ -829,7 +839,9 @@ export function FileProvider({ children }) {
         .forEach((row) => {
           // Không đè lên thứ đã có trong RAM: nếu lượt tải đầu tiên đã kịp về thì
           // bản trên đĩa là bản CŨ HƠN.
-          if (!cache.has(row.key)) cache.set(row.key, row.value);
+          // Chủ của bản ghi là ngăn `readNamespace` đã đọc (`row.scope`) — KHÔNG phải token lúc
+          // này: lượt đổi mã OAuth có thể đã xong trong lúc chờ đĩa, và bản của A sẽ bị dán nhãn B.
+          if (!cache.has(row.key)) cache.set(row.key, { ...row.value, owner: row.scope });
         });
       setIsListCacheHydrated(true);
     });
@@ -957,8 +969,8 @@ export function FileProvider({ children }) {
   const {
     uploadQueueRef,
     updateJob,
+    trackJobBytes,
     enqueueJob,
-    removeJob,
     resetJob,
   } = useUploadActions();
 
@@ -1035,13 +1047,6 @@ export function FileProvider({ children }) {
    * byte đang dở chứ không tải lại từ đầu.
    */
   const pausedJobIdsRef = useRef(new Set());
-
-  /**
-   * jobId → timer dọn dòng "Đã huỷ" khỏi bảng tiến trình.
-   * Giữ lại để còn huỷ timer khi người dùng bấm "Tải lại" ngay sau đó — không
-   * thì dòng vừa được bật lại đã bị chính timer cũ xoá mất.
-   */
-  const cancelCleanupTimersRef = useRef(new Map());
 
   // ── localStorage helpers (keyed by userId — ngăn resume vào tài khoản khác) ──
   // Cả bốn hàm PHẢI là useCallback theo `user?.id`. Trước đây chúng là hàm thuần
@@ -2384,7 +2389,10 @@ export function FileProvider({ children }) {
   }, [copyItems, cutItems, pasteItems, clearClipboard]);
 
   // --- Upload Queue Engine ---
-  // updateJob, enqueueJob, removeJob, resetJob — được inject từ UploadContext (xem trên)
+  // updateJob, trackJobBytes, enqueueJob, resetJob — được inject từ UploadContext (xem trên)
+  //
+  // Job xong / huỷ KHÔNG tự gỡ khỏi hàng đợi nữa (##89): bảng tiến trình dọn cả đợt một lượt
+  // khi đợt xong. Gỡ từng dòng là thứ làm danh sách dồn lên và thanh tổng tụt lại sau mỗi tệp.
 
   /**
    * Chunked upload cho tệp > 10MB — tải tiếp được sau khi mất mạng, bấm Huỷ hụt,
@@ -2426,6 +2434,8 @@ export function FileProvider({ children }) {
         } else if (remote) {
           uploadedBytes = remote.completed ? totalSize : Math.min(remote.receivedBytes || 0, totalSize);
         }
+        // Phần đã nằm sẵn trên cloud: tính vào tiến độ, KHÔNG tính vào tốc độ.
+        trackJobBytes(id, session ? uploadedBytes : 0, { baseline: true });
       } else {
         session = null;
       }
@@ -2443,6 +2453,7 @@ export function FileProvider({ children }) {
         ({ resumableUrl, storageKey, chunkSize } = initRes);
         chunkSize = chunkSize || CHUNK_THRESHOLD;
         uploadedBytes = 0;
+        trackJobBytes(id, 0, { baseline: true });
       }
 
       // Ghi lại ngay để nút Huỷ có cái mà dọn, và để F5 còn tìm thấy phiên này
@@ -2476,11 +2487,15 @@ export function FileProvider({ children }) {
           chunk,
           chunkStart,
           totalSize,
-          (chunkPercent) => {
+          (chunkPercent, loadedInChunk) => {
             // Tiến độ trong lòng một chunk cũng phải hiện ra: với chunk 10MB trên
             // đường truyền chậm, thanh tiến trình đứng im hàng chục giây là dấu
             // hiệu duy nhất người dùng có, và nó nói sai.
-            const sentInChunk = Math.round((chunk.size * chunkPercent) / 100);
+            const sentInChunk = Math.min(
+              chunk.size,
+              loadedInChunk ?? Math.round((chunk.size * chunkPercent) / 100),
+            );
+            trackJobBytes(id, chunkStart + sentInChunk);
             const percent = Math.round(((chunkStart + sentInChunk) / totalSize) * 95);
             updateJob(id, { percent, status: 'uploading' });
           },
@@ -2489,6 +2504,7 @@ export function FileProvider({ children }) {
 
         uploadedBytes = end;
         persist(uploadedBytes);
+        trackJobBytes(id, uploadedBytes);
         updateJob(id, { percent: Math.round((uploadedBytes / totalSize) * 95) });
       }
 
@@ -2615,10 +2631,12 @@ export function FileProvider({ children }) {
         if (fileObj.size > CHUNK_THRESHOLD) {
           const uploadedEntity = await runChunkedUploadJob(job, signal);
           updateJob(id, { percent: 100, status: 'done' });
-          setTimeout(() => removeJob(id), 5000);
           onUploadedFile(uploadedEntity, fileObj);
           return;
         }
+
+        // Tệp nhỏ luôn đi từ byte 0 (kể cả lượt thử lại) — không có phần nào nằm sẵn trên cloud.
+        trackJobBytes(id, 0, { baseline: true });
 
         // ── File nhỏ ≤ 10MB: flow cũ (presigned PUT hoặc proxy) ──
         let isUploaded = false;
@@ -2665,7 +2683,8 @@ export function FileProvider({ children }) {
             await storageApi.uploadDirectToCloud(
               uploadUrl,
               fileObj,
-              (percent) => {
+              (percent, loaded) => {
+                trackJobBytes(id, loaded);
                 updateJob(id, { percent, status: 'uploading' });
               },
               signal,
@@ -2724,7 +2743,8 @@ export function FileProvider({ children }) {
             fileObj,
             parentId,
             job.targetProvider,
-            (percent) => {
+            (percent, loaded) => {
+              trackJobBytes(id, loaded);
               updateJob(id, { percent, status: 'uploading' });
             },
             sharedDriveId,
@@ -2751,8 +2771,6 @@ export function FileProvider({ children }) {
         }
 
         updateJob(id, { percent: 100, status: 'done' });
-        // Tự xóa job done sau 5 giây
-        setTimeout(() => removeJob(id), 5000);
 
         // Chỉ thêm đúng card của tệp vừa xong — KHÔNG tải lại cả thư mục
         onUploadedFile(uploadedEntity, fileObj);
@@ -2849,14 +2867,8 @@ export function FileProvider({ children }) {
       );
       if (!job) return;
 
-      // Job vừa bị huỷ: gỡ cờ huỷ và huỷ timer dọn dòng, nếu không thì job chạy
-      // lại được vài giây rồi biến mất khỏi bảng tiến trình
+      // Job vừa bị huỷ: gỡ cờ huỷ, nếu không thì runner bỏ qua nó ngay ở dòng đầu
       canceledJobIdsRef.current.delete(jobId);
-      const pendingCleanup = cancelCleanupTimersRef.current.get(jobId);
-      if (pendingCleanup) {
-        clearTimeout(pendingCleanup);
-        cancelCleanupTimersRef.current.delete(jobId);
-      }
 
       const retriedJob = { ...job, percent: 0, status: 'pending', error: undefined, renamedFrom: undefined };
       // Reset job trong UploadContext state
@@ -2929,15 +2941,10 @@ export function FileProvider({ children }) {
         }
       }
 
-      // Giữ dòng "Đã huỷ" một lát cho người dùng thấy việc đã xảy ra, rồi dẹp
-      const timer = setTimeout(() => {
-        cancelCleanupTimersRef.current.delete(jobId);
-        canceledJobIdsRef.current.delete(jobId);
-        removeJob(jobId);
-      }, 4000);
-      cancelCleanupTimersRef.current.set(jobId, timer);
+      // Dòng "Đã huỷ" ở lại đúng chỗ (kèm nút Tải lại) tới khi cả đợt xong rồi được dọn một
+      // lượt — gỡ nó ngay là kéo cả danh sách bên dưới dồn lên (##89).
     },
-    [updateJob, removeJob, uploadQueueRef, loadChunkState, clearChunkState, confirmBatcher],
+    [updateJob, uploadQueueRef, loadChunkState, clearChunkState, confirmBatcher],
   );
 
   /**

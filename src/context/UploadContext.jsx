@@ -5,8 +5,11 @@
  *
  * Chiến lược tối ưu render:
  *  1. uploadQueue state chỉ nằm ở đây — FileContext không còn giữ nó.
- *  2. updateJob throttle bằng ngưỡng 2% + requestAnimationFrame batching.
+ *  2. updateJob throttle bằng ngưỡng 2% + gộp MỌI tệp vào một requestAnimationFrame.
  *  3. UploadProgress chỉ subscribe vào UploadContext, không phải FileContext.
+ *  4. Số byte đã gửi của từng tệp (để tính tốc độ / thời gian còn lại) nằm ở ref, KHÔNG ở
+ *     state: mỗi sự kiện tiến độ của trình duyệt chỉ ghi vào một Map, bảng tiến trình tự
+ *     đọc nó theo nhịp 1 giây.
  */
 import {
   createContext,
@@ -32,7 +35,11 @@ const UploadActionsContext = createContext(null);
 
 export function UploadProvider({ children }) {
   // Upload Queue State — mỗi job: { id, fileName, percent, status, error? }
-  // status: 'pending' | 'uploading' | 'confirming' | 'done' | 'error'
+  // status: 'pending' | 'uploading' | 'confirming' | 'done' | 'error' | 'paused' | 'canceled'
+  //
+  // Tệp đã xong / đã huỷ VẪN nằm trong hàng đợi tới khi cả đợt xong (##89) — bảng tiến trình
+  // dọn một lượt cho cả đợt. Gỡ từng dòng ngay khi xong là thứ làm danh sách dồn lên và thanh
+  // tổng tụt lại sau mỗi tệp: tổng được tính trên một tập hợp cứ co lại dần.
   const [uploadQueue, setUploadQueue] = useState([]);
 
   /**
@@ -45,51 +52,67 @@ export function UploadProvider({ children }) {
   }, [uploadQueue]);
 
   /**
-   * Pending RAF frame để batch percent updates.
-   * Key: jobId → { rafId, latestPercent }
+   * jobId → % mới nhất chờ ghi vào state ở khung hình kế tiếp. MỘT requestAnimationFrame
+   * cho mọi tệp: mười tệp chạy song song là mười sự kiện tiến độ mỗi khung hình, mà mỗi lần
+   * ghi là dựng lại cả mảng hàng đợi (cả nghìn phần tử khi tải một thư mục lớn).
    */
-  const rafBatchRef = useRef(new Map());
+  const pendingPercentRef = useRef(new Map());
+  const percentRafRef = useRef(null);
 
-  // Cleanup RAF frames khi unmount
-  useEffect(() => {
-    const batch = rafBatchRef.current;
-    return () => {
-      batch.forEach(({ rafId }) => cancelAnimationFrame(rafId));
-      batch.clear();
-    };
+  /**
+   * jobId → { loaded, baseline } — byte đã đẩy lên của từng tệp, chính xác tới từng sự kiện
+   * tiến độ (khác `percent` ở state: đã làm tròn và bỏ qua bước dưới 2%).
+   *
+   * `baseline` = phần đã có trên cloud TRƯỚC lượt này (tải tiếp một phiên dở sau F5). Phần đó
+   * tính vào tiến độ nhưng không phải byte vừa đi trên mạng — tính vào tốc độ thì tệp 1GB tải
+   * tiếp từ 900MB sẽ hiện "900 MB/s" trong giây đầu tiên.
+   */
+  const jobBytesRef = useRef(new Map());
+
+  // Cleanup RAF khi unmount
+  useEffect(() => () => {
+    if (percentRafRef.current) cancelAnimationFrame(percentRafRef.current);
+  }, []);
+
+  const flushPendingPercents = useCallback(() => {
+    percentRafRef.current = null;
+    const pending = pendingPercentRef.current;
+    if (pending.size === 0) return;
+    pendingPercentRef.current = new Map();
+    setUploadQueue((prev) =>
+      prev.map((job) => (pending.has(job.id) ? { ...job, percent: pending.get(job.id) } : job)),
+    );
   }, []);
 
   /**
    * Cập nhật 1 job trong queue theo id.
    *
    * Tối ưu:
-   *  - Non-percent patches (status, fileName, error, …) → áp dụng ngay, flush pending RAF.
-   *  - Percent-only patches → throttle theo ngưỡng 2% VÀ batch bằng RAF.
-   *    Trong 1 animation frame có thể nhiều chunk callback → chỉ gọi setState 1 lần/frame.
+   *  - Non-percent patches (status, fileName, error, …) → áp dụng ngay, bỏ % đang chờ của job đó.
+   *  - Percent-only patches → throttle theo ngưỡng 2% VÀ gộp vào một RAF cho mọi job.
    */
   const updateJob = useCallback((id, patch) => {
     const keys = Object.keys(patch);
     const isPercentOnly = keys.length > 0 && keys.every((k) => k === 'percent');
 
     if (!isPercentOnly) {
-      // Non-percent update: flush bất kỳ RAF pending nào của job này
-      const pending = rafBatchRef.current.get(id);
-      if (pending) {
-        cancelAnimationFrame(pending.rafId);
-        rafBatchRef.current.delete(id);
-      }
-      // Áp dụng ngay
+      // % đang chờ của job này đã cũ so với patch sắp ghi (vd. 'done' kèm 100%).
+      pendingPercentRef.current.delete(id);
       setUploadQueue((prev) =>
         prev.map((job) => (job.id === id ? { ...job, ...patch } : job)),
       );
       return;
     }
 
-    // Percent-only: kiểm tra ngưỡng 2%
-    const currentJob = uploadQueueRef.current.find((j) => j.id === id);
-    const currentPercent =
-      currentJob && typeof currentJob.percent === 'number' ? currentJob.percent : -1;
+    // Percent-only: kiểm tra ngưỡng 2% so với giá trị ĐANG CHỜ (nếu có) hoặc đang hiện
     const newPercent = patch.percent;
+    const waiting = pendingPercentRef.current.get(id);
+    let currentPercent = waiting;
+    if (currentPercent === undefined) {
+      const currentJob = uploadQueueRef.current.find((j) => j.id === id);
+      currentPercent =
+        currentJob && typeof currentJob.percent === 'number' ? currentJob.percent : -1;
+    }
 
     if (
       typeof newPercent === 'number' &&
@@ -100,25 +123,30 @@ export function UploadProvider({ children }) {
       return;
     }
 
-    // Vượt ngưỡng 2% (hoặc đạt 100%): batch bằng RAF
-    const existing = rafBatchRef.current.get(id);
-    if (existing) {
-      // Cập nhật giá trị mới nhất, giữ nguyên RAF đã đặt
-      existing.latestPercent = newPercent;
+    pendingPercentRef.current.set(id, newPercent);
+    if (!percentRafRef.current) {
+      percentRafRef.current = requestAnimationFrame(flushPendingPercents);
+    }
+  }, [flushPendingPercents]); // không dependency state — dùng ref để đọc state hiện tại
+
+  /**
+   * Ghi số byte đã đẩy lên của một job. KHÔNG setState — xem `jobBytesRef`.
+   * `{ baseline: true }`: đây là phần đã có sẵn trên cloud (tải tiếp), không phải byte vừa gửi.
+   */
+  const trackJobBytes = useCallback((id, loaded, { baseline = false } = {}) => {
+    const bytes = Math.max(0, Number(loaded) || 0);
+    const entry = jobBytesRef.current.get(id);
+    if (baseline || !entry) {
+      jobBytesRef.current.set(id, { loaded: bytes, baseline: baseline ? bytes : 0 });
       return;
     }
+    entry.loaded = bytes;
+    // Gửi lại từ đầu (proxy, phiên hết hạn) thì phần "có sẵn" cũng không còn nữa.
+    if (bytes < entry.baseline) entry.baseline = bytes;
+  }, []);
 
-    const entry = { rafId: null, latestPercent: newPercent };
-    entry.rafId = requestAnimationFrame(() => {
-      rafBatchRef.current.delete(id);
-      setUploadQueue((prev) =>
-        prev.map((job) =>
-          job.id === id ? { ...job, percent: entry.latestPercent } : job,
-        ),
-      );
-    });
-    rafBatchRef.current.set(id, entry);
-  }, []); // không dependency — dùng ref để đọc state hiện tại
+  /** `{ loaded, baseline }` của một job, hoặc null nếu chưa có byte nào. */
+  const readJobBytes = useCallback((id) => jobBytesRef.current.get(id) || null, []);
 
   /** Thêm job vào queue */
   const enqueueJob = useCallback((job) => {
@@ -127,16 +155,33 @@ export function UploadProvider({ children }) {
 
   /** Xóa một job khỏi queue */
   const removeJob = useCallback((id) => {
+    jobBytesRef.current.delete(id);
+    pendingPercentRef.current.delete(id);
     setUploadQueue((prev) => prev.filter((j) => j.id !== id));
   }, []);
 
-  /** Xóa toàn bộ queue */
+  /**
+   * Dọn những job đã KẾT THÚC (xong / lỗi / huỷ) — "đóng" bảng tiến trình. Job còn đang chạy
+   * hay đang chờ thì giữ: đóng bảng không được là cách vô tình bỏ dở việc của người dùng.
+   */
   const clearQueue = useCallback(() => {
-    setUploadQueue([]);
+    const finished = new Set(['done', 'error', 'canceled']);
+    setUploadQueue((prev) => {
+      const kept = prev.filter((j) => !finished.has(j.status));
+      prev.forEach((j) => {
+        if (finished.has(j.status)) {
+          jobBytesRef.current.delete(j.id);
+          pendingPercentRef.current.delete(j.id);
+        }
+      });
+      return kept.length === prev.length ? prev : kept;
+    });
   }, []);
 
   /** Reset job về pending (retry) */
   const resetJob = useCallback((id, resetPatch) => {
+    pendingPercentRef.current.delete(id);
+    if (resetPatch && resetPatch.percent === 0) jobBytesRef.current.delete(id);
     setUploadQueue((prev) =>
       prev.map((j) => (j.id === id ? { ...j, ...resetPatch } : j)),
     );
@@ -147,12 +192,14 @@ export function UploadProvider({ children }) {
       setUploadQueue,
       uploadQueueRef,
       updateJob,
+      trackJobBytes,
+      readJobBytes,
       enqueueJob,
       removeJob,
       clearQueue,
       resetJob,
     }),
-    [updateJob, enqueueJob, removeJob, clearQueue, resetJob],
+    [updateJob, trackJobBytes, readJobBytes, enqueueJob, removeJob, clearQueue, resetJob],
   );
 
   const value = useMemo(() => ({ uploadQueue, ...actions }), [uploadQueue, actions]);

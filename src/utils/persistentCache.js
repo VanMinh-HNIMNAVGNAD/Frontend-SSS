@@ -125,8 +125,8 @@ function fullKey(namespace, key) {
   return `${cacheScope()}${SEP}${namespace}${SEP}${key}`;
 }
 
-function namespacePrefix(namespace) {
-  return `${cacheScope()}${SEP}${namespace}${SEP}`;
+function namespacePrefix(namespace, scope = cacheScope()) {
+  return `${scope}${SEP}${namespace}${SEP}`;
 }
 
 /**
@@ -162,7 +162,11 @@ export async function readNamespace(namespace) {
   const db = await openDb();
   if (!db) return [];
 
-  const prefix = namespacePrefix(namespace);
+  // Chốt ngăn NGAY lúc đọc và trả kèm nó trên từng bản (`scope`, ##89): token trong localStorage
+  // có thể đổi chủ trong lúc chờ đĩa (quay về từ Google/GitHub sau "Thêm tài khoản"), và nơi gọi
+  // phải biết bản ghi này là của AI chứ không đoán lại bằng token của lúc nhận kết quả.
+  const scope = cacheScope();
+  const prefix = namespacePrefix(namespace, scope);
   let range;
   try {
     range = IDBKeyRange.bound(prefix, `${prefix}\uffff`);
@@ -188,6 +192,7 @@ export async function readNamespace(namespace) {
             key: String(record.key).slice(prefix.length),
             value: record.value,
             expiresAt: record.expiresAt,
+            scope,
           });
         }
         cursor.continue();

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { Lock, Mail, ArrowRight } from 'lucide-react';
+import { Lock, Mail, ArrowRight, ArrowLeft, Loader2, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import AuthBackground from '../components/ui/AuthBackground';
@@ -12,6 +12,8 @@ import { API_BASE_URL } from '../constants/api';
 import OtpForm from '../components/security/OtpForm';
 import { LegalNotice } from '../components/security/LegalConsent';
 import { isPersistentStorageBlocked } from '../utils/safeStorage';
+import { ACCOUNT_NOT_SIGNED_IN_CODE } from '../services/api';
+import { AccountAvatar } from '../components/layout/AccountSwitcher';
 import {
   AUTH_CARD, AUTH_TITLE, AUTH_LABEL, AUTH_INPUT, AUTH_INPUT_ICON, AUTH_SOCIAL_BUTTON, AUTH_SOCIAL_LABEL,
   AUTH_GITHUB_ICON, AUTH_DIVIDER_LINE, AUTH_DIVIDER_TEXT, AUTH_ERROR, AUTH_PRIMARY_BUTTON, AUTH_MUTED, AUTH_LINK,
@@ -20,12 +22,58 @@ import {
 export default function LoginPage() {
   const { t } = useLanguage();
   const navigate = useNavigate();
-  const { login, verifyLoginOtp, isLoading, error: authError } = useAuth();
+  const {
+    login, verifyLoginOtp, isLoading, error: authError, user,
+    signedInAccounts, refreshSignedInAccounts, switchAccount, signOutAccount,
+  } = useAuth();
+  const location = useLocation();
 
-  const [email, setEmail] = useState('');
+  // `?mode=add` (##89): đang dùng một tài khoản và muốn đăng nhập THÊM một tài khoản nữa — tài
+  // khoản hiện tại vẫn giữ đăng nhập trên trình duyệt này. `?email=` điền sẵn khi mời đăng nhập
+  // lại đúng một tài khoản có phiên vừa hết hạn.
+  const isAddMode = new URLSearchParams(location.search).get('mode') === 'add';
+  const [email, setEmail] = useState(() => new URLSearchParams(location.search).get('email') || '');
   const [password, setPassword] = useState('');
   const [localError, setLocalError] = useState('');
-  const location = useLocation();
+
+  // Màn CHỌN TÀI KHOẢN: phiên đang dùng đã hết (hoặc vừa đăng xuất một tài khoản) nhưng trình
+  // duyệt còn tài khoản khác đang đăng nhập — vào thẳng được, không cần mật khẩu + OTP.
+  const showChooser = !isAddMode && !user;
+  useEffect(() => {
+    if (showChooser) refreshSignedInAccounts();
+  }, [showChooser, refreshSignedInAccounts]);
+  const chooserAccounts = showChooser && Array.isArray(signedInAccounts) ? signedInAccounts : [];
+  const [chooserBusyId, setChooserBusyId] = useState(null);
+
+  const handleChooseAccount = async (account) => {
+    setLocalError('');
+    setChooserBusyId(account.id);
+    try {
+      await switchAccount(account.id); // thành công là trang tải lại vào /app
+    } catch (err) {
+      setChooserBusyId(null);
+      if (err?.errorCode === ACCOUNT_NOT_SIGNED_IN_CODE) {
+        // Phiên đó cũng đã hết: mời đăng nhập lại ĐÚNG tài khoản ấy bằng form bên dưới.
+        setEmail(account.email);
+        setLocalError(t('account.switch.expired', { email: account.email }));
+        refreshSignedInAccounts();
+      } else {
+        setLocalError(t('account.switch.failed', { reason: err?.message || t('common.genericError') }));
+      }
+    }
+  };
+
+  const handleRemoveAccount = async (account) => {
+    setLocalError('');
+    setChooserBusyId(account.id);
+    try {
+      await signOutAccount(account.id);
+    } catch (err) {
+      setLocalError(t('account.switch.failed', { reason: err?.message || t('common.genericError') }));
+    } finally {
+      setChooserBusyId(null);
+    }
+  };
 
   // Token CAPTCHA của form này. `action` phải đúng TURNSTILE_ACTIONS.LOGIN ('login'):
   // backend sẽ đối chiếu nhãn này khi bật `expectedAction`, lệch một chữ là mọi lần
@@ -215,8 +263,13 @@ export default function LoginPage() {
       {/* Auth Card */}
       <div className={AUTH_CARD}>
         <h1 className={AUTH_TITLE}>
-          {step === 'otp' ? t('login.otpTitle') : t('login.title')}
+          {step === 'otp' ? t('login.otpTitle') : isAddMode ? t('login.add.title') : t('login.title')}
         </h1>
+        {isAddMode && user && step !== 'otp' && (
+          <p className={`-mt-4 mb-6 text-center text-sm ${AUTH_MUTED}`}>
+            {t('login.add.subtitle', { email: user.email })}
+          </p>
+        )}
 
         {step === 'otp' ? (
           <OtpForm
@@ -233,6 +286,58 @@ export default function LoginPage() {
           />
         ) : (
         <>
+        {/* Tài khoản còn đăng nhập trên trình duyệt này (##89) */}
+        {chooserAccounts.length > 0 && (
+          <div className="mb-6">
+            <p className={`mb-2 text-xs font-bold uppercase tracking-wider ${AUTH_MUTED}`}>
+              {t('login.chooser.title')}
+            </p>
+            <ul className="space-y-2">
+              {chooserAccounts.map((account) => (
+                <li
+                  key={account.id}
+                  className="flex items-center rounded-xl border border-slate-300 dark:border-white/15 bg-white dark:bg-white/[0.04] hover:border-slate-400 dark:hover:border-white/30 transition"
+                >
+                  <button
+                    type="button"
+                    onClick={() => handleChooseAccount(account)}
+                    disabled={Boolean(chooserBusyId)}
+                    aria-label={t('login.chooser.continueAs', { email: account.email })}
+                    className="flex-1 min-w-0 flex items-center gap-3 px-3 py-2.5 text-left cursor-pointer disabled:cursor-wait"
+                  >
+                    <AccountAvatar account={account} className="w-9 h-9 text-sm" />
+                    <span className="flex-1 min-w-0">
+                      <span className="block text-sm font-semibold text-slate-900 dark:text-white truncate">
+                        {account.fullName || account.email}
+                      </span>
+                      <span className={`block text-xs truncate ${AUTH_MUTED}`}>{account.email}</span>
+                    </span>
+                    {chooserBusyId === account.id && <Loader2 className="w-4 h-4 animate-spin text-blue-500 shrink-0" />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveAccount(account)}
+                    disabled={Boolean(chooserBusyId)}
+                    title={t('login.chooser.remove', { email: account.email })}
+                    aria-label={t('login.chooser.remove', { email: account.email })}
+                    className="p-2 mr-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/15 transition cursor-pointer disabled:cursor-wait"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <div className="relative mt-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className={AUTH_DIVIDER_LINE} />
+              </div>
+              <div className="relative flex justify-center text-xs">
+                <span className={AUTH_DIVIDER_TEXT}>{t('login.chooser.other')}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Social login buttons */}
         <div className="flex gap-3 mb-6">
           {/* Google */}
@@ -362,6 +467,17 @@ export default function LoginPage() {
           </button>
 
           <div className={`text-center text-sm font-medium ${AUTH_MUTED} pt-2 space-y-2`}>
+            {isAddMode && user && (
+              <div>
+                <Link
+                  to="/app"
+                  className="inline-flex items-center gap-1.5 text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:underline"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  {t('login.add.back', { email: user.email })}
+                </Link>
+              </div>
+            )}
             <div>
               <Link to="/forgot-password" className="text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:underline">
                 {t('login.forgotPassword')}

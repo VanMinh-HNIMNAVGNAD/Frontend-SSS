@@ -1,13 +1,47 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { authApi, userApi, startSessionKeeper } from '../services/api';
+import toast from 'react-hot-toast';
+import { authApi, userApi, startSessionKeeper, bindPageOwner } from '../services/api';
 import { writeDiscoverableByEmail, bindShareRoleOwner } from '../constants/privacy';
 import { LEGAL_VERSION, needsTermsAcceptance } from '../constants/legal';
 import { subjectOf } from '../utils/jwt';
 import { resetSharedCaches } from '../utils/ttlCache';
 import { useLanguage } from './LanguageContext';
-import { safeLocalStorage } from '../utils/safeStorage';
+import { safeLocalStorage, safeSessionStorage } from '../utils/safeStorage';
 
 const AuthContext = createContext(null);
+
+/**
+ * Lời nhắn gửi cho CHÍNH trang sau lần tải lại của một lượt chuyển / đăng xuất tài khoản (##89):
+ * trang tải lại nên toast hiện trước đó không sống được. sessionStorage — chỉ tab này, tự mất
+ * khi đóng tab — và mang `userId` để chỉ hiện khi đúng tài khoản đó đã vào được.
+ */
+const ACCOUNT_NOTICE_KEY = 'driver:accountNotice';
+
+function leaveAccountNotice(notice) {
+  safeSessionStorage.setItem(ACCOUNT_NOTICE_KEY, JSON.stringify(notice));
+}
+
+function takeAccountNotice() {
+  const raw = safeSessionStorage.getItem(ACCOUNT_NOTICE_KEY);
+  if (!raw) return null;
+  safeSessionStorage.removeItem(ACCOUNT_NOTICE_KEY);
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Dọn bộ đệm trên ĐĨA (IndexedDB, cache Service Worker) trước khi rời trang — có trần thời gian:
+ * đĩa treo không được giữ người dùng ở lại trong phiên vừa rời. Xem `endSession`.
+ */
+function purgeDiskCaches() {
+  return Promise.race([
+    resetSharedCaches(),
+    new Promise((resolve) => setTimeout(resolve, 1500)),
+  ]);
+}
 
 export function AuthProvider({ children }) {
   const { t } = useLanguage();
@@ -60,9 +94,14 @@ export function AuthProvider({ children }) {
   }, []);
 
   useEffect(() => {
+    // Đang đổi mã OAuth: token trong localStorage (nếu có) là của phiên TRƯỚC — rất có thể của
+    // một tài khoản KHÁC (quay về từ Google/GitHub sau "Thêm tài khoản", ##89). Nạp hồ sơ bằng nó
+    // là vẽ dữ liệu của người cũ trong lúc chờ, rồi đua với lượt đổi mã: hồ sơ cũ về SAU thì chốt
+    // "hồ sơ không khớp token" đăng xuất luôn phiên mới. Chờ lượt đổi mã xong rồi mới nạp.
+    if (oauthPending) return;
     if (accessToken) {
       fetchProfile();
-    } else if (!oauthPending) {
+    } else {
       setIsLoading(false);
     }
   }, [accessToken, fetchProfile, oauthPending]);
@@ -156,8 +195,30 @@ export function AuthProvider({ children }) {
   // `applySession`.
   const pageOwnerRef = useRef(null);
   useEffect(() => {
-    if (user?.id) pageOwnerRef.current = user.id;
+    if (user?.id) {
+      pageOwnerRef.current = user.id;
+      // Từ giờ trang này chỉ gửi request bằng token của đúng tài khoản này (##89) — xem
+      // `bindPageOwner` ở services/api.js.
+      bindPageOwner(user.id);
+    }
   }, [user?.id]);
+
+  // Lời nhắn của lượt chuyển / đăng xuất tài khoản vừa rồi (trang vừa tải lại).
+  useEffect(() => {
+    if (!user?.id) return;
+    const notice = takeAccountNotice();
+    if (!notice || notice.userId !== user.id) return;
+    if (notice.kind === 'switched') {
+      toast.success(t('account.switch.done', { email: user.email }), { id: 'account-notice' });
+    } else if (notice.kind === 'signedOut') {
+      toast.success(t('account.signedOut.switched', { from: notice.from, email: user.email }), {
+        id: 'account-notice',
+        duration: 6000,
+      });
+    } else if (notice.kind === 'deleted') {
+      toast.success(t('profile.delete.done'), { id: 'account-notice', duration: 6000 });
+    }
+  }, [user?.id, user?.email, t]);
 
   /**
    * Lưu phiên vừa nhận được. Dùng chung cho bước 2 của đăng nhập (`verifyLoginOtp`) —
@@ -177,6 +238,8 @@ export function AuthProvider({ children }) {
     const userProfile = data.user || data;
     const nextOwner = subjectOf(token) ?? userProfile?.id ?? null;
     if (pageOwnerRef.current && nextOwner && nextOwner !== pageOwnerRef.current) {
+      // Đăng nhập THÊM một tài khoản (##89): tài khoản trước vẫn ở lại trong hộp phiên.
+      leaveAccountNotice({ kind: 'switched', userId: nextOwner });
       window.location.replace('/app');
       return userProfile;
     }
@@ -368,28 +431,102 @@ export function AuthProvider({ children }) {
    * nguyên cuộc trò chuyện của người trước, và thấy danh sách tệp của họ cho tới khi
    * request của mình về (##69). Tải lại là cách duy nhất không phải nhớ từng chỗ.
    */
-  const endSession = useCallback(async (redirectTo) => {
+  //
+  // `onlyUserId` (##89): chỉ đăng xuất tài khoản đó khỏi trình duyệt này. Còn tài khoản khác đang
+  // đăng nhập thì backend chuyển luôn sang tài khoản dùng gần nhất (`switchedTo`) và trang tải lại
+  // vào `/app` bằng phiên đó, kèm `notice` cho trang sau.
+  const endSession = useCallback(async (redirectTo, { onlyUserId, notice } = {}) => {
+    let switchedTo = null;
     try {
-      await authApi.logout();
+      const res = await authApi.logout(onlyUserId ? { userId: onlyUserId } : undefined);
+      switchedTo = onlyUserId && res?.switchedTo?.accessToken ? res.switchedTo : null;
     } catch (err) {
       console.error('[Auth] Gọi /auth/logout thất bại (vẫn xoá phiên cục bộ):', err);
     } finally {
-      safeLocalStorage.removeItem('accessToken');
-      setAccessToken(null);
-      setUser(null);
+      if (!switchedTo) {
+        safeLocalStorage.removeItem('accessToken');
+        setAccessToken(null);
+        setUser(null);
+      }
       // Các bộ đệm trên ĐĨA (IndexedDB, cache Service Worker) sống qua lần tải lại — phải
       // xoá xong rồi mới rời trang, nếu không giao dịch đang dở bị huỷ theo trang. Có trần
       // thời gian: đĩa treo không được giữ người dùng ở lại trong phiên vừa đăng xuất.
-      await Promise.race([
-        resetSharedCaches(),
-        new Promise((resolve) => setTimeout(resolve, 1500)),
-      ]);
-      window.location.replace(redirectTo);
+      await purgeDiskCaches();
+      if (switchedTo) {
+        // Ghi token của tài khoản kế tiếp SAU khi dọn đĩa, sát lúc rời trang: ghi sớm hơn thì
+        // trong lúc chờ đĩa, chốt chặn đổi chủ (services/api.js) chặn request của trang này và tự
+        // tải lại ngay tại URL cũ — thư mục của tài khoản vừa rời — thay vì vào /app.
+        safeLocalStorage.setItem('accessToken', switchedTo.accessToken);
+        if (notice) leaveAccountNotice({ ...notice, userId: switchedTo.user?.id });
+        window.location.replace('/app');
+      } else {
+        window.location.replace(redirectTo);
+      }
     }
   }, []);
 
   // Bọc lại để không nhận tham số: `onClick={logout}` truyền sự kiện chuột vào đây.
+  // Không kèm tài khoản nào ⇒ đăng xuất MỌI tài khoản trên trình duyệt này.
   const logout = useCallback(() => endSession('/login'), [endSession]);
+
+  // ── NHIỀU TÀI KHOẢN TRÊN MỘT TRÌNH DUYỆT (##89) ─────────────────────────────────────
+  //
+  // Danh sách chỉ nằm trong RAM của trang này (không localStorage): tên và email của những
+  // người cùng dùng máy không được nằm lại trên đĩa sau khi họ đã đăng xuất.
+  //
+  // `null` = chưa hỏi, hoặc backend chưa có tính năng — giao diện ẩn mục chuyển tài khoản.
+  const [signedInAccounts, setSignedInAccounts] = useState(null);
+  const [maxSignedInAccounts, setMaxSignedInAccounts] = useState(0);
+
+  /** Hỏi lại backend danh sách tài khoản đang đăng nhập trên trình duyệt này. */
+  const refreshSignedInAccounts = useCallback(async () => {
+    try {
+      const data = await authApi.listAccounts();
+      setSignedInAccounts(data ? data.accounts || [] : null);
+      setMaxSignedInAccounts(data?.maxAccounts || 0);
+      return data;
+    } catch (err) {
+      console.warn('[Auth] Không tải được danh sách tài khoản đang đăng nhập:', err);
+      return null;
+    }
+  }, []);
+
+  /**
+   * Chuyển sang một tài khoản khác đang đăng nhập trên trình duyệt này.
+   *
+   * KẾT THÚC BẰNG TẢI LẠI vào /app, cùng lý do `applySession` khi đổi chủ (##69): danh sách tệp,
+   * panel AI, hàng đợi upload… trong RAM là của tài khoản cũ. Bộ đệm trên đĩa KHÔNG cần xoá — mọi
+   * khoá đã mang id tài khoản (`cacheScope`), tài khoản mới không đọc trúng được bản của tài khoản
+   * cũ — nên quay lại tài khoản cũ vẫn mở nhanh. NÉM lỗi ra ngoài để menu nói được vì sao.
+   */
+  const switchAccount = useCallback(async (userId) => {
+    const session = await authApi.switchAccount(userId);
+    if (!session?.accessToken) throw new Error(t('common.genericError'));
+    safeLocalStorage.setItem('accessToken', session.accessToken);
+    leaveAccountNotice({ kind: 'switched', userId: session.user?.id ?? userId });
+    window.location.replace('/app');
+  }, [t]);
+
+  /**
+   * Đăng xuất MỘT tài khoản khỏi trình duyệt này.
+   *  • Tài khoản đang dùng: như `logout`, nhưng còn tài khoản khác thì vào luôn tài khoản đó.
+   *  • Tài khoản khác: thu hồi phiên của nó, ở lại tài khoản hiện tại. Vẫn xoá bộ đệm trên đĩa —
+   *    tên tệp của người vừa rời máy không được nằm lại (xoá luôn của người đang dùng; cái giá
+   *    chỉ là lần mở thư mục kế tiếp chậm hơn một nhịp).
+   */
+  const signOutAccount = useCallback(async (userId) => {
+    if (!userId) return;
+    if (userId === user?.id) {
+      await endSession('/login', {
+        onlyUserId: userId,
+        notice: { kind: 'signedOut', from: user?.email },
+      });
+      return;
+    }
+    await authApi.logout({ userId });
+    await purgeDiskCaches();
+    await refreshSignedInAccounts();
+  }, [user?.id, user?.email, endSession, refreshSignedInAccounts]);
 
   /**
    * Người đang đăng nhập bấm đồng ý ở màn chặn (`TermsAcceptanceGate`).
@@ -419,14 +556,19 @@ export function AuthProvider({ children }) {
     }
   }, [t]);
 
+  const currentUserId = user?.id;
   const deleteAccount = useCallback(async (credentials) => {
     try {
       setIsLoading(true);
       setError(null);
       const res = await userApi.deleteMyAccount(credentials);
       // Trang tải lại nên toast "đã xoá" của modal không sống được — trang đăng nhập tự báo
-      // theo `?notice=`.
-      await endSession('/login?notice=account_deleted');
+      // theo `?notice=`. Chỉ rời ĐÚNG tài khoản vừa xoá (##89): còn tài khoản khác đăng nhập trên
+      // trình duyệt này thì vào luôn tài khoản đó, lời báo đi theo `notice`.
+      await endSession('/login?notice=account_deleted', {
+        onlyUserId: currentUserId,
+        notice: { kind: 'deleted' },
+      });
       return res;
     } catch (err) {
       setError(err.message || t('account.deleteFailed'));
@@ -434,7 +576,7 @@ export function AuthProvider({ children }) {
     } finally {
       setIsLoading(false);
     }
-  }, [endSession, t]);
+  }, [endSession, t, currentUserId]);
 
   // Bọc trong useMemo: object literal trần ở đây là một reference MỚI sau mỗi
   // lần AuthProvider render, nên mọi component gọi useAuth() — Sidebar, Header,
@@ -458,6 +600,13 @@ export function AuthProvider({ children }) {
     deleteAccount,
     refreshUser: fetchProfile,
 
+    // Nhiều tài khoản trên một trình duyệt (##89)
+    signedInAccounts,
+    maxSignedInAccounts,
+    refreshSignedInAccounts,
+    switchAccount,
+    signOutAccount,
+
     /**
      * Phải hiện màn "đồng ý điều khoản" trước khi cho dùng app hay không.
      *
@@ -476,6 +625,7 @@ export function AuthProvider({ children }) {
     login, verifyLoginOtp, sendRegisterOtp, verifyRegisterOtp,
     forgotPassword, verifyResetOtp, resetPassword, logout, deleteAccount, fetchProfile,
     acceptTerms,
+    signedInAccounts, maxSignedInAccounts, refreshSignedInAccounts, switchAccount, signOutAccount,
   ]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

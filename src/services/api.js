@@ -157,9 +157,44 @@ function getDeviceId() {
   }
 }
 
+// ───────────── Chốt chặn đổi chủ: một trang chỉ nói chuyện bằng MỘT tài khoản (##89) ─────────────
+//
+// localStorage dùng chung cho mọi tab, còn interceptor đọc lại token ở TỪNG request. Chuyển tài
+// khoản ở tab B là tab A — vẫn đang vẽ tệp của tài khoản cũ — lập tức gửi request bằng token của
+// tài khoản mới: mở một thư mục của A dưới danh nghĩa B, hay tệp A định tải vào Drive của mình
+// rơi vào Drive của B. Sự kiện `storage` (AuthContext) sẽ tải lại tab A, nhưng giữa hai nhịp đó
+// không gì ngăn các request đang xếp hàng.
+//
+// Nên mỗi trang ghi nhớ tài khoản nó được dựng cho (`bindPageOwner`, AuthContext gọi khi hồ sơ
+// về) và TỪ CHỐI gửi mọi request mang token của người khác. Chỉ một lần tải lại trang mới gỡ được.
+let pageOwnerSubject = null;
+let ownerReloadTimer = null;
+let lastOwnerCheck = { token: null, subject: null };
+
+/** Gắn trang này với tài khoản `userId`. Gắn rồi thì không đổi được nữa (xem ở trên). */
+export function bindPageOwner(userId) {
+  if (userId && !pageOwnerSubject) pageOwnerSubject = userId;
+}
+
+/** Token này có phải của người KHÁC tài khoản mà trang này đang phục vụ không. */
+function tokenBelongsToSomeoneElse(token) {
+  if (!pageOwnerSubject || !token) return false;
+  // Giải mã một lần cho mỗi token — interceptor chạy ở mọi request.
+  if (lastOwnerCheck.token !== token) lastOwnerCheck = { token, subject: subjectOf(token) };
+  return Boolean(lastOwnerCheck.subject) && lastOwnerCheck.subject !== pageOwnerSubject;
+}
+
 api.interceptors.request.use(
   (config) => {
     const token = safeLocalStorage.getItem('accessToken');
+    if (tokenBelongsToSomeoneElse(token)) {
+      // Tab này sắp được tải lại (sự kiện `storage`, hoặc chính luồng chuyển tài khoản đang điều
+      // hướng). Lưới an toàn khi không có ai điều hướng: tự tải lại sau một nhịp.
+      if (!ownerReloadTimer) ownerReloadTimer = setTimeout(() => window.location.reload(), 1500);
+      return Promise.reject(
+        new axios.CanceledError(tOutsideReact('account.switch.otherTab')),
+      );
+    }
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -258,6 +293,12 @@ function logoutReasonOf({ isBanned, isLocked }) {
   return undefined;
 }
 
+/**
+ * Đường chọn / liệt kê tài khoản (##89). 401 ở đây nói về tài khoản ĐƯỢC CHỌN (phiên của nó đã
+ * hết), KHÔNG phải phiên đang dùng: không refresh, và càng không đăng xuất người đang dùng.
+ */
+const ACCOUNT_SELECTION_PATHS = ['/auth/switch-account', '/auth/accounts'];
+
 const NO_REFRESH_PATHS = [
   '/auth/refresh',
   '/auth/login',
@@ -271,6 +312,9 @@ const NO_REFRESH_PATHS = [
   '/auth/forgot-password',
   '/auth/verify-reset-otp',
   '/auth/reset-password',
+  // 401 ở đây là "tài khoản ĐƯỢC CHỌN không còn đăng nhập", không phải phiên đang dùng hết hạn —
+  // refresh rồi đăng xuất là đá người dùng khỏi tài khoản họ đang dùng vì lỗi của tài khoản khác.
+  ...ACCOUNT_SELECTION_PATHS,
   '/shares/',
 ];
 
@@ -336,13 +380,25 @@ class RefreshFailure extends Error {
   }
 }
 
+/**
+ * localStorage đã (hoặc trong một nhịp nữa sẽ) mang token của `subject` — tức một tab khác vừa
+ * chuyển sang tài khoản đó (##89).
+ */
+async function switchedInAnotherTab(subject) {
+  for (const delayMs of [0, 400]) {
+    if (delayMs) await wait(delayMs);
+    if (subjectOf(safeLocalStorage.getItem('accessToken')) === subject) return true;
+  }
+  return false;
+}
+
 function refreshAccessToken() {
   if (!refreshPromise) {
     const previousSubject = subjectOf(safeLocalStorage.getItem('accessToken'));
     refreshPromise = axios
       .post(`${API_BASE_URL}/auth/refresh`, null, { withCredentials: true })
       // Backend bọc response ({ statusCode, data }) nên phải bóc hai lớp.
-      .then((res) => {
+      .then(async (res) => {
         const token = res.data?.data?.accessToken ?? res.data?.accessToken;
         if (!token) {
           // Backend trả 2xx mà không có token là hỏng hợp đồng API, không phải phiên
@@ -356,6 +412,15 @@ function refreshAccessToken() {
         // Chỉ chặn khi ĐỌC ĐƯỢC cả hai và chúng KHÁC nhau: không đọc được thì coi
         // như không có gì để đối chiếu, chặn ở đó chỉ đăng xuất oan.
         if (previousSubject && nextSubject && previousSubject !== nextSubject) {
+          // ##89: cookie đổi chủ vì một tab khác vừa CHỦ ĐỘNG chuyển tài khoản (hay đăng nhập thêm)
+          // — tab đó ghi token mới vào localStorage ngay sau khi nhận phản hồi. Không phải phiên lạ:
+          // không đăng xuất (xoá token là đá luôn tab kia ra), để sự kiện `storage` tải lại tab này
+          // vào đúng tài khoản. Chờ một nhịp vì phản hồi của lượt này có thể về TRƯỚC lúc tab kia ghi.
+          if (await switchedInAnotherTab(nextSubject)) {
+            throw new RefreshFailure('Tài khoản vừa được chuyển ở tab khác', {
+              isAuthFailure: false,
+            });
+          }
           console.error('[API] /auth/refresh trả token của tài khoản khác — huỷ phiên.');
           // Đây thì PHẢI đăng xuất: giữ lại một phiên không rõ của ai còn tệ hơn.
           throw new RefreshFailure('Phiên đăng nhập không khớp tài khoản', {
@@ -579,7 +644,10 @@ api.interceptors.response.use(
           forceLogout(logoutReasonOf(refreshError));
         }
       }
-    } else if (error.response?.status === 401) {
+    } else if (
+      error.response?.status === 401 &&
+      !ACCOUNT_SELECTION_PATHS.some((p) => url.includes(p))
+    ) {
       forceLogout(isAccountLocked(error) ? 'account_locked' : undefined);
     } else if (error.response?.status === 403 && isDeviceBanned(error)) {
       forceLogout('device_banned');
@@ -716,8 +784,37 @@ export const authApi = {
   // AuthContext.logout() chỉ xoá localStorage → cookie sống tiếp 7 ngày, và lần
   // 401 kế tiếp của BẤT KỲ ai dùng máy này đều refresh ra được phiên của người đã
   // "đăng xuất" trước đó.
-  logout: () => api.post('/auth/logout'),
+  //
+  // Không truyền gì ⇒ đăng xuất MỌI tài khoản trên trình duyệt này. `{ userId }` ⇒ chỉ tài
+  // khoản đó (##89); nếu nó đang được dùng thì backend chuyển luôn sang tài khoản kế tiếp và
+  // trả phiên mới ở `switchedTo` (`{ accessToken, user }`, hoặc `null` khi hết tài khoản).
+  logout: ({ userId } = {}) => api.post('/auth/logout', userId ? { userId } : undefined),
+
+  // ── Nhiều tài khoản trên một trình duyệt (##89) ──
+  //
+  // Refresh token của các tài khoản khác nằm trong cookie HttpOnly — trang KHÔNG BAO GIỜ cầm
+  // được chúng, chỉ biết danh sách (tên, email, ảnh) và chọn bằng `userId`.
+
+  /**
+   * `{ accounts: [{ id, email, fullName, avatarUrl, provider, isCurrent }], maxAccounts }`,
+   * hoặc `null` khi backend chưa có tính năng này (404/405 — frontend lên Vercel trước backend;
+   * giao diện chỉ việc ẩn mục chuyển tài khoản).
+   */
+  listAccounts: async () => {
+    try {
+      return await api.get('/auth/accounts', { meta: { noProgressBar: true } });
+    } catch (err) {
+      if (err?.status === 404 || err?.status === 405) return null;
+      throw err;
+    }
+  },
+
+  /** Đổi phiên đang dùng sang `userId` — trả `{ accessToken, user }`. 401 `AUTH_2017_…` = phiên của tài khoản đó đã hết. */
+  switchAccount: (userId) => api.post('/auth/switch-account', { userId }),
 };
+
+/** Mã lỗi backend khi tài khoản được chọn không còn đăng nhập trên trình duyệt này (##89). */
+export const ACCOUNT_NOT_SIGNED_IN_CODE = 'AUTH_2017_ACCOUNT_NOT_SIGNED_IN';
 
 // User Profile APIs
 export const userApi = {
@@ -1207,6 +1304,8 @@ export const storageApi = {
 
   // Direct PUT Upload to Presigned URL (Cloudflare R2 / Backblaze B2 / GCS)
   // `signal` là AbortSignal của job — nút "Huỷ" cắt đúng request đang chạy.
+  // `onUploadProgress(percent, loadedBytes)` — số byte để bảng tiến trình tính tốc độ và
+  // thời gian còn lại (##89); % đã làm tròn nên không đủ mịn cho việc đó.
   uploadDirectToCloud: async (presignedUrl, file, onUploadProgress, signal) => {
     return axios.put(presignedUrl, file, {
       signal,
@@ -1216,7 +1315,7 @@ export const storageApi = {
       onUploadProgress: (progressEvent) => {
         if (onUploadProgress && progressEvent.total) {
           const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-          onUploadProgress(percentCompleted);
+          onUploadProgress(percentCompleted, Math.min(progressEvent.loaded, file.size));
         }
       },
     });
@@ -1236,7 +1335,12 @@ export const storageApi = {
       onUploadProgress: (progressEvent) => {
         if (onUploadProgress && progressEvent.total) {
           const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-          onUploadProgress(percentCompleted);
+          // Body multipart lớn hơn tệp một chút (ranh giới + header từng phần): quy về byte CỦA
+          // TỆP để cộng được với các tệp đi đường thẳng.
+          onUploadProgress(
+            percentCompleted,
+            Math.round((file.size * progressEvent.loaded) / progressEvent.total),
+          );
         }
       },
     }));
@@ -1274,7 +1378,8 @@ export const chunkedApi = {
       onUploadProgress: (progressEvent) => {
         if (onProgress && progressEvent.total) {
           const chunkPercent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-          onProgress(chunkPercent);
+          // Byte đã gửi TRONG chunk này — nơi gọi cộng thêm vị trí bắt đầu của chunk.
+          onProgress(chunkPercent, Math.min(progressEvent.loaded, chunk.size));
         }
       },
     });

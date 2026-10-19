@@ -5,6 +5,7 @@ import { LanguageProvider } from './context/LanguageContext';
 import { UploadProvider } from './context/UploadContext';
 import { FileProvider } from './context/FileContext';
 import { AiPanelProvider } from './context/AiPanelContext';
+import { TagsProvider } from './context/TagsContext';
 import AppRouter from './routes/AppRouter';
 import GlobalProgressBar from './components/common/GlobalProgressBar';
 
@@ -17,6 +18,8 @@ export default function App() {
                     <UploadProvider>
                         <FileProvider>
                             <AiPanelProvider>
+                            {/* Nhãn (##91) — trong FileProvider vì gắn/gỡ nhãn sửa tại chỗ danh sách tệp. */}
+                            <TagsProvider>
                             <Toaster 
                                 position="top-right" 
                                 toastOptions={{
@@ -46,6 +49,7 @@ export default function App() {
                             />
                             <GlobalProgressBar />
                             <AppRouter />
+                            </TagsProvider>
                             </AiPanelProvider>
                         </FileProvider>
                     </UploadProvider>

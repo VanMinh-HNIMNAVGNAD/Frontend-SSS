@@ -416,7 +416,7 @@ function MediaSupportNotice({ diagnosis, fileName, onDownload, t, inline = false
   );
 }
 
-export default function FilePreviewModal({ item, siblings = null, onNavigate, onClose }) {
+export default function FilePreviewModal({ item, siblings = null, onNavigate, onClose, initialPanel = null }) {
   const { t } = useLanguage();
   const { getPreviewUrl } = useFiles();
   // Panel AI dùng chung với menu chuột phải (`AiPanelProvider`). `aiItem` ở đây KHÔNG phải
@@ -426,7 +426,8 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
   // được số lượng; cột chỉ dựng khi mở. Cột này và panel AI cùng chiếm mép phải nên mở cái
   // này là đóng cái kia.
   const comments = useFileComments(item?.id);
-  const [commentsOpen, setCommentsOpen] = useState(false);
+  // Mở sẵn khi đi từ thông báo "nhận xét mới" (##91) — chỉ là trạng thái ĐẦU, bấm nút vẫn gập được.
+  const [commentsOpen, setCommentsOpen] = useState(initialPanel === 'comments');
   const toggleComments = useCallback(() => {
     if (aiItem) closeAi();
     setCommentsOpen((open) => !open);

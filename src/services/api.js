@@ -1416,6 +1416,42 @@ export const commentsApi = {
     api.delete(`/files/${fileId}/comments/${commentId}`, { meta: { noProgressBar: true } }),
 };
 
+/**
+ * Thông báo của cái chuông ở thanh trên cùng (##91). Mọi lượt gọi đều KHÔNG bật thanh tiến
+ * trình: chuông tự hỏi định kỳ, người dùng không bấm gì cả.
+ *
+ * `list` trả `{ items, unreadCount, hasMore }`; `items[].title/message` đã được backend dịch
+ * theo ngôn ngữ đang chọn (`X-Lang`).
+ */
+export const notificationsApi = {
+  list: (params = {}) => api.get('/notifications', { params, meta: { noProgressBar: true } }),
+  unreadCount: () => api.get('/notifications/unread-count', { meta: { noProgressBar: true } }),
+  markRead: (id) => api.patch(`/notifications/${id}/read`, null, { meta: { noProgressBar: true } }),
+  markAllRead: () => api.patch('/notifications/read-all', null, { meta: { noProgressBar: true } }),
+  remove: (id) => api.delete(`/notifications/${id}`, { meta: { noProgressBar: true } }),
+  clearRead: () => api.delete('/notifications/read', { meta: { noProgressBar: true } }),
+};
+
+/**
+ * Nhãn RIÊNG của người dùng (##91) — gắn được lên mọi mục mình xem được; người khác không thấy.
+ *
+ * Gắn/gỡ đi qua `afterFileMutation`: ngăn chi tiết tệp đọc nhãn qua bộ đệm của chính tệp đó.
+ */
+export const tagsApi = {
+  /** `[{ id, name, colorHex, fileCount, createdAt }]` theo tên. */
+  list: () => api.get('/tags', { meta: { noProgressBar: true } }),
+  create: (data) => api.post('/tags', data),
+  update: (id, data) => api.patch(`/tags/${id}`, data),
+  remove: (id) => api.delete(`/tags/${id}`),
+  attach: (tagId, fileId) => afterFileMutation(fileId, api.post('/tags/attach', { tagId, fileId })),
+  detach: (tagId, fileId) => afterFileMutation(fileId, api.delete(`/tags/${tagId}/file/${fileId}`)),
+  /** Gắn/gỡ MỘT nhãn trên nhiều mục → `{ applied: [id], failed: [{ id, reason }] }`. */
+  apply: (tagId, fileIds, attached) =>
+    afterFileMutation(null, api.post(`/tags/${tagId}/files`, { fileIds, attached })),
+  /** Nhãn của mình trên một mục — khi mục không đến từ danh sách (đã có `tags` sẵn). */
+  ofFile: (fileId) => api.get(`/tags/file/${fileId}`, { meta: { noProgressBar: true } }),
+};
+
 // Sharing APIs — Public share link & access management
 export const sharingApi = {
   /** Lấy thông tin tệp qua token chia sẻ (không cần đăng nhập) */

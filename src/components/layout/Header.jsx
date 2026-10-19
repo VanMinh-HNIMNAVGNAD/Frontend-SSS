@@ -9,6 +9,7 @@ import SearchFilterModal from './SearchFilterModal';
 import SettingsModal from './SettingsModal';
 import AccountModal from './AccountModal';
 import ActivityLogDrawer from '../file-manager/ActivityLogDrawer';
+import NotificationBell from './NotificationBell';
 import { useAiPanel } from '../../context/AiPanelContext';
 import { 
     Menu, 
@@ -538,6 +539,11 @@ export default function Header({ toggleRightSidebar }) {
                 >
                     <Sparkles className="w-5 h-5" />
                 </button>
+
+                {/* Chuông thông báo (##91) — chỉ khi đã đăng nhập: thông báo là dữ liệu riêng của
+                    một tài khoản, và chuông tự hỏi máy chủ định kỳ. Hiện ở MỌI cỡ màn hình — một
+                    lời mời chia sẻ mà phải mở menu "⋮" mới thấy thì coi như không có. */}
+                {isAuthenticated && <NotificationBell />}
 
                 {/* Nút Cài Đặt */}
                 <button

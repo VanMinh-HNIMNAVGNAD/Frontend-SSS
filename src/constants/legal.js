@@ -55,13 +55,13 @@ export const LEGAL_ALIASES = {
  *
  * ĐỔI SỐ NÀY KHI VÀ CHỈ KHI nội dung điều khoản đổi. Sửa lỗi chính tả thì không.
  */
-export const LEGAL_VERSION = '2026-09-10';
+export const LEGAL_VERSION = '2026-10-19';
 
 /**
  * Ngày hiệu lực in trên đầu tài liệu. Tách khỏi LEGAL_VERSION vì hai thứ này
  * không cùng vai: một cái để MÁY đối chiếu, một cái để NGƯỜI đọc.
  */
-export const LEGAL_EFFECTIVE_DATE = '10/09/2026';
+export const LEGAL_EFFECTIVE_DATE = '19/10/2026';
 
 /**
  * Hộp thư nhận yêu cầu về dữ liệu cá nhân.

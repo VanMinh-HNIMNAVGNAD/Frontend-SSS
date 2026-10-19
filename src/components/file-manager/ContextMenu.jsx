@@ -35,9 +35,15 @@ import {
     LogOut,
     SquarePen,
     FolderSymlink,
+    Tag,
+    Check,
+    Minus,
+    Settings2,
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
-import { useDriveAccess } from '../../context/FileContext';
+import { useDriveAccess, useFiles, useFileSelection } from '../../context/FileContext';
+import { useTags } from '../../context/TagsContext';
+import { DEFAULT_TAG_COLOR, TAG_COLORS, TAG_NAME_MAX } from '../../constants/tags';
 import { SHORTCUT_HINTS } from '../../hooks/useGlobalShortcuts';
 import ColorPickerPanel from './ColorPickerPanel';
 
@@ -366,6 +372,140 @@ function SubmenuPanel({ widthClass, children }) {
             )}
             <SubmenuContext.Provider value={childCtx}>{children}</SubmenuContext.Provider>
         </div>
+    );
+}
+
+/**
+ * Nội dung menu con "Gắn nhãn ▸" (##91).
+ *
+ * Áp cho CẢ NHÓM đang chọn khi mục vừa bấm chuột phải nằm trong nhóm đó (như Google Drive), không
+ * thì chỉ mục đó. Trạng thái tích đọc từ danh sách tệp ĐANG SỐNG (`useFiles().items`) chứ không từ
+ * `item` của lần mở menu — `item` là ảnh chụp lúc bấm chuột phải, gắn xong một nhãn là nó cũ.
+ * Bấm một nhãn KHÔNG đóng menu: gắn ba nhãn là ba cú bấm liền, không phải ba lần mở menu.
+ *
+ * Tích ✓ = mọi mục đã có nhãn (bấm là gỡ); gạch — = chỉ một phần có (bấm là gắn cho đủ).
+ */
+function TagMenu({ item, closeMenu }) {
+    const { t } = useLanguage();
+    const tagsCtx = useTags();
+    const { items } = useFiles();
+    const { selectedIds } = useFileSelection();
+    const [draft, setDraft] = useState(null);
+    const [busy, setBusy] = useState(false);
+
+    const targets = useMemo(() => {
+        const ids = selectedIds?.has(item.id) && selectedIds.size > 1 ? [...selectedIds] : [item.id];
+        return ids
+            .map((id) => items.find((x) => x.id === id) ?? (id === item.id ? item : null))
+            .filter(Boolean);
+    }, [items, selectedIds, item]);
+
+    if (!tagsCtx) return null;
+    const { tags, setTagOn, createTag, openManager } = tagsCtx;
+
+    const stateOf = (tag) => {
+        const count = targets.filter((x) => (x.tags ?? []).some((own) => own.id === tag.id)).length;
+        return count === 0 ? 'none' : count === targets.length ? 'all' : 'some';
+    };
+
+    const submitDraft = async () => {
+        const name = (draft ?? '').trim();
+        if (!name || busy) return;
+        setBusy(true);
+        const tag = await createTag({ name, colorHex: TAG_COLORS[tags.length % TAG_COLORS.length] });
+        setBusy(false);
+        if (tag) {
+            setDraft(null);
+            setTagOn(targets, tag, true);
+        }
+    };
+
+    return (
+        <>
+            {targets.length > 1 && (
+                <div className="px-2.5 pt-1 pb-1.5 text-[11px] font-semibold text-gray-500 dark:text-gray-400">
+                    {t('tags.menu.forSelection', { count: targets.length })}
+                </div>
+            )}
+
+            {tags.length === 0 && draft === null && (
+                <div className="px-2.5 py-2 text-[12px] text-gray-500 dark:text-gray-400">{t('tags.menu.none')}</div>
+            )}
+
+            <div className="max-h-64 overflow-y-auto">
+                {tags.map((tag) => {
+                    const state = stateOf(tag);
+                    return (
+                        <MenuRow
+                            key={tag.id}
+                            role="menuitemcheckbox"
+                            aria-checked={state === 'all' ? true : state === 'some' ? 'mixed' : false}
+                            icon={
+                                <span
+                                    className="w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center"
+                                    style={{
+                                        borderColor: tag.colorHex || DEFAULT_TAG_COLOR,
+                                        backgroundColor: state === 'none' ? 'transparent' : tag.colorHex || DEFAULT_TAG_COLOR,
+                                    }}
+                                >
+                                    {state === 'all' && <Check className="w-2.5 h-2.5 text-white" strokeWidth={3.5} />}
+                                    {state === 'some' && <Minus className="w-2.5 h-2.5 text-white" strokeWidth={3.5} />}
+                                </span>
+                            }
+                            label={tag.name}
+                            onClick={() => setTagOn(targets, tag, state !== 'all')}
+                        />
+                    );
+                })}
+            </div>
+
+            <MenuSeparator />
+
+            {draft === null ? (
+                <MenuRow
+                    icon={<Plus className="w-4 h-4 text-blue-600 dark:text-blue-400" />}
+                    label={t('tags.menu.new')}
+                    onClick={() => setDraft('')}
+                />
+            ) : (
+                <div className="px-1.5 py-1 flex items-center gap-1.5">
+                    <input
+                        autoFocus
+                        value={draft}
+                        maxLength={TAG_NAME_MAX}
+                        onChange={(e) => setDraft(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                e.preventDefault();
+                                submitDraft();
+                            }
+                        }}
+                        placeholder={t('tags.newPlaceholder')}
+                        aria-label={t('tags.name')}
+                        className="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#1e1f20] text-[13px] outline-none focus:border-blue-500"
+                    />
+                    <button
+                        type="button"
+                        onClick={submitDraft}
+                        disabled={busy || !draft.trim()}
+                        title={t('tags.create')}
+                        aria-label={t('tags.create')}
+                        className="shrink-0 p-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 cursor-pointer"
+                    >
+                        {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                    </button>
+                </div>
+            )}
+
+            <MenuRow
+                icon={<Settings2 className="w-4 h-4 text-gray-700 dark:text-gray-300" />}
+                label={t('tags.menu.manage')}
+                onClick={() => {
+                    openManager();
+                    closeMenu();
+                }}
+            />
+        </>
     );
 }
 
@@ -925,6 +1065,17 @@ export default function ContextMenu({
                                 />
                             </>
                         )}
+                    </SubmenuRow>
+
+                    {/* 4b. Gắn nhãn ▸ (##91) — nhãn là của RIÊNG người dùng nên mọi mục xem được
+                        đều gắn được, kể cả tệp người khác chia sẻ và tệp chỉ-xem trong Bộ nhớ chung. */}
+                    <SubmenuRow
+                        path="tags"
+                        panelWidth="w-64"
+                        icon={<Tag className="w-4 h-4 text-gray-700 dark:text-gray-300" />}
+                        label={t('tags.menu.title')}
+                    >
+                        <TagMenu item={item} closeMenu={closeMenu} />
                     </SubmenuRow>
 
                     <MenuSeparator />

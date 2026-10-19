@@ -6,6 +6,7 @@ import { getCardColorVars } from '../../utils/fileColors';
 import { useLanguage } from '../../context/LanguageContext';
 import { FILE_CARD_HEIGHT_CLASS } from './gridLayout';
 import ItemLocation from './ItemLocation';
+import { TagDots } from '../common/TagChips';
 import { 
     FileText, 
     FileSpreadsheet, 
@@ -234,13 +235,17 @@ function FileCard({ file, onDoubleClick, onContextMenu, isSelected, isCut = fals
             <div className="flex items-center justify-between gap-1.5 h-3.5 mt-0.5 leading-none">
                 {/* Kết quả tìm kiếm (##90): chỗ của nhãn định dạng nhường cho nơi chứa tệp — đuôi tệp
                     đã nằm ngay trong tên ở hàng đầu, còn thẻ thì cao cố định, không thêm dòng được. */}
-                {file.parentName !== undefined ? (
-                    <ItemLocation item={file} onOpen={onOpenLocation} compact />
-                ) : (
-                    <span className="px-1 py-px rounded font-semibold text-[8px] tracking-wider uppercase bg-[var(--fc-badge-l)] text-[var(--fc-badge-fg-l)] dark:bg-[var(--fc-badge-d)] dark:text-[var(--fc-badge-fg-d)]">
-                        {file.name.split('.').pop() || 'FILE'}
-                    </span>
-                )}
+                <span className="flex items-center gap-1 min-w-0">
+                    {file.parentName !== undefined ? (
+                        <ItemLocation item={file} onOpen={onOpenLocation} compact />
+                    ) : (
+                        <span className="px-1 py-px rounded font-semibold text-[8px] tracking-wider uppercase bg-[var(--fc-badge-l)] text-[var(--fc-badge-fg-l)] dark:bg-[var(--fc-badge-d)] dark:text-[var(--fc-badge-fg-d)]">
+                            {file.name.split('.').pop() || 'FILE'}
+                        </span>
+                    )}
+                    {/* Nhãn riêng của người xem (##91) — thẻ cao cố định nên chỉ là chấm màu */}
+                    <TagDots tags={file.tags} />
+                </span>
                 <span className="shrink-0 font-mono text-[9.5px] font-medium text-[var(--fc-muted-l)] dark:text-[var(--fc-muted-d)]">
                     {formatBytes(file.size)}
                 </span>

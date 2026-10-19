@@ -162,9 +162,9 @@ const privacy = {
               'Lưu trữ tệp. Tuỳ gói và tuỳ tệp mà nằm ở một trong ba nơi này.',
             ],
             [
-              'Google Cloud Vertex AI (Gemini)',
-              'Nội dung tài liệu và câu hỏi của bạn — CHỈ khi bạn chủ động bấm "Hỏi AI" trên một tệp.',
-              'Sinh câu trả lời. Nếu tính năng đối chiếu bằng Google Search đang bật, câu hỏi có thể được dùng để tra cứu web.',
+              'Google Cloud Vertex AI — mô hình Gemini của Google, và mô hình của đối tác mà Google cung cấp qua Vertex AI (Anthropic Claude, xAI Grok) khi bạn chọn chúng',
+              'Nội dung tài liệu và câu hỏi của bạn — CHỈ khi bạn chủ động bấm "Hỏi AI" trên một tệp, và chỉ tới đúng mô hình bạn chọn trong khung chat.',
+              'Sinh câu trả lời. Nếu tính năng đối chiếu bằng Google Search đang bật (chỉ với Gemini), câu hỏi có thể được dùng để tra cứu web.',
             ],
             [
               'Cloudflare Turnstile',
@@ -437,7 +437,7 @@ const terms = {
       blocks: [
         {
           type: 'p',
-          text: 'Khi bạn bấm "Hỏi AI" trên một tệp, nội dung tệp đó và câu hỏi của bạn được gửi tới Google Cloud Vertex AI để sinh câu trả lời. Chỉ khi bạn chủ động bấm, không tự động chạy trên tệp nào.',
+          text: 'Khi bạn bấm "Hỏi AI" trên một tệp, nội dung tệp đó và câu hỏi của bạn được gửi tới Google Cloud Vertex AI để sinh câu trả lời, bằng mô hình bạn chọn trong khung chat: Gemini của Google hoặc một mô hình đối tác do Google cung cấp trên Vertex AI (Anthropic Claude, xAI Grok). Khi mô hình bạn chọn quá tải, một mô hình Gemini có thể trả lời thay và giao diện ghi rõ điều đó. Chỉ khi bạn chủ động bấm, không tự động chạy trên tệp nào.',
         },
         {
           type: 'p',

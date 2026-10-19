@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useFiles, useDriveAccess } from '../context/FileContext';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -47,6 +48,18 @@ export default function SharedDrivesPage() {
         clearFilters,
     } = useFiles();
     const { user } = useAuth();
+
+    // `?drive=<id>` — liên kết từ thông báo "bạn được thêm vào Bộ nhớ dùng chung" (##91): mở thẳng
+    // drive đó rồi xoá tham số, để Back/F5 không kéo người dùng vào lại.
+    const location = useLocation();
+    const navigate = useNavigate();
+    useEffect(() => {
+        const driveId = new URLSearchParams(location.search).get('drive');
+        if (!driveId) return;
+        setCurrentSharedDriveId(driveId);
+        navigate({ pathname: location.pathname, search: '' }, { replace: true });
+    }, [location.search, location.pathname, setCurrentSharedDriveId, navigate]);
+
     // Tên drive khi vào THẲNG một drive (mở thư mục / "nơi chứa" từ kết quả tìm kiếm, ##90): danh
     // sách `drives` bên dưới chỉ nạp ở trang danh sách, nên trước đây tiêu đề rơi về câu chung chung.
     const { driveNameOf } = useDriveAccess();

@@ -41,6 +41,8 @@ const SharedDrivesPage = lazy(() => import('../pages/SharedDrivesPage'));
 const SharedWithMePage = lazy(() => import('../pages/SharedWithMePage'));
 const SpamPage = lazy(() => import('../pages/SpamPage'));
 const TrashPage = lazy(() => import('../pages/TrashPage'));
+// Trang "Nhãn" (##91) — vào theo chủ đích từ thanh bên hay chip nhãn, không phải đường đi hằng ngày.
+const TagsPage = lazy(() => import('../pages/TagsPage'));
 const BillingAndQuota = lazy(() => import('../pages/BillingAndQuota'));
 const BillingSuccess = lazy(() => import('../pages/BillingSuccess'));
 const BillingCancel = lazy(() => import('../pages/BillingCancel'));
@@ -145,6 +147,7 @@ export default function AppRouter() {
                     <Route path="starred" element={<StarredPage />} />
                     <Route path="spam" element={<SpamPage />} />
                     <Route path="trash" element={<TrashPage />} />
+                    <Route path="tags/:tagId" element={<TagsPage />} />
                     <Route path="billing" element={<BillingAndQuota />} />
                 </Route>
 

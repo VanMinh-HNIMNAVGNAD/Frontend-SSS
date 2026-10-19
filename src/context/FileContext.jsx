@@ -349,12 +349,16 @@ export function FileProvider({ children }) {
     if (path.includes('/app/starred')) return 'starred';
     if (path.includes('/app/spam')) return 'spam';
     if (path.includes('/app/trash')) return 'trash';
+    if (path.includes('/app/tags')) return 'tags';
     if (path.includes('/app/billing')) return 'billing';
     return 'my-drive';
   }, [location.pathname]);
 
   const folderMatch = matchPath('/app/:tab/folders/:folderId', location.pathname);
   const currentFolderId = folderMatch ? folderMatch.params.folderId : null;
+  // Trang "Nhãn" (##91): mọi mục gắn một nhãn, ở bất cứ đâu — backend `tab=tagged`.
+  const tagMatch = matchPath('/app/tags/:tagId', location.pathname);
+  const currentTagId = tagMatch ? tagMatch.params.tagId : null;
   // Đang đứng trong thư mục NGƯỜI KHÁC chia sẻ: backend không nhận tải lên / tạo thư mục vào đó
   // (##78). Nút "Mới", menu chuột phải và phím tắt đọc cờ này để nói trước — trước đây người dùng
   // chọn tệp, tải lên xong mới nhận câu sai "Thư mục cha không tồn tại".
@@ -598,6 +602,7 @@ export function FileProvider({ children }) {
     activeTab,
     currentFolderId,
     currentSharedDriveId,
+    currentTagId,
     search: debouncedSearch,
     filterType,
     filterDate,
@@ -926,6 +931,7 @@ export function FileProvider({ children }) {
         tab: activeTab,
         folderId: currentFolderId || null,
         driveId: activeTab === 'shared-drives' ? currentSharedDriveId || null : null,
+        tagId: activeTab === 'tags' ? currentTagId : null,
         search: debouncedSearch || '',
         filterType,
         filterDate,
@@ -937,7 +943,7 @@ export function FileProvider({ children }) {
         locale,
       }),
     [
-      activeTab, currentFolderId, currentSharedDriveId, debouncedSearch,
+      activeTab, currentFolderId, currentSharedDriveId, currentTagId, debouncedSearch,
       filterType, filterDate, effectiveFilterOwner, serverSortKey, currentPage, pageSize, locale,
     ],
   );
@@ -961,9 +967,10 @@ export function FileProvider({ children }) {
         tab: activeTab,
         folderId: currentFolderId || null,
         driveId: activeTab === 'shared-drives' ? currentSharedDriveId || null : null,
+        tagId: activeTab === 'tags' ? currentTagId : null,
         locale,
       }),
-    [activeTab, currentFolderId, currentSharedDriveId, locale],
+    [activeTab, currentFolderId, currentSharedDriveId, currentTagId, locale],
   );
 
   /** Chỗ đứng mà `items` hiện tại thuộc về (xem `scopeKey`). */
@@ -978,13 +985,16 @@ export function FileProvider({ children }) {
   // phím ←/→ trong cửa sổ xem trước đi sang tệp kế bên, như Google Drive. Chỉ tệp, bỏ thư
   // mục. Không truyền thì không có nút chuyển (vd. mở từ ngăn thông tin).
   const [previewList, setPreviewList] = useState(null);
+  // Cột mở sẵn khi vào xem trước — 'comments' khi đi từ thông báo nhận xét (##91), còn lại null.
+  const [previewPanel, setPreviewPanel] = useState(null);
 
-  const openPreview = useCallback((item, list) => {
+  const openPreview = useCallback((item, list, options) => {
     if (item && !item.isFolder && item.type !== 'folder') {
       setPreviewItem(item);
       setPreviewList(
         Array.isArray(list) ? list.filter((f) => f && !f.isFolder && f.type !== 'folder') : null,
       );
+      setPreviewPanel(options?.panel === 'comments' ? 'comments' : null);
     }
   }, []);
 
@@ -996,6 +1006,7 @@ export function FileProvider({ children }) {
   const closePreview = useCallback(() => {
     setPreviewItem(null);
     setPreviewList(null);
+    setPreviewPanel(null);
   }, []);
 
   // Info drawer state
@@ -1221,7 +1232,7 @@ export function FileProvider({ children }) {
     setIsInfoDrawerOpen(false);
   }, []);
 
-  const VALID_FILE_TABS = ['my-drive', 'starred', 'trash', 'spam', 'recent', 'shared-with-me', 'shared-drives'];
+  const VALID_FILE_TABS = ['my-drive', 'starred', 'trash', 'spam', 'recent', 'shared-with-me', 'shared-drives', 'tags'];
 
   // Fetch Storage Analytics
   const fetchAnalytics = useCallback(async () => {
@@ -1443,7 +1454,9 @@ export function FileProvider({ children }) {
         try {
           const response = await filesApi.getFilesAndFolders(
             {
-              tab: activeTab,
+              // Trang "Nhãn" là `tab=tagged` ở backend (##91).
+              tab: activeTab === 'tags' ? 'tagged' : activeTab,
+              tagId: activeTab === 'tags' && currentTagId ? currentTagId : undefined,
               folderId: currentFolderId || undefined,
               sharedDriveId: activeTab === 'shared-drives' && currentSharedDriveId ? currentSharedDriveId : undefined,
               search: debouncedSearch || undefined,
@@ -1548,7 +1561,7 @@ export function FileProvider({ children }) {
 
       await doFetch(retries);
     },
-    [isAuthenticated, isAuthLoading, isListCacheHydrated, activeTab, currentFolderId, currentSharedDriveId, debouncedSearch, filterType, filterDate, effectiveFilterOwner, serverSortKey, sortField, sortDirection, currentPage, pageSize, fetchHomeItems, locale, t, cacheKey, scopeKey, readListCache, writeListCache]
+    [isAuthenticated, isAuthLoading, isListCacheHydrated, activeTab, currentFolderId, currentSharedDriveId, currentTagId, debouncedSearch, filterType, filterDate, effectiveFilterOwner, serverSortKey, sortField, sortDirection, currentPage, pageSize, fetchHomeItems, locale, t, cacheKey, scopeKey, readListCache, writeListCache]
   );
 
   /**
@@ -1973,6 +1986,38 @@ export function FileProvider({ children }) {
       return { ok: false, error: err };
     }
   }, [items, t]);
+
+  /**
+   * Đổi `tags` của các mục đang hiện TẠI CHỖ (##91) — gắn/gỡ nhãn ở menu chuột phải phải thấy
+   * ngay trên hàng, không đợi một lượt tải lại danh sách. `ids = null` là MỌI mục (đổi tên, đổi
+   * màu hay xoá một nhãn). `updater(tags) → tags`.
+   *
+   * Ở trang "Nhãn", mục vừa bị gỡ đúng nhãn đang xem thì rời danh sách luôn — để nó nằm lại là
+   * nói dối về chính thứ người dùng vừa làm.
+   */
+  const patchItemTags = useCallback((ids, updater) => {
+    const wanted = ids == null ? null : new Set(Array.isArray(ids) ? ids : [ids]);
+    const viewTagId = viewRef.current?.activeTab === 'tags' ? viewRef.current?.currentTagId : null;
+    setItems((prev) => {
+      let changed = false;
+      const next = [];
+      for (const item of prev) {
+        if (wanted && !wanted.has(item.id)) {
+          next.push(item);
+          continue;
+        }
+        const tags = updater(Array.isArray(item.tags) ? item.tags : []);
+        if (tags === item.tags) {
+          next.push(item);
+          continue;
+        }
+        changed = true;
+        if (viewTagId && !tags.some((tag) => tag.id === viewTagId)) continue;
+        next.push({ ...item, tags });
+      }
+      return changed ? next : prev;
+    });
+  }, []);
 
   /**
    * Ba hàm thùng rác dưới đây dùng chung một hợp đồng với `toggleStar`:
@@ -3493,6 +3538,8 @@ export function FileProvider({ children }) {
     paginatedItems: items,
     toggleStar,
     updateColor,
+    patchItemTags,
+    currentTagId,
     moveToTrash,
     moveToTrashBulk,
     restoreFromTrash,
@@ -3537,7 +3584,7 @@ export function FileProvider({ children }) {
     isLoading, isRefreshing, error, viewMode, isSidebarCollapsed,
     currentPage, pageSize, totalItems, totalPages, breadcrumb,
     // ── Điều hướng / tab ──
-    activeTab, currentFolderId, currentSharedDriveId, isInForeignFolder,
+    activeTab, currentFolderId, currentSharedDriveId, currentTagId, isInForeignFolder,
     handleSetActiveTab, handleSetCurrentFolderId, handleSetCurrentSharedDriveId,
     openFolder, toggleSidebar, setViewMode,
     // ── Tìm kiếm / lọc / sắp xếp ──
@@ -3547,7 +3594,7 @@ export function FileProvider({ children }) {
     // ── Lưu trữ ──
     storageInfo, fetchAnalytics,
     // ── Hành động trên file/folder ──
-    fetchFiles, toggleStar, moveToTrash, moveToTrashBulk, restoreFromTrash, markNotSpam,
+    fetchFiles, toggleStar, patchItemTags, moveToTrash, moveToTrashBulk, restoreFromTrash, markNotSpam,
     deletePermanently, deletePermanentlyBulk,
     emptyTrash, createFolder, createFolderSilent, moveItem, moveItemsTo, openItemLocation, copyItem, renameItem,
     getDownloadUrl, getPreviewUrl, getFileTextContent, createShareLink,
@@ -3601,6 +3648,7 @@ export function FileProvider({ children }) {
   const previewValue = useMemo(() => ({
     previewItem,
     previewList,
+    previewPanel,
     openPreview,
     showPreviewItem,
     closePreview,
@@ -3610,7 +3658,7 @@ export function FileProvider({ children }) {
     openInfoDrawer,
     closeInfoDrawer,
   }), [
-    previewItem, previewList, openPreview, showPreviewItem, closePreview,
+    previewItem, previewList, previewPanel, openPreview, showPreviewItem, closePreview,
     infoDrawerItem, isInfoDrawerOpen, infoDrawerTab, openInfoDrawer, closeInfoDrawer,
   ]);
 

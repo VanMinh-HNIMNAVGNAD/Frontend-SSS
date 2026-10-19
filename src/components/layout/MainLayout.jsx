@@ -1,5 +1,5 @@
-import { lazy, Suspense, useState, useRef, useCallback } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { lazy, Suspense, useState, useRef, useCallback, useEffect } from 'react';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useFiles, useFilePreview, useDriveAccess } from '../../context/FileContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -10,6 +10,7 @@ import Header from './Header';
 import FileInfoDrawer from '../file-manager/FileInfoDrawer';
 import ShareModal from '../file-manager/ShareModal';
 import RenameModal from '../file-manager/RenameModal';
+import TagManagerModal from '../file-manager/TagManagerModal';
 /**
  * Cửa sổ xem trước nạp theo yêu cầu: nó kéo theo pdf.js, mammoth, `marked` và bộ
  * tô màu cú pháp — nhóm nặng nhất trong toàn bộ gói — nhưng chỉ chạy khi người
@@ -56,9 +57,29 @@ export default function MainLayout() {
         closeInfoDrawer,
         previewItem,
         previewList,
+        previewPanel,
+        openPreview,
         showPreviewItem,
         closePreview,
     } = useFilePreview();
+
+    // Liên kết từ thông báo (##91): `?file=<id>` mở xem trước đúng tệp đó khi nó có trong danh
+    // sách đang hiện, `&panel=comments` mở sẵn cột nhận xét. Xoá tham số ngay sau khi dùng để F5
+    // hay bấm Back không mở lại lần nữa. Tệp chưa có trong danh sách (đang nạp) thì chờ: effect
+    // chạy lại khi `files` đổi.
+    const navigate = useNavigate();
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        const fileId = params.get('file');
+        if (!fileId) return;
+        const target = files.find((f) => f.id === fileId);
+        if (!target) return;
+        openPreview(target, files, { panel: params.get('panel') });
+        params.delete('file');
+        params.delete('panel');
+        const rest = params.toString();
+        navigate({ pathname: location.pathname, search: rest ? `?${rest}` : '' }, { replace: true });
+    }, [location.search, location.pathname, files, openPreview, navigate]);
 
     const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
     const [shareTargetItem, setShareTargetItem] = useState(null);
@@ -306,10 +327,14 @@ export default function MainLayout() {
                             siblings={previewList}
                             onNavigate={showPreviewItem}
                             onClose={closePreview}
+                            initialPanel={previewPanel}
                         />
                     </Suspense>
                 </ErrorBoundary>
             )}
+
+            {/* Hộp quản lý nhãn (##91) — một bản, mở từ menu chuột phải, thanh bên hay trang Nhãn */}
+            <TagManagerModal />
 
             {/* Global Upload Progress — floating bottom-right */}
             <UploadProgress />

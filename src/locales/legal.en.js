@@ -152,9 +152,9 @@ const privacy = {
               'File storage. Depending on your plan and the file, your data sits in one of these three.',
             ],
             [
-              'Google Cloud Vertex AI (Gemini)',
-              'Document contents and your question — ONLY when you actively click "Ask AI" on a file.',
-              'Generating the answer. If fact-checking via Google Search is enabled, your question may also be used for a web lookup.',
+              'Google Cloud Vertex AI — Google’s Gemini models, and partner models Google offers through Vertex AI (Anthropic Claude, xAI Grok) when you choose them',
+              'Document contents and your question — ONLY when you actively click "Ask AI" on a file, and only to the model you pick in the chat panel.',
+              'Generating the answer. If fact-checking via Google Search is enabled (Gemini only), your question may also be used for a web lookup.',
             ],
             [
               'Cloudflare Turnstile',
@@ -427,7 +427,7 @@ const terms = {
       blocks: [
         {
           type: 'p',
-          text: 'When you click "Ask AI" on a file, that file’s contents and your question are sent to Google Cloud Vertex AI to generate an answer. This happens only when you actively click; it never runs on a file by itself.',
+          text: 'When you click "Ask AI" on a file, that file’s contents and your question are sent to Google Cloud Vertex AI to generate an answer, using the model you pick in the chat panel: Google’s Gemini or a partner model Google offers on Vertex AI (Anthropic Claude, xAI Grok). If the model you picked is overloaded, a Gemini model may answer instead, and the panel says so. This happens only when you actively click; it never runs on a file by itself.',
         },
         {
           type: 'p',

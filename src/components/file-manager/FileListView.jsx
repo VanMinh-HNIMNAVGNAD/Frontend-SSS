@@ -15,6 +15,7 @@ import MoveModal from './MoveModal';
 import StarButton from '../common/StarButton';
 import FileThumbnail from './FileThumbnail';
 import ItemLocation from './ItemLocation';
+import TagChips from '../common/TagChips';
 import { collectInputEntries } from '../../utils/uploadTree';
 import tRich from '../../utils/tRich';
 import { downloadSingleItem } from '../../utils/downloadItems';
@@ -164,6 +165,8 @@ const FolderTableRow = memo(function FolderTableRow({
                         </span>
                         {/* Kết quả tìm kiếm: thư mục này nằm ở đâu (##90) */}
                         <ItemLocation item={folder} onOpen={onOpenLocation} className="max-w-[200px]" />
+                        {/* Nhãn riêng của người xem (##91) */}
+                        <TagChips tags={folder.tags} className="mt-0.5 max-w-[220px]" />
                     </div>
                 </div>
             </td>
@@ -296,6 +299,8 @@ const FileTableRow = memo(function FileTableRow({
                         </span>
                         {/* Kết quả tìm kiếm: tệp này nằm ở đâu (##90) */}
                         <ItemLocation item={file} onOpen={onOpenLocation} className="max-w-[180px]" />
+                        {/* Nhãn riêng của người xem (##91) */}
+                        <TagChips tags={file.tags} className="mt-0.5 max-w-[220px]" />
                     </div>
                     {/* Lý do bị gắn cờ do Spam Guard — chỉ tệp trong mục Nội dung rác mới có */}
                     {file.isSpam && (

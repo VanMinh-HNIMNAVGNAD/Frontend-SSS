@@ -1,6 +1,9 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useFiles } from '../../context/FileContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { useTags } from '../../context/TagsContext';
+import { DEFAULT_TAG_COLOR } from '../../constants/tags';
 import NewButton from './NewButton';
 import QuickCleanupModal from '../modals/QuickCleanupModal';
 import { formatBytes } from '../../utils/formatFileSize';
@@ -16,10 +19,19 @@ import {
   Trash2,
   CreditCard,
   Cloud,
+  Tag,
+  Settings2,
 } from 'lucide-react';
 
+/** Thanh bên hiện chừng này nhãn đầu (theo tên) — còn lại xem/sửa trong hộp quản lý. */
+const SIDEBAR_TAG_LIMIT = 8;
+
 export default function Sidebar() {
-  const { activeTab, setActiveTab, isSidebarCollapsed, toggleSidebar, storageInfo, items } = useFiles();
+  const { activeTab, setActiveTab, isSidebarCollapsed, toggleSidebar, storageInfo, items, currentTagId } = useFiles();
+  // Nhãn riêng của người dùng (##91) — `null` khi ngoài TagsProvider.
+  const tagsCtx = useTags();
+  const navigate = useNavigate();
+  const tags = tagsCtx?.tags ?? [];
   const [isCleanupOpen, setIsCleanupOpen] = useState(false);
 
   // Nhãn menu và khối bộ nhớ lấy qua t() — NavItem ở dưới nằm trong cùng
@@ -121,6 +133,70 @@ export default function Sidebar() {
           <NavItem id="shared-with-me" label={t('nav.sharedWithMe')} icon={Users} hoverColor="group-hover:text-teal-600" activeColor="text-teal-600 dark:text-teal-400" />
           <NavItem id="recent" label={t('nav.recent')} icon={Clock} hoverColor="group-hover:text-amber-500" activeColor="text-amber-500 dark:text-amber-400" />
           <NavItem id="starred" label={t('nav.starred')} icon={Star} hoverColor="group-hover:text-yellow-500" activeColor="text-yellow-500 dark:text-yellow-400" />
+
+          {/* NHÃN (##91) — mỗi nhãn mở trang "Nhãn" của nó: mọi mục gắn nhãn đó, ở bất cứ đâu. */}
+          {tagsCtx && (
+            <div className="pt-2 short:pt-1">
+              {!isSidebarCollapsed && (
+                <div className="flex items-center justify-between pl-4 pr-1 pb-1 text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                  <span>{t('tags.sidebar.title')}</span>
+                  <button
+                    type="button"
+                    onClick={tagsCtx.openManager}
+                    title={t('tags.menu.manage')}
+                    aria-label={t('tags.menu.manage')}
+                    className="p-1 rounded-full hover:bg-gray-200/80 dark:hover:bg-white/10 normal-case cursor-pointer"
+                  >
+                    <Settings2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+              {tags.length === 0 ? (
+                <button
+                  type="button"
+                  onClick={tagsCtx.openManager}
+                  title={isSidebarCollapsed ? t('tags.sidebar.create') : undefined}
+                  className={`w-full flex items-center gap-4 px-4 py-2 short:py-1.5 rounded-full text-[13px] text-gray-600 dark:text-gray-400 hover:bg-gray-200/80 dark:hover:bg-white/5 text-left cursor-pointer ${
+                    isSidebarCollapsed ? 'justify-center px-0' : ''
+                  }`}
+                >
+                  <Tag className="w-5 h-5 shrink-0" />
+                  {!isSidebarCollapsed && <span className="truncate">{t('tags.sidebar.create')}</span>}
+                </button>
+              ) : (
+                tags.slice(0, SIDEBAR_TAG_LIMIT).map((tag) => {
+                  const active = activeTab === 'tags' && currentTagId === tag.id;
+                  const color = tag.colorHex || DEFAULT_TAG_COLOR;
+                  return (
+                    <button
+                      key={tag.id}
+                      type="button"
+                      onClick={() => navigate(`/app/tags/${tag.id}`)}
+                      title={isSidebarCollapsed ? tag.name : undefined}
+                      className={`w-full flex items-center gap-4 px-4 py-2 short:py-1.5 rounded-full transition-all duration-150 text-[14px] font-medium text-left cursor-pointer ${
+                        isSidebarCollapsed ? 'justify-center px-0' : ''
+                      } ${active ? 'bg-[#d3e3fd] dark:bg-blue-500/25 text-[#041e49] dark:text-blue-100 font-bold' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200/80 dark:hover:bg-white/5'}`}
+                    >
+                      <Tag className="w-5 h-5 shrink-0" style={{ color }} fill={active ? color : 'none'} />
+                      {!isSidebarCollapsed && <span className="truncate flex-1">{tag.name}</span>}
+                      {!isSidebarCollapsed && tag.fileCount > 0 && (
+                        <span className="text-xs text-gray-500 dark:text-gray-400">{tag.fileCount}</span>
+                      )}
+                    </button>
+                  );
+                })
+              )}
+              {!isSidebarCollapsed && tags.length > SIDEBAR_TAG_LIMIT && (
+                <button
+                  type="button"
+                  onClick={tagsCtx.openManager}
+                  className="w-full pl-[3.25rem] pr-4 py-1.5 text-left text-xs font-medium text-blue-700 dark:text-blue-300 hover:underline cursor-pointer"
+                >
+                  {t('tags.sidebar.more', { count: tags.length - SIDEBAR_TAG_LIMIT })}
+                </button>
+              )}
+            </div>
+          )}
 
           <div className="my-2 short:my-1 border-t border-gray-200 dark:border-gray-700/60" />
 

@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 
 import AiBubble from './AiBubble';
+import AiModelPicker from './AiModelPicker';
 import { aiApi } from '../../services/api';
 import { useLanguage } from '../../context/LanguageContext';
 import { displayPlanName } from '../../utils/planName';
@@ -350,6 +351,8 @@ export default function GeminiModal({
     // Danh sách model backend cho chọn (mặc định đứng đầu) và model đang chọn.
     const modelOptions = Array.isArray(status?.models) && status.models.length ? status.models : null;
     const selectedModel = resolveModelChoice(modelOptions, pickedModel);
+    /** Nhãn hiển thị của một id model — id thô khi danh sách chưa có (backend cũ). */
+    const modelLabelOf = (id) => modelOptions?.find((m) => m.id === id)?.label ?? id;
     const pickModel = (id) => {
         setPickedModel(id);
         try {
@@ -613,6 +616,8 @@ export default function GeminiModal({
                         text: res.answer,
                         context: res.context,
                         model: res.model,
+                        // Đích lui (một model KHÁC) đã trả lời thay (##91) — ghi chú dưới câu trả lời.
+                        servedModel: res.servedModel ?? null,
                         grounded: res.grounded,
                         webSearch: res.webSearch,
                         tokens: res.quota?.lastRequestTokens,
@@ -1591,6 +1596,19 @@ export default function GeminiModal({
                                         )}
                                         {renderWebSources(msg)}
                                         {renderContextNote(msg.context, msg)}
+                                        {/* Model người dùng chọn đang quá tải nên đích lui trả lời
+                                            thay (##91). Trước đây chỉ log server biết chuyện đó. */}
+                                        {msg.servedModel && msg.servedModel !== msg.model && (
+                                            <p className="mt-1.5 flex items-start gap-1.5 text-[11px] text-gray-500 dark:text-gray-400">
+                                                <Info className="w-3.5 h-3.5 shrink-0 mt-px" />
+                                                <span>
+                                                    {t('ai.servedBy', {
+                                                        model: modelLabelOf(msg.servedModel),
+                                                        picked: modelLabelOf(msg.model),
+                                                    })}
+                                                </span>
+                                            </p>
+                                        )}
                                         {/* LUÔN hiện, không còn `opacity-0 group-hover`.
                                             Trên màn cảm ứng không có trạng thái rê chuột,
                                             nên nút ẩn theo hover là nút KHÔNG TỒN TẠI với
@@ -1889,33 +1907,13 @@ export default function GeminiModal({
                         Backend cũ không có danh sách thì về dòng cũ: tên model mặc định. */}
                     <div className="mt-2 flex items-center gap-2 min-w-0 text-[11px]">
                         {modelOptions && modelOptions.length > 1 ? (
-                            <div
-                                role="radiogroup"
-                                aria-label={t('ai.model.label')}
-                                className="shrink-0 inline-flex p-0.5 rounded-lg bg-gray-100 dark:bg-gray-800"
-                            >
-                                {modelOptions.map((m) => {
-                                    const active = m.id === selectedModel;
-                                    return (
-                                        <button
-                                            key={m.id}
-                                            type="button"
-                                            role="radio"
-                                            aria-checked={active}
-                                            disabled={isThinking}
-                                            onClick={() => pickModel(m.id)}
-                                            title={m.id}
-                                            className={`px-2.5 py-1 rounded-md font-medium transition-colors cursor-pointer disabled:cursor-not-allowed ${
-                                                active
-                                                    ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm'
-                                                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 disabled:opacity-50'
-                                            }`}
-                                        >
-                                            {m.label}
-                                        </button>
-                                    );
-                                })}
-                            </div>
+                            // Hơn chục model (##91) — menu thả lên, gom theo hãng; xem AiModelPicker.
+                            <AiModelPicker
+                                models={modelOptions}
+                                value={selectedModel}
+                                onChange={pickModel}
+                                disabled={isThinking}
+                            />
                         ) : (
                             status?.model && (
                                 <span className="shrink-0 font-mono text-gray-400 dark:text-gray-500">

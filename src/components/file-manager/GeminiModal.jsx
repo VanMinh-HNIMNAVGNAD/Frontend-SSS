@@ -1232,6 +1232,10 @@ export default function GeminiModal({
             ? Math.min(100, Math.round((quota.used / quota.limit) * 100))
             : 100
         : 0;
+    // Đã dùng mà làm tròn ra 0%: hạn mức gói trả phí nhân theo số tháng (×6, ×12) nên dùng cả
+    // triệu token vẫn dưới 0,5% — hiện "0%" với thanh rỗng thì đọc như thể không lượt nào được ghi.
+    const usedTiny = usedPercent === 0 && (quota?.used ?? 0) > 0;
+    const usedPercentLabel = usedTiny ? '<1' : usedPercent;
     // Ngày cấp lại, hiển thị theo giờ VN. Chu kỳ là 30 ngày tính từ ngày mua gói (không
     // còn là tháng dương lịch), nên câu chữ phải nói NGÀY cụ thể chứ không nói "đầu tháng".
     const formatResetDate = (value) =>
@@ -1501,8 +1505,8 @@ export default function GeminiModal({
                                             ? t('ai.quota.emptyPlan', { term: quotaTermLabel })
                                             : t('ai.quota.empty')
                                         : planTerm
-                                          ? t('ai.quota.usedPercentPlan', { percent: usedPercent, term: quotaTermLabel })
-                                          : t('ai.quota.usedPercent', { percent: usedPercent })}
+                                          ? t('ai.quota.usedPercentPlan', { percent: usedPercentLabel, term: quotaTermLabel })
+                                          : t('ai.quota.usedPercent', { percent: usedPercentLabel })}
                                 </span>
                                 <span className="text-gray-400 dark:text-gray-500 truncate hidden sm:inline">
                                     · {displayPlanName(quota.planName, language)}
@@ -1523,7 +1527,7 @@ export default function GeminiModal({
                                           ? 'bg-amber-500'
                                           : 'bg-gray-400 dark:bg-gray-500'
                                 }`}
-                                style={{ width: `${usedPercent}%` }}
+                                style={{ width: usedTiny ? '1%' : `${usedPercent}%` }}
                             />
                         </div>
                     </div>

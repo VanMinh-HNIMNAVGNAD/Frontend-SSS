@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 
 import AiBubble from './AiBubble';
+import AiEffortBar from './AiEffortBar';
 import AiModelPicker from './AiModelPicker';
 import { aiApi } from '../../services/api';
 import { useLanguage } from '../../context/LanguageContext';
@@ -106,6 +107,56 @@ const resolveModelChoice = (models, picked) => {
 };
 
 /**
+ * Mức suy luận đã chọn, nhớ RIÊNG cho từng model: `{ [modelId]: 'low' | 'medium' | 'high' | 'max' }`.
+ *
+ * Theo model chứ không một mức chung: cùng chữ "Cao" quy ra tham số và thời gian chờ khác nhau hẳn
+ * giữa các model (Gemini 4 Argon ở mức Cao có thể nghĩ vài phút, 3.5 Flash vài giây), nên người
+ * dùng thường muốn Argon ở mức thấp hơn Flash — một mức chung bắt họ chỉnh lại mỗi lần đổi model.
+ */
+const EFFORT_STORAGE_KEY = 'driver:aiEffort';
+const readStoredEfforts = () => {
+    try {
+        const parsed = JSON.parse(localStorage.getItem(EFFORT_STORAGE_KEY) || '{}');
+        return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+    } catch {
+        return {};
+    }
+};
+
+/**
+ * Mức sẽ gửi đi cho một model, hoặc `null` = KHÔNG gửi `effort`: backend cũ chưa có thanh này
+ * (`status.effort` vắng — `forbidNonWhitelisted` làm MỌI lượt hỏi có trường lạ ăn 400), hoặc model
+ * không chỉnh được (Claude, Grok). Mức đã nhớ mà model không còn nhận thì về mặc định của máy chủ.
+ */
+const resolveEffortChoice = (status, modelId, stored) => {
+    const levels = status?.models?.find((m) => m.id === modelId)?.efforts;
+    if (!status?.effort || !Array.isArray(levels) || !levels.length) return null;
+    const picked = stored?.[modelId];
+    if (levels.includes(picked)) return picked;
+    return levels.includes(status.effort.default) ? status.effort.default : levels[0];
+};
+
+/** Nút "Tra cứu web" bật hay tắt — nhớ theo trình duyệt, mặc định BẬT. */
+const WEB_SEARCH_STORAGE_KEY = 'driver:aiWebSearch';
+const readStoredWebSearch = () => {
+    try {
+        return localStorage.getItem(WEB_SEARCH_STORAGE_KEY) !== '0';
+    } catch {
+        return true;
+    }
+};
+
+/**
+ * `webSearch` sẽ gửi đi, hoặc `undefined` = không gửi và không hiện nút: backend cũ (chưa có
+ * `status.webSearch`), người vận hành đã tắt tra cứu, hoặc model không có công cụ tìm kiếm.
+ */
+const resolveWebSearchChoice = (status, modelId, on) => {
+    if (!status?.webSearch?.enabled) return undefined;
+    if (status.models?.find((m) => m.id === modelId)?.webSearch === false) return undefined;
+    return Boolean(on);
+};
+
+/**
  * Trần nguồn ngữ cảnh mỗi lượt hỏi — mục Drive và tệp tải từ máy CỘNG LẠI.
  *
  * Phải khớp `MAX_CONTEXT_SOURCES` ở `backend/src/ai/dto/ask-ai.dto.ts`. Lệch thì giao
@@ -162,7 +213,10 @@ function formatClock(seconds, language) {
  * Widget "Search Suggestions" của Google, dựng trong SHADOW DOM.
  *
  * Vì sao phải hiện: đó là điều khoản sử dụng của Grounding with Google Search — dùng
- * grounding thì phải hiện các chip gợi ý tìm kiếm của Google kèm liên kết.
+ * grounding thì phải hiện các chip gợi ý tìm kiếm của Google kèm liên kết. Từ 20/10/2026 công cụ
+ * mặc định là Web Grounding for Enterprise (Google không lưu dữ liệu), và nó có ĐÚNG điều khoản
+ * đó, trả widget cùng hình dạng (`searchEntryPoint.renderedContent`, ~5KB, không có script — dò
+ * thật trên 11 cặp model/region), nên chỗ này dùng nguyên cho cả hai.
  *
  * Vì sao shadow DOM chứ không phải `dangerouslySetInnerHTML` như phần markdown: HTML này
  * mang theo một khối `<style>` KHÔNG có phạm vi, khai các tên class rất chung —
@@ -297,6 +351,16 @@ export default function GeminiModal({
 
     // Model người dùng bấm chọn dưới ô nhập (id Vertex, ví dụ 'gemini-2.5-flash').
     const [pickedModel, setPickedModel] = useState(readStoredModel);
+    // Mức suy luận theo từng model, và nút "Tra cứu web" — xem `resolveEffortChoice`.
+    const [effortByModel, setEffortByModel] = useState(readStoredEfforts);
+    const [webSearchOn, setWebSearchOn] = useState(readStoredWebSearch);
+    // Mức của lượt ĐANG chạy (không phải mức đang chọn trên thanh — người dùng đổi được trong lúc
+    // chờ) và số giây nó đã chờ: dòng "Đang suy luận kỹ… 1:05" đọc hai thứ này. Mốc bắt đầu nằm
+    // trong ref, số giây nằm trong state do đồng hồ đặt — đọc `Date.now()` ngay lúc render là
+    // thứ React Compiler cấm (`react-hooks/purity`).
+    const [runEffort, setRunEffort] = useState(null);
+    const thinkingSinceRef = useRef(0);
+    const [thinkingSeconds, setThinkingSeconds] = useState(0);
     // Danh sách cuộc trò chuyện của khung "Lịch sử" (không phải lịch sử gửi cho Gemini —
     // phần đó backend tự nạp từ DB theo `conversationId`).
     const [historyList, setHistoryList] = useState({ items: [], nextBefore: null });
@@ -359,6 +423,30 @@ export default function GeminiModal({
             localStorage.setItem(MODEL_STORAGE_KEY, id);
         } catch {
             // Không nhớ được thì lần sau về mặc định — không có gì để báo.
+        }
+    };
+
+    // Mức suy luận của model đang chọn (`null` = không hiện thanh, không gửi `effort`).
+    const effortLevels = modelOptions?.find((m) => m.id === selectedModel)?.efforts ?? [];
+    const selectedEffort = resolveEffortChoice(status, selectedModel, effortByModel);
+    const pickEffort = (level) => {
+        const next = { ...effortByModel, [selectedModel]: level };
+        setEffortByModel(next);
+        try {
+            localStorage.setItem(EFFORT_STORAGE_KEY, JSON.stringify(next));
+        } catch {
+            // Không nhớ được thì lần sau về mức mặc định của máy chủ.
+        }
+    };
+    // `undefined` = không hiện nút, không gửi `webSearch`.
+    const webSearchChoice = resolveWebSearchChoice(status, selectedModel, webSearchOn);
+    const toggleWebSearch = () => {
+        const next = !webSearchOn;
+        setWebSearchOn(next);
+        try {
+            localStorage.setItem(WEB_SEARCH_STORAGE_KEY, next ? '1' : '0');
+        } catch {
+            // Như trên.
         }
     };
 
@@ -510,9 +598,16 @@ export default function GeminiModal({
 
     // ── Gửi một câu hỏi ────────────────────────────────────────────────────
     const send = useCallback(
-        // `model` truyền tay chỉ ở lượt tự chạy lúc mở khung: lúc đó `status` vừa được đặt
-        // nhưng closure này vẫn là của lần render trước, nên `selectedModel` còn `null`.
-        async ({ action = 'chat', text = '', model = selectedModel }) => {
+        // `model` / `effort` / `webSearch` truyền tay chỉ ở lượt tự chạy lúc mở khung: lúc đó
+        // `status` vừa được đặt nhưng closure này vẫn là của lần render trước, nên `selectedModel`
+        // còn `null`.
+        async ({
+            action = 'chat',
+            text = '',
+            model = selectedModel,
+            effort = selectedEffort,
+            webSearch = webSearchChoice,
+        }) => {
             // Bản trước `if (!item) return` — tức không có mục là không hỏi được gì. Nay
             // điều kiện là "có CÁI GÌ ĐÓ để gửi": một mục Drive, một tệp vừa đính, hoặc
             // một câu hỏi gõ tay (hỏi chay về chính driveR vẫn trả lời được — xem ghi chú
@@ -538,6 +633,9 @@ export default function GeminiModal({
 
             setError(null);
             setIsThinking(true);
+            setRunEffort(effort ?? null);
+            thinkingSinceRef.current = Date.now();
+            setThinkingSeconds(0);
             setMessages((prev) => [...prev, { sender: 'user', text: label, action }]);
 
             try {
@@ -558,6 +656,10 @@ export default function GeminiModal({
                         ...(action === 'chat' ? { prompt: text } : {}),
                         ...(conversationId ? { conversationId } : {}),
                         ...(model ? { model } : {}),
+                        // Chỉ khi backend có hai trường này (`status.effort` / `status.webSearch`)
+                        // — xem `resolveEffortChoice` và `resolveWebSearchChoice`.
+                        ...(effort ? { effort } : {}),
+                        ...(typeof webSearch === 'boolean' ? { webSearch } : {}),
                         lang: language === 'en' ? 'en' : 'vi',
                     },
                     {
@@ -586,10 +688,17 @@ export default function GeminiModal({
                         // ở sự kiện `done`. Bản cũ gán thẳng cờ "đã bật công cụ" vào bong
                         // bóng ngay tại đây, và đó là gốc của cái chip "Tra cứu web" hiện
                         // trên mọi câu trả lời kể cả lượt không hề search.
-                        onMeta: ({ context, model }) => {
+                        onMeta: ({ context, model, effort: appliedEffort }) => {
                             setMessages((prev) => [
                                 ...prev,
-                                { sender: 'ai', text: '', context, model, streaming: true },
+                                {
+                                    sender: 'ai',
+                                    text: '',
+                                    context,
+                                    model,
+                                    effort: appliedEffort ?? null,
+                                    streaming: true,
+                                },
                             ]);
                         },
                         // NỐI vào phần đã có. `streaming` là cờ nhận dạng bong bóng đang
@@ -618,6 +727,8 @@ export default function GeminiModal({
                         model: res.model,
                         // Đích lui (một model KHÁC) đã trả lời thay (##91) — ghi chú dưới câu trả lời.
                         servedModel: res.servedModel ?? null,
+                        // Mức suy luận backend THẬT SỰ áp (`null` = model không chỉnh được / backend cũ).
+                        effort: res.effort ?? null,
                         grounded: res.grounded,
                         webSearch: res.webSearch,
                         tokens: res.quota?.lastRequestTokens,
@@ -673,6 +784,8 @@ export default function GeminiModal({
             } finally {
                 setIsThinking(false);
                 setReconnecting(false);
+                setRunEffort(null);
+                setThinkingSeconds(0);
                 abortRef.current = null;
                 runIdRef.current = null;
             }
@@ -687,6 +800,8 @@ export default function GeminiModal({
             uploading,
             minimized,
             selectedModel,
+            selectedEffort,
+            webSearchChoice,
         ],
     );
 
@@ -756,9 +871,12 @@ export default function GeminiModal({
             }
             if (nextStatus?.enabled === false) return;
             if (initialAction && initialAction !== 'chat') {
+                const model = resolveModelChoice(nextStatus?.models, readStoredModel());
                 sendRef.current({
                     action: initialAction,
-                    model: resolveModelChoice(nextStatus?.models, readStoredModel()),
+                    model,
+                    effort: resolveEffortChoice(nextStatus, model, readStoredEfforts()),
+                    webSearch: resolveWebSearchChoice(nextStatus, model, readStoredWebSearch()),
                 });
             } else {
                 inputRef.current?.focus();
@@ -870,6 +988,19 @@ export default function GeminiModal({
     useEffect(() => {
         scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
     }, [messages, isThinking, error]);
+
+    // Đồng hồ của dòng "Đang phân tích… 0:42". Có từ khi có mức Cao/Tối đa: ở đó model có thể nghĩ
+    // vài phút trước chữ đầu (Gemini 4 Argon mức Cao: 173 giây), và một dòng chữ đứng yên ngần ấy
+    // thời gian đọc y như máy treo. Chỉ chạy khi đang chờ và panel đang mở — thu nhỏ thì bong bóng
+    // đã có vòng xoay riêng.
+    useEffect(() => {
+        if (!isThinking || minimized) return undefined;
+        const timer = setInterval(
+            () => setThinkingSeconds(Math.floor((Date.now() - thinkingSinceRef.current) / 1000)),
+            1000,
+        );
+        return () => clearInterval(timer);
+    }, [isThinking, minimized]);
 
     // `!item` KHÔNG còn là điều kiện đóng. Đó là nguyên nhân của "bấm nút AI trên thanh
     // điều hướng thì không có gì xảy ra": `AiPanelContext.openAi(null)` đã bỏ chặn và đã
@@ -1148,6 +1279,13 @@ export default function GeminiModal({
                             : t('ai.context.grounded')}
                     </span>
                 )}
+                {/* Mức suy luận backend THẬT SỰ áp cho lượt này — đặt cạnh số token vì hai
+                    thứ đi cùng nhau: mức Tối đa là lý do thường gặp nhất của một lượt đắt. */}
+                {msg?.effort && (
+                    <span className="text-gray-400 dark:text-gray-500 shrink-0">
+                        {t('ai.effort.used', { level: t(`ai.effort.${msg.effort}`) })}
+                    </span>
+                )}
                 {/* Token của ĐÚNG lượt này: người dùng thấy ngay câu hỏi nào đắt, thay vì
                     chỉ thấy tổng hạn mức tụt xuống mà không biết vì sao. */}
                 {msg?.tokens > 0 && (
@@ -1257,6 +1395,11 @@ export default function GeminiModal({
     const quotaTermLabel = planTerm ? t(monthsTermKey(quota.periodMonths), { count: quota.periodMonths }) : '';
     const fileTerm = Boolean(fileQuota?.periodMonths ?? quota?.periodMonths);
     const inputLocked = aiDisabled || quotaBlocked;
+    // "0:42" — thời gian lượt đang chạy đã chờ; rỗng trong 3 giây đầu cho khỏi nhấp nháy ở lượt nhanh.
+    const thinkingElapsed =
+        thinkingSeconds >= 3
+            ? `${Math.floor(thinkingSeconds / 60)}:${String(thinkingSeconds % 60).padStart(2, '0')}`
+            : '';
 
     /**
      * Bong bóng của trạng thái thu nhỏ.
@@ -1664,7 +1807,17 @@ export default function GeminiModal({
                     {isThinking && (
                         <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
                             <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            {reconnecting ? t('ai.reconnecting') : t('ai.thinking')}
+                            {reconnecting
+                                ? t('ai.reconnecting')
+                                : runEffort === 'high' || runEffort === 'max'
+                                  ? t('ai.thinkingDeep')
+                                  : t('ai.thinking')}
+                            {/* Giây đã chờ, hiện từ giây thứ 3 — xem effect đồng hồ ở trên. */}
+                            {thinkingElapsed && (
+                                <span className="font-mono tabular-nums text-gray-400 dark:text-gray-500">
+                                    {thinkingElapsed}
+                                </span>
+                            )}
                         </div>
                     )}
 
@@ -1908,7 +2061,10 @@ export default function GeminiModal({
                         "nhanh" là hứa một điều không đúng. Số đo ở `backend/src/ai/ai-models.ts`.
 
                         Backend cũ không có danh sách thì về dòng cũ: tên model mặc định. */}
-                    <div className="mt-2 flex items-center gap-2 min-w-0 text-[11px]">
+                    {/* `flex-wrap` + dòng lưu ý `basis-24`: còn từ 6rem trở lên sau các nút thì lưu ý
+                        đứng cùng hàng (co lại, cắt "…"); không thì nó xuống hàng riêng — thay vì đẩy
+                        nút chọn model / thanh mức ra khỏi khung trên điện thoại. */}
+                    <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5 min-w-0 text-[11px]">
                         {modelOptions && modelOptions.length > 1 ? (
                             // Hơn chục model (##91) — menu thả lên, gom theo hãng; xem AiModelPicker.
                             <AiModelPicker
@@ -1924,7 +2080,49 @@ export default function GeminiModal({
                                 </span>
                             )
                         )}
-                        <span className="min-w-0 truncate text-gray-400 dark:text-gray-500" title={t('ai.disclaimer')}>
+                        {/* Mức suy luận của MODEL ĐANG CHỌN — ẩn khi model không chỉnh được (Claude,
+                            Grok) hoặc backend cũ chưa có. Khoá trong lúc trả lời như nút chọn model. */}
+                        {selectedEffort && effortLevels.length > 0 && (
+                            <AiEffortBar
+                                levels={effortLevels}
+                                value={selectedEffort}
+                                onChange={pickEffort}
+                                disabled={isThinking}
+                            />
+                        )}
+                        {/* Tra cứu web — BẬT/TẮT cho các lượt hỏi kế tiếp. Ẩn khi người vận hành tắt
+                            hoặc model không có công cụ tìm kiếm. */}
+                        {webSearchChoice !== undefined && (
+                            <button
+                                type="button"
+                                role="switch"
+                                aria-checked={webSearchOn}
+                                aria-label={t('ai.web.label')}
+                                title={
+                                    webSearchOn
+                                        ? t(
+                                              status?.webSearch?.provider === 'google'
+                                                  ? 'ai.web.onGoogle'
+                                                  : 'ai.web.onEnterprise',
+                                          )
+                                        : t('ai.web.off')
+                                }
+                                onClick={toggleWebSearch}
+                                disabled={isThinking}
+                                className={`shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg font-medium transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
+                                    webSearchOn
+                                        ? 'bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-500/15 dark:text-blue-300 dark:hover:bg-blue-500/25'
+                                        : 'bg-gray-100 text-gray-400 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-500 dark:hover:bg-gray-700'
+                                }`}
+                            >
+                                <Globe className="w-3.5 h-3.5" />
+                                <span className={webSearchOn ? '' : 'line-through'}>{t('ai.web.short')}</span>
+                            </button>
+                        )}
+                        <span
+                            className="flex-1 basis-24 min-w-0 truncate text-gray-400 dark:text-gray-500"
+                            title={t('ai.disclaimer')}
+                        >
                             {t('ai.disclaimer')}
                         </span>
                     </div>

@@ -135,6 +135,15 @@ export function sanitizeSearchWidgetHtml(html) {
     // Không có FORCE_BODY thì `<style>` đứng đầu chuỗi bị trình phân tích đẩy vào <head> và mất.
     FORCE_BODY: true,
     FORBID_TAGS: ['form', 'input', 'button', 'textarea', 'select', 'option', 'iframe', 'script'],
-    ALLOWED_URI_REGEXP: /^https?:/i,
+    // CHỈ http(s) trong số các SCHEME, nhưng giá trị KHÔNG mang scheme thì cho qua — đúng dạng
+    // regexp mặc định của DOMPurify, bỏ bớt mailto/tel/…
+    //
+    // Bản trước là `/^https?:/i`, và nó hỏng theo cách không ai thấy: DOMPurify thử regexp này
+    // với MỌI thuộc tính không nằm trong nhóm "URI-safe" của nó, không riêng `href` — nên
+    // `width="18"`, `viewBox`, `fill="#4285F4"`, `d="M42…"` của logo Google đều trượt và bị xoá.
+    // Logo tàng hình, SVG về cỡ mặc định 300×150, widget thành một khung trống cao 166px thay vì
+    // 48px với các chip bị đẩy ra mép (dựng thử 20/10/2026 với widget thật của Web Grounding for
+    // Enterprise). Mà điều khoản của Google bắt hiện widget ĐÚNG như họ trả về.
+    ALLOWED_URI_REGEXP: /^(?:https?:|[^a-z]|[a-z+.-]+(?:[^a-z+.\-:]|$))/i,
   });
 }

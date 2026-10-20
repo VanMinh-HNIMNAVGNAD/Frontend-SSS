@@ -419,19 +419,35 @@ function MediaSupportNotice({ diagnosis, fileName, onDownload, t, inline = false
 export default function FilePreviewModal({ item, siblings = null, onNavigate, onClose, initialPanel = null }) {
   const { t } = useLanguage();
   const { getPreviewUrl } = useFiles();
-  // Panel AI dùng chung với menu chuột phải (`AiPanelProvider`). `aiItem` ở đây KHÔNG phải
-  // để hiển thị gì — nó là thứ cho biết panel đang đè lên trên, dùng ở nhánh phím tắt.
-  const { openAi, aiItem, closeAi } = useAiPanel();
+  // Panel AI dùng chung với menu chuột phải (`AiPanelProvider`).
+  //
+  // `aiDocked` = panel đang THẬT SỰ nằm ở cột phải — mở và KHÔNG thu nhỏ. Mọi thứ ở cửa sổ
+  // này phải hỏi câu đó, không hỏi `aiItem`: thu nhỏ giữ nguyên `aiItem` (hội thoại sống tiếp
+  // trong bong bóng), nên bản trước vẫn chừa lề phải 26–30rem cho một panel đã biến mất —
+  // vùng xem bị đẩy lệch sang trái, nửa phải trống trơn (lỗi báo 20/10/2026). Và thu nhỏ lại
+  // xảy ra ở MỌI cú bấm vào vùng xem (bấm ra ngoài panel = thu nhỏ), nên lỗi đó gặp gần như
+  // mỗi lần dùng AI cạnh tài liệu.
+  const { openAi, aiOpen, aiMinimized } = useAiPanel();
+  const aiDocked = aiOpen && !aiMinimized;
   // Cột "Nhận xét" bên phải (kiểu Google Drive). Nạp danh sách ngay khi mở tệp để nút hiện
-  // được số lượng; cột chỉ dựng khi mở. Cột này và panel AI cùng chiếm mép phải nên mở cái
-  // này là đóng cái kia.
+  // được số lượng; cột chỉ dựng khi mở. Cột này và panel AI cùng chiếm mép phải nên không
+  // để cả hai cùng mở.
   const comments = useFileComments(item?.id);
   // Mở sẵn khi đi từ thông báo "nhận xét mới" (##91) — chỉ là trạng thái ĐẦU, bấm nút vẫn gập được.
   const [commentsOpen, setCommentsOpen] = useState(initialPanel === 'comments');
-  const toggleComments = useCallback(() => {
-    if (aiItem) closeAi();
-    setCommentsOpen((open) => !open);
-  }, [aiItem, closeAi]);
+  // Không đóng panel AI ở đây nữa. Panel đang ở cột phải thì cú bấm vào nút này đã THU NHỎ nó
+  // (bấm ra ngoài panel — `pointerdown` tới trước `click`), và bản trước còn `closeAi()` tiếp:
+  // hội thoại mà người dùng vừa cố ý giữ trong bong bóng bị xoá mất chỉ vì mở cột nhận xét.
+  const toggleComments = useCallback(() => setCommentsOpen((open) => !open), []);
+  // Chiều ngược lại: mở lại panel AI từ bong bóng (hoặc bấm "Hỏi AI") trong lúc cột nhận xét
+  // đang mở thì gập cột nhận xét — mép phải chỉ dành cho một thứ. Điều chỉnh NGAY trong lúc
+  // render khi `aiDocked` đổi (mẫu "adjusting state when a prop changes" của React) chứ không
+  // trong effect: effect thì vẽ một khung hình có cả hai cột chồng nhau rồi mới gập.
+  const [prevAiDocked, setPrevAiDocked] = useState(aiDocked);
+  if (aiDocked !== prevAiDocked) {
+    setPrevAiDocked(aiDocked);
+    if (aiDocked) setCommentsOpen(false);
+  }
   const [url, setUrl] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -569,7 +585,11 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
       // Panel AI mở ĐÈ lên cửa sổ này thì nó sở hữu bàn phím. Không có nhánh này thì một
       // phím Escape đóng CẢ HAI (hai listener cùng nghe trên window), và người dùng chỉ
       // muốn đóng panel lại mất luôn cửa sổ xem trước phía dưới.
-      if (aiItem) return;
+      //
+      // Thu nhỏ thành bong bóng thì trả bàn phím về đây (Esc, ‹ ›, +/−, R): panel thu nhỏ tự
+      // bỏ qua Esc, nên không còn ai nghe phím — bản trước hỏi `aiItem` (vẫn còn lúc thu nhỏ)
+      // và cửa sổ xem trước "điếc" cho tới khi đóng hẳn AI.
+      if (aiDocked) return;
 
       // Đang gõ trong một ô nhập thì mọi phím tắt một chữ phải im. `r` là phím xoay ảnh,
       // nên thiếu nhánh này thì gõ chữ "r" ở bất kỳ ô nào cũng xoay tệp đang xem — trước
@@ -596,7 +616,7 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onClose, aiItem, handleZoomIn, handleZoomOut, goPrev, goNext, commentsOpen]);
+  }, [onClose, aiDocked, handleZoomIn, handleZoomOut, goPrev, goNext, commentsOpen]);
 
   const handleRotate = () => setRotation((prev) => (prev + 90) % 360);
   const handleReset = () => {
@@ -894,6 +914,8 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
     // được cửa sổ xem trước. Chừa ra đúng bề rộng của panel (26rem, 30rem từ `lg`) là hai
     // thứ đứng cạnh nhau: tài liệu bên trái, câu trả lời bên phải, không cái nào che cái
     // nào. Chỉ từ `sm` trở lên — trên điện thoại panel là hộp thoại giữa màn hình.
+    // CHỈ khi panel đang nằm đó (`aiDocked`): thu nhỏ thành bong bóng thì trả lại trọn bề
+    // ngang, vùng xem về giữa (`transition-[padding]` làm nó trượt về thay vì nhảy).
     //
     // `@container`: bố cục bên trong đọc bề ngang CỦA CHÍNH CỬA SỔ NÀY (`@lg:`, `@2xl:`),
     // không đọc bề ngang màn hình (`sm:`). Panel AI mở ra thì cửa sổ chỉ còn phần bên
@@ -907,7 +929,7 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
     // trên nền đen trong suốt không bao giờ thành chữ đen trên nền đen ở theme sáng.
     <div
       className={`dark @container fixed inset-0 z-50 flex flex-col bg-black/80 animate-in fade-in duration-200 text-white select-none transition-[padding] duration-200 ${
-        aiItem ? 'sm:pr-[26rem] lg:pr-[30rem]' : ''
+        aiDocked ? 'sm:pr-[26rem] lg:pr-[30rem]' : ''
       }`}
     >
       {/* Thanh đầu: [Đóng] [biểu tượng loại tệp] tên tệp ………… [Hỏi AI] [Tải xuống] */}

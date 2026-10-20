@@ -660,7 +660,8 @@ export function FileProvider({ children }) {
   const belongsToCurrentView = useCallback((entity) => {
     const view = viewRef.current;
     if (!view || !entity) return false;
-    if (!['my-drive', 'home', 'shared-drives'].includes(view.activeTab)) return false;
+    const isTagView = view.activeTab === 'tags';
+    if (!isTagView && !['my-drive', 'home', 'shared-drives'].includes(view.activeTab)) return false;
 
     // Tệp bị Spam Guard gắn cờ lúc upload KHÔNG thuộc về mấy tab này — cả ba đều lọc
     // `is_spam = false` phía server. Thiếu chốt này thì card của nó vẫn được chèn vào
@@ -671,6 +672,9 @@ export function FileProvider({ children }) {
 
     if (view.search) return false;
     if (view.filterType !== 'all' || view.filterDate !== 'all' || view.filterOwner !== 'all') return false;
+
+    // Trang "Nhãn" (##92): mục mang đúng nhãn đang xem, ở bất cứ thư mục nào.
+    if (isTagView) return Boolean(view.currentTagId) && (entity.tags ?? []).some((tag) => tag.id === view.currentTagId);
 
     const parentId = entity.parentId ?? null;
     const viewFolderId = view.currentFolderId ?? null;
@@ -1691,6 +1695,53 @@ export function FileProvider({ children }) {
     if (silentSyncTimerRef.current) clearTimeout(silentSyncTimerRef.current);
   }, []);
 
+  // ── Mục mới tạo ở trang "Nhãn" (##92) ─────────────────────────────────────
+  //
+  // Trang Nhãn không phải một thư mục: tải lên hay tạo thư mục khi đang đứng ở đó vẫn vào GỐC
+  // Drive của tôi — không có chỗ nào khác để đặt chúng. Bản ##91 chỉ dừng ở đó, nên người dùng
+  // tải tệp lên ngay trong trang Nhãn, thấy nó nằm ở Drive của tôi, quay lại trang Nhãn thì vẫn
+  // trống trơn. Nay mục mới tự mang nhãn đang xem và hiện ngay trên trang đó.
+  //
+  // Việc gắn do TagsContext làm — nó giữ tên, màu và số mục của từng nhãn — nhưng TagsContext là
+  // CON của provider này, nên nó đăng ký hàm gắn vào đây (`registerAutoTagger`).
+  const autoTaggerRef = useRef(null);
+  const registerAutoTagger = useCallback((tagger) => {
+    autoTaggerRef.current = tagger;
+    return () => {
+      if (autoTaggerRef.current === tagger) autoTaggerRef.current = null;
+    };
+  }, []);
+
+  /**
+   * Gắn nhãn `tagId` lên các mục vừa tạo, rồi chèn chúng vào trang Nhãn nếu người dùng còn đứng
+   * đúng trang đó. Không ai chờ nó và nó không ném: tệp đã lên xong, nhãn là phần thêm — gắn hỏng
+   * thì TagsContext báo, còn mục vẫn nằm yên ở Drive của tôi.
+   */
+  const tagCreatedItems = useCallback(async (tagId, entities) => {
+    const tagger = autoTaggerRef.current;
+    const targets = entities.filter((entity) => entity?.id && !entity.isSpam && !entity.isTrash);
+    if (!tagId || !tagger || targets.length === 0) return;
+
+    const result = await tagger(tagId, targets.map((entity) => entity.id));
+    if (!result) return;
+    if (result.chip) {
+      const applied = new Set(result.applied);
+      const shown = targets
+        .filter((entity) => applied.has(entity.id))
+        .map((entity) => ({
+          ...entity,
+          tags: [...(entity.tags ?? []).filter((tag) => tag.id !== tagId), result.chip],
+        }))
+        .filter(belongsToCurrentView);
+      // `skipExisting`: thư mục gốc của một lượt tải thư mục là bản DỰNG Ở CLIENT — tải trùng tên
+      // thì backend trả id thư mục cũ, và bản dựng không được đè lên dữ liệu thật đang hiện.
+      if (shown.length > 0) upsertItems(shown, { skipExisting: true });
+    }
+    // Lượt đồng bộ cuối hàng đợi có thể đã chạy TRƯỚC khi nhãn kịp gắn: hẹn thêm một lượt sau
+    // mốc này để danh sách đang xem (và chip nhãn trên từng hàng) khớp máy chủ.
+    scheduleSilentSync();
+  }, [belongsToCurrentView, upsertItems, scheduleSilentSync]);
+
   /**
    * Tệp vừa upload xong: chèn card mới, hẹn cập nhật quota + đồng bộ cuối hàng đợi.
    *
@@ -1698,11 +1749,19 @@ export function FileProvider({ children }) {
    * @param {File}   [sourceFile] Chính tệp người dùng đã chọn. Truyền vào để dựng
    *   thumbnail NGAY TỪ BẢN TRONG RAM — không có nó thì lát nữa cái thẻ hiện ra sẽ
    *   tải lại đúng tệp này từ cloud chỉ để thu nhỏ (xem `utils/thumbnailPrimer.js`).
+   * @param {string|null} [tagId] Nhãn tệp phải mang — tệp được tải lên từ trang Nhãn (##92).
    */
-  const onUploadedFile = useCallback((entity, sourceFile) => {
+  const onUploadedFile = useCallback((entity, sourceFile, tagId = null) => {
     if (entity && belongsToCurrentView(entity)) {
       upsertItems(entity);
+    } else if (entity) {
+      // Tệp lên xong ở chỗ người dùng KHÔNG đang xem: tải từ trang Nhãn thì tệp vào gốc Drive
+      // của tôi, hoặc người dùng đã sang thư mục khác giữa chừng. Bản lưu của thư mục đích có
+      // thể còn "tươi" (`LIST_REVALIDATE_AFTER_MS`), mở ra sẽ không hỏi máy chủ — và thiếu đúng
+      // tệp vừa tải (##92).
+      staleListViewsForFolders([entity.parentId ?? null]);
     }
+    if (entity && tagId) void tagCreatedItems(tagId, [entity]);
 
     // Chạy nền, không chờ, không chặn gì: đây là việc làm THÊM cho lần sau.
     if (entity && sourceFile) primeThumbnailsForUpload(entity, sourceFile);
@@ -1716,7 +1775,7 @@ export function FileProvider({ children }) {
 
     scheduleAnalyticsRefresh();
     scheduleSilentSync();
-  }, [belongsToCurrentView, upsertItems, scheduleAnalyticsRefresh, scheduleSilentSync, t]);
+  }, [belongsToCurrentView, upsertItems, staleListViewsForFolders, tagCreatedItems, scheduleAnalyticsRefresh, scheduleSilentSync, t]);
 
   const resetFilters = useCallback(() => {
     setFilterTypeState('all');
@@ -2198,11 +2257,16 @@ export function FileProvider({ children }) {
     const created = res?.id ? res : res?.data?.id ? res.data : null;
     if (created && belongsToCurrentView(created)) {
       upsertItems(created);
+    } else if (created) {
+      // Tạo từ trang Nhãn: thư mục nằm ở gốc Drive của tôi — xem `onUploadedFile`.
+      staleListViewsForFolders([created.parentId ?? null]);
     }
+    // Trang Nhãn (##92): thư mục mới mang luôn nhãn đang xem.
+    if (created && activeTab === 'tags' && currentTagId) void tagCreatedItems(currentTagId, [created]);
     scheduleSilentSync();
 
     return res;
-  }, [currentFolderId, activeTab, currentSharedDriveId, belongsToCurrentView, upsertItems, scheduleSilentSync, t]);
+  }, [currentFolderId, activeTab, currentSharedDriveId, currentTagId, belongsToCurrentView, upsertItems, staleListViewsForFolders, tagCreatedItems, scheduleSilentSync, t]);
 
   /**
    * Tạo folder im lặng (không trigger loading, không gọi fetchFiles).
@@ -2643,6 +2707,7 @@ export function FileProvider({ children }) {
           lastModified: fileObj.lastModified || null,
           parentId: parentId || null,
           sharedDriveId: sharedDriveId || null,
+          tagId: job.tagId || null,
         });
 
       persist(uploadedBytes);
@@ -2802,7 +2867,7 @@ export function FileProvider({ children }) {
         if (fileObj.size > CHUNK_THRESHOLD) {
           const uploadedEntity = await runChunkedUploadJob(job, signal);
           updateJob(id, { percent: 100, status: 'done' });
-          onUploadedFile(uploadedEntity, fileObj);
+          onUploadedFile(uploadedEntity, fileObj, job.tagId);
           return;
         }
 
@@ -2944,7 +3009,7 @@ export function FileProvider({ children }) {
         updateJob(id, { percent: 100, status: 'done' });
 
         // Chỉ thêm đúng card của tệp vừa xong — KHÔNG tải lại cả thư mục
-        onUploadedFile(uploadedEntity, fileObj);
+        onUploadedFile(uploadedEntity, fileObj, job.tagId);
       } catch (err) {
         // Bị huỷ hoặc tạm dừng thì không phải lỗi: không hiện đỏ, không mời "Thử lại"
         const wasAborted =
@@ -2994,9 +3059,16 @@ export function FileProvider({ children }) {
   /**
    * Thêm 1 file vào upload queue.
    * parentId: override folder đích (dùng khi upload folder có cấu trúc — mục 3).
+   * tagId: nhãn tệp phải mang khi lên xong — mặc định là nhãn của trang Nhãn đang đứng (##92).
    */
   const enqueueUpload = useCallback(
-    (fileObj, parentId = currentFolderId, targetProvider = undefined, sharedDriveId = (activeTab === 'shared-drives' ? currentSharedDriveId : undefined)) => {
+    (
+      fileObj,
+      parentId = currentFolderId,
+      targetProvider = undefined,
+      sharedDriveId = (activeTab === 'shared-drives' ? currentSharedDriveId : undefined),
+      tagId = (activeTab === 'tags' ? currentTagId : null),
+    ) => {
       if (!fileObj) return;
       const jobId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
       const job = {
@@ -3005,6 +3077,7 @@ export function FileProvider({ children }) {
         fileObj,
         parentId,
         sharedDriveId,
+        tagId,
         targetProvider,
         percent: 0,
         status: 'pending',
@@ -3024,7 +3097,7 @@ export function FileProvider({ children }) {
         });
       }
     },
-    [currentFolderId, activeTab, currentSharedDriveId, dispatchRunner, enqueueJob],
+    [currentFolderId, activeTab, currentSharedDriveId, currentTagId, dispatchRunner, enqueueJob],
   );
 
   /**
@@ -3193,6 +3266,7 @@ export function FileProvider({ children }) {
         fileObj: file,
         parentId: session.parentId || null,
         sharedDriveId: session.sharedDriveId || undefined,
+        tagId: session.tagId || null,
         targetProvider: undefined,
         percent: session.percent || 0,
         status: 'pending',
@@ -3267,7 +3341,7 @@ export function FileProvider({ children }) {
    *        (kéo–thả, hỗ trợ nhiều thư mục cùng lúc) trong `utils/uploadTree`.
    */
   const uploadEntries = useCallback(
-    async (tree, { parentId, sharedDriveId } = {}) => {
+    async (tree, { parentId, sharedDriveId, tagId } = {}) => {
       const entries = tree?.entries || [];
       const dirPaths = tree?.dirPaths || [];
       if (entries.length === 0 && dirPaths.length === 0) {
@@ -3282,6 +3356,10 @@ export function FileProvider({ children }) {
           : view.activeTab === 'shared-drives'
             ? view.currentSharedDriveId
             : undefined;
+      // Tải lên ở trang Nhãn (##92): mục CẤP 1 — thư mục gốc của cây và tệp nằm thẳng ở chỗ chọn
+      // — mang nhãn đang xem. Tệp bên trong các thư mục đó thì không: nhãn trên thư mục đã dẫn tới.
+      const rootTagId =
+        tagId !== undefined ? tagId : view.activeTab === 'tags' ? view.currentTagId : null;
 
       const sortedDirPaths = buildSortedDirPaths({ entries, dirPaths });
 
@@ -3346,12 +3424,15 @@ export function FileProvider({ children }) {
           isSpam: false,
           createdAt: now,
           updatedAt: now,
-        }))
-        .filter(belongsToCurrentView);
+        }));
+      const shownFolders = rootFolders.filter(belongsToCurrentView);
 
-      if (rootFolders.length > 0) {
-        upsertItems(rootFolders, { skipExisting: true });
+      if (shownFolders.length > 0) {
+        upsertItems(shownFolders, { skipExisting: true });
       }
+      // Thư mục đích không phải chỗ đang xem (vd. tải từ trang Nhãn) — xem `onUploadedFile`.
+      if (shownFolders.length < rootFolders.length) staleListViewsForFolders([targetParentId ?? null]);
+      if (rootTagId) void tagCreatedItems(rootTagId, rootFolders);
 
       // Tệp chỉ đi vào ĐÚNG thư mục của nó. Thư mục đó không tạo được thì tệp KHÔNG được
       // tải lên: trước đây nó rơi về thư mục đang mở, nên một lỗi tạo cây là cả cây bị đổ
@@ -3365,7 +3446,7 @@ export function FileProvider({ children }) {
           skippedCount += 1;
           return;
         }
-        enqueueUpload(file, targetId, undefined, effectiveSharedDriveId);
+        enqueueUpload(file, targetId, undefined, effectiveSharedDriveId, dirPath ? null : rootTagId);
       });
 
       const missingFolderCount = sortedDirPaths.filter((path) => !batchFolderIdMap[path]).length;
@@ -3389,7 +3470,7 @@ export function FileProvider({ children }) {
         skippedCount,
       };
     },
-    [belongsToCurrentView, upsertItems, enqueueUpload, scheduleSilentSync, t],
+    [belongsToCurrentView, upsertItems, staleListViewsForFolders, tagCreatedItems, enqueueUpload, scheduleSilentSync, t],
   );
 
   // Backward compatibility alias for UI calls
@@ -3539,6 +3620,7 @@ export function FileProvider({ children }) {
     toggleStar,
     updateColor,
     patchItemTags,
+    registerAutoTagger,
     currentTagId,
     moveToTrash,
     moveToTrashBulk,
@@ -3594,7 +3676,7 @@ export function FileProvider({ children }) {
     // ── Lưu trữ ──
     storageInfo, fetchAnalytics,
     // ── Hành động trên file/folder ──
-    fetchFiles, toggleStar, patchItemTags, moveToTrash, moveToTrashBulk, restoreFromTrash, markNotSpam,
+    fetchFiles, toggleStar, patchItemTags, registerAutoTagger, moveToTrash, moveToTrashBulk, restoreFromTrash, markNotSpam,
     deletePermanently, deletePermanentlyBulk,
     emptyTrash, createFolder, createFolderSilent, moveItem, moveItemsTo, openItemLocation, copyItem, renameItem,
     getDownloadUrl, getPreviewUrl, getFileTextContent, createShareLink,

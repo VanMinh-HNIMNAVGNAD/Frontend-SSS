@@ -158,6 +158,14 @@ const vi = {
   'tags.deleteFailed': 'Không xoá được nhãn',
   'tags.applyFailed': 'Không cập nhật được nhãn',
   'tags.partialFailed': '{count} mục không gắn được nhãn (bạn không còn quyền xem)',
+  // Trang Nhãn tự giải thích + mục tạo ở đó tự mang nhãn (##92)
+  'tags.page.about': 'Nhãn gom tệp và thư mục ở mọi nơi — cloudSSS của tôi, mục được chia sẻ với bạn, Bộ nhớ dùng chung — về một chỗ để tìm lại nhanh. Tệp vẫn nằm nguyên chỗ cũ, và chỉ bạn thấy nhãn của mình.',
+  'tags.page.emptyTitle': 'Chưa có mục nào mang nhãn "{name}"',
+  'tags.page.howToTag': 'Chuột phải (hoặc bấm ⋮) vào một tệp hay thư mục bất kỳ → Gắn nhãn → chọn "{name}". Chọn nhiều mục trước để gắn một lượt.',
+  'tags.page.howToUpload': 'Hoặc tải lên ngay tại đây: tệp được lưu vào cloudSSS của tôi và tự mang nhãn này.',
+  'tags.page.uploadHere': 'Tải tệp lên',
+  'tags.page.openMyDrive': 'Mở cloudSSS của tôi',
+  'tags.autoTagFailed': '{count} mục vừa tạo chưa gắn được nhãn. Chuột phải vào mục → Gắn nhãn để thử lại.',
   'common.save': 'Lưu',
   // Chuông thông báo (##91)
   'notifications.title': 'Thông báo',
@@ -168,7 +176,13 @@ const vi = {
   'notifications.unread': 'Chưa đọc',
   'notifications.delete': 'Xoá thông báo',
   'notifications.loadMore': 'Xem thông báo cũ hơn',
-  'notifications.clearRead': 'Dọn thông báo đã đọc',
+  'notifications.clearRead': 'Xoá đã đọc',
+  // ##92
+  'notifications.markRead': 'Đánh dấu đã đọc',
+  'notifications.clearAll': 'Xoá tất cả',
+  'notifications.confirmClearAll': 'Xoá tất cả thông báo? Thao tác này không hoàn tác được.',
+  'notifications.retention': 'Thông báo tự xoá sau {days} ngày.',
+  'notifications.actionFailed': 'Không cập nhật được thông báo. Thử lại sau nhé.',
   'header.account': 'Thông tin tài khoản',
   // Nhãn nút có kèm phím tắt — để nguyên trong bản dịch, không ghép ngoài JSX
   'header.action.cut': 'Cắt (Ctrl+X)',
@@ -304,6 +318,7 @@ const vi = {
   'newBtn.needDrive.uploadFolder': 'Vui lòng mở một cloudSSS dùng chung trước khi tải thư mục lên.',
   'newBtn.foreignFolder': 'Thư mục này do người khác chia sẻ với bạn — chưa thể tải lên hay tạo thư mục mới ở đây. Hãy làm việc đó trong cloudSSS của tôi hoặc Bộ nhớ dùng chung.',
   'newBtn.driveViewer': 'Bạn chỉ có quyền xem trong cloudSSS dùng chung này — không thể tải lên, tạo thư mục hay dán vào đây. Hãy nhờ Quản trị viên của nó cấp quyền Thành viên.',
+  'newBtn.tagView': 'Mục mới được lưu vào cloudSSS của tôi và tự mang nhãn "{name}".',
   // ── Cột phải (components/layout/RightSideBar.jsx) ──
   'theme.toggle.toLight': 'Chế độ sáng',
   'theme.toggle.toDark': 'Chế độ tối',

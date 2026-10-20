@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { useFiles, useDriveAccess } from '../../context/FileContext';
 import { useLanguage } from '../../context/LanguageContext';
-import { Plus, FolderPlus, FileUp, FolderUp, Loader2, Info } from 'lucide-react';
+import { useTags } from '../../context/TagsContext';
+import { Plus, FolderPlus, FileUp, FolderUp, Loader2, Info, Tag } from 'lucide-react';
 import { collectInputEntries } from '../../utils/uploadTree';
 
 export default function NewButton({ isCollapsed }) {
@@ -14,11 +15,16 @@ export default function NewButton({ isCollapsed }) {
     uploadEntries,
     currentFolderId,
     currentSharedDriveId,
+    currentTagId,
     activeTab,
     isInForeignFolder,
   } = useFiles();
   const { isDriveReadOnly } = useDriveAccess();
   const { t } = useLanguage();
+  // Đứng ở trang Nhãn (##92): trang đó không phải thư mục — mục mới vào Drive của tôi và tự mang
+  // nhãn đang xem. Nói trước ngay trong menu, đừng để người dùng tự đoán tệp đã đi đâu.
+  const tagsCtx = useTags();
+  const viewTag = activeTab === 'tags' ? tagsCtx?.tags.find((tag) => tag.id === currentTagId) ?? null : null;
   // Chỗ đang đứng không ghi được: thư mục người khác chia sẻ (##78) hoặc Bộ nhớ chung mình chỉ là
   // VIEWER (##79). Khoá ba lệnh và nói lý do ngay trong menu.
   const writeLockKey = isInForeignFolder
@@ -154,6 +160,12 @@ export default function NewButton({ isCollapsed }) {
             <div role="note" className="mx-2 mb-1 flex items-start gap-2 rounded-xl bg-amber-50 dark:bg-amber-950/25 border border-amber-200 dark:border-amber-500/30 px-3 py-2">
               <Info className="w-4 h-4 mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />
               <p className="text-[12.5px] leading-snug text-amber-800 dark:text-amber-200">{t(writeLockKey)}</p>
+            </div>
+          )}
+          {viewTag && (
+            <div role="note" className="mx-2 mb-1 flex items-start gap-2 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-500/30 px-3 py-2">
+              <Tag className="w-4 h-4 mt-0.5 shrink-0 text-blue-600 dark:text-blue-400" />
+              <p className="text-[12.5px] leading-snug text-blue-800 dark:text-blue-200">{t('newBtn.tagView', { name: viewTag.name })}</p>
             </div>
           )}
 

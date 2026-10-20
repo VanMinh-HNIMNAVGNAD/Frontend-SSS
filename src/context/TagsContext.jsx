@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { tagsApi } from '../services/api';
 import { useAuth } from './AuthContext';
@@ -17,13 +17,18 @@ import { useLanguage } from './LanguageContext';
  */
 const TagsContext = createContext(null);
 
+/** Toast "chưa gắn được nhãn" cho mục mới — hiện bao lâu thì cộng dồn trong chừng đó. */
+const AUTO_TAG_TOAST_MS = 6000;
+
 export function TagsProvider({ children }) {
     const { isAuthenticated } = useAuth();
-    const { patchItemTags } = useFiles();
+    const { patchItemTags, registerAutoTagger } = useFiles();
     const { t } = useLanguage();
     const [tags, setTags] = useState([]);
     const [loaded, setLoaded] = useState(false);
     const [managerOpen, setManagerOpen] = useState(false);
+    // Số mục mới chưa gắn được nhãn, cộng dồn trong lúc toast báo lỗi còn hiện (xem `tagNewItems`).
+    const autoTagFailuresRef = useRef({ count: 0, timer: null });
 
     const refresh = useCallback(async () => {
         try {
@@ -149,6 +154,37 @@ export function TagsProvider({ children }) {
             toast.error(err?.message || t('tags.applyFailed'));
         }
     }, [adjustCount, patchItemTags, t]);
+
+    /**
+     * Gắn nhãn cho mục VỪA TẠO khi người dùng đang đứng ở trang của nhãn đó (##92) — FileContext
+     * gọi qua `registerAutoTagger`. Trả chip của nhãn kèm id các mục đã gắn được, để FileContext
+     * chèn chúng vào trang; `null` khi không gắn được mục nào.
+     */
+    const tagNewItems = useCallback(async (tagId, ids) => {
+        const results = await Promise.all(ids.map((id) => tagsApi.attachToNewItem(tagId, id).catch(() => false)));
+        const applied = ids.filter((_, i) => results[i]);
+        const failed = ids.length - applied.length;
+        if (failed > 0) {
+            // Mỗi tệp tải xong gọi riêng một lượt: nhãn bị xoá ở tab khác giữa lúc tải 50 tệp là 50
+            // lượt cùng hỏng — cộng dồn vào MỘT toast thay vì bắn 50 cái.
+            const tally = autoTagFailuresRef.current;
+            tally.count += failed;
+            clearTimeout(tally.timer);
+            tally.timer = setTimeout(() => {
+                tally.count = 0;
+            }, AUTO_TAG_TOAST_MS);
+            toast.error(t('tags.autoTagFailed', { count: tally.count }), {
+                id: 'tags-auto-tag-failed',
+                duration: AUTO_TAG_TOAST_MS,
+            });
+        }
+        if (applied.length === 0) return null;
+        adjustCount(tagId, applied.length);
+        const tag = tags.find((x) => x.id === tagId);
+        return { applied, chip: tag ? { id: tag.id, name: tag.name, colorHex: tag.colorHex } : null };
+    }, [adjustCount, tags, t]);
+
+    useEffect(() => registerAutoTagger(tagNewItems), [registerAutoTagger, tagNewItems]);
 
     const value = useMemo(() => ({
         tags,

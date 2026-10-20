@@ -139,7 +139,7 @@ export default function Sidebar() {
             <div className="pt-2 short:pt-1">
               {!isSidebarCollapsed && (
                 <div className="flex items-center justify-between pl-4 pr-1 pb-1 text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                  <span>{t('tags.sidebar.title')}</span>
+                  <span title={t('tags.page.about')}>{t('tags.sidebar.title')}</span>
                   <button
                     type="button"
                     onClick={tagsCtx.openManager}

@@ -1422,15 +1422,51 @@ export const commentsApi = {
  *
  * `list` trả `{ items, unreadCount, hasMore }`; `items[].title/message` đã được backend dịch
  * theo ngôn ngữ đang chọn (`X-Lang`).
+ *
+ * Hai lệnh PATCH KHÔNG có body — truyền `undefined`, đừng truyền `null`: instance này đặt sẵn
+ * `Content-Type: application/json`, nên axios gửi đúng chuỗi `null`, và body-parser (strict) của
+ * backend trả 400 trước khi request tới được controller. Bản ##91 làm vậy, nên "đánh dấu đã đọc"
+ * chưa từng ghi được gì và số trên chuông hiện lại ngay sau mỗi lần bấm (##92).
  */
 export const notificationsApi = {
   list: (params = {}) => api.get('/notifications', { params, meta: { noProgressBar: true } }),
   unreadCount: () => api.get('/notifications/unread-count', { meta: { noProgressBar: true } }),
-  markRead: (id) => api.patch(`/notifications/${id}/read`, null, { meta: { noProgressBar: true } }),
-  markAllRead: () => api.patch('/notifications/read-all', null, { meta: { noProgressBar: true } }),
+  markRead: (id) => api.patch(`/notifications/${id}/read`, undefined, { meta: { noProgressBar: true } }),
+  markAllRead: () => api.patch('/notifications/read-all', undefined, { meta: { noProgressBar: true } }),
   remove: (id) => api.delete(`/notifications/${id}`, { meta: { noProgressBar: true } }),
   clearRead: () => api.delete('/notifications/read', { meta: { noProgressBar: true } }),
+  clearAll: () => api.delete('/notifications', { meta: { noProgressBar: true } }),
 };
+
+/**
+ * Gắn nhãn cho mục VỪA TẠO ở trang "Nhãn" (##92), gộp theo lô: tệp của một lượt tải lên xong rải
+ * rác theo từng lô xác nhận, mỗi tệp một lời gọi — những lời gọi sát nhau cho cùng nhãn đi chung
+ * một `POST /tags/:id/files`. Một bộ gộp cho mỗi nhãn, vì nhãn nằm trên đường dẫn.
+ */
+const newItemTagBatches = new Map();
+
+function newItemTagBatch(tagId) {
+  let batch = newItemTagBatches.get(tagId);
+  if (!batch) {
+    batch = createBatchLoader({
+      // Rộng hơn mặc định (một khung hình): các lô xác nhận của một lượt tải về cách nhau vài
+      // trăm ms, không cùng một lần render.
+      windowMs: 250,
+      // = `MAX_BATCH_TAG_FILES` ở backend/src/tags/dto/apply-tag.dto.ts
+      maxBatchSize: 200,
+      fetchMany: async (fileIds) => {
+        const res = await api.post(
+          `/tags/${tagId}/files`,
+          { fileIds, attached: true },
+          { meta: { noProgressBar: true } },
+        );
+        return new Map((res?.applied ?? []).map((id) => [String(id), true]));
+      },
+    });
+    newItemTagBatches.set(tagId, batch);
+  }
+  return batch;
+}
 
 /**
  * Nhãn RIÊNG của người dùng (##91) — gắn được lên mọi mục mình xem được; người khác không thấy.
@@ -1450,6 +1486,8 @@ export const tagsApi = {
     afterFileMutation(null, api.post(`/tags/${tagId}/files`, { fileIds, attached })),
   /** Nhãn của mình trên một mục — khi mục không đến từ danh sách (đã có `tags` sẵn). */
   ofFile: (fileId) => api.get(`/tags/file/${fileId}`, { meta: { noProgressBar: true } }),
+  /** Gắn nhãn lên MỘT mục vừa tạo (gộp lô, xem `newItemTagBatch`) → `true` khi đã gắn được. */
+  attachToNewItem: (tagId, fileId) => newItemTagBatch(tagId).load(fileId).then(Boolean),
 };
 
 // Sharing APIs — Public share link & access management

@@ -154,6 +154,14 @@ const en = {
   'tags.deleteFailed': 'Could not delete the label',
   'tags.applyFailed': 'Could not update the label',
   'tags.partialFailed': '{count} items could not be labeled (you no longer have access)',
+  // The Labels page explains itself + items created there get the label (##92)
+  'tags.page.about': 'Labels gather files and folders from anywhere — My cloudSSS, items shared with you, Shared cloudSSS — in one place so you can find them again quickly. Files stay where they are, and only you see your labels.',
+  'tags.page.emptyTitle': 'Nothing is labeled "{name}" yet',
+  'tags.page.howToTag': 'Right-click (or tap ⋮ on) any file or folder → Labels → pick "{name}". Select several items first to label them all at once.',
+  'tags.page.howToUpload': 'Or upload right here: files are saved to My cloudSSS and get this label automatically.',
+  'tags.page.uploadHere': 'Upload files',
+  'tags.page.openMyDrive': 'Open My cloudSSS',
+  'tags.autoTagFailed': '{count} new items could not be labeled. Right-click the item → Labels to try again.',
   'common.save': 'Save',
   // Notification bell (##91)
   'notifications.title': 'Notifications',
@@ -164,7 +172,13 @@ const en = {
   'notifications.unread': 'Unread',
   'notifications.delete': 'Delete notification',
   'notifications.loadMore': 'Show older notifications',
-  'notifications.clearRead': 'Clear read notifications',
+  'notifications.clearRead': 'Clear read',
+  // ##92
+  'notifications.markRead': 'Mark as read',
+  'notifications.clearAll': 'Delete all',
+  'notifications.confirmClearAll': 'Delete all notifications? This cannot be undone.',
+  'notifications.retention': 'Notifications are deleted automatically after {days} days.',
+  'notifications.actionFailed': 'Could not update your notifications. Please try again later.',
   'header.account': 'Account details',
   // Button labels that carry a shortcut — kept inside the translation, not
   // concatenated in JSX
@@ -300,6 +314,7 @@ const en = {
   'newBtn.needDrive.uploadFolder': 'Open a shared cloudSSS first, then upload the folder.',
   'newBtn.foreignFolder': "This folder was shared with you by someone else — you can't upload or create folders here yet. Do that in My cloudSSS or a Shared cloudSSS instead.",
   'newBtn.driveViewer': "You can only view this shared cloudSSS — you can't upload, create folders or paste here. Ask one of its admins to make you a member.",
+  'newBtn.tagView': 'New items are saved to My cloudSSS and get the label "{name}" automatically.',
   // ── Right sidebar (components/layout/RightSideBar.jsx) ──
   'theme.toggle.toLight': 'Light mode',
   'theme.toggle.toDark': 'Dark mode',

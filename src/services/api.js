@@ -872,6 +872,19 @@ function afterUpload(promise) {
 }
 
 /**
+ * Ai cần biết "một thao tác ghi lên tệp vừa xong" (##92): FileContext đánh dấu cũ bản lưu danh
+ * sách của các màn hình khác, TagsContext đếm lại số mục của từng nhãn. Màn hình đang xem tự sửa
+ * tại chỗ; bỏ tệp vào thùng rác ở cloudSSS của tôi thì trang Nhãn và số mục cạnh nhãn cũng đổi.
+ */
+const fileMutationListeners = new Set();
+
+/** Đăng ký nghe thao tác ghi lên tệp. Trả về hàm huỷ đăng ký. */
+export function subscribeFileMutations(listener) {
+  fileMutationListeners.add(listener);
+  return () => fileMutationListeners.delete(listener);
+}
+
+/**
  * Chạy một mutation rồi đốt các bộ đệm mà nó làm sai — nhưng CHỈ khi nó thành công.
  *
  * Nhận vào promise đã bắt đầu (chứ không phải một hàm) để dùng được dưới dạng
@@ -880,6 +893,14 @@ function afterUpload(promise) {
 function afterFileMutation(fileId, promise) {
   return promise.then((res) => {
     invalidateAfterFileMutation(fileId);
+    for (const listener of fileMutationListeners) {
+      try {
+        listener(fileId);
+      } catch (err) {
+        // Người nghe hỏng không được biến một thao tác đã thành công thành lỗi.
+        console.warn('[api] subscribeFileMutations:', err);
+      }
+    }
     return res;
   });
 }

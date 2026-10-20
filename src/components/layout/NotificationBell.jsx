@@ -6,7 +6,6 @@ import {
     BellOff,
     CalendarClock,
     Check,
-    CheckCheck,
     CreditCard,
     HardDrive,
     Info,
@@ -321,9 +320,8 @@ export default function NotificationBell() {
                                     <button
                                         type="button"
                                         onClick={markAllRead}
-                                        className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-500/10 cursor-pointer"
+                                        className="px-2 py-1 rounded-lg text-xs font-medium text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-500/10 cursor-pointer"
                                     >
-                                        <CheckCheck className="w-3.5 h-3.5" />
                                         {t('notifications.markAllRead')}
                                     </button>
                                 )}
@@ -447,9 +445,8 @@ export default function NotificationBell() {
                                         <button
                                             type="button"
                                             onClick={clearAll}
-                                            className="flex items-center gap-1 font-medium text-rose-700 dark:text-rose-300 hover:underline cursor-pointer"
+                                            className="font-medium text-rose-700 dark:text-rose-300 hover:underline cursor-pointer"
                                         >
-                                            <Trash2 className="w-3.5 h-3.5" />
                                             {t('notifications.clearAll')}
                                         </button>
                                     </div>

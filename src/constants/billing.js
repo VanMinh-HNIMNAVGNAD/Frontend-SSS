@@ -90,7 +90,7 @@ export const CYCLES = [
   { id: 'monthly', labelKey: 'billing.cycle.monthly', badge: null },
   { id: '3_months', labelKey: 'billing.cycle.3months', badge: '-5%' },
   { id: '6_months', labelKey: 'billing.cycle.6months', badge: '-15%' },
-  { id: 'yearly', labelKey: 'billing.cycle.yearly', badge: '-17% 🔥' },
+  { id: 'yearly', labelKey: 'billing.cycle.yearly', badge: '-17%' },
 ];
 
 /** Số tháng của mỗi chu kỳ — dùng để quy đổi "mỗi tháng tương đương". */

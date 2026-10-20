@@ -17,7 +17,6 @@ import {
   Save,
   Loader2,
   Mail,
-  ShieldCheck,
   Camera,
   Laptop,
   Smartphone,
@@ -32,7 +31,6 @@ import {
   Clock,
   ShieldAlert,
   CreditCard,
-  Sparkles,
   ChevronRight,
 } from 'lucide-react';
 import { userApi } from '../../services/api';
@@ -636,8 +634,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                     <h4 className="text-base font-bold text-gray-900 dark:text-gray-100 truncate">
                       {user.fullName || t('profile.defaultName')}
                     </h4>
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 dark:text-blue-300 rounded-full text-[10px] font-bold">
-                      <ShieldCheck className="w-3 h-3" />
+                    <span className="inline-flex items-center px-2 py-0.5 bg-blue-100 text-blue-700 dark:text-blue-300 rounded-full text-[10px] font-bold">
                       {user.provider === 'local' ? 'cloudSSS' : user.provider}
                     </span>
                   </div>
@@ -750,10 +747,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                 </div>
 
                 {aiLine && (
-                  <p className="flex items-start gap-1.5 text-xs text-gray-600 dark:text-gray-300">
-                    <Sparkles className="w-3.5 h-3.5 mt-0.5 shrink-0 text-blue-500 dark:text-blue-400" />
-                    <span>{aiLine}</span>
-                  </p>
+                  <p className="text-xs text-gray-600 dark:text-gray-300">{aiLine}</p>
                 )}
               </section>
 
@@ -854,8 +848,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
           {/* TAB 2: ĐỔI MẬT KHẨU (Chỉ hiển thị cho local user) */}
           {activeTab === 'password' && user.provider === 'local' && (
             <form onSubmit={handleUpdatePassword} className="space-y-4">
-              <div className="p-3 bg-amber-50 dark:bg-amber-500/15 rounded-xl border border-amber-200/80 dark:border-amber-800/60 text-amber-800 dark:text-amber-200 text-xs flex items-start gap-2">
-                <ShieldCheck className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
+              <div className="p-3 bg-amber-50 dark:bg-amber-500/15 rounded-xl border border-amber-200/80 dark:border-amber-800/60 text-amber-800 dark:text-amber-200 text-xs">
                 <span>
                   {t('profile.password.securityHint')}
                 </span>

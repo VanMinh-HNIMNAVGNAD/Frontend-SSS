@@ -8,6 +8,7 @@ import {
   sharedDrivesApi,
   chunkedApi,
   isBackendUnreachable,
+  subscribeFileMutations,
   UPLOAD_BATCH_SIZE,
 } from '../services/api';
 import { useAuth } from './AuthContext';
@@ -814,7 +815,7 @@ export function FileProvider({ children }) {
   }, [flushListCache]);
 
   /**
-   * Đánh dấu HẾT HẠN mọi khung nhìn đã lưu của một số thư mục.
+   * Đánh dấu HẾT HẠN những khung nhìn đã lưu mà `matches(key, view)` chọn (`view` = khoá đã parse).
    *
    * Vì sao cần: `readListCache` + ngưỡng `LIST_REVALIDATE_AFTER_MS` khiến
    * `fetchFiles()` KHÔNG gọi server trong 60 giây đầu sau lượt tải thật. Phần lớn
@@ -827,24 +828,19 @@ export function FileProvider({ children }) {
    * Đẩy lùi `cachedAt` thay vì xoá hẳn ô cache: xoá sẽ dựng lại skeleton cho một
    * màn hình vốn đang có nội dung gần đúng. Lùi đúng bằng ngưỡng revalidate thì
    * bản đã lưu vẫn được vẽ ngay, nhưng lượt gọi nền LUÔN chạy để sửa lại.
-   *
-   * @param {Array<string|null>} folderIds  id thư mục bị ảnh hưởng; `null` = gốc.
    */
-  const staleListViewsForFolders = useCallback((folderIds) => {
-    const affected = new Set(folderIds.map((id) => id ?? null));
-    if (affected.size === 0) return;
-
+  const staleListViewsWhere = useCallback((matches) => {
     const cache = listCacheRef.current;
     const staleAt = Date.now() - LIST_REVALIDATE_AFTER_MS;
 
     for (const [key, value] of cache) {
-      let folderId;
+      let view;
       try {
-        ({ folderId } = JSON.parse(key));
+        view = JSON.parse(key);
       } catch {
         continue; // Khoá lạ (bản cache của phiên bản cũ) — bỏ qua, TTL sẽ dọn
       }
-      if (!affected.has(folderId ?? null)) continue;
+      if (!matches(key, view)) continue;
       if (value.cachedAt <= staleAt) continue; // Đã quá hạn sẵn
 
       cache.set(key, { ...value, cachedAt: staleAt });
@@ -856,6 +852,22 @@ export function FileProvider({ children }) {
       persistTimerRef.current = setTimeout(flushListCache, LIST_PERSIST_DEBOUNCE_MS);
     }
   }, [flushListCache]);
+
+  /** Làm cũ mọi khung nhìn của các thư mục `folderIds` (`null` = gốc). */
+  const staleListViewsForFolders = useCallback((folderIds) => {
+    const affected = new Set(folderIds.map((id) => id ?? null));
+    if (affected.size === 0) return;
+    staleListViewsWhere((_key, view) => affected.has(view.folderId ?? null));
+  }, [staleListViewsWhere]);
+
+  // Một thao tác ghi lên tệp vừa xong ở BẤT CỨ đâu (##92): màn hình đang xem đã tự sửa tại chỗ,
+  // còn bản lưu của mọi màn hình khác có thể đã sai — bỏ tệp vào thùng rác ở cloudSSS của tôi thì
+  // trang Nhãn vẫn còn nó, khôi phục ở Thùng rác thì cloudSSS của tôi vẫn thiếu nó. Làm cũ để lần
+  // mở tới vẫn vẽ ngay bản đã lưu nhưng luôn hỏi lại máy chủ.
+  useEffect(
+    () => subscribeFileMutations(() => staleListViewsWhere((key) => key !== itemsKeyRef.current)),
+    [staleListViewsWhere],
+  );
 
   /**
    * Nạp bộ đệm từ đĩa, một lần cho mỗi lần mở trang.
@@ -1770,7 +1782,7 @@ export function FileProvider({ children }) {
     // nói ra. Không có thông báo này thì hàng đợi báo "xong 100%" mà thư mục vẫn
     // trống — trông y hệt một lần upload thất bại trong im lặng.
     if (entity?.isSpam) {
-      toast(t('file.upload.flaggedSpam', { name: entity.name }), { icon: '🛡️', duration: 6000 });
+      toast(t('file.upload.flaggedSpam', { name: entity.name }), { duration: 6000 });
     }
 
     scheduleAnalyticsRefresh();
@@ -2056,11 +2068,11 @@ export function FileProvider({ children }) {
    */
   const patchItemTags = useCallback((ids, updater) => {
     const wanted = ids == null ? null : new Set(Array.isArray(ids) ? ids : [ids]);
-    const viewTagId = viewRef.current?.activeTab === 'tags' ? viewRef.current?.currentTagId : null;
-    setItems((prev) => {
+    /** `list` sau khi sửa chip; `viewTagId` = nhãn của trang Nhãn mà danh sách thuộc về, nếu có. */
+    const patchList = (list, viewTagId) => {
       let changed = false;
       const next = [];
-      for (const item of prev) {
+      for (const item of list) {
         if (wanted && !wanted.has(item.id)) {
           next.push(item);
           continue;
@@ -2074,9 +2086,38 @@ export function FileProvider({ children }) {
         if (viewTagId && !tags.some((tag) => tag.id === viewTagId)) continue;
         next.push({ ...item, tags });
       }
-      return changed ? next : prev;
-    });
-  }, []);
+      return changed ? next : list;
+    };
+
+    const currentViewTagId = viewRef.current?.activeTab === 'tags' ? viewRef.current?.currentTagId : null;
+    setItems((prev) => patchList(prev, currentViewTagId));
+
+    // Bản lưu của các màn hình KHÁC (##92): đổi tên / màu / xoá nhãn ở trang Nhãn thì chip ở
+    // cloudSSS của tôi — vừa xem, bản lưu còn "tươi" nên mở lại không hỏi máy chủ — phải đổi
+    // ngay. Màn hình đang xem đã có effect đồng bộ ghi lại.
+    const cache = listCacheRef.current;
+    for (const [key, snapshot] of cache) {
+      if (key === itemsKeyRef.current || !Array.isArray(snapshot.items)) continue;
+      let view;
+      try {
+        view = JSON.parse(key);
+      } catch {
+        continue; // Khoá lạ (bản cache của phiên bản cũ) — bỏ qua, TTL sẽ dọn
+      }
+      const patched = patchList(snapshot.items, view.tab === 'tags' ? view.tagId : null);
+      if (patched === snapshot.items) continue;
+      const removed = snapshot.items.length - patched.length;
+      cache.set(key, {
+        ...snapshot,
+        items: patched,
+        totalItems: Math.max(0, (snapshot.totalItems ?? snapshot.items.length) - removed),
+      });
+      dirtyListKeysRef.current.add(key);
+    }
+    if (dirtyListKeysRef.current.size > 0 && !persistTimerRef.current) {
+      persistTimerRef.current = setTimeout(flushListCache, LIST_PERSIST_DEBOUNCE_MS);
+    }
+  }, [flushListCache]);
 
   /**
    * Ba hàm thùng rác dưới đây dùng chung một hợp đồng với `toggleStar`:

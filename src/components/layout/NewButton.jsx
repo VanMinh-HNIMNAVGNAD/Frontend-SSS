@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useFiles, useDriveAccess } from '../../context/FileContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useTags } from '../../context/TagsContext';
-import { Plus, FolderPlus, FileUp, FolderUp, Loader2, Info, Tag } from 'lucide-react';
+import { Plus, FolderPlus, FileUp, FolderUp, Loader2 } from 'lucide-react';
 import { collectInputEntries } from '../../utils/uploadTree';
 
 export default function NewButton({ isCollapsed }) {
@@ -157,14 +157,12 @@ export default function NewButton({ isCollapsed }) {
           {/* Thư mục người khác chia sẻ: nói lý do NGAY trong menu và khoá ba lệnh — không để
               người dùng chọn tệp, tải lên rồi mới bị từ chối (##78). */}
           {isWriteLocked && (
-            <div role="note" className="mx-2 mb-1 flex items-start gap-2 rounded-xl bg-amber-50 dark:bg-amber-950/25 border border-amber-200 dark:border-amber-500/30 px-3 py-2">
-              <Info className="w-4 h-4 mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />
+            <div role="note" className="mx-2 mb-1 rounded-xl bg-amber-50 dark:bg-amber-950/25 border border-amber-200 dark:border-amber-500/30 px-3 py-2">
               <p className="text-[12.5px] leading-snug text-amber-800 dark:text-amber-200">{t(writeLockKey)}</p>
             </div>
           )}
           {viewTag && (
-            <div role="note" className="mx-2 mb-1 flex items-start gap-2 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-500/30 px-3 py-2">
-              <Tag className="w-4 h-4 mt-0.5 shrink-0 text-blue-600 dark:text-blue-400" />
+            <div role="note" className="mx-2 mb-1 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-500/30 px-3 py-2">
               <p className="text-[12.5px] leading-snug text-blue-800 dark:text-blue-200">{t('newBtn.tagView', { name: viewTag.name })}</p>
             </div>
           )}

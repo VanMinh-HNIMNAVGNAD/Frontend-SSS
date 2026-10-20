@@ -1603,8 +1603,7 @@ export default function GeminiModal({
                                         {/* Model người dùng chọn đang quá tải nên đích lui trả lời
                                             thay (##91). Trước đây chỉ log server biết chuyện đó. */}
                                         {msg.servedModel && msg.servedModel !== msg.model && (
-                                            <p className="mt-1.5 flex items-start gap-1.5 text-[11px] text-gray-500 dark:text-gray-400">
-                                                <Info className="w-3.5 h-3.5 shrink-0 mt-px" />
+                                            <p className="mt-1.5 text-[11px] text-gray-500 dark:text-gray-400">
                                                 <span>
                                                     {t('ai.servedBy', {
                                                         model: modelLabelOf(msg.servedModel),

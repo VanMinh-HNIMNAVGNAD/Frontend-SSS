@@ -7,7 +7,7 @@ import { useFiles } from '../context/FileContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useTags } from '../context/TagsContext';
 import { DEFAULT_TAG_COLOR } from '../constants/tags';
-import { Tag, List, LayoutGrid, Settings2, MousePointerClick, Upload, HardDrive } from 'lucide-react';
+import { Tag, List, LayoutGrid, Settings2 } from 'lucide-react';
 
 /**
  * Trang "Nhãn" (##91): mọi mục người dùng gắn một nhãn — tệp của mình, tệp được chia sẻ, tệp trong
@@ -121,31 +121,21 @@ export default function TagsPage() {
                         <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100 break-words">
                             {t('tags.page.emptyTitle', { name: tag.name })}
                         </h2>
-                        <ul className="mt-4 space-y-3 text-left text-sm text-gray-600 dark:text-gray-300">
-                            <li className="flex items-start gap-3">
-                                <MousePointerClick className="w-5 h-5 mt-0.5 shrink-0 text-gray-400" />
-                                <span>{t('tags.page.howToTag', { name: tag.name })}</span>
-                            </li>
-                            <li className="flex items-start gap-3">
-                                <Upload className="w-5 h-5 mt-0.5 shrink-0 text-gray-400" />
-                                <span>{t('tags.page.howToUpload')}</span>
-                            </li>
-                        </ul>
+                        <p className="mt-3 text-sm text-gray-600 dark:text-gray-300">{t('tags.page.howToTag', { name: tag.name })}</p>
+                        <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">{t('tags.page.howToUpload')}</p>
                         <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
                             <button
                                 type="button"
                                 onClick={() => fileInputRef.current?.click()}
-                                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow-sm cursor-pointer"
+                                className="px-4 py-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow-sm cursor-pointer"
                             >
-                                <Upload className="w-4 h-4" />
                                 {t('tags.page.uploadHere')}
                             </button>
                             <button
                                 type="button"
                                 onClick={() => navigate('/app/my-drive')}
-                                className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[var(--app-border)] text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer"
+                                className="px-4 py-2 rounded-full border border-[var(--app-border)] text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer"
                             >
-                                <HardDrive className="w-4 h-4" />
                                 {t('tags.page.openMyDrive')}
                             </button>
                         </div>

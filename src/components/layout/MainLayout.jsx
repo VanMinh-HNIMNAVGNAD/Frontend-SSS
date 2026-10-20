@@ -148,7 +148,7 @@ export default function MainLayout() {
     const handleRename = useCallback(() => {
         const selected = getSelection();
         if (selected.length === 0) {
-            toast(t('shortcutToast.pickForRename'), { icon: '✏️' });
+            toast(t('shortcutToast.pickForRename'));
             return;
         }
         if (selected.length > 1) {
@@ -161,7 +161,7 @@ export default function MainLayout() {
     const handleToggleStar = useCallback(async () => {
         const selected = getSelection();
         if (selected.length === 0) {
-            toast(t('shortcutToast.pickForStar'), { icon: '⭐' });
+            toast(t('shortcutToast.pickForStar'));
             return;
         }
         // `silent` để toggleStar không bắn một toast cho từng mục; gộp lại một câu
@@ -184,7 +184,7 @@ export default function MainLayout() {
         if (activeTab === 'trash') return; // trong thùng rác thì không "xoá" thêm được
         const selected = getSelection();
         if (selected.length === 0) {
-            toast(t('shortcutToast.pickForTrash'), { icon: '🗑️' });
+            toast(t('shortcutToast.pickForTrash'));
             return;
         }
         const label = selected.length === 1

@@ -18,8 +18,6 @@ import {
   QrCode,
   RefreshCw,
   RotateCcw,
-  ShieldCheck,
-  Sparkles,
   X,
   XCircle,
 } from 'lucide-react';
@@ -660,8 +658,7 @@ export default function BillingAndQuota() {
                   {/* Hạn mức AI đi cùng kỳ của gói (##87) — gói 6 tháng là AI 6 tháng, hết hạn
                       cùng ngày với gói. Nói ra ở đây vì đây là nơi khách xem gói của mình. */}
                   {aiQuota?.periodMonths ? (
-                    <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-1 flex items-start gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5 mt-0.5 shrink-0 text-blue-500 dark:text-blue-400" />
+                    <p className="text-[13px] text-gray-500 dark:text-gray-400 mt-1">
                       <span>
                         {t('billing.current.aiQuota', {
                           term: t(monthsTermKey(aiQuota.periodMonths), { count: aiQuota.periodMonths }),
@@ -802,7 +799,6 @@ export default function BillingAndQuota() {
               </div>
             ) : decoratedPlans.length === 0 ? (
               <div className="bg-white dark:bg-[#282a2c] border border-gray-200 dark:border-gray-700 rounded-2xl p-8 text-center shadow-sm">
-                <Sparkles className="w-8 h-8 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
                 <p className="text-[15px] font-semibold text-gray-900 dark:text-gray-100">{t('billing.plans.none')}</p>
                 <p className="text-[14px] text-gray-500 dark:text-gray-400 mt-1">
                   {t('billing.plans.noneHint')}
@@ -1120,8 +1116,7 @@ export default function BillingAndQuota() {
                     cùng ngày với gói. `endsAt` do backend tính bằng đúng phép cộng lúc kích hoạt —
                     backend cũ không trả trường này thì không nói gì, vì khi đó AI vẫn chia 30 ngày. */}
                 {quote?.endsAt && !selectedPlan.isFree && (
-                  <div className="mt-4 flex items-start gap-2.5 rounded-xl bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 px-4 py-3">
-                    <Sparkles className="w-4 h-4 mt-0.5 shrink-0 text-blue-600 dark:text-blue-400" />
+                  <div className="mt-4 rounded-xl bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 px-4 py-3">
                     <p className="text-[13.5px] text-blue-900 dark:text-blue-200 leading-snug">
                       {t(quote.isRenewal ? 'billing.confirm.aiTermRenew' : 'billing.confirm.aiTerm', {
                         term: t(monthsTermKey(CYCLE_MONTHS[billingCycle] || 1), {
@@ -1248,7 +1243,7 @@ export default function BillingAndQuota() {
                   </>
                 ) : (
                   <>
-                    <ShieldCheck className="w-5 h-5" /> {t('billing.confirm.continue')}
+                    {t('billing.confirm.continue')}
                   </>
                 )}
               </button>

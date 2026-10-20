@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
-import { tagsApi } from '../services/api';
+import { subscribeFileMutations, tagsApi } from '../services/api';
 import { useAuth } from './AuthContext';
 import { useFiles } from './FileContext';
 import { useLanguage } from './LanguageContext';
@@ -19,6 +19,9 @@ const TagsContext = createContext(null);
 
 /** Toast "chưa gắn được nhãn" cho mục mới — hiện bao lâu thì cộng dồn trong chừng đó. */
 const AUTO_TAG_TOAST_MS = 6000;
+
+/** Chờ chừng này sau thao tác ghi cuối cùng rồi mới đếm lại số mục của các nhãn. */
+const TAG_COUNT_REFRESH_MS = 600;
 
 export function TagsProvider({ children }) {
     const { isAuthenticated } = useAuth();
@@ -58,6 +61,22 @@ export function TagsProvider({ children }) {
             cancelled = true;
         };
     }, [isAuthenticated]);
+
+    // Số mục cạnh mỗi nhãn đếm theo luật của trang Nhãn (bỏ mục trong thùng rác, mục hết quyền xem).
+    // Bỏ vào thùng rác, khôi phục, xoá hẳn… ở BẤT CỨ màn hình nào cũng làm số đó đổi (##92): hỏi lại
+    // máy chủ sau mỗi đợt thao tác ghi, gộp các cú bấm sát nhau thành một lượt.
+    useEffect(() => {
+        if (!isAuthenticated) return undefined;
+        let timer = null;
+        const unsubscribe = subscribeFileMutations(() => {
+            clearTimeout(timer);
+            timer = setTimeout(refresh, TAG_COUNT_REFRESH_MS);
+        });
+        return () => {
+            clearTimeout(timer);
+            unsubscribe();
+        };
+    }, [isAuthenticated, refresh]);
 
     const adjustCount = useCallback((tagId, delta) => {
         if (!delta) return;

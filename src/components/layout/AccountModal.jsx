@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useFiles } from '../../context/FileContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useUploadActions } from '../../context/UploadContext';
-import { User as UserIcon, LogOut, ShieldCheck, CreditCard, ChevronRight } from 'lucide-react';
+import { User as UserIcon, LogOut, CreditCard, ChevronRight } from 'lucide-react';
 import UserProfileModal from '../modals/UserProfileModal';
 import Modal from '../common/Modal';
 import Button from '../common/Button';
@@ -129,8 +129,8 @@ export default function AccountModal({ isOpen, onClose }) {
                 <div className="flex-1 min-w-0">
                     <h4 className="font-semibold text-gray-900 dark:text-gray-100 truncate">{user?.fullName || t('profile.defaultName')}</h4>
                     <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.email || 'user@cloudsss.com'}</p>
-                    <span className="inline-flex items-center gap-1 mt-1 text-[11px] font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-500/15 px-2 py-0.5 rounded-full">
-                        <ShieldCheck className="w-3 h-3" /> {t('account.providerBadge', { provider: getProviderBadge(user?.provider) })}
+                    <span className="inline-flex items-center mt-1 text-[11px] font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-500/15 px-2 py-0.5 rounded-full">
+                        {t('account.providerBadge', { provider: getProviderBadge(user?.provider) })}
                     </span>
                 </div>
             </div>

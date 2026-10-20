@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useFiles } from '../../context/FileContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { filesApi } from '../../services/api';
-import { Trash2, HardDrive, X, Sparkles, Check, AlertTriangle, FileText } from 'lucide-react';
+import { Trash2, HardDrive, X, Check, AlertTriangle, FileText } from 'lucide-react';
 
 export default function QuickCleanupModal({ isOpen, onClose }) {
   const { emptyTrash, moveToTrash, storageInfo } = useFiles();
@@ -86,10 +86,7 @@ export default function QuickCleanupModal({ isOpen, onClose }) {
           <X className="w-5 h-5" />
         </button>
 
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-            <Sparkles className="w-5 h-5" />
-          </div>
+        <div>
           <div>
             <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">{t('cleanup.title')}</h3>
             <p className="text-xs text-gray-500 dark:text-gray-400">{t('cleanup.subtitle')}</p>

@@ -4,7 +4,7 @@ import FileGridView from '../components/file-manager/FileGridView';
 import FileFilterBar from '../components/common/FileFilterBar';
 import { useFiles } from '../context/FileContext';
 import { useLanguage } from '../context/LanguageContext';
-import { Trash2, Info, List, LayoutGrid } from 'lucide-react';
+import { Trash2, List, LayoutGrid } from 'lucide-react';
 
 export default function TrashPage() {
     const { t } = useLanguage();
@@ -78,15 +78,9 @@ export default function TrashPage() {
             </div>
 
             {/* Banner Thông báo */}
-            <div className="bg-blue-50/80 dark:bg-blue-500/15 border border-blue-300 dark:border-blue-900/50 rounded-2xl p-3.5 mb-2 flex items-start gap-3 text-blue-950 dark:text-blue-200 text-sm shadow-2xs">
-                <Info className="w-5 h-5 text-blue-700 dark:text-blue-400 shrink-0 mt-0.5" />
-                <div>
-                    <p className="font-bold mb-0.5">{t('trash.banner.title')}</p>
-                    <p className="text-xs text-blue-900 dark:text-blue-300 font-medium">
-                        {t('trash.banner.body')}
-                    </p>
-                </div>
-            </div>
+            <p className="bg-blue-50/80 dark:bg-blue-500/15 border border-blue-300 dark:border-blue-900/50 rounded-2xl px-3.5 py-2.5 mb-2 text-xs font-medium text-blue-900 dark:text-blue-200 shadow-2xs">
+                {t('trash.banner.body')}
+            </p>
 
             {/* Quick Filter Bar */}
             <FileFilterBar

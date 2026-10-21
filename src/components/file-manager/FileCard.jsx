@@ -6,7 +6,7 @@ import { getCardColorVars } from '../../utils/fileColors';
 import { useLanguage } from '../../context/LanguageContext';
 import { FILE_CARD_HEIGHT_CLASS } from './gridLayout';
 import ItemLocation from './ItemLocation';
-import { TagDots } from '../common/TagChips';
+import { TagIcons } from '../common/TagChips';
 import { 
     FileText, 
     FileSpreadsheet, 
@@ -243,8 +243,8 @@ function FileCard({ file, onDoubleClick, onContextMenu, isSelected, isCut = fals
                             {file.name.split('.').pop() || 'FILE'}
                         </span>
                     )}
-                    {/* Nhãn riêng của người xem (##91) — thẻ cao cố định nên chỉ là chấm màu */}
-                    <TagDots tags={file.tags} />
+                    {/* Nhãn riêng của người xem (##91) — thẻ cao cố định nên chỉ là icon, tên trong tooltip */}
+                    <TagIcons tags={file.tags} />
                 </span>
                 <span className="shrink-0 font-mono text-[9.5px] font-medium text-[var(--fc-muted-l)] dark:text-[var(--fc-muted-d)]">
                     {formatBytes(file.size)}

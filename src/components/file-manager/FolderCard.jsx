@@ -4,7 +4,7 @@ import StarButton from '../common/StarButton';
 import { getCardColorVars } from '../../utils/fileColors';
 import { useLanguage } from '../../context/LanguageContext';
 import ItemLocation from './ItemLocation';
-import { TagDots } from '../common/TagChips';
+import { TagIcons } from '../common/TagChips';
 
 function FolderCard({ folder, onDoubleClick, onContextMenu, onStarToggle, isSelected, isCut = false, onToggleSelect, onSelectRange, onOpenLocation }) {
     const { t } = useLanguage();
@@ -108,8 +108,8 @@ function FolderCard({ folder, onDoubleClick, onContextMenu, onStarToggle, isSele
             </div>
 
             <div className="flex items-center gap-1 compact:gap-0 shrink-0 opacity-80 group-hover:opacity-100 transition-opacity">
-                {/* Nhãn riêng của người xem (##91) — chấm màu, tên trong tooltip */}
-                <TagDots tags={folder.tags} max={3} className="mr-0.5" />
+                {/* Nhãn riêng của người xem (##91) — icon nhãn, tên trong tooltip */}
+                <TagIcons tags={folder.tags} stacked className="mr-0.5" />
                 {/* Tep nguoi khac chia se: cot is_starred thuoc chu so huu nen an nut */}
                 {!folder.isSharedWithMe && (
                     <StarButton

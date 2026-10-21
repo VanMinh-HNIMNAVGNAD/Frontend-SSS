@@ -1,7 +1,21 @@
 import { memo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Tag } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { DEFAULT_TAG_COLOR } from '../../constants/tags';
+
+/**
+ * Icon một nhãn: hình thẻ treo của lucide (cùng icon ở thanh bên và trang Nhãn), tô ĐẶC màu nhãn,
+ * viền và lỗ xỏ màu trắng. Bản chấm tròn 8px cũ vừa quá bé vừa lẫn vào màu riêng của thẻ (nền thẻ
+ * ăn theo `customColor`) — viền trắng tách icon khỏi mọi nền, hình thẻ treo thì không ai đọc nhầm
+ * thành một ô màu.
+ *
+ * `text-white` chứ không truyền `color`: prop `color` của lucide chỉ đặt `stroke`, còn lỗ xỏ là
+ * `<circle fill="currentColor">` — nó đọc màu chữ CSS, nên phải đặt bằng class.
+ */
+function TagGlyph({ color, className = '' }) {
+    return <Tag className={`shrink-0 text-white ${className}`} fill={color} strokeWidth={2} aria-hidden="true" />;
+}
 
 /**
  * Chip nhãn trên hàng/thẻ tệp (##91). Bấm một chip là mở trang "Nhãn" của nó — chặn nổi bọt để cú
@@ -32,14 +46,15 @@ function TagChips({ tags, max = 3, className = '' }) {
                         }}
                         onDoubleClick={(e) => e.stopPropagation()}
                         title={t('tags.openTag', { name: tag.name })}
-                        className="inline-flex items-center gap-1 max-w-[120px] px-1.5 py-[1px] rounded-full text-[10px] font-semibold leading-4 border cursor-pointer hover:brightness-95 dark:hover:brightness-125"
+                        className="inline-flex items-center gap-0.5 max-w-[120px] px-1.5 py-[1px] rounded-full text-[10px] font-semibold leading-4 border cursor-pointer hover:brightness-95 dark:hover:brightness-125"
                         style={{
                             color,
                             borderColor: `${color}55`,
                             backgroundColor: `${color}14`,
                         }}
                     >
-                        <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                        {/* 10px + khe 2px: chỉ rộng hơn chấm 6px + khe 4px cũ 2px, ba chip vẫn vừa một dòng */}
+                        <TagGlyph color={color} className="w-2.5 h-2.5" />
                         <span className="truncate">{tag.name}</span>
                     </button>
                 );
@@ -57,27 +72,29 @@ function TagChips({ tags, max = 3, className = '' }) {
 }
 
 /**
- * Bản THU NHỎ cho thẻ lưới (##91): thẻ cao cố định, không có chỗ cho một dòng chip — chỉ vẽ các
- * chấm màu, tên nằm trong tooltip.
+ * Bản THU NHỎ cho thẻ lưới (##91): thẻ cao cố định, không có chỗ cho một dòng chip — chỉ vẽ icon
+ * nhãn, tên nằm trong tooltip.
+ *
+ * Thẻ gọn (`compact:` — điện thoại/tablet) chỉ rộng ~136–190px: các icon xếp chồng mép lên nhau
+ * (viền trắng vẫn tách từng cái) để ba nhãn không ăn hết chỗ của tên. `stacked` chồng ở MỌI cỡ màn
+ * — cho thẻ thư mục, nơi icon nằm cùng hàng với tên: ba icon chồng rộng ~34px, gần bằng ba chấm cũ.
  */
-export const TagDots = memo(function TagDots({ tags, max = 4, className = '' }) {
+export const TagIcons = memo(function TagIcons({ tags, max = 3, stacked = false, className = '' }) {
     if (!Array.isArray(tags) || tags.length === 0) return null;
     const shown = tags.slice(0, max);
+    const names = tags.map((tag) => tag.name).join(', ');
     return (
         <span
-            className={`inline-flex items-center gap-0.5 shrink-0 ${className}`}
-            title={tags.map((tag) => tag.name).join(', ')}
-            aria-label={tags.map((tag) => tag.name).join(', ')}
+            role="img"
+            className={`inline-flex items-center shrink-0 ${stacked ? '-space-x-1' : 'gap-0.5 compact:gap-0 compact:-space-x-1'} ${className}`}
+            title={names}
+            aria-label={names}
         >
             {shown.map((tag) => (
-                <span
-                    key={tag.id}
-                    className="w-2 h-2 rounded-full ring-1 ring-white/70 dark:ring-black/40"
-                    style={{ backgroundColor: tag.colorHex || DEFAULT_TAG_COLOR }}
-                />
+                <TagGlyph key={tag.id} color={tag.colorHex || DEFAULT_TAG_COLOR} className="w-3.5 h-3.5" />
             ))}
             {tags.length > max && (
-                <span className="text-[8px] font-bold text-gray-500 dark:text-gray-400 ml-0.5">+{tags.length - max}</span>
+                <span className="text-[9px] font-bold leading-none text-gray-500 dark:text-gray-400 pl-1">+{tags.length - max}</span>
             )}
         </span>
     );

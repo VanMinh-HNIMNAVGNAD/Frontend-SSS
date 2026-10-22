@@ -91,7 +91,7 @@ export default function ResumeUploads() {
   if (dismissed || sessions.length === 0) return null;
 
   return (
-    <div className="fixed bottom-6 left-6 z-40 w-[360px] max-w-[calc(100vw-3rem)] bg-white dark:bg-[#282a2c] rounded-2xl shadow-2xl border border-amber-200 dark:border-amber-500/30 overflow-hidden">
+    <div className="glass-strong fixed bottom-6 left-6 z-40 w-[360px] max-w-[calc(100vw-3rem)] rounded-[20px] border border-amber-200 dark:border-amber-500/30 overflow-hidden">
       <input
         type="file"
         ref={fileInputRef}
@@ -158,7 +158,7 @@ export default function ResumeUploads() {
                 </button>
                 <button
                   onClick={() => handleDiscard(session)}
-                  className="px-2 py-1 rounded-full text-[11px] font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                  className="px-2 py-1 rounded-full text-[11px] font-medium text-gray-500 dark:text-gray-400 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-colors cursor-pointer"
                   title={t('resume.dropSession')}
                 >
                   {t('resume.drop')}

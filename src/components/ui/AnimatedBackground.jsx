@@ -192,7 +192,7 @@ export default function AnimatedBackground({ mode = 'sunset' }) {
     return (
         <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
             {/* Dark Base Atmosphere */}
-            <div className="absolute inset-0 bg-slate-950" />
+            <div className="absolute inset-0 bg-[#161618]" />
 
             {/* Subtle Grid Overlay */}
             <div className="absolute inset-0 bg-grid-pattern opacity-25" />

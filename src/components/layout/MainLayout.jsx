@@ -253,7 +253,9 @@ export default function MainLayout() {
     );
 
     return (
-        <div className="flex h-screen w-full bg-[var(--app-bg)] text-[var(--app-ink)] font-sans overflow-hidden relative">
+        // Nền trong suốt: thứ nằm sau ba tấm kính (thanh bên, header, vùng nội dung) là nền ambient
+        // của <body> (index.css) — tô nền ở đây là che mất nó.
+        <div className="flex h-dvh w-full text-[var(--app-ink)] font-sans overflow-hidden relative">
             {/* Input ẩn phục vụ phím tắt Ctrl + Win + U */}
             <input
                 type="file"
@@ -267,15 +269,17 @@ export default function MainLayout() {
             {/* Sidebar bên trái */}
             <Sidebar />
 
-            {/* Khu vực nội dung chính */}
-            <div className="flex-1 flex flex-col bg-[var(--app-bg)] overflow-hidden min-w-0 lg:border-l lg:border-[var(--app-border)]">
+            {/* Khu vực nội dung chính: header và vùng nội dung là hai tấm kính NỔI, cách mép và
+                cách nhau một khe để nền ambient lộ ra — đó là thứ làm chúng đọc ra là kính. */}
+            <div className="flex-1 flex flex-col overflow-hidden min-w-0 p-2 sm:p-2.5 lg:p-3 lg:pl-3 gap-2 sm:gap-2.5 lg:gap-3">
                 {/* Header Navbar */}
                 <Header 
                     toggleRightSidebar={() => setIsRightSidebarOpen(!isRightSidebarOpen)} 
                 />
 
-                {/* Body Content */}
-                <main className="flex-1 overflow-hidden px-3 sm:px-4 lg:px-5 py-3 relative z-0">
+                {/* Body Content — `glass` KHÔNG blur: trang con render menu/modal `fixed` ngay
+                    trong <main>, mà backdrop-filter sẽ nhốt chúng vào khung này (index.css). */}
+                <main className="glass flex-1 overflow-hidden rounded-[22px] sm:rounded-[26px] px-3 sm:px-4 lg:px-5 py-3 relative z-0">
                     {/* Lỗi trong một trang chỉ thay phần nội dung — Sidebar/Header vẫn còn để
                         người dùng bấm sang trang khác. */}
                     <ErrorBoundary variant="inline" resetKey={location.pathname}>

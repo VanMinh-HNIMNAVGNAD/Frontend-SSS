@@ -90,7 +90,7 @@ export default function SharedDrivesPage() {
                 title={t('view.list')}
                 className={`p-1.5 rounded-full transition-colors ${
                     viewMode === 'list'
-                        ? 'bg-white dark:bg-[#282a2c] shadow-xs text-blue-700 dark:text-blue-400 font-bold'
+                        ? 'glass-active text-blue-700 dark:text-blue-300 font-bold'
                         : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
                 }`}
             >
@@ -101,7 +101,7 @@ export default function SharedDrivesPage() {
                 title={t('view.grid')}
                 className={`p-1.5 rounded-full transition-colors ${
                     viewMode === 'grid'
-                        ? 'bg-white dark:bg-[#282a2c] shadow-xs text-blue-700 dark:text-blue-400 font-bold'
+                        ? 'glass-active text-blue-700 dark:text-blue-300 font-bold'
                         : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
                 }`}
             >
@@ -301,7 +301,7 @@ export default function SharedDrivesPage() {
         const currentDrive = drives.find((d) => d.id === currentSharedDriveId);
         return (
             <div className="flex flex-col h-full" onContextMenu={suppressNativeMenu}>
-                <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-100 dark:border-gray-700">
+                <div className="flex items-center justify-between mb-4 pb-2 border-b border-glass-divider">
                     <div className="flex items-center gap-3">
                         <button 
                             onClick={() => {
@@ -309,7 +309,7 @@ export default function SharedDrivesPage() {
                                 setCurrentSharedDriveId(null);
                             }}
                             title={t('drives.back')}
-                            className="p-1.5 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg text-gray-500 dark:text-gray-400 transition-colors"
+                            className="p-1.5 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] rounded-lg text-gray-500 dark:text-gray-400 transition-colors"
                         >
                             <ArrowLeft className="w-5 h-5" />
                         </button>
@@ -351,13 +351,13 @@ export default function SharedDrivesPage() {
     if (isQuerying) {
         return (
             <div className="flex flex-col h-full" onContextMenu={suppressNativeMenu}>
-                <div className="flex items-center justify-between gap-3 mb-2 pb-2 border-b border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between gap-3 mb-2 pb-2 border-b border-glass-divider">
                     <div className="flex items-center gap-3 min-w-0">
                         <button
                             onClick={resetFilters}
                             title={t('drives.results.back')}
                             aria-label={t('drives.results.back')}
-                            className="p-1.5 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg text-gray-500 dark:text-gray-400 transition-colors shrink-0 cursor-pointer"
+                            className="p-1.5 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] rounded-lg text-gray-500 dark:text-gray-400 transition-colors shrink-0 cursor-pointer"
                         >
                             <ArrowLeft className="w-5 h-5" />
                         </button>
@@ -386,7 +386,7 @@ export default function SharedDrivesPage() {
     // Default view: list of shared drives
     return (
         <div className="flex flex-col h-full overflow-y-auto pr-2 pb-12" onContextMenu={suppressNativeMenu}>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-glass-divider">
                 <div className="flex items-start sm:items-center gap-3.5">
                     <div className="w-12 h-12 rounded-2xl bg-indigo-100 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-400 flex items-center justify-center shrink-0 shadow-2xs border border-indigo-200 dark:border-transparent">
                         <FolderGit2 className="w-6 h-6" />
@@ -421,7 +421,7 @@ export default function SharedDrivesPage() {
                 <div className="p-4 bg-red-50 dark:bg-red-500/15 text-red-700 dark:text-red-300 rounded-xl text-sm font-semibold border border-red-200 dark:border-red-900/50 flex items-center justify-center">{error}</div>
             ) : drives.length === 0 ? (
                 <div className="flex flex-col items-center justify-center p-12 text-center bg-gray-50/70 dark:bg-white/5 rounded-3xl border border-dashed border-gray-300 dark:border-gray-700 mt-4">
-                    <div className="w-16 h-16 bg-white dark:bg-[#282a2c] rounded-full flex items-center justify-center mb-4 shadow-sm border border-gray-200 dark:border-gray-700 text-indigo-600 dark:text-indigo-400">
+                    <div className="glass-soft w-16 h-16 rounded-full flex items-center justify-center mb-4 border text-indigo-600 dark:text-indigo-400">
                         <FolderGit2 className="w-8 h-8 text-indigo-600" />
                     </div>
                     <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1.5">{t('drives.empty')}</h3>
@@ -446,7 +446,7 @@ export default function SharedDrivesPage() {
                                 setCurrentFolderId(null);
                             }}
                             onContextMenu={(e) => openDriveMenu(e, drive)}
-                            className="p-5 border border-gray-300/80 dark:border-gray-700 rounded-3xl hover:border-indigo-400 hover:shadow-md transition-all cursor-pointer bg-white dark:bg-[#282a2c] group flex flex-col shadow-2xs"
+                            className="glass-soft p-5 border rounded-3xl hover:border-indigo-400 hover:shadow-md transition-all cursor-pointer group flex flex-col"
                         >
                             <div className="flex items-start justify-between mb-4">
                                 <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center group-hover:scale-105 transition-transform border border-indigo-100">
@@ -480,7 +480,7 @@ export default function SharedDrivesPage() {
                                     <button
                                         onClick={(e) => openDriveMenu(e, drive)}
                                         title={t('drives.moreOptions')}
-                                        className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 rounded-full hover:bg-gray-100 dark:hover:bg-white/5 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                        className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 rounded-full hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
                                     >
                                         <MoreVertical className="w-4 h-4" />
                                     </button>
@@ -490,7 +490,7 @@ export default function SharedDrivesPage() {
                             <p className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2 flex-1 mb-4 leading-relaxed font-medium">
                                 {drive.description || t('drives.noDescription')}
                             </p>
-                            <div className="flex items-center gap-2 text-[11px] font-bold text-indigo-700 dark:text-indigo-400 mt-auto pt-3 border-t border-gray-100 dark:border-gray-700/60">
+                            <div className="flex items-center gap-2 text-[11px] font-bold text-indigo-700 dark:text-indigo-400 mt-auto pt-3 border-t border-glass-divider">
                                 <Users className="w-3.5 h-3.5" />
                                 <span className="uppercase tracking-wider">{t('drives.groupSpace')}</span>
                             </div>
@@ -517,9 +517,9 @@ export default function SharedDrivesPage() {
 
             {/* Create Modal */}
             {isCreateModalOpen && (
-                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-white dark:bg-[#282a2c] rounded-3xl w-full max-w-md shadow-2xl overflow-hidden transform transition-all">
-                        <div className="px-6 py-4 border-b border-slate-100 dark:border-gray-700 flex items-center justify-between bg-slate-50/50 dark:bg-white/5">
+                <div className="fixed inset-0 glass-overlay z-50 flex items-center justify-center p-4">
+                    <div className="glass-strong relative rounded-[28px] w-full max-w-md overflow-hidden transform transition-all">
+                        <div className="px-6 py-4 border-b flex items-center justify-between bg-slate-50/50 dark:bg-white/5 border-glass-divider">
                             <div>
                                 <h2 className="text-[15px] font-black text-slate-800 dark:text-gray-200 tracking-tight">{t('drives.create.title')}</h2>
                                 <p className="text-xs text-slate-500 dark:text-gray-400 mt-0.5">{t('drives.create.subtitle')}</p>
@@ -543,7 +543,7 @@ export default function SharedDrivesPage() {
                                         value={newDriveName}
                                         onChange={e => setNewDriveName(e.target.value)}
                                         placeholder={t('drives.name.placeholder')}
-                                        className="w-full px-4 py-2.5 bg-white dark:bg-[#282a2c] border border-slate-200 dark:border-gray-700 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium placeholder:font-normal"
+                                        className="glass-input w-full px-4 py-2.5 border rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium placeholder:font-normal"
                                     />
                                 </div>
                                 <div>
@@ -555,11 +555,11 @@ export default function SharedDrivesPage() {
                                         onChange={e => setNewDriveDesc(e.target.value)}
                                         placeholder={t('drives.description.placeholder')}
                                         rows={3}
-                                        className="w-full px-4 py-2.5 bg-white dark:bg-[#282a2c] border border-slate-200 dark:border-gray-700 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all resize-none font-medium placeholder:font-normal"
+                                        className="glass-input w-full px-4 py-2.5 border rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all resize-none font-medium placeholder:font-normal"
                                     />
                                 </div>
                             </div>
-                            <div className="flex items-center justify-end gap-2 mt-8 pt-4 border-t border-slate-100 dark:border-gray-700">
+                            <div className="flex items-center justify-end gap-2 mt-8 pt-4 border-t border-glass-divider">
                                 <button
                                     type="button"
                                     onClick={() => setIsCreateModalOpen(false)}
@@ -601,7 +601,7 @@ export default function SharedDrivesPage() {
                             autoFocus
                             value={renameName}
                             onChange={(e) => setRenameName(e.target.value)}
-                            className="w-full px-4 py-2.5 bg-white dark:bg-[#282a2c] border border-slate-200 dark:border-gray-700 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium"
+                            className="glass-input w-full px-4 py-2.5 border rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium"
                         />
                     </div>
                     <div>
@@ -613,10 +613,10 @@ export default function SharedDrivesPage() {
                             onChange={(e) => setRenameDesc(e.target.value)}
                             rows={3}
                             placeholder={t('drives.description.placeholder')}
-                            className="w-full px-4 py-2.5 bg-white dark:bg-[#282a2c] border border-slate-200 dark:border-gray-700 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all resize-none font-medium placeholder:font-normal"
+                            className="glass-input w-full px-4 py-2.5 border rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all resize-none font-medium placeholder:font-normal"
                         />
                     </div>
-                    <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-100 dark:border-gray-700">
+                    <div className="flex items-center justify-end gap-2 pt-4 border-t border-glass-divider">
                         <button
                             type="button"
                             onClick={() => setRenameTarget(null)}
@@ -667,7 +667,7 @@ export default function SharedDrivesPage() {
                         {t('drives.delete.membersLose')}
                     </p>
 
-                    <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-100 dark:border-gray-700">
+                    <div className="flex items-center justify-end gap-2 pt-4 border-t border-glass-divider">
                         <button
                             type="button"
                             onClick={() => setDeleteTarget(null)}
@@ -714,7 +714,7 @@ export default function SharedDrivesPage() {
                         {t('drives.leave.filesStay')}
                     </p>
 
-                    <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-100 dark:border-gray-700">
+                    <div className="flex items-center justify-end gap-2 pt-4 border-t border-glass-divider">
                         <button
                             type="button"
                             onClick={() => setLeaveTarget(null)}

@@ -38,8 +38,8 @@ export default function BillingCancel() {
   }, [orderCode]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 bg-gray-50 dark:bg-[#1b1c1d]">
-      <div className="w-full max-w-md bg-white dark:bg-[#282a2c] rounded-3xl border border-gray-200 dark:border-gray-700 shadow-xl p-8 text-center">
+    <div className="min-h-screen flex items-center justify-center p-6">
+      <div className="glass-strong relative w-full max-w-md rounded-[28px] border p-8 text-center">
         <div className="w-16 h-16 mx-auto mb-6 rounded-2xl flex items-center justify-center bg-amber-50 dark:bg-amber-500/10 text-amber-500 ring-1 ring-amber-200 dark:ring-amber-500/30">
           <XCircle className="w-8 h-8" />
         </div>
@@ -71,13 +71,13 @@ export default function BillingCancel() {
         <div className="mt-8 space-y-3">
           <Link
             to="/app/billing"
-            className="w-full py-3.5 px-4 rounded-xl bg-gray-900 dark:bg-blue-600 hover:bg-black dark:hover:bg-blue-500 text-white font-bold text-[15px] shadow-lg transition-all flex items-center justify-center gap-2"
+            className="w-full py-3.5 px-4 rounded-xl btn-accent hover:brightness-105 font-bold text-[15px] shadow-lg transition-all flex items-center justify-center gap-2"
           >
             <ArrowLeft className="w-4 h-4" /> {t('billing.cancel.backToPlans')}
           </Link>
           <Link
             to="/app"
-            className="w-full py-3 px-4 rounded-xl bg-white dark:bg-transparent text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-white/5 font-bold text-[15px] transition-all flex items-center justify-center gap-2"
+            className="w-full py-3 px-4 rounded-xl bg-white dark:bg-transparent text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-black/[0.04] dark:hover:bg-white/[0.07] font-bold text-[15px] transition-all flex items-center justify-center gap-2"
           >
             {t('billing.cancel.backToApp')}
           </Link>

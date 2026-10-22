@@ -59,17 +59,17 @@ export function ErrorFallback({ error, onRetry, onClose, variant = 'page' }) {
   const chunk = isChunkLoadError(error);
 
   const box = (
-    <div className="w-full max-w-md rounded-3xl border border-white/10 bg-slate-900 p-6 text-center text-white shadow-2xl">
-      <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-amber-500/30 bg-amber-500/10 text-amber-400">
+    <div className="glass-strong relative w-full max-w-md rounded-[28px] p-6 text-center text-gray-900 dark:text-gray-100">
+      <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400">
         {chunk ? <RefreshCw className="h-7 w-7" /> : <AlertTriangle className="h-7 w-7" />}
       </div>
       <h2 className="mb-2 text-lg font-extrabold">{t(chunk ? 'crash.newVersionTitle' : 'crash.title')}</h2>
-      <p className="mb-6 text-sm text-slate-400">{t(chunk ? 'crash.newVersionBody' : 'crash.body')}</p>
+      <p className="mb-6 text-sm text-gray-600 dark:text-gray-400">{t(chunk ? 'crash.newVersionBody' : 'crash.body')}</p>
       <div className="flex flex-wrap items-center justify-center gap-2">
         <button
           type="button"
           onClick={() => window.location.reload()}
-          className="flex items-center gap-2 rounded-2xl bg-blue-600 px-5 py-2.5 text-sm font-bold text-white transition-all hover:bg-blue-500"
+          className="flex items-center gap-2 rounded-2xl btn-accent px-5 py-2.5 text-sm font-bold transition hover:brightness-105 cursor-pointer"
         >
           <RefreshCw className="h-4 w-4" /> {t('crash.reload')}
         </button>
@@ -77,7 +77,7 @@ export function ErrorFallback({ error, onRetry, onClose, variant = 'page' }) {
           <button
             type="button"
             onClick={onRetry}
-            className="flex items-center gap-2 rounded-2xl bg-white/10 px-5 py-2.5 text-sm font-bold text-white transition-all hover:bg-white/20"
+            className="flex items-center gap-2 rounded-2xl glass-soft px-5 py-2.5 text-sm font-bold text-gray-800 dark:text-gray-100 transition-all hover:bg-white/80 dark:hover:bg-white/10 cursor-pointer"
           >
             <RotateCcw className="h-4 w-4" /> {t('crash.retry')}
           </button>
@@ -86,7 +86,7 @@ export function ErrorFallback({ error, onRetry, onClose, variant = 'page' }) {
           <button
             type="button"
             onClick={onClose}
-            className="rounded-2xl bg-white/10 px-5 py-2.5 text-sm font-bold text-white transition-all hover:bg-white/20"
+            className="rounded-2xl glass-soft px-5 py-2.5 text-sm font-bold text-gray-800 dark:text-gray-100 transition-all hover:bg-white/80 dark:hover:bg-white/10 cursor-pointer"
           >
             {t('common.close')}
           </button>
@@ -94,7 +94,7 @@ export function ErrorFallback({ error, onRetry, onClose, variant = 'page' }) {
           variant === 'page' && (
             <a
               href="/app"
-              className="flex items-center gap-2 rounded-2xl bg-white/10 px-5 py-2.5 text-sm font-bold text-white transition-all hover:bg-white/20"
+              className="flex items-center gap-2 rounded-2xl glass-soft px-5 py-2.5 text-sm font-bold text-gray-800 dark:text-gray-100 transition-all hover:bg-white/80 dark:hover:bg-white/10 cursor-pointer"
             >
               <Home className="h-4 w-4" /> {t('crash.home')}
             </a>
@@ -106,11 +106,11 @@ export function ErrorFallback({ error, onRetry, onClose, variant = 'page' }) {
 
   if (variant === 'overlay') {
     return (
-      <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 p-4">{box}</div>
+      <div className="fixed inset-0 glass-overlay z-[200] flex items-center justify-center p-4">{box}</div>
     );
   }
   if (variant === 'inline') {
     return <div className="flex flex-1 items-center justify-center p-6">{box}</div>;
   }
-  return <div className="flex min-h-screen items-center justify-center bg-slate-950 p-6">{box}</div>;
+  return <div className="flex min-h-screen items-center justify-center p-6">{box}</div>;
 }

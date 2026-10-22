@@ -83,7 +83,7 @@ export default function TermsAcceptanceGate() {
     // trình tải): màn này phải nằm TRÊN tất cả, nếu không nó chỉ là một tấm che
     // mà người dùng bấm xuyên qua được.
     <div
-      className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/40 dark:bg-black/70 backdrop-blur-sm"
+      className="fixed inset-0 glass-overlay z-[200] flex items-center justify-center p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="terms-gate-title"
@@ -129,7 +129,7 @@ export default function TermsAcceptanceGate() {
             type="button"
             onClick={handleAccept}
             disabled={isSubmitting}
-            className="flex-1 h-12 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm tracking-wide transition shadow-lg shadow-blue-600/25 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 h-12 rounded-xl btn-accent hover:brightness-105 font-bold text-sm tracking-wide transition shadow-lg shadow-blue-600/25 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting ? t('legal.gate.submitting') : t('legal.gate.accept')}
           </button>

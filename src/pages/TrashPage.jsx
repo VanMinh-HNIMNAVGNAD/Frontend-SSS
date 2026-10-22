@@ -37,7 +37,7 @@ export default function TrashPage() {
     return (
         <div className="flex flex-col h-full" onContextMenu={(e) => e.preventDefault()}>
             {/* Header */}
-            <div className="flex items-center justify-between mb-2 pb-2 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between mb-2 pb-2 border-b border-glass-divider">
                 <div className="flex items-center gap-2">
                     <Trash2 className="w-6 h-6 text-gray-800 dark:text-gray-200" />
                     <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">{t('page.trash.title')}</h1>
@@ -49,7 +49,7 @@ export default function TrashPage() {
                             onClick={() => setViewMode('list')}
                             title={t('view.list')}
                             className={`p-1.5 rounded-full transition-colors ${
-                                viewMode === 'list' ? 'bg-white dark:bg-[#282a2c] shadow-xs text-blue-700 dark:text-blue-400 font-bold' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+                                viewMode === 'list' ? 'glass-active text-blue-700 dark:text-blue-300 font-bold' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
                             }`}
                         >
                             <List className="w-4 h-4" />
@@ -58,7 +58,7 @@ export default function TrashPage() {
                             onClick={() => setViewMode('grid')}
                             title={t('view.grid')}
                             className={`p-1.5 rounded-full transition-colors ${
-                                viewMode === 'grid' ? 'bg-white dark:bg-[#282a2c] shadow-xs text-blue-700 dark:text-blue-400 font-bold' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+                                viewMode === 'grid' ? 'glass-active text-blue-700 dark:text-blue-300 font-bold' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
                             }`}
                         >
                             <LayoutGrid className="w-4 h-4" />
@@ -78,7 +78,7 @@ export default function TrashPage() {
             </div>
 
             {/* Banner Thông báo */}
-            <p className="bg-blue-50/80 dark:bg-blue-500/15 border border-blue-300 dark:border-blue-900/50 rounded-2xl px-3.5 py-2.5 mb-2 text-xs font-medium text-blue-900 dark:text-blue-200 shadow-2xs">
+            <p className="bg-blue-50/80 dark:bg-blue-500/15 border border-blue-300 dark:border-blue-400/25 rounded-2xl px-3.5 py-2.5 mb-2 text-xs font-medium text-blue-900 dark:text-blue-200 shadow-2xs">
                 {t('trash.banner.body')}
             </p>
 

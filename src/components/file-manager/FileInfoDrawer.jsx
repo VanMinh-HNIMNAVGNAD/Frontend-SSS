@@ -154,7 +154,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                 label: t('info.action.shareLink'),
                 icon: Share2,
                 colorClass: 'text-blue-600 dark:text-blue-400',
-                bgClass: 'bg-blue-100 dark:bg-blue-900/40',
+                bgClass: 'bg-blue-100 dark:bg-blue-400/15',
             };
         }
         // Phải đứng TRƯỚC nhánh TRASH/DELETE: 'MARK_NOT_SPAM' không chứa hai chữ đó,
@@ -196,7 +196,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                 label: t('activity.action.copy'),
                 icon: Copy,
                 colorClass: 'text-indigo-600 dark:text-indigo-400',
-                bgClass: 'bg-indigo-100 dark:bg-indigo-900/40',
+                bgClass: 'bg-indigo-100 dark:bg-indigo-400/15',
             };
         }
         if (act.includes('VERSION')) {
@@ -212,7 +212,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                 label: t('common.download'),
                 icon: Download,
                 colorClass: 'text-sky-600 dark:text-sky-400',
-                bgClass: 'bg-sky-100 dark:bg-sky-900/40',
+                bgClass: 'bg-sky-100 dark:bg-sky-400/15',
             };
         }
         const formatted = action
@@ -222,7 +222,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
             label: formatted,
             icon: ActivityIcon,
             colorClass: 'text-blue-600 dark:text-blue-400',
-            bgClass: 'bg-blue-100 dark:bg-blue-900/40',
+            bgClass: 'bg-blue-100 dark:bg-blue-400/15',
         };
     };
 
@@ -304,15 +304,15 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
         <>
             {/* Transparent backdrop overlay */}
             <div 
-                className="fixed inset-0 z-40 bg-black/20 animate-fade-in cursor-pointer"
+                className="fixed inset-0 glass-overlay z-40 animate-fade-in cursor-pointer"
                 onClick={onClose}
             />
             <aside 
-                className="fixed right-0 top-0 bottom-0 z-50 w-96 bg-white dark:bg-[#1e1e1e] border-l border-gray-200 dark:border-gray-800 shadow-2xl flex flex-col font-sans animate-slide-left text-xs text-gray-800 dark:text-gray-200 overflow-hidden cursor-default"
+                className="glass-strong fixed right-0 top-0 bottom-0 sm:right-3 sm:top-3 sm:bottom-3 z-50 w-full sm:w-96 sm:rounded-[26px] flex flex-col font-sans animate-slide-left text-xs text-gray-800 dark:text-gray-200 overflow-hidden cursor-default"
                 onClick={(e) => e.stopPropagation()}
             >
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-800">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-glass-divider">
                 <div className="flex items-center gap-2.5 min-w-0 pr-2">
                     {getFileIconLarge() && <div className="shrink-0">{getFileIconLarge()}</div>}
                     <div className="min-w-0">
@@ -326,7 +326,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                 </div>
                 <button
                     onClick={onClose}
-                    className="p-1.5 rounded-full text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors shrink-0 cursor-pointer"
+                    className="p-1.5 rounded-full text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-colors shrink-0 cursor-pointer"
                     title={t('common.close')}
                 >
                     <X className="w-5 h-5" />
@@ -334,13 +334,14 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
             </div>
 
             {/* Tab Navigation */}
-            <div className="flex border-b border-gray-200 dark:border-gray-800 bg-gray-100/90 dark:bg-[#252728]">
+            {/* Thanh phân đoạn kính (segmented control) thay cho tab gạch chân trên nền xám. */}
+            <div className="flex gap-1 mx-4 mt-3 mb-1 p-1 rounded-full glass-soft">
                 <button
                     onClick={() => setCurrentTab('details')}
-                    className={`flex-1 py-3 text-center font-semibold transition-colors border-b-2 flex items-center justify-center gap-1.5 cursor-pointer ${
+                    className={`flex-1 py-1.5 rounded-full text-center font-semibold transition-colors flex items-center justify-center gap-1.5 cursor-pointer ${
                         currentTab === 'details'
-                            ? 'border-blue-600 text-blue-700 dark:text-blue-400 bg-white dark:bg-[#1e1e1e] font-bold'
-                            : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 font-medium'
+                            ? 'glass-active text-blue-700 dark:text-blue-300 font-bold'
+                            : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 font-medium'
                     }`}
                 >
                     <InfoIcon className="w-3.5 h-3.5" />
@@ -349,10 +350,10 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
 
                 <button
                     onClick={() => setCurrentTab('activity')}
-                    className={`flex-1 py-3 text-center font-semibold transition-colors border-b-2 flex items-center justify-center gap-1.5 cursor-pointer ${
+                    className={`flex-1 py-1.5 rounded-full text-center font-semibold transition-colors flex items-center justify-center gap-1.5 cursor-pointer ${
                         currentTab === 'activity'
-                            ? 'border-blue-600 text-blue-700 dark:text-blue-400 bg-white dark:bg-[#1e1e1e] font-bold'
-                            : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 font-medium'
+                            ? 'glass-active text-blue-700 dark:text-blue-300 font-bold'
+                            : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 font-medium'
                     }`}
                 >
                     <ActivityIcon className="w-3.5 h-3.5" />
@@ -362,10 +363,10 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                 {!isFolder && (
                     <button
                         onClick={() => setCurrentTab('versions')}
-                        className={`flex-1 py-3 text-center font-semibold transition-colors border-b-2 flex items-center justify-center gap-1.5 cursor-pointer ${
+                        className={`flex-1 py-1.5 rounded-full text-center font-semibold transition-colors flex items-center justify-center gap-1.5 cursor-pointer ${
                             currentTab === 'versions'
-                                ? 'border-blue-600 text-blue-700 dark:text-blue-400 bg-white dark:bg-[#1e1e1e] font-bold'
-                                : 'border-transparent text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 font-medium'
+                                ? 'glass-active text-blue-700 dark:text-blue-300 font-bold'
+                                : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 font-medium'
                         }`}
                     >
                         <History className="w-3.5 h-3.5" />
@@ -383,7 +384,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                             <h4 className="font-bold text-gray-900 dark:text-gray-100 text-xs uppercase tracking-wider text-[11px]">
                                 {t('info.access.heading')}
                             </h4>
-                            <div className="flex items-center justify-between p-3 rounded-2xl bg-gray-50 dark:bg-[#282a2c] border border-gray-100 dark:border-gray-800">
+                            <div className="flex items-center justify-between p-3 rounded-2xl bg-gray-50 dark:bg-white/[0.06] border border-gray-100 dark:border-gray-800">
                                 <div className="flex items-center gap-3">
                                     <div className="w-8 h-8 rounded-full bg-blue-600 text-white font-bold flex items-center justify-center text-xs shadow-xs">
                                         {(item.owner || t('list.owner.me')).charAt(0).toUpperCase()}
@@ -398,7 +399,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                                     {!isFolder && (
                                         <button
                                             onClick={() => { openPreview(item); onClose?.(); }}
-                                            className="px-2.5 py-1.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-xl font-semibold flex items-center gap-1 shadow-xs transition-all cursor-pointer"
+                                            className="px-2.5 py-1.5 bg-gray-100 hover:bg-gray-200 dark:bg-white/[0.07] dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-xl font-semibold flex items-center gap-1 shadow-xs transition-all cursor-pointer"
                                         >
                                             <Eye className="w-3.5 h-3.5 text-blue-500" /> {t('menu.preview')}
                                         </button>
@@ -415,7 +416,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                                             flushSync(() => onClose?.());
                                             onOpenShare?.(currentItem);
                                         }}
-                                        className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold flex items-center gap-1 shadow-xs transition-all cursor-pointer"
+                                        className="px-3 py-1.5 btn-accent hover:brightness-105 rounded-xl font-semibold flex items-center gap-1 shadow-xs transition-all cursor-pointer"
                                     >
                                         <Share2 className="w-3.5 h-3.5" /> {t('info.access.manage')}
                                     </button>
@@ -430,7 +431,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                             </h4>
 
                             {/* Property item: Loại tệp */}
-                            <div className="flex justify-between py-1.5 border-b border-gray-200 dark:border-gray-800">
+                            <div className="flex justify-between py-1.5 border-b border-glass-divider">
                                 <span className="text-gray-600 dark:text-gray-400 font-semibold">{t('info.field.type')}</span>
                                 <span className="font-semibold text-gray-900 dark:text-gray-100">
                                     {isFolder ? t('fileType.folder') : item.mimeType || t('info.type.dataFile')}
@@ -439,7 +440,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
 
                             {/* Property item: Kích thước */}
                             {!isFolder && (
-                                <div className="flex justify-between py-1.5 border-b border-gray-200 dark:border-gray-800">
+                                <div className="flex justify-between py-1.5 border-b border-glass-divider">
                                     <span className="text-gray-600 dark:text-gray-400 font-semibold">{t('info.field.size')}</span>
                                     <span className="font-semibold text-gray-900 dark:text-gray-100 font-mono">
                                         {formatBytes(item.size)}
@@ -448,7 +449,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                             )}
 
                             {/* Property item: Vị trí */}
-                            <div className="flex justify-between py-1.5 border-b border-gray-200 dark:border-gray-800">
+                            <div className="flex justify-between py-1.5 border-b border-glass-divider">
                                 <span className="text-gray-600 dark:text-gray-400 font-semibold">{t('info.field.location')}</span>
                                 <span className="font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-1 min-w-0">
                                     <FolderTree className="w-3.5 h-3.5 shrink-0" />
@@ -460,7 +461,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                             </div>
 
                             {/* Property item: Người sở hữu */}
-                            <div className="flex justify-between py-1.5 border-b border-gray-200 dark:border-gray-800">
+                            <div className="flex justify-between py-1.5 border-b border-glass-divider">
                                 <span className="text-gray-600 dark:text-gray-400 font-semibold">{t('info.field.owner')}</span>
                                 <span className="font-semibold text-gray-900 dark:text-gray-100">
                                     {item.owner || t('list.owner.me')}
@@ -468,7 +469,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                             </div>
 
                             {/* Property item: Sửa đổi lần cuối */}
-                            <div className="flex justify-between py-1.5 border-b border-gray-200 dark:border-gray-800">
+                            <div className="flex justify-between py-1.5 border-b border-glass-divider">
                                 <span className="text-gray-600 dark:text-gray-400 font-semibold">{t('info.field.modified')}</span>
                                 <span className="font-semibold text-gray-900 dark:text-gray-100 font-mono">
                                     {item.updatedAt || '—'}
@@ -476,7 +477,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                             </div>
 
                             {/* Property item: Ngày tạo (Created) */}
-                            <div className="flex justify-between py-1.5 border-b border-gray-200 dark:border-gray-800">
+                            <div className="flex justify-between py-1.5 border-b border-glass-divider">
                                 <span className="text-gray-600 dark:text-gray-400 font-semibold">{t('info.field.created')}</span>
                                 <span className="font-semibold text-gray-900 dark:text-gray-100 font-mono">
                                     {item.createdAt || '—'}
@@ -493,7 +494,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                             {activityLogs.length > 0 && !loadingTab && (
                                 <button
                                     onClick={fetchActivityLogs}
-                                    className="p-1 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+                                    className="p-1 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-colors cursor-pointer"
                                     title={t('info.refresh')}
                                 >
                                     <RefreshCw className="w-3.5 h-3.5" />
@@ -507,7 +508,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                                 <p className="text-xs text-gray-400 font-medium">{t('info.activity.loading')}</p>
                             </div>
                         ) : activityError ? (
-                            <div className="p-4 rounded-2xl bg-rose-50/60 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30 text-center space-y-2">
+                            <div className="p-4 rounded-2xl bg-rose-50/60 dark:bg-rose-400/15 border border-rose-100 dark:border-rose-900/30 text-center space-y-2">
                                 <AlertCircle className="w-6 h-6 text-rose-500 dark:text-rose-400 mx-auto" />
                                 <p className="text-xs font-semibold text-rose-800 dark:text-rose-300">
                                     {t('info.activity.loadFailed')}
@@ -542,7 +543,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                                     return (
                                         <div
                                             key={log.id || Math.random()}
-                                            className="flex gap-3 text-xs p-3 rounded-2xl bg-gray-50 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-800 hover:border-gray-200 dark:hover:border-gray-700 transition-colors"
+                                            className="flex gap-3 text-xs p-3 rounded-2xl bg-gray-50 dark:bg-white/[0.07] border border-gray-100 dark:border-gray-800 hover:border-gray-200 dark:hover:border-gray-700 transition-colors"
                                         >
                                             <div
                                                 className={`w-7 h-7 rounded-xl ${meta.bgClass} ${meta.colorClass} flex items-center justify-center shrink-0 font-bold shadow-xs`}
@@ -559,7 +560,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                                                     </span>
                                                 </div>
                                                 {description && (
-                                                    <p className="text-[11px] text-gray-600 dark:text-gray-300 leading-relaxed break-words bg-white/60 dark:bg-gray-900/40 px-2 py-1.5 rounded-lg border border-gray-100 dark:border-gray-800/60">
+                                                    <p className="text-[11px] text-gray-600 dark:text-gray-300 leading-relaxed break-words bg-white/60 dark:bg-black/20 px-2 py-1.5 rounded-lg border border-gray-100 dark:border-gray-800/60">
                                                         {description}
                                                     </p>
                                                 )}
@@ -578,7 +579,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                             </div>
                         ) : (
                             <div className="py-8 px-4 text-center">
-                                <div className="w-10 h-10 rounded-2xl bg-gray-100 dark:bg-gray-800/80 flex items-center justify-center mx-auto mb-2 text-gray-400">
+                                <div className="w-10 h-10 rounded-2xl bg-gray-100 dark:bg-white/[0.07] flex items-center justify-center mx-auto mb-2 text-gray-400">
                                     <ActivityIcon className="w-5 h-5 opacity-60" />
                                 </div>
                                 <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">{t('info.activity.empty')}</p>
@@ -598,7 +599,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                         ) : shownVersions ? (
                             <div className="space-y-3">
                                 {/* Current Version */}
-                                <div className="p-3 rounded-2xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
+                                <div className="p-3 rounded-2xl bg-blue-50 dark:bg-blue-400/15 border border-blue-200 dark:border-blue-800">
                                     <div className="flex items-center justify-between mb-1">
                                         <span className="font-extrabold text-blue-700 dark:text-blue-400 text-xs">{t('info.versions.current')}</span>
                                         <span className="text-[10px] font-mono text-blue-600">{formatBytes(shownVersions.currentVersion.sizeBytes)}</span>
@@ -609,7 +610,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                                 {/* Past Versions */}
                                 {shownVersions.pastVersions && shownVersions.pastVersions.length > 0 ? (
                                     shownVersions.pastVersions.map((v) => (
-                                        <div key={v.id} className="p-3 rounded-2xl bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                                        <div key={v.id} className="p-3 rounded-2xl bg-gray-50 dark:bg-white/[0.07] border border-gray-200 dark:border-gray-700 flex items-center justify-between">
                                             <div>
                                                 <div className="font-bold text-gray-900 dark:text-gray-100 text-xs">
                                                     {t('info.versions.label', { number: v.versionNumber })}

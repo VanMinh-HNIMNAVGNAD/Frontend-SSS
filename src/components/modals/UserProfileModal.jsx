@@ -515,17 +515,17 @@ export default function UserProfileModal({ isOpen, onClose }) {
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm transition-opacity animate-in fade-in duration-200"
+        className="absolute inset-0 glass-overlay transition-opacity animate-fade-in"
         onClick={onClose}
       />
 
       {/* Main Modal */}
       <div
-        className="relative bg-white dark:bg-[#282a2c] rounded-3xl shadow-2xl w-full max-w-xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200 border border-gray-100 dark:border-gray-700 text-left"
+        className="glass-strong relative rounded-[28px] w-full max-w-xl overflow-hidden flex flex-col max-h-[90vh] border text-left animate-glass-in"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
-        <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-gray-50/80 dark:bg-white/5">
+        <div className="px-6 py-4 border-b flex items-center justify-between bg-gray-50/80 dark:bg-white/5 border-glass-divider">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-blue-600/10 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold">
               <UserIcon className="w-5 h-5" />
@@ -544,7 +544,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex border-b border-gray-100 dark:border-gray-700 bg-white dark:bg-[#282a2c] px-6 gap-2">
+        <div className="glass-soft flex border-b px-6 gap-2">
           <button
             onClick={() => setActiveTab('profile')}
             className={`py-3.5 px-3 text-xs font-bold transition-all border-b-2 flex items-center gap-2 ${
@@ -590,7 +590,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
           {activeTab === 'profile' && (
             <div className="space-y-6">
               {/* Profile Card & Avatar */}
-              <div className="flex items-center gap-5 p-4 rounded-2xl bg-gradient-to-r from-blue-50/60 to-indigo-50/40 dark:from-blue-950/30 dark:to-indigo-950/20 border border-blue-100/80 dark:border-blue-900/40">
+              <div className="flex items-center gap-5 p-4 rounded-2xl bg-gradient-to-r from-blue-50/60 to-indigo-50/40 dark:from-blue-400/10 dark:to-indigo-400/[0.06] border border-blue-100/80 dark:border-white/10">
                 <input
                   type="file"
                   ref={fileInputRef}
@@ -622,7 +622,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                       e.stopPropagation();
                       fileInputRef.current?.click();
                     }}
-                    className="absolute -bottom-1 -right-1 p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-md border-2 border-white transition-all group-hover:scale-110 disabled:opacity-50"
+                    className="absolute -bottom-1 -right-1 p-2 btn-accent hover:brightness-105 rounded-full shadow-md border-2 border-white transition-all group-hover:scale-110 disabled:opacity-50"
                     title={t('profile.avatar.upload')}
                   >
                     <Camera className="w-4 h-4" />
@@ -701,7 +701,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                   </button>
                 </div>
 
-                <div className="space-y-1.5 pt-3 border-t border-gray-200/70 dark:border-gray-700/60">
+                <div className="space-y-1.5 pt-3 border-t border-glass-divider">
                   <div className="flex items-center justify-between gap-2 text-xs font-bold">
                     <span className="flex items-center gap-1.5 text-gray-800 dark:text-gray-200">
                       <HardDrive className="w-4 h-4 text-blue-600 dark:text-blue-400" />
@@ -772,7 +772,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                       autoComplete="off"
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-[#282a2c] border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-gray-800 dark:text-gray-200"
+                      className="glass-input w-full pl-10 pr-4 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-gray-800 dark:text-gray-200"
                       placeholder={t('profile.name.placeholder')}
                     />
                   </div>
@@ -831,7 +831,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                   <button
                     type="submit"
                     disabled={isSavingProfile}
-                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs transition-all shadow-md shadow-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
+                    className="px-5 py-2.5 btn-accent hover:brightness-105 rounded-xl font-bold text-xs transition-all shadow-md shadow-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
                   >
                     {isSavingProfile ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -865,7 +865,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                     required
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-[#282a2c] border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-gray-800 dark:text-gray-200"
+                    className="glass-input w-full pl-10 pr-4 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-gray-800 dark:text-gray-200"
                     placeholder="••••••••"
                   />
                 </div>
@@ -883,7 +883,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                     minLength={6}
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-[#282a2c] border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-gray-800 dark:text-gray-200"
+                    className="glass-input w-full pl-10 pr-4 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-gray-800 dark:text-gray-200"
                     placeholder={t('profile.password.minHint')}
                   />
                 </div>
@@ -901,7 +901,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                     minLength={6}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-[#282a2c] border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-gray-800 dark:text-gray-200"
+                    className="glass-input w-full pl-10 pr-4 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-gray-800 dark:text-gray-200"
                     placeholder={t('profile.password.confirmPlaceholder')}
                   />
                 </div>
@@ -911,7 +911,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                 <button
                   type="submit"
                   disabled={isChangingPassword}
-                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs transition-all shadow-md shadow-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="px-5 py-2.5 btn-accent hover:brightness-105 rounded-xl font-bold text-xs transition-all shadow-md shadow-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                   {isChangingPassword ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -940,7 +940,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                   <button
                     onClick={fetchSessions}
                     disabled={isLoadingSessions}
-                    className="p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl text-gray-600 dark:text-gray-300 transition-colors"
+                    className="p-2 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] rounded-xl text-gray-600 dark:text-gray-300 transition-colors"
                     title={t('profile.sessions.refresh')}
                   >
                     <RefreshCw className={`w-4 h-4 ${isLoadingSessions ? 'animate-spin' : ''}`} />
@@ -969,7 +969,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                   {[0, 1, 2].map((i) => (
                     <div
                       key={i}
-                      className="p-3.5 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#282a2c] flex items-center justify-between gap-3 animate-pulse"
+                      className="glass-soft p-3.5 rounded-2xl border flex items-center justify-between gap-3 animate-pulse"
                     >
                       <div className="flex items-center gap-3 min-w-0 flex-1">
                         {/* Placeholder icon thiết bị */}
@@ -978,14 +978,14 @@ export default function UserProfileModal({ isOpen, onClose }) {
                           {/* Dòng 1: tên thiết bị + badge */}
                           <div className="flex items-center gap-2">
                             <div className="h-3 w-32 rounded-full bg-gray-200 dark:bg-gray-700" />
-                            <div className="h-3 w-16 rounded-full bg-gray-100 dark:bg-gray-800" />
+                            <div className="h-3 w-16 rounded-full bg-gray-100 dark:bg-white/[0.07]" />
                           </div>
                           {/* Dòng 2: IP + thời gian */}
-                          <div className="h-2.5 w-48 max-w-full rounded-full bg-gray-100 dark:bg-gray-800" />
+                          <div className="h-2.5 w-48 max-w-full rounded-full bg-gray-100 dark:bg-white/[0.07]" />
                         </div>
                       </div>
                       {/* Placeholder nút Thu hồi */}
-                      <div className="h-6 w-16 rounded-xl bg-gray-100 dark:bg-gray-800 shrink-0" />
+                      <div className="h-6 w-16 rounded-xl bg-gray-100 dark:bg-white/[0.07] shrink-0" />
                     </div>
                   ))}
                 </div>
@@ -1005,7 +1005,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                             ? 'bg-blue-50/40 dark:bg-blue-500/15 border-blue-200 dark:border-blue-800/60 shadow-xs'
                             : sess.isRevoked
                             ? 'bg-gray-50/50 dark:bg-white/5 border-gray-200 dark:border-gray-700 opacity-60'
-                            : 'bg-white dark:bg-[#282a2c] border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                            : 'glass-soft'
                         }`}
                       >
                         <div className="flex items-center gap-3 min-w-0">
@@ -1087,8 +1087,8 @@ export default function UserProfileModal({ isOpen, onClose }) {
              * Xoá tài khoản là thao tác thuộc hồ sơ, không thuộc quản lý phiên.
              */}
           {activeTab === 'profile' && (
-          <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
-            <div className="p-4 rounded-2xl border border-rose-200 dark:border-rose-900/50 bg-rose-50/50 dark:bg-rose-950/20 space-y-3">
+          <div className="pt-4 border-t border-glass-divider">
+            <div className="p-4 rounded-2xl border border-rose-200 dark:border-rose-900/50 bg-rose-50/50 dark:bg-rose-400/15 space-y-3">
               <div className="flex items-start gap-3">
                 <div className="w-8 h-8 rounded-xl bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-300 flex items-center justify-center shrink-0 mt-0.5">
                   <ShieldAlert className="w-4 h-4" />
@@ -1119,11 +1119,11 @@ export default function UserProfileModal({ isOpen, onClose }) {
       {showDeleteModal && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
           <div
-            className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm"
+            className="absolute inset-0 glass-overlay animate-fade-in"
             onClick={() => !isDeletingAccount && setShowDeleteModal(false)}
           />
           <div
-            className="relative bg-white dark:bg-[#282a2c] rounded-3xl shadow-2xl w-full max-w-md overflow-hidden p-6 space-y-5 animate-in zoom-in-95 duration-150 border border-rose-100 dark:border-rose-900/50"
+            className="glass-strong relative rounded-[28px] w-full max-w-md overflow-hidden p-6 space-y-5 border border-rose-100 dark:border-rose-900/50 animate-glass-in"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header Warning */}
@@ -1159,7 +1159,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                     value={deletePassword}
                     onChange={(e) => setDeletePassword(e.target.value)}
                     placeholder={t('profile.delete.passwordPlaceholder')}
-                    className="w-full px-3.5 py-2.5 bg-white dark:bg-[#282a2c] border border-gray-300 dark:border-gray-600 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all"
+                    className="glass-input w-full px-3.5 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all"
                   />
                 </div>
               ) : (
@@ -1190,7 +1190,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                       value={deleteCode}
                       onChange={(e) => setDeleteCode(e.target.value.replace(/\D/g, ''))}
                       placeholder={t('profile.delete.codePlaceholder')}
-                      className="flex-1 min-w-0 px-3.5 py-2.5 bg-white dark:bg-[#282a2c] border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-mono tracking-[0.3em] focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all"
+                      className="glass-input flex-1 min-w-0 px-3.5 py-2.5 border rounded-xl text-sm font-mono tracking-[0.3em] focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all"
                     />
                     <button
                       type="button"
@@ -1219,7 +1219,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                   value={deleteConfirmText}
                   onChange={(e) => setDeleteConfirmText(e.target.value)}
                   placeholder={t('profile.delete.keywordPlaceholder')}
-                  className="w-full px-3.5 py-2.5 bg-white dark:bg-[#282a2c] border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-mono tracking-wider focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all"
+                  className="glass-input w-full px-3.5 py-2.5 border rounded-xl text-sm font-mono tracking-wider focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all"
                 />
               </div>
             </div>
@@ -1230,7 +1230,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                 type="button"
                 disabled={isDeletingAccount}
                 onClick={() => setShowDeleteModal(false)}
-                className="px-4 py-2.5 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors disabled:opacity-50 cursor-pointer"
+                className="px-4 py-2.5 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-300 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-colors disabled:opacity-50 cursor-pointer"
               >
                 {t('common.cancel')}
               </button>

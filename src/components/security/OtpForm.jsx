@@ -159,10 +159,10 @@ export default function OtpForm({
         disabled={busy || !isComplete}
         // Nút SÁNG LÊN khi đủ 6 số: `disabled:opacity-40` cộng với bóng đổ chỉ xuất hiện ở
         // trạng thái bật tạo ra khác biệt thấy rõ mà không cần thêm chữ nào.
-        className={`w-full h-12 rounded-xl text-white text-base font-bold tracking-wide transition-all duration-200 flex items-center justify-center gap-2.5 ${
+        className={`w-full h-12 rounded-2xl text-base font-bold tracking-wide transition-all duration-200 flex items-center justify-center gap-2.5 ${
           isComplete && !busy
-            ? 'bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-600/30 cursor-pointer'
-            : 'bg-blue-600/40 cursor-not-allowed'
+            ? 'btn-accent hover:brightness-105 cursor-pointer'
+            : 'bg-black/[0.06] dark:bg-white/[0.08] text-gray-400 dark:text-gray-500 cursor-not-allowed'
         }`}
       >
         <span>{busy ? t('otp.verifying') : (submitLabel ?? t('otp.confirm'))}</span>

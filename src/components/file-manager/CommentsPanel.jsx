@@ -113,7 +113,9 @@ export default function CommentsPanel({ comments, onClose, className = '' }) {
 
   return (
     <aside
-      className={`flex flex-col bg-neutral-900 text-white border-white/10 shadow-2xl shadow-black/50 ${className}`}
+      // Kính tối nổi trên "phòng tối" của trình xem (`glass-dark`, index.css). Chỗ gọi phải định
+      // vị cột (absolute / relative) để lớp blur `::before` phủ đúng khung — xem FilePreviewModal.
+      className={`flex flex-col glass-dark bg-[rgba(36,36,40,0.78)]! text-white border-white/10 ${className}`}
       aria-label={t('preview.comments.title')}
     >
       <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-white/10">
@@ -195,7 +197,7 @@ export default function CommentsPanel({ comments, onClose, className = '' }) {
                       type="button"
                       onClick={saveEdit}
                       disabled={!editing.text.trim()}
-                      className="px-3 py-1 rounded-full text-xs font-medium bg-[#a8c7fa] text-[#062e6f] hover:bg-[#bdd5fb] disabled:opacity-40 cursor-pointer"
+                      className="px-3 py-1 rounded-full text-xs font-medium btn-accent hover:brightness-110 disabled:opacity-40 cursor-pointer"
                     >
                       {t('preview.comments.save')}
                     </button>
@@ -256,7 +258,7 @@ export default function CommentsPanel({ comments, onClose, className = '' }) {
             type="button"
             onClick={send}
             disabled={!draft.trim() || sending || Boolean(comments.error)}
-            className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium bg-[#a8c7fa] text-[#062e6f] hover:bg-[#bdd5fb] disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium btn-accent hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
           >
             {sending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
             {t('preview.comments.send')}

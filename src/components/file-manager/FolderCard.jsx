@@ -34,12 +34,12 @@ function FolderCard({ folder, onDoubleClick, onContextMenu, onStarToggle, isSele
             onDoubleClick={() => onDoubleClick && onDoubleClick(folder)}
             onContextMenu={(e) => onContextMenu && onContextMenu(e, folder)}
             style={colorVars}
-            className={`group relative flex items-center justify-between gap-0 compact:gap-1 p-3.5 tablet:p-2.5 phone:p-2 compact:min-h-16 rounded-2xl cursor-pointer transition-all duration-200 border shadow-sm hover:shadow-md hover:-translate-y-0.5
+            className={`group relative flex items-center justify-between gap-0 compact:gap-1 p-3.5 tablet:p-2.5 phone:p-2 compact:min-h-16 rounded-[18px] cursor-pointer transition-all duration-200 border shadow-[inset_0_1px_0_rgba(255,255,255,0.75),0_1px_2px_rgba(15,23,42,0.05)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_1px_2px_rgba(0,0,0,0.3)] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_10px_24px_-12px_rgba(15,23,42,0.28)] dark:hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_10px_24px_-12px_rgba(0,0,0,0.7)] hover:-translate-y-0.5
                 bg-[var(--fc-surface-l)] dark:bg-[var(--fc-surface-d)]
                 hover:bg-[var(--fc-hover-l)] dark:hover:bg-[var(--fc-hover-d)]
                 border-[var(--fc-border-l)] dark:border-[var(--fc-border-d)] ${
                 isCut ? 'opacity-50 border-dashed' : ''
-            } ${isSelected ? 'ring-2 ring-blue-500 ring-offset-1 ring-offset-white dark:ring-offset-[#1e1e1e]' : ''}`}
+            } ${isSelected ? 'ring-2 ring-blue-500/80 ring-offset-2 ring-offset-transparent' : ''}`}
         >
             {/* Checkbox top-left – only this triggers selection */}
             <button
@@ -79,12 +79,12 @@ function FolderCard({ folder, onDoubleClick, onContextMenu, onStarToggle, isSele
                     </button>
                     {/* Thẻ gọn: sao và "được chia sẻ" thành huy hiệu ở góc icon, nhường chỗ cho tên */}
                     {folder.isStarred && !folder.isSharedWithMe && (
-                        <span role="img" aria-label={t('card.starredBadge')} className="hidden compact:flex absolute -top-1 -right-1 pointer-events-none items-center justify-center w-4 h-4 rounded-full bg-white dark:bg-[#303236] ring-1 ring-[var(--fc-border-l)] dark:ring-[var(--fc-border-d)]">
+                        <span role="img" aria-label={t('card.starredBadge')} className="hidden compact:flex absolute -top-1 -right-1 pointer-events-none items-center justify-center w-4 h-4 rounded-full bg-white/90 dark:bg-[#3a3a3e] ring-1 ring-[var(--fc-border-l)] dark:ring-[var(--fc-border-d)]">
                             <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-500" />
                         </span>
                     )}
                     {folder.isShared && (
-                        <span role="img" aria-label={t('card.sharedBadge')} className="hidden compact:flex absolute -bottom-1 -right-1 pointer-events-none items-center justify-center w-4 h-4 rounded-full bg-white dark:bg-[#303236] ring-1 ring-[var(--fc-border-l)] dark:ring-[var(--fc-border-d)]">
+                        <span role="img" aria-label={t('card.sharedBadge')} className="hidden compact:flex absolute -bottom-1 -right-1 pointer-events-none items-center justify-center w-4 h-4 rounded-full bg-white/90 dark:bg-[#3a3a3e] ring-1 ring-[var(--fc-border-l)] dark:ring-[var(--fc-border-d)]">
                             <Users className="w-2.5 h-2.5 text-blue-500" />
                         </span>
                     )}

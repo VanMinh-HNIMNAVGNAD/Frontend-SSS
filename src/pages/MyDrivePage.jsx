@@ -106,7 +106,7 @@ export default function MyDrivePage() {
       )}
 
       {/* Header Toolbar */}
-      <div className="flex items-center justify-between gap-3 mb-2 pb-2 border-b border-gray-200 dark:border-gray-700">
+      <div className="flex items-center justify-between gap-3 mb-2 pb-2 border-b border-glass-divider">
         <div className="flex-1 min-w-0">
           {/* Bỏ chặng gốc (`id: null`) mà backend luôn trả về: `Breadcrumb` tự vẽ nút gốc
               "cloudSSS của tôi" rồi, truyền nguyên thì gốc hiện HAI lần ("cloudSSS của tôi ›
@@ -140,7 +140,7 @@ export default function MyDrivePage() {
               onClick={() => setViewMode('list')}
               title={t('view.list')}
               className={`p-1.5 rounded-full transition-colors ${viewMode === 'list'
-                  ? 'bg-white dark:bg-[#282a2c] shadow-xs text-blue-700 dark:text-blue-400 font-bold'
+                  ? 'glass-active text-blue-700 dark:text-blue-300 font-bold'
                   : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
                 }`}
             >
@@ -150,7 +150,7 @@ export default function MyDrivePage() {
               onClick={() => setViewMode('grid')}
               title={t('view.grid')}
               className={`p-1.5 rounded-full transition-colors ${viewMode === 'grid'
-                  ? 'bg-white dark:bg-[#282a2c] shadow-xs text-blue-700 dark:text-blue-400 font-bold'
+                  ? 'glass-active text-blue-700 dark:text-blue-300 font-bold'
                   : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
                 }`}
             >

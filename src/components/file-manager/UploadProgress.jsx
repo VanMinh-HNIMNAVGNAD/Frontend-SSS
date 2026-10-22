@@ -297,7 +297,7 @@ export default memo(function UploadProgress({ queue, onDismissError, onRetry }) 
 
     return (
         <div
-            className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 w-[calc(100vw-2rem)] max-w-90 bg-white dark:bg-[#282a2c] rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden"
+            className="glass-strong fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 w-[calc(100vw-2rem)] max-w-90 rounded-[20px] border overflow-hidden"
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
             onFocus={(e) => setHasKeyboardFocus(Boolean(e.target.matches?.(':focus-visible')))}
@@ -307,16 +307,16 @@ export default memo(function UploadProgress({ queue, onDismissError, onRetry }) 
         >
 
             {/* Header */}
-            <div className="flex items-center justify-between gap-2 px-4 py-3 bg-slate-900 text-white">
+            <div className="flex items-center justify-between gap-2 px-4 py-3 text-gray-900 dark:text-gray-100">
                 <div className="flex items-center gap-2 text-xs font-semibold min-w-0">
-                    <UploadCloud className={`w-4 h-4 shrink-0 text-blue-400 ${activeCount > 0 ? 'animate-pulse' : ''}`} />
+                    <UploadCloud className={`w-4 h-4 shrink-0 text-blue-600 dark:text-blue-400 ${activeCount > 0 ? 'animate-pulse' : ''}`} />
                     <span className="truncate">{headerLabel}</span>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                     {cancellableCount > 0 && (
                         <button
                             onClick={() => setCancelTarget({ kind: 'all', count: cancellableCount })}
-                            className="px-2 py-1 mr-1 rounded-full text-[11px] font-semibold bg-white/10 hover:bg-rose-500/80 text-slate-200 hover:text-white transition-colors cursor-pointer"
+                            className="px-2 py-1 mr-1 rounded-full text-[11px] font-semibold bg-black/[0.05] dark:bg-white/10 hover:bg-rose-500/90 text-gray-700 dark:text-gray-200 hover:text-white transition-colors cursor-pointer"
                             title={t('upload.cancelN', { count: cancellableCount })}
                         >
                             {t('upload.cancelAll')}
@@ -324,7 +324,7 @@ export default memo(function UploadProgress({ queue, onDismissError, onRetry }) 
                     )}
                     <button
                         onClick={() => setIsMinimized(!isMinimized)}
-                        className="p-1 hover:bg-white/10 rounded transition-colors text-slate-300 hover:text-white cursor-pointer"
+                        className="p-1 hover:bg-black/[0.06] dark:hover:bg-white/10 rounded-full transition-colors text-gray-500 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white cursor-pointer"
                         title={isMinimized ? t('upload.expand') : t('upload.collapse')}
                         aria-expanded={!isMinimized}
                     >
@@ -335,7 +335,7 @@ export default memo(function UploadProgress({ queue, onDismissError, onRetry }) 
                     {allDone && (
                         <button
                             onClick={clearQueue}
-                            className="p-1 hover:bg-white/10 rounded transition-colors text-slate-300 hover:text-white cursor-pointer"
+                            className="p-1 hover:bg-black/[0.06] dark:hover:bg-white/10 rounded-full transition-colors text-gray-500 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white cursor-pointer"
                             title={t('upload.closePanel')}
                         >
                             <X className="w-4 h-4" />
@@ -345,15 +345,15 @@ export default memo(function UploadProgress({ queue, onDismissError, onRetry }) 
             </div>
 
             {/* Tổng tiến trình của CẢ ĐỢT — luôn hiện, kể cả khi thu gọn */}
-            <div className="px-4 py-2.5 bg-slate-800 border-b border-slate-700">
+            <div className="px-4 py-2.5 bg-black/[0.03] dark:bg-white/[0.04] border-y border-glass-divider">
                 <div className="flex items-center justify-between gap-3 mb-1.5">
-                    <span className="text-[11px] text-slate-200 font-semibold truncate" aria-live="polite">
+                    <span className="text-[11px] text-gray-700 dark:text-gray-200 font-semibold truncate" aria-live="polite">
                         {timeLabel}
                     </span>
-                    <span className="text-[11px] font-mono font-bold text-blue-300 tabular-nums shrink-0">{percent}%</span>
+                    <span className="text-[11px] font-mono font-bold text-blue-600 dark:text-blue-300 tabular-nums shrink-0">{percent}%</span>
                 </div>
                 <div
-                    className="w-full bg-slate-700 rounded-full h-1.5 overflow-hidden"
+                    className="w-full bg-black/[0.08] dark:bg-white/10 rounded-full h-1.5 overflow-hidden"
                     role="progressbar"
                     aria-label={t('upload.totalProgress')}
                     aria-valuemin={0}
@@ -365,7 +365,7 @@ export default memo(function UploadProgress({ queue, onDismissError, onRetry }) 
                         style={{ width: `${percent}%`, background: barColor }}
                     />
                 </div>
-                <div className="flex items-center justify-between gap-3 mt-1.5 text-[10.5px] text-slate-400 tabular-nums">
+                <div className="flex items-center justify-between gap-3 mt-1.5 text-[10.5px] text-gray-500 dark:text-gray-400 tabular-nums">
                     <span className="truncate">
                         {/* Mẫu số là CẢ ĐỢT (kể cả tệp lỗi / đã huỷ) — khớp với tiêu đề "Hoàn tất 4/6 tệp". */}
                         {t('upload.progress.files', { done: doneCount, total: effectiveQueue.length })}
@@ -390,7 +390,7 @@ export default memo(function UploadProgress({ queue, onDismissError, onRetry }) 
                             <div
                                 key={job.id}
                                 role="listitem"
-                                className="absolute inset-x-0 border-b border-gray-50 dark:border-gray-700/50"
+                                className="absolute inset-x-0 border-b border-glass-divider"
                                 style={{ top: (firstRow + i) * ROW_HEIGHT, height: ROW_HEIGHT }}
                             >
                                 <FileJobRow
@@ -623,7 +623,7 @@ const FileJobRow = memo(function FileJobRow({ job, jobId, etaSeconds, onDismissE
                     </button>
                     <button
                         onClick={handleDismiss}
-                        className="p-1 hover:bg-gray-100 dark:hover:bg-white/5 rounded transition-colors cursor-pointer"
+                        className="p-1 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] rounded transition-colors cursor-pointer"
                         title={status === 'canceled' ? t('upload.dismissRow') : t('upload.clearError')}
                     >
                         <X className={`w-3.5 h-3.5 ${status === 'error' ? 'text-rose-400' : 'text-gray-400 dark:text-gray-500'}`} />

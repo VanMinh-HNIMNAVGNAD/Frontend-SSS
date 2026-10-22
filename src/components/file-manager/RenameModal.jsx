@@ -97,15 +97,15 @@ export default function RenameModal({ isOpen, item, onClose, onRename }) {
 
     return (
         <div 
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-fade-in cursor-pointer"
+            className="fixed inset-0 glass-overlay z-50 flex items-center justify-center p-4 animate-fade-in cursor-pointer"
             onClick={() => { if (!isSubmitting) onClose(); }}
         >
             <div 
-                className="bg-white dark:bg-[#282a2c] dark:text-gray-100 rounded-2xl shadow-2xl w-full max-w-md border border-gray-200 dark:border-gray-700 overflow-hidden transform transition-all cursor-default"
+                className="glass-strong relative dark:text-gray-100 rounded-[20px] w-full max-w-md border overflow-hidden transform transition-all cursor-default"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-glass-divider">
                     <div className="flex items-center gap-2.5 font-semibold text-lg text-gray-800 dark:text-gray-100">
                         <Pencil className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                         <span>{item.type === 'folder' ? t('rename.titleFolder') : t('rename.titleFile')}</span>
@@ -126,7 +126,7 @@ export default function RenameModal({ isOpen, item, onClose, onRename }) {
                             {t('rename.newNameLabel')}
                         </label>
                         {/* Ô nhập chỉ nhận PHẦN TÊN; phần mở rộng nằm ngoài ô, không sửa được */}
-                        <div className={`flex items-center w-full rounded-xl border bg-white dark:bg-[#1e1e1e] text-sm transition-all focus-within:ring-2 ${
+                        <div className={`glass-soft flex items-center w-full rounded-xl border text-sm transition-all focus-within:ring-2 ${
                             extError
                                 ? 'border-red-400 dark:border-red-500 focus-within:ring-red-500 focus-within:border-red-500'
                                 : 'border-gray-300 dark:border-gray-600 focus-within:ring-blue-500 focus-within:border-blue-500'
@@ -173,7 +173,7 @@ export default function RenameModal({ isOpen, item, onClose, onRename }) {
                         <button
                             type="submit"
                             disabled={isSubmitting || extError || !name.trim() || name.trim() + lockedExt === item.name}
-                            className="px-5 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer"
+                            className="px-5 py-2 text-sm font-semibold btn-accent hover:brightness-105 rounded-xl shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer"
                         >
                             {isSubmitting ? t('rename.saving') : t('rename.submit')}
                         </button>

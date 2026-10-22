@@ -42,10 +42,10 @@ export default function SelectDropdown({
             <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
-                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-all duration-150 shadow-2xs select-none ${
+                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-150 select-none cursor-pointer ${
                     active
-                        ? 'bg-blue-50 dark:bg-blue-500/15 border-blue-400 dark:border-blue-700/60 text-blue-800 dark:text-blue-300 ring-1 ring-blue-400/40'
-                        : 'bg-white dark:bg-[#282a2c] border-gray-300 dark:border-gray-700 text-gray-800 dark:text-gray-300 hover:bg-gray-100 hover:border-gray-400 dark:hover:bg-white/5 dark:hover:border-gray-600'
+                        ? 'glass-soft bg-blue-500/12! dark:bg-blue-400/15! text-blue-800 dark:text-blue-200 ring-1 ring-blue-500/35'
+                        : 'glass-soft text-gray-800 dark:text-gray-200 hover:bg-white/75! dark:hover:bg-white/10!'
                 }`}
             >
                 {Icon && <Icon className={`w-3.5 h-3.5 shrink-0 ${active ? 'text-blue-700 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'}`} />}
@@ -54,7 +54,7 @@ export default function SelectDropdown({
             </button>
 
             {isOpen && (
-                <div className="absolute left-0 mt-1.5 w-52 bg-white dark:bg-[#282a2c] rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
+                <div className="absolute left-0 mt-2 w-52 glass-strong rounded-[18px] p-1.5 z-50 animate-glass-in origin-top-left">
                     <div className="max-h-60 overflow-y-auto custom-scrollbar">
                         {options.map((option) => {
                             const isSelected = option.value === value;
@@ -67,10 +67,10 @@ export default function SelectDropdown({
                                         onChange(option.value);
                                         setIsOpen(false);
                                     }}
-                                    className={`w-full text-left px-3.5 py-2 text-xs flex items-center justify-between transition-colors ${
+                                    className={`w-full text-left px-2.5 py-2 rounded-xl text-xs flex items-center justify-between transition-colors cursor-pointer ${
                                         isSelected 
-                                            ? 'bg-blue-50 dark:bg-blue-500/15 text-blue-800 dark:text-blue-300 font-bold' 
-                                            : 'text-gray-800 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 font-medium'
+                                            ? 'bg-blue-500/12 dark:bg-blue-400/15 text-blue-800 dark:text-blue-200 font-bold' 
+                                            : 'text-gray-800 dark:text-gray-200 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] font-medium'
                                     }`}
                                 >
                                     <div className="flex items-center gap-2.5 truncate pr-2">

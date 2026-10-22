@@ -294,7 +294,7 @@ export default function NotificationBell() {
                 aria-label={unread > 0 ? t('notifications.unreadAria', { count: unread }) : t('notifications.title')}
                 aria-haspopup="dialog"
                 aria-expanded={open}
-                className="relative p-2 sm:p-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors cursor-pointer"
+                className="relative p-2 sm:p-2.5 text-gray-700 dark:text-gray-300 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] rounded-full transition-colors cursor-pointer"
             >
                 <Bell className="w-5 h-5" />
                 {unread > 0 && (
@@ -311,9 +311,9 @@ export default function NotificationBell() {
                     <div
                         role="dialog"
                         aria-label={t('notifications.title')}
-                        className="fixed sm:absolute inset-x-2 sm:inset-x-auto top-16 sm:top-full sm:right-0 sm:mt-2 sm:w-[24rem] z-50 flex flex-col max-h-[min(70vh,560px)] bg-[var(--app-surface)] border border-[var(--app-border)] rounded-2xl shadow-2xl animate-fade-in overflow-hidden"
+                        className="fixed sm:absolute inset-x-2 sm:inset-x-auto top-16 sm:top-full sm:right-0 sm:mt-2 sm:w-[24rem] z-50 flex flex-col max-h-[min(70vh,560px)] glass-strong rounded-[22px] animate-glass-in origin-top-right overflow-hidden"
                     >
-                        <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-[var(--app-border)]">
+                        <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-glass-divider">
                             <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100">{t('notifications.title')}</h2>
                             <div className="flex items-center gap-1">
                                 {unread > 0 && (
@@ -360,7 +360,7 @@ export default function NotificationBell() {
                                                 <button
                                                     type="button"
                                                     onClick={() => openNotification(n)}
-                                                    className={`w-full flex items-start gap-3 pl-5 pr-[4.5rem] py-3 text-left transition-colors cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 ${
+                                                    className={`w-full flex items-start gap-3 pl-5 pr-[4.5rem] py-3 text-left transition-colors cursor-pointer hover:bg-black/[0.04] dark:hover:bg-white/[0.07] ${
                                                         n.isRead ? '' : 'bg-blue-50/60 dark:bg-blue-500/5'
                                                     }`}
                                                 >
@@ -417,7 +417,7 @@ export default function NotificationBell() {
                         </div>
 
                         {items.length > 0 && (
-                            <div className="px-4 py-2 border-t border-[var(--app-border)] text-xs">
+                            <div className="px-4 py-2 border-t border-glass-divider text-xs">
                                 <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
                                     {hasMore ? (
                                         <button

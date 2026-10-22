@@ -29,6 +29,7 @@ import {
     MoreVertical,
     Minus,
     Eraser,
+    Lock,
 } from 'lucide-react';
 
 import AiBubble from './AiBubble';
@@ -38,6 +39,7 @@ import { aiApi } from '../../services/api';
 import { useLanguage } from '../../context/LanguageContext';
 import { displayPlanName } from '../../utils/planName';
 import { monthsTermKey } from '../../constants/billing';
+import { TIER_LABEL } from '../../constants/aiTiers';
 import { localeTagOf } from '../../utils/locale';
 
 /**
@@ -100,10 +102,20 @@ const readStoredModel = () => {
  * Model sẽ gửi đi, từ danh sách của `GET /ai/status` và lựa chọn đã nhớ. `null` = backend
  * cũ chưa có trường `models` — khi đó KHÔNG gửi `model`: backend bật `forbidNonWhitelisted`,
  * và một trường lạ làm MỌI lượt hỏi ăn 400 trong khoảng giữa hai lần deploy.
+ *
+ * Model theo gói (22/10/2026): model gói chưa tới bậc (`locked`) không bao giờ được TỰ chọn —
+ * model đã nhớ từ lúc còn gói cao hơn thì về `preferred` (= `status.model`, mặc định CỦA GÓI do
+ * backend tính), rồi tới model mở đầu tiên. Chỉ khi mọi model đều khoá mới trả về model khoá đầu
+ * tiên: backend trả 403 kèm bậc cần có và khung chat hiện khối mời nâng cấp.
  */
-const resolveModelChoice = (models, picked) => {
+const resolveModelChoice = (models, picked, preferred) => {
     if (!Array.isArray(models) || !models.length) return null;
-    return (models.find((m) => m.id === picked) ?? models[0]).id;
+    const usable = (m) => Boolean(m) && !m.locked;
+    const remembered = models.find((m) => m.id === picked);
+    if (usable(remembered)) return remembered.id;
+    const fallback = models.find((m) => m.id === preferred);
+    if (usable(fallback)) return fallback.id;
+    return (models.find(usable) ?? models[0]).id;
 };
 
 /**
@@ -314,6 +326,10 @@ export default function GeminiModal({
     const [quota, setQuota] = useState(null);
     // Hết hạn mức: backend trả 429 kèm nguyên trạng thái hạn mức trong body.
     const [quotaBlocked, setQuotaBlocked] = useState(false);
+    // Model cần gói cao hơn (22/10/2026): `{ label, tier }` khi người dùng bấm một model bị khoá
+    // trong bộ chọn, hoặc backend trả 403 `AI_MODEL_LOCKED` (tab cũ còn nhớ model của gói đã hết).
+    // Không chặn ô nhập — đổi sang model của gói là hỏi tiếp được ngay.
+    const [modelLock, setModelLock] = useState(null);
     const [copiedIndex, setCopiedIndex] = useState(null);
 
     // ── Lịch sử trò chuyện (bảng ai_conversation, migration 022) ──
@@ -414,10 +430,11 @@ export default function GeminiModal({
 
     // Danh sách model backend cho chọn (mặc định đứng đầu) và model đang chọn.
     const modelOptions = Array.isArray(status?.models) && status.models.length ? status.models : null;
-    const selectedModel = resolveModelChoice(modelOptions, pickedModel);
+    const selectedModel = resolveModelChoice(modelOptions, pickedModel, status?.model);
     /** Nhãn hiển thị của một id model — id thô khi danh sách chưa có (backend cũ). */
     const modelLabelOf = (id) => modelOptions?.find((m) => m.id === id)?.label ?? id;
     const pickModel = (id) => {
+        setModelLock(null);
         setPickedModel(id);
         try {
             localStorage.setItem(MODEL_STORAGE_KEY, id);
@@ -773,6 +790,17 @@ export default function GeminiModal({
                     setQuota(err?.response?.data?.quota ?? null);
                     setQuotaBlocked(true);
                     setMessages(dropPendingTurn);
+                } else if (status === 403 && err?.response?.data?.error === 'AI_MODEL_LOCKED') {
+                    // Model cần gói cao hơn (gói vừa hết hạn mà tab còn nhớ model cũ): khối mời
+                    // nâng cấp + nút đổi sang model của gói, không phải dòng lỗi "thử lại" — thử lại
+                    // bằng đúng model đó vẫn 403. Hỏi lại trạng thái để danh sách khoá cập nhật.
+                    const body = err.response.data;
+                    setModelLock({
+                        label: modelOptions?.find((m) => m.id === body.model)?.label ?? body.model,
+                        tier: body.requiredTier,
+                    });
+                    setMessages(dropPendingTurn);
+                    aiApi.getStatus().then(setStatus).catch(() => {});
                 } else {
                     setError(
                         err?.response?.data?.message ||
@@ -802,6 +830,7 @@ export default function GeminiModal({
             selectedModel,
             selectedEffort,
             webSearchChoice,
+            modelOptions,
         ],
     );
 
@@ -871,7 +900,7 @@ export default function GeminiModal({
             }
             if (nextStatus?.enabled === false) return;
             if (initialAction && initialAction !== 'chat') {
-                const model = resolveModelChoice(nextStatus?.models, readStoredModel());
+                const model = resolveModelChoice(nextStatus?.models, readStoredModel(), nextStatus?.model);
                 sendRef.current({
                     action: initialAction,
                     model,
@@ -1257,7 +1286,7 @@ export default function GeminiModal({
         const Icon = entry.icon;
         const sourceCount = msg?.webSearch?.sources?.length ?? 0;
         return (
-            <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-800 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
+            <div className="mt-2 pt-2 border-t flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] border-glass-divider">
                 <span className={`flex items-center gap-1.5 min-w-0 ${entry.tone}`}>
                     <Icon className="w-3 h-3 shrink-0" />
                     <span className="truncate">
@@ -1319,7 +1348,7 @@ export default function GeminiModal({
         if (sources.length === 0 && queries.length === 0 && !suggestionsHtml) return null;
 
         return (
-            <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-800">
+            <div className="mt-2 pt-2 border-t border-glass-divider">
                 <p className="flex items-center gap-1.5 text-[11px] font-medium text-gray-600 dark:text-gray-300">
                     <Globe className="w-3 h-3 shrink-0" />
                     {t('ai.sources.title')}
@@ -1452,16 +1481,18 @@ export default function GeminiModal({
                 trên điện thoại người dùng mất hội thoại ở đúng thao tác mà trên máy tính
                 chỉ cất nó đi. */}
             <div
-                className="absolute inset-0 bg-black/50 backdrop-blur-xs animate-fade-in cursor-pointer sm:hidden"
+                className="absolute inset-0 glass-overlay animate-fade-in cursor-pointer sm:hidden"
                 onClick={onMinimize}
                 aria-hidden="true"
             />
 
             <div
                 ref={panelRef}
-                className="relative flex flex-col overflow-hidden cursor-default bg-white dark:bg-[#1e1e1e] dark:text-gray-100
-                           w-full max-w-lg h-[85vh] rounded-2xl border border-gray-200 dark:border-gray-800 shadow-2xl animate-fade-in
-                           sm:h-full sm:max-w-none sm:w-[26rem] lg:w-[30rem] sm:rounded-none sm:border-y-0 sm:border-r-0 sm:animate-slide-left"
+                // Kính nổi (`glass-strong`): trên máy tính là tấm kính đứng cách mép màn hình một
+                // khe như thanh bên/header của app, không còn là cột dính sát cạnh phải.
+                className="glass-strong relative flex flex-col overflow-hidden cursor-default text-gray-900 dark:text-gray-100
+                           w-full max-w-lg h-[85vh] rounded-[26px] animate-glass-in
+                           sm:h-auto sm:my-3 sm:mr-3 sm:max-w-none sm:w-[26rem] lg:w-[30rem] sm:animate-slide-left"
                 role="dialog"
                 aria-modal="false"
                 aria-label={t('ai.title')}
@@ -1471,7 +1502,7 @@ export default function GeminiModal({
                     trang trí đều lấy chỗ của nội dung; và ba nút biểu tượng cạnh nhau mà
                     mỗi nút một màu hover khác nhau thì trông như ba mức nguy hiểm khác
                     nhau, trong khi chúng chỉ là ba việc bình thường. */}
-                <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-800">
+                <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-glass-divider">
                     <div className="flex items-center gap-2.5 min-w-0">
                         <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
                         <div className="min-w-0">
@@ -1515,8 +1546,8 @@ export default function GeminiModal({
                                 aria-expanded={menuOpen}
                                 className={`p-2 rounded-lg transition-colors cursor-pointer ${
                                     menuOpen
-                                        ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
-                                        : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100'
+                                        ? 'bg-black/[0.06] dark:bg-white/[0.09] text-gray-900 dark:text-gray-100'
+                                        : 'text-gray-500 dark:text-gray-400 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] hover:text-gray-900 dark:hover:text-gray-100'
                                 }`}
                             >
                                 <MoreVertical className="w-4 h-4" />
@@ -1525,12 +1556,12 @@ export default function GeminiModal({
                             {menuOpen && (
                                 <div
                                     role="menu"
-                                    className="absolute right-0 top-full mt-1 z-20 w-60 py-1 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#282a2c] shadow-xl animate-fade-in"
+                                    className="glass-strong bg-white/95! dark:bg-[#2a2a2e]/95! absolute right-0 top-full mt-1 z-20 w-60 p-1 rounded-[16px] animate-glass-in origin-top-right"
                                 >
                                     <button
                                         role="menuitem"
                                         onClick={openHistory}
-                                        className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+                                        className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-left text-gray-700 dark:text-gray-200 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-colors cursor-pointer"
                                     >
                                         <History className="w-4 h-4 shrink-0 text-gray-400 dark:text-gray-500" />
                                         {t('ai.history.open')}
@@ -1545,7 +1576,7 @@ export default function GeminiModal({
                                             className={`w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-left transition-colors cursor-pointer ${
                                                 confirmClear
                                                     ? 'font-medium text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-900/30'
-                                                    : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800'
+                                                    : 'text-gray-700 dark:text-gray-200 hover:bg-black/[0.05] dark:hover:bg-white/[0.08]'
                                             }`}
                                         >
                                             <Eraser
@@ -1557,7 +1588,7 @@ export default function GeminiModal({
                                         </button>
                                     )}
 
-                                    <div className="my-1 border-t border-gray-100 dark:border-gray-700" />
+                                    <div className="my-1 border-t border-glass-divider" />
 
                                     {/* Xoá SẠCH lịch sử trên máy chủ — nặng hơn hẳn hai
                                         lệnh trên, nên nằm sau một đường kẻ và mang màu
@@ -1595,7 +1626,7 @@ export default function GeminiModal({
                             onClick={onMinimize}
                             title={t('ai.minimize')}
                             aria-label={t('ai.minimize')}
-                            className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100 transition-colors cursor-pointer"
+                            className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] hover:text-gray-900 dark:hover:text-gray-100 transition-colors cursor-pointer"
                         >
                             <Minus className="w-4 h-4" />
                         </button>
@@ -1604,7 +1635,7 @@ export default function GeminiModal({
                             onClick={onClose}
                             title={t('common.close')}
                             aria-label={t('common.close')}
-                            className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100 transition-colors cursor-pointer"
+                            className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] hover:text-gray-900 dark:hover:text-gray-100 transition-colors cursor-pointer"
                         >
                             <X className="w-4 h-4" />
                         </button>
@@ -1617,7 +1648,7 @@ export default function GeminiModal({
                     phải trừ nhẩm "còn 7 lượt" ra khỏi "thanh đã đầy 80%". Số token thật
                     vẫn có, nằm ở tooltip cho ai cần đối chiếu. */}
                 {quota && !aiDisabled && (
-                    <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-800">
+                    <div className="px-4 py-2 border-b border-glass-divider">
                         <div className="flex items-center justify-between gap-3 text-[11px]">
                             <span
                                 className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400 min-w-0"
@@ -1724,8 +1755,8 @@ export default function GeminiModal({
                                                 msg.moderation
                                                     ? `prose-ai rounded-lg border px-3 py-2.5 ${
                                                           msg.moderation.banned
-                                                              ? 'border-rose-300 dark:border-rose-900/70 bg-rose-50 dark:bg-rose-950/40 text-rose-900 dark:text-rose-100'
-                                                              : 'border-amber-300 dark:border-amber-900/70 bg-amber-50 dark:bg-amber-950/30 text-amber-900 dark:text-amber-100'
+                                                              ? 'border-rose-300 dark:border-rose-900/70 bg-rose-50 dark:bg-rose-400/15 text-rose-900 dark:text-rose-100'
+                                                              : 'border-amber-300 dark:border-amber-900/70 bg-amber-50 dark:bg-amber-400/15 text-amber-900 dark:text-amber-100'
                                                       }`
                                                     : 'prose-ai'
                                             }
@@ -1783,7 +1814,7 @@ export default function GeminiModal({
                                         </button>
                                     </div>
                                 ) : (
-                                    <div className="max-w-[85%] px-3.5 py-2 rounded-2xl rounded-br-sm bg-blue-600 text-white text-[13px] leading-relaxed">
+                                    <div className="max-w-[85%] px-3.5 py-2 rounded-[18px] rounded-br-md btn-accent text-[13px] leading-relaxed">
                                         <span className="whitespace-pre-wrap">{msg.text}</span>
                                     </div>
                                 )}
@@ -1850,16 +1881,64 @@ export default function GeminiModal({
                     )}
                 </div>
 
+                {/* ── Model cần gói cao hơn (22/10/2026) ──
+                    Không chặn ô nhập như khối hết hạn mức: gói vẫn còn model của nó, nên ngoài nút
+                    nâng cấp còn một nút đổi luôn sang model mặc định của gói để hỏi tiếp. */}
+                {modelLock && !aiDisabled && (
+                    <div className="mx-3 mb-2 px-3.5 py-3 rounded-[18px] bg-gradient-to-br from-amber-50/90 to-rose-50/80 dark:from-amber-400/10 dark:to-rose-400/10 ring-1 ring-amber-500/25 animate-glass-in">
+                        <div className="flex items-start gap-2.5">
+                            <span className="mt-0.5 w-7 h-7 rounded-full bg-white/80 dark:bg-white/10 ring-1 ring-amber-500/30 flex items-center justify-center shrink-0">
+                                <Lock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                            </span>
+                            <div className="min-w-0 flex-1">
+                                <p className="text-[13px] font-semibold text-gray-900 dark:text-gray-100">
+                                    {t('ai.model.locked.title', {
+                                        model: modelLock.label,
+                                        tier: TIER_LABEL[modelLock.tier] ?? modelLock.tier,
+                                    })}
+                                </p>
+                                <p className="mt-0.5 text-[11.5px] leading-snug text-gray-600 dark:text-gray-300">
+                                    {t('ai.model.locked.body', {
+                                        plan: TIER_LABEL[status?.plan?.tier] ?? status?.plan?.name ?? '',
+                                    })}
+                                </p>
+                                <div className="mt-2 flex flex-wrap items-center gap-2">
+                                    <Link
+                                        to="/app/billing"
+                                        onClick={onClose}
+                                        className="px-3 py-1.5 rounded-full btn-accent hover:brightness-105 text-xs font-semibold transition flex items-center gap-1.5"
+                                    >
+                                        {t('ai.model.locked.upgrade')}
+                                        <ArrowUpRight className="w-3.5 h-3.5" />
+                                    </Link>
+                                    {selectedModel && !modelOptions?.find((m) => m.id === selectedModel)?.locked && (
+                                        <span className="text-[11px] text-gray-500 dark:text-gray-400">
+                                            {t('ai.model.locked.keep', { model: modelLabelOf(selectedModel) })}
+                                        </span>
+                                    )}
+                                    <button
+                                        type="button"
+                                        onClick={() => setModelLock(null)}
+                                        className="ml-auto text-[11px] font-medium text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:underline cursor-pointer"
+                                    >
+                                        {t('ai.dismiss')}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* ── Hết hạn mức: mời nâng cấp thay vì để một ô nhập bấm vào chỉ ra lỗi ── */}
                 {quotaBlocked && !aiDisabled && (
-                    <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-800 flex items-center justify-between gap-3">
+                    <div className="px-4 py-3 border-t flex items-center justify-between gap-3 border-glass-divider">
                         <p className="text-[11px] text-gray-500 dark:text-gray-400 min-w-0">
                             {t(planTerm ? 'ai.quota.upgradeHintPlan' : 'ai.quota.upgradeHint')}
                         </p>
                         <Link
                             to="/app/billing"
                             onClick={onClose}
-                            className="shrink-0 px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs transition-colors flex items-center gap-1.5"
+                            className="shrink-0 px-3 py-2 rounded-lg btn-accent hover:brightness-105 font-medium text-xs transition-colors flex items-center gap-1.5"
                         >
                             {t('ai.quota.upgradeCta')}
                             <ArrowUpRight className="w-3.5 h-3.5" />
@@ -1896,7 +1975,7 @@ export default function GeminiModal({
                                             className={`group relative inline-flex items-center gap-1.5 max-w-[14rem] pl-2 pr-1.5 py-1 rounded-lg border text-[11px] overflow-hidden ${
                                                 failed
                                                     ? 'border-rose-200 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300'
-                                                    : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#282a2c] text-gray-700 dark:text-gray-300'
+                                                    : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-white/[0.06] text-gray-700 dark:text-gray-300'
                                             }`}
                                         >
                                             {/* Thanh tiến trình vẽ NGAY TRONG chip thay vì
@@ -1932,7 +2011,7 @@ export default function GeminiModal({
                                                     onClick={() => removeAttachment(src.key)}
                                                     title={t('ai.attach.remove')}
                                                     aria-label={t('ai.attach.remove', { name: src.name })}
-                                                    className="relative shrink-0 p-0.5 rounded text-gray-400 hover:text-rose-600 dark:hover:text-rose-300 hover:bg-white dark:hover:bg-gray-800 transition-colors cursor-pointer"
+                                                    className="relative shrink-0 p-0.5 rounded text-gray-400 hover:text-rose-600 dark:hover:text-rose-300 hover:bg-white dark:hover:bg-white/[0.08] transition-colors cursor-pointer"
                                                 >
                                                     <X className="w-3 h-3" />
                                                 </button>
@@ -1956,7 +2035,7 @@ export default function GeminiModal({
                 <form
                     onSubmit={handleSubmit}
                     hidden={quotaBlocked && !aiDisabled}
-                    className="px-4 py-3 border-t border-gray-200 dark:border-gray-800"
+                    className="px-4 py-3 border-t border-glass-divider"
                 >
                     <div className="flex gap-2 items-center">
                         {/* Đính tệp từ máy. `multiple` nhưng vẫn chặn ở `slotsLeft` —
@@ -1994,7 +2073,7 @@ export default function GeminiModal({
                                       : t('ai.attach.add', { left: slotsLeft })
                             }
                             aria-label={t('ai.attach.add', { left: slotsLeft })}
-                            className="shrink-0 p-2 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                            className="shrink-0 p-2 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] hover:text-gray-900 dark:hover:text-gray-100 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                             {uploading ? (
                                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -2016,7 +2095,7 @@ export default function GeminiModal({
                                       ? t('ai.placeholder.folder')
                                       : t('ai.placeholder.file')
                             }
-                            className="flex-1 min-w-0 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#282a2c] text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none text-[13px] disabled:opacity-50"
+                            className="flex-1 min-w-0 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-white/[0.06] text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none text-[13px] disabled:opacity-50"
                         />
 
                         {/* MỘT nút ở vị trí này, hai vai trò loại trừ nhau: đang rảnh thì
@@ -2046,7 +2125,7 @@ export default function GeminiModal({
                                 disabled={!prompt.trim() || inputLocked || uploading}
                                 title={t('ai.send')}
                                 aria-label={t('ai.send')}
-                                className="shrink-0 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center cursor-pointer"
+                                className="shrink-0 px-3 py-2 btn-accent hover:brightness-105 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center cursor-pointer"
                             >
                                 <Send className="w-4 h-4" />
                             </button>
@@ -2071,6 +2150,8 @@ export default function GeminiModal({
                                 models={modelOptions}
                                 value={selectedModel}
                                 onChange={pickModel}
+                                onLockedPick={(m) => setModelLock({ label: m.label, tier: m.minTier })}
+                                plan={status?.plan}
                                 disabled={isThinking}
                             />
                         ) : (
@@ -2112,7 +2193,7 @@ export default function GeminiModal({
                                 className={`shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg font-medium transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
                                     webSearchOn
                                         ? 'bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-500/15 dark:text-blue-300 dark:hover:bg-blue-500/25'
-                                        : 'bg-gray-100 text-gray-400 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-500 dark:hover:bg-gray-700'
+                                        : 'bg-gray-100 text-gray-400 hover:bg-gray-200 dark:bg-white/[0.07] dark:text-gray-500 dark:hover:bg-gray-700'
                                 }`}
                             >
                                 <Globe className="w-3.5 h-3.5" />
@@ -2134,14 +2215,14 @@ export default function GeminiModal({
                     tệp dài xuống hai dòng). Hai màn hình trong cùng tấm này: danh sách
                     mọi cuộc, và nội dung một cuộc khi bấm vào. */}
                 {historyOpen && (
-                    <div className="absolute inset-0 z-10 flex flex-col bg-white dark:bg-[#1e1e1e] animate-fade-in">
-                        <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-800">
+                    <div className="glass-soft absolute inset-0 z-10 flex flex-col animate-fade-in">
+                        <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-glass-divider">
                             <div className="flex items-center gap-2 min-w-0">
                                 {viewing ? (
                                     <button
                                         onClick={() => setViewing(null)}
                                         title={t('ai.history.back')}
-                                        className="p-1.5 rounded-full text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer shrink-0"
+                                        className="p-1.5 rounded-full text-gray-500 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-colors cursor-pointer shrink-0"
                                     >
                                         <ChevronLeft className="w-4 h-4" />
                                     </button>
@@ -2165,7 +2246,7 @@ export default function GeminiModal({
                             <button
                                 onClick={() => { setHistoryOpen(false); setViewing(null); }}
                                 title={t('ai.history.close')}
-                                className="p-1.5 rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer shrink-0"
+                                className="p-1.5 rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-colors cursor-pointer shrink-0"
                             >
                                 <X className="w-5 h-5" />
                             </button>
@@ -2197,7 +2278,7 @@ export default function GeminiModal({
                                                 className={`max-w-[85%] px-3.5 py-2.5 rounded-2xl text-[13px] ${
                                                     m.role === 'user'
                                                         ? 'bg-blue-600 text-white'
-                                                        : 'bg-gray-100 dark:bg-[#282a2c] text-gray-800 dark:text-gray-200'
+                                                        : 'bg-gray-100 dark:bg-white/[0.06] text-gray-800 dark:text-gray-200'
                                                 }`}
                                             >
                                                 {m.role === 'user' ? (
@@ -2222,7 +2303,7 @@ export default function GeminiModal({
                                     {historyList.items.map((c) => (
                                         <div
                                             key={c.id}
-                                            className="group flex items-center gap-2 rounded-xl hover:bg-gray-100 dark:hover:bg-[#282a2c] transition-colors"
+                                            className="group flex items-center gap-2 rounded-xl hover:bg-gray-100 dark:hover:bg-white/[0.08] transition-colors"
                                         >
                                             <button
                                                 onClick={() => openConversation(c.id)}
@@ -2271,7 +2352,7 @@ export default function GeminiModal({
                                                 className={`mr-2 rounded-full transition-colors cursor-pointer shrink-0 flex items-center gap-1 ${
                                                     confirmDeleteId === c.id
                                                         ? 'px-2 py-1 text-[11px] font-medium text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-900/30 border border-rose-200 dark:border-rose-900/60'
-                                                        : 'p-1.5 text-gray-400 hover:text-rose-600 dark:hover:text-rose-300 hover:bg-white dark:hover:bg-gray-800'
+                                                        : 'p-1.5 text-gray-400 hover:text-rose-600 dark:hover:text-rose-300 hover:bg-white dark:hover:bg-white/[0.08]'
                                                 }`}
                                             >
                                                 <Trash2 className="w-3.5 h-3.5 shrink-0" />
@@ -2284,7 +2365,7 @@ export default function GeminiModal({
                                         <button
                                             onClick={() => loadHistory(historyList.nextBefore)}
                                             disabled={historyLoading}
-                                            className="w-full mt-1 py-2 text-[11px] font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#282a2c] rounded-lg transition-colors cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5"
+                                            className="w-full mt-1 py-2 text-[11px] font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/[0.08] rounded-lg transition-colors cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5"
                                         >
                                             {historyLoading && <Loader2 className="w-3 h-3 animate-spin" />}
                                             {t('ai.history.loadMore')}
@@ -2298,7 +2379,7 @@ export default function GeminiModal({
                             là gửi kèm ngữ cảnh của `item` hiện tại, nên nối vào cuộc về
                             tệp khác sẽ ra hội thoại nửa đầu nói tệp này, nửa sau tệp kia. */}
                         {viewing && (
-                            <div className="px-3 py-2.5 border-t border-gray-100 dark:border-gray-800">
+                            <div className="px-3 py-2.5 border-t border-glass-divider">
                                 {/* `item?.id` chứ không `item.id`: panel mở từ thanh điều
                                     hướng không có mục nào, và `null === null` sẽ cho phép
                                     nối tiếp MỌI cuộc cũ — kể cả cuộc về một tệp khác.
@@ -2307,7 +2388,7 @@ export default function GeminiModal({
                                 {item && viewing.fileId === item.id ? (
                                     <button
                                         onClick={continueConversation}
-                                        className="w-full py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium transition-colors cursor-pointer"
+                                        className="w-full py-2 rounded-lg btn-accent hover:brightness-105 text-xs font-medium transition-colors cursor-pointer"
                                     >
                                         {t('ai.history.continue')}
                                     </button>

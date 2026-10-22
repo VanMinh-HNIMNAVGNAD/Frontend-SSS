@@ -245,18 +245,18 @@ function MovePanel({ items, onClose, onMoved }) {
 
     return (
         <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-fade-in cursor-pointer"
+            className="fixed inset-0 glass-overlay z-50 flex items-center justify-center p-4 animate-fade-in cursor-pointer"
             onClick={() => { if (!isMoving) onClose?.(); }}
         >
             <div
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="move-modal-title"
-                className="bg-white dark:bg-[#282a2c] dark:text-gray-100 rounded-2xl shadow-2xl w-full max-w-md border border-gray-200 dark:border-gray-700 overflow-hidden cursor-default flex flex-col max-h-[calc(100dvh-2rem)]"
+                className="glass-strong relative dark:text-gray-100 rounded-[20px] w-full max-w-md border overflow-hidden cursor-default flex flex-col max-h-[calc(100dvh-2rem)]"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
-                <div className="flex items-center justify-between gap-3 px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+                <div className="flex items-center justify-between gap-3 px-6 py-4 border-b border-glass-divider">
                     <div className="flex items-center gap-2.5 min-w-0 font-semibold text-lg text-gray-800 dark:text-gray-100">
                         <FolderSymlink className="w-5 h-5 shrink-0 text-blue-600 dark:text-blue-400" />
                         <span id="move-modal-title" className="truncate" title={title}>{title}</span>
@@ -306,7 +306,7 @@ function MovePanel({ items, onClose, onMoved }) {
                     {location.area === 'roots' ? (
                         <ul className="space-y-0.5">
                             <li>
-                                <button type="button" className={`${rowClass} hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer`} onClick={() => enterArea(rootCrumb('my-drive'))}>
+                                <button type="button" className={`${rowClass} hover:bg-black/[0.05] dark:hover:bg-white/[0.08] cursor-pointer`} onClick={() => enterArea(rootCrumb('my-drive'))}>
                                     <HardDrive className="w-4 h-4 shrink-0 text-blue-600 dark:text-blue-400" />
                                     <span className="flex-1 min-w-0 truncate font-medium">{t('nav.myDrive')}</span>
                                     <ChevronRight className="w-4 h-4 shrink-0 text-gray-400" />
@@ -321,7 +321,7 @@ function MovePanel({ items, onClose, onMoved }) {
                                     <li key={drive.id}>
                                         <button
                                             type="button"
-                                            className={`${rowClass} hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer`}
+                                            className={`${rowClass} hover:bg-black/[0.05] dark:hover:bg-white/[0.08] cursor-pointer`}
                                             onClick={() => enterArea(rootCrumb('drive', { driveId: drive.id, name: drive.name }))}
                                         >
                                             <FolderGit2 className="w-4 h-4 shrink-0 text-indigo-600 dark:text-indigo-400" />
@@ -342,7 +342,7 @@ function MovePanel({ items, onClose, onMoved }) {
                             <button
                                 type="button"
                                 onClick={() => setReloadKey((n) => n + 1)}
-                                className="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer"
+                                className="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] cursor-pointer"
                             >
                                 {t('move.retry')}
                             </button>
@@ -367,7 +367,7 @@ function MovePanel({ items, onClose, onMoved }) {
                                             title={isSelf ? t('move.selfFolder') : folder.name}
                                             onClick={() => enterFolder(folder)}
                                             style={getCardColorVars(folder)}
-                                            className={`${rowClass} ${isSelf ? 'opacity-45 cursor-not-allowed' : 'hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer'}`}
+                                            className={`${rowClass} ${isSelf ? 'opacity-45 cursor-not-allowed' : 'hover:bg-black/[0.05] dark:hover:bg-white/[0.08] cursor-pointer'}`}
                                         >
                                             <Folder className="w-4 h-4 shrink-0 fill-current text-[var(--fc-icon-l)] dark:text-[var(--fc-icon-d)]" />
                                             <span className="flex-1 min-w-0 truncate">{folder.name}</span>
@@ -392,7 +392,7 @@ function MovePanel({ items, onClose, onMoved }) {
 
                 {/* Chân: lý do chưa chuyển được + nút. Màn hẹp: lý do một dòng riêng phía trên —
                     chung hàng với hai nút thì ở 390px chỉ còn "Mục đang ...". */}
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 px-6 py-4 border-t border-gray-100 dark:border-gray-700">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 px-6 py-4 border-t border-glass-divider">
                     <span className="min-w-0 text-xs text-gray-500 dark:text-gray-400 sm:truncate" title={blockedReason}>
                         {blockedReason}
                     </span>
@@ -409,7 +409,7 @@ function MovePanel({ items, onClose, onMoved }) {
                             type="button"
                             onClick={handleMove}
                             disabled={Boolean(blockedReason) || isMoving}
-                            className="flex items-center gap-2 px-5 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer"
+                            className="flex items-center gap-2 px-5 py-2 text-sm font-semibold btn-accent hover:brightness-105 rounded-xl shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer"
                         >
                             {isMoving && <Loader2 className="w-4 h-4 animate-spin" />}
                             {isMoving ? t('move.moving') : t('move.here')}

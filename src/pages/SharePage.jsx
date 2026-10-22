@@ -98,7 +98,7 @@ function mimeColor(mimeType, type, name) {
   if (PREVIEW_DOCX(mimeType, name)) return 'text-blue-400';
   if (PREVIEW_SHEET(mimeType, name)) return 'text-green-500';
   if (PREVIEW_TEXT(mimeType, name)) return 'text-emerald-400';
-  return 'text-slate-400';
+  return 'text-zinc-400';
 }
 
 // ─── Skeleton ────────────────────────────────────────────────────────────────
@@ -108,7 +108,7 @@ function Skeleton({ className = '' }) {
 
 function SharePageSkeleton() {
   return (
-    <div className="min-h-screen bg-[#0f1117] text-white flex flex-col">
+    <div className="dark min-h-screen bg-[#161618] bg-[image:var(--app-ambient)] bg-fixed text-white flex flex-col">
       <header className="border-b border-white/8 px-6 py-4">
         <div className="max-w-5xl mx-auto flex items-center justify-between gap-4">
           <Skeleton className="h-8 w-24" />
@@ -129,9 +129,9 @@ function SharePageSkeleton() {
 function SharePageError({ message, onGoHome }) {
   const { t } = useLanguage();
   return (
-    <div className="min-h-screen bg-[#0f1117] text-white flex flex-col items-center justify-center px-4">
+    <div className="dark min-h-screen bg-[#161618] bg-[image:var(--app-ambient)] bg-fixed text-white flex flex-col items-center justify-center px-4">
       <a href="/" className="mb-10 text-2xl font-bold tracking-tight select-none">
-        cloud<span className="text-indigo-400">SSS</span>
+        cloud<span className="text-blue-400">SSS</span>
       </a>
       <div className="w-20 h-20 rounded-full bg-rose-500/10 flex items-center justify-center mb-6 ring-1 ring-rose-500/30">
         <svg className="w-10 h-10 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -144,7 +144,7 @@ function SharePageError({ message, onGoHome }) {
       </p>
       <button
         onClick={onGoHome}
-        className="px-6 py-2.5 rounded-full bg-indigo-600 hover:bg-indigo-500 text-sm font-medium transition-colors cursor-pointer"
+        className="px-6 py-2.5 rounded-full btn-accent hover:brightness-110 text-sm font-medium transition-colors cursor-pointer"
       >
         {t('sharePage.backHome')}
       </button>
@@ -250,7 +250,7 @@ function PdfCanvasViewer({ url, sizeBytes, zoom: externalZoom, rotation: externa
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center gap-3 h-64 text-white/40">
-        <svg className="w-8 h-8 animate-spin text-indigo-400" fill="none" viewBox="0 0 24 24">
+        <svg className="w-8 h-8 animate-spin text-blue-400" fill="none" viewBox="0 0 24 24">
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4Z" />
         </svg>
@@ -392,7 +392,7 @@ function CodeTextPreview({ url, name }) {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center gap-3 h-64 text-white/40">
-        <svg className="w-8 h-8 animate-spin text-indigo-400" fill="none" viewBox="0 0 24 24">
+        <svg className="w-8 h-8 animate-spin text-blue-400" fill="none" viewBox="0 0 24 24">
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4Z" />
         </svg>
@@ -421,8 +421,8 @@ function CodeTextPreview({ url, name }) {
   const language = langMap[ext] || 'text';
 
   return (
-    <div className="w-full max-w-5xl mx-auto rounded-xl overflow-hidden border border-white/10 bg-[#0d1117] flex flex-col text-left">
-      <div className="flex items-center justify-between px-4 py-2 bg-slate-900 border-b border-white/10 text-xs text-white/60">
+    <div className="w-full max-w-5xl mx-auto rounded-xl overflow-hidden border border-white/10 bg-[#1c1c1f] flex flex-col text-left">
+      <div className="flex items-center justify-between px-4 py-2 bg-white/[0.06] border-b border-white/10 text-xs text-white/60">
         <div className="flex items-center gap-2 min-w-0">
           <span className="font-mono text-white/80 truncate">{name}</span>
           {isMd && (
@@ -433,11 +433,11 @@ function CodeTextPreview({ url, name }) {
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {isMd && (
-            <div className="flex items-center bg-slate-800 p-0.5 rounded-lg border border-white/10">
+            <div className="flex items-center bg-white/[0.08] p-0.5 rounded-lg border border-white/10">
               <button
                 onClick={() => setMdViewMode('preview')}
                 className={`px-2 py-1 rounded text-[11px] font-sans font-medium transition-colors cursor-pointer ${
-                  mdViewMode === 'preview' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'
+                  mdViewMode === 'preview' ? 'btn-accent text-white shadow-sm' : 'text-zinc-400 hover:text-zinc-200'
                 }`}
               >
                 {t('sharePage.previewLabel')}
@@ -445,7 +445,7 @@ function CodeTextPreview({ url, name }) {
               <button
                 onClick={() => setMdViewMode('source')}
                 className={`px-2 py-1 rounded text-[11px] font-sans font-medium transition-colors cursor-pointer ${
-                  mdViewMode === 'source' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-slate-200'
+                  mdViewMode === 'source' ? 'btn-accent text-white shadow-sm' : 'text-zinc-400 hover:text-zinc-200'
                 }`}
               >
                 {t('sharePage.sourceLabel')}
@@ -516,7 +516,7 @@ function SharedInlineImage({ file, previewUrl, token, authToken }) {
   if (!image.src) {
     return (
       <div className="flex items-center justify-center h-64">
-        <svg className="w-8 h-8 animate-spin text-indigo-400" fill="none" viewBox="0 0 24 24">
+        <svg className="w-8 h-8 animate-spin text-blue-400" fill="none" viewBox="0 0 24 24">
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4Z" />
         </svg>
@@ -533,7 +533,7 @@ function PreviewArea({ file, previewUrl, loadingPreview, previewBlocked, token, 
   if (loadingPreview) {
     return (
       <div className="flex flex-col items-center justify-center gap-3 h-64 text-white/40">
-        <svg className="w-8 h-8 animate-spin text-indigo-400" fill="none" viewBox="0 0 24 24">
+        <svg className="w-8 h-8 animate-spin text-blue-400" fill="none" viewBox="0 0 24 24">
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4Z" />
         </svg>
@@ -590,14 +590,14 @@ function PreviewArea({ file, previewUrl, loadingPreview, previewBlocked, token, 
   }
   if (PREVIEW_DOCX(mimeType, name)) {
     return (
-      <div className="w-full max-h-[70vh] overflow-auto rounded-xl bg-slate-900/60 p-4 sm:p-6">
+      <div className="w-full max-h-[70vh] overflow-auto rounded-xl bg-white/[0.04] p-4 sm:p-6">
         <DocxRenderer url={previewUrl} />
       </div>
     );
   }
   if (PREVIEW_SHEET(mimeType, name)) {
     return (
-      <div className="w-full h-[70vh] rounded-xl overflow-hidden border border-white/10 bg-[#0d1117] flex flex-col text-left">
+      <div className="w-full h-[70vh] rounded-xl overflow-hidden border border-white/10 bg-[#1c1c1f] flex flex-col text-left">
         <SheetPreview url={previewUrl} />
       </div>
     );
@@ -686,15 +686,15 @@ function ChildFilePreviewModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col bg-slate-950/90 backdrop-blur-xl animate-in fade-in duration-200 text-white select-none"
+      className="fixed inset-0 z-50 flex flex-col glass-stage animate-fade-in text-white select-none"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
       {/* Top Header & Controls */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-slate-900/80 backdrop-blur-md">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-white/[0.05] backdrop-blur-md">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-10 h-10 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30 shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center border border-blue-500/30 shrink-0">
             <span className={`shrink-0 ${mimeColor(file.mimeType, file.type, file.name)}`}>
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
@@ -705,7 +705,7 @@ function ChildFilePreviewModal({
             <h3 className="text-sm font-semibold text-white truncate max-w-md" title={file.name}>
               {file.name}
             </h3>
-            <div className="flex items-center gap-2 text-xs text-slate-400">
+            <div className="flex items-center gap-2 text-xs text-zinc-400">
               <span>{formatBytes(file.sizeBytes)}</span>
               {file.mimeType && (
                 <>
@@ -731,7 +731,7 @@ function ChildFilePreviewModal({
                   <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607ZM13.5 10.5h-6" />
                 </svg>
               </button>
-              <span className="text-xs font-mono px-2 py-1 bg-white/10 rounded-lg text-slate-300 min-w-[50px] text-center">
+              <span className="text-xs font-mono px-2 py-1 bg-white/10 rounded-lg text-zinc-300 min-w-[50px] text-center">
                 {Math.round(zoom * 100)}%
               </span>
               <button
@@ -761,7 +761,7 @@ function ChildFilePreviewModal({
             <button
               onClick={handleDownloadClick}
               disabled={downloading}
-              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-lg shadow-indigo-500/20 transition-all cursor-pointer disabled:opacity-60"
+              className="flex items-center gap-2 px-3 py-2 rounded-xl btn-accent hover:brightness-110 text-white text-xs font-semibold transition-all cursor-pointer disabled:opacity-60"
             >
               {downloading ? (
                 <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -792,8 +792,8 @@ function ChildFilePreviewModal({
       {/* Main Container */}
       <div className="flex-1 flex items-center justify-center overflow-hidden p-6 relative">
         {loading && (
-          <div className="flex flex-col items-center gap-3 text-slate-400">
-            <svg className="w-10 h-10 animate-spin text-indigo-500" fill="none" viewBox="0 0 24 24">
+          <div className="flex flex-col items-center gap-3 text-zinc-400">
+            <svg className="w-10 h-10 animate-spin text-blue-500" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4Z" />
             </svg>
@@ -848,7 +848,7 @@ function ChildFilePreviewModal({
             )}
 
             {isAud && (
-              <div className="p-8 bg-slate-900 border border-white/10 rounded-3xl shadow-2xl flex flex-col items-center gap-6 text-center max-w-md w-full">
+              <div className="p-8 bg-white/[0.06] border border-white/10 rounded-3xl shadow-2xl flex flex-col items-center gap-6 text-center max-w-md w-full">
                 <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-pink-500/30 to-purple-500/20 text-pink-400 flex items-center justify-center border border-pink-500/30 shadow-inner">
                   <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="m9 9 10.5-3m0 6.553v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 1 1-.99-3.467l2.31-.66a2.25 2.25 0 0 0 1.632-2.163Zm0 0V2.25L9 5.25v10.303m0 0v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 1 1-.99-3.467l2.31-.66A2.25 2.25 0 0 0 9 15.553Z" />
@@ -858,30 +858,30 @@ function ChildFilePreviewModal({
                   <h4 className="font-bold text-white text-base truncate px-2" title={file.name}>
                     {file.name}
                   </h4>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-zinc-400">
                     {t('preview.audio.label', { size: formatBytes(file.sizeBytes) })}
                   </p>
                 </div>
-                <div className="w-full bg-slate-950/60 p-3 rounded-2xl border border-white/5">
+                <div className="w-full bg-black/25 p-3 rounded-2xl border border-white/5">
                   <audio src={previewUrl} controls className="w-full" />
                 </div>
               </div>
             )}
 
             {isPdf && (
-              <div className="w-full h-full max-w-5xl rounded-2xl overflow-hidden bg-slate-900/80 border border-white/10 shadow-2xl flex flex-col items-center justify-center">
+              <div className="w-full h-full max-w-5xl rounded-2xl overflow-hidden bg-white/[0.05] border border-white/10 shadow-2xl flex flex-col items-center justify-center">
                 <PdfCanvasViewer url={previewUrl} sizeBytes={file.sizeBytes} zoom={zoom} rotation={rotation} />
               </div>
             )}
 
             {isDoc && (
-              <div className="w-full h-full max-w-5xl rounded-2xl overflow-auto bg-slate-900/60 border border-white/10 shadow-2xl p-4 sm:p-8">
+              <div className="w-full h-full max-w-5xl rounded-2xl overflow-auto bg-white/[0.04] border border-white/10 shadow-2xl p-4 sm:p-8">
                 <DocxRenderer url={previewUrl} onDownload={isDownloadAllowed ? handleDownloadClick : undefined} />
               </div>
             )}
 
             {isSheet && (
-              <div className="w-full h-full max-w-6xl rounded-2xl overflow-hidden bg-[#0d1117] border border-white/10 shadow-2xl flex flex-col text-left">
+              <div className="w-full h-full max-w-6xl rounded-2xl overflow-hidden bg-[#1c1c1f] border border-white/10 shadow-2xl flex flex-col text-left">
                 <SheetPreview url={previewUrl} onDownload={isDownloadAllowed ? handleDownloadClick : undefined} />
               </div>
             )}
@@ -891,12 +891,12 @@ function ChildFilePreviewModal({
             )}
 
             {!isImg && !isVid && !isAud && !isPdf && !isDoc && !isSheet && !isTxt && (
-              <div className="p-8 bg-slate-900 border border-white/10 rounded-3xl shadow-2xl flex flex-col items-center gap-4 text-center max-w-sm">
-                <svg className="w-16 h-16 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+              <div className="p-8 bg-white/[0.06] border border-white/10 rounded-3xl shadow-2xl flex flex-col items-center gap-4 text-center max-w-sm">
+                <svg className="w-16 h-16 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25M9 16.5v.75m3-3v3M15 12v5.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
                 </svg>
                 <h4 className="font-bold text-white text-sm">{file.name}</h4>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-zinc-400">
                   {tooLarge
                     ? t('sharePage.preview.tooLarge', {
                         size: formatBytes(file.sizeBytes),
@@ -907,7 +907,7 @@ function ChildFilePreviewModal({
                 {isDownloadAllowed && (
                   <button
                     onClick={handleDownloadClick}
-                    className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold rounded-xl text-white shadow-lg transition-all cursor-pointer"
+                    className="w-full py-2.5 btn-accent hover:brightness-110 text-xs font-semibold rounded-xl text-white shadow-lg transition-all cursor-pointer"
                   >
                     {t('preview.downloadOriginal')}
                   </button>
@@ -918,16 +918,16 @@ function ChildFilePreviewModal({
         )}
 
         {!loading && !error && !previewBlocked && !previewUrl && (
-          <div className="p-8 bg-slate-900 border border-white/10 rounded-3xl shadow-2xl flex flex-col items-center gap-4 text-center max-w-sm">
-            <svg className="w-16 h-16 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+          <div className="p-8 bg-white/[0.06] border border-white/10 rounded-3xl shadow-2xl flex flex-col items-center gap-4 text-center max-w-sm">
+            <svg className="w-16 h-16 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25M9 16.5v.75m3-3v3M15 12v5.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
             </svg>
             <h4 className="font-bold text-white text-sm">{file.name}</h4>
-            <p className="text-xs text-slate-400">{t('sharePage.preview.cannot')}</p>
+            <p className="text-xs text-zinc-400">{t('sharePage.preview.cannot')}</p>
             {isDownloadAllowed && (
               <button
                 onClick={handleDownloadClick}
-                className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold rounded-xl text-white shadow-lg transition-all cursor-pointer"
+                className="w-full py-2.5 btn-accent hover:brightness-110 text-xs font-semibold rounded-xl text-white shadow-lg transition-all cursor-pointer"
               >
                 {t('preview.downloadOriginal')}
               </button>
@@ -937,7 +937,7 @@ function ChildFilePreviewModal({
       </div>
 
       {/* Bottom Info Bar */}
-      <div className="px-6 py-3 bg-slate-900/80 border-t border-white/10 flex items-center justify-between text-xs text-slate-400">
+      <div className="px-6 py-3 bg-white/[0.05] border-t border-white/10 flex items-center justify-between text-xs text-zinc-400">
         <div className="flex items-center gap-2">
           <span>{file.name}</span>
           <span>•</span>
@@ -1087,7 +1087,7 @@ function FolderBrowser({ token, rootFolderName, isDownloadAllowed, onOpenFile, s
           <button
             onClick={handleDownloadZip}
             disabled={zipLoading}
-            className="shrink-0 flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300 disabled:opacity-50 transition-colors whitespace-nowrap cursor-pointer"
+            className="shrink-0 flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 disabled:opacity-50 transition-colors whitespace-nowrap cursor-pointer"
           >
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
@@ -1393,9 +1393,9 @@ export default function SharePage() {
 
   if (requiresPassword) {
     return (
-      <div className="min-h-screen bg-[#0f1117] text-white flex items-center justify-center px-4">
+      <div className="dark min-h-screen bg-[#161618] bg-[image:var(--app-ambient)] bg-fixed text-white flex items-center justify-center px-4">
         <div className="w-full max-w-md rounded-2xl border border-white/10 bg-white/[0.03] p-6 shadow-2xl">
-          <div className="mb-6 flex items-center justify-center text-indigo-400">
+          <div className="mb-6 flex items-center justify-center text-blue-400">
             <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
             </svg>
@@ -1412,7 +1412,7 @@ export default function SharePage() {
                 value={passwordInput}
                 onChange={(e) => setPasswordInput(e.target.value)}
                 placeholder={t('sharePage.password.placeholder')}
-                className="w-full rounded-xl border border-white/10 bg-slate-950/70 px-3 py-2.5 text-sm text-white outline-none ring-0 placeholder:text-white/25 focus:border-indigo-500"
+                className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none ring-0 placeholder:text-white/25 focus:border-blue-500"
                 autoFocus
               />
             </div>
@@ -1424,7 +1424,7 @@ export default function SharePage() {
             <button
               type="submit"
               disabled={passwordSubmitting}
-              className="w-full rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-60"
+              className="w-full rounded-xl btn-accent px-4 py-2.5 text-sm font-medium text-white hover:brightness-110 disabled:opacity-60"
             >
               {passwordSubmitting ? t('sharePage.password.submitting') : t('sharePage.password.submit')}
             </button>
@@ -1436,14 +1436,14 @@ export default function SharePage() {
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#0f1117] text-white flex flex-col">
+    <div className="dark min-h-screen bg-[#161618] bg-[image:var(--app-ambient)] bg-fixed text-white flex flex-col">
 
       {/* ── Header sticky ────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-20 border-b border-white/8 bg-[#0f1117]/90 backdrop-blur-md px-4 sm:px-6 py-3">
+      <header className="sticky top-0 z-20 border-b border-white/10 bg-[#1b1b1e]/70 backdrop-blur-xl px-4 sm:px-6 py-3">
         <div className="max-w-5xl mx-auto flex items-center justify-between gap-3">
           {/* Logo */}
           <a href="/" className="text-lg font-bold tracking-tight shrink-0 select-none hover:opacity-80 transition-opacity">
-            cloud<span className="text-indigo-400">SSS</span>
+            cloud<span className="text-blue-400">SSS</span>
           </a>
 
           {/* Người chia sẻ */}
@@ -1451,7 +1451,7 @@ export default function SharePage() {
             {owner?.avatarUrl ? (
               <img src={owner.avatarUrl} alt={owner.fullName} className="w-6 h-6 rounded-full object-cover shrink-0" />
             ) : (
-              <span className="w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center text-xs font-semibold shrink-0">
+              <span className="w-6 h-6 rounded-full btn-accent flex items-center justify-center text-xs font-semibold shrink-0">
                 {(owner?.fullName ?? 'D').charAt(0).toUpperCase()}
               </span>
             )}
@@ -1466,7 +1466,7 @@ export default function SharePage() {
             <button
               onClick={handleDownload}
               disabled={downloadLoading}
-              className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-sm font-medium transition-all shadow-lg shadow-indigo-500/25 cursor-pointer"
+              className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-full btn-accent hover:brightness-110 disabled:opacity-60 text-sm font-medium transition-all cursor-pointer"
             >
               {downloadLoading
                 ? <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4Z" /></svg>
@@ -1545,7 +1545,7 @@ export default function SharePage() {
                 <button
                   onClick={handleDownload}
                   disabled={downloadLoading}
-                  className="flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300 disabled:opacity-50 transition-colors cursor-pointer"
+                  className="flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 disabled:opacity-50 transition-colors cursor-pointer"
                 >
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
@@ -1592,7 +1592,7 @@ export default function SharePage() {
         <div className="mt-12 text-center">
           <p className="text-white/25 text-sm">
             {t('sharePage.cta.question')}{' '}
-            <a href="/register" className="text-indigo-400 hover:text-indigo-300 underline underline-offset-2 transition-colors">
+            <a href="/register" className="text-blue-400 hover:text-blue-300 underline underline-offset-2 transition-colors">
               {t('sharePage.cta.register')}
             </a>
           </p>

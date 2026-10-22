@@ -115,10 +115,13 @@ export default function AccountModal({ isOpen, onClose }) {
     return (
         <div 
             ref={modalRef}
-            className="absolute top-full right-0 mt-2 w-80 max-w-[calc(100vw-1.5rem)] max-h-[calc(100dvh-5rem)] overflow-y-auto overscroll-contain bg-white dark:bg-[#282a2c] rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-5 z-[60] animate-in fade-in zoom-in-95 duration-150 text-gray-800 dark:text-gray-200 text-left cursor-default"
+            className="glass-strong absolute top-full right-0 mt-2 w-80 max-w-[calc(100vw-1.5rem)] rounded-[22px] overflow-hidden z-[60] text-gray-800 dark:text-gray-200 text-left cursor-default animate-glass-in origin-top-right"
         >
+            {/* Phần cuộn nằm TRONG khung kính: lớp blur `::before` của `glass-strong` là phần tử
+                absolute, đặt trong chính khung cuộn thì nó trôi theo nội dung (index.css). */}
+            <div className="max-h-[calc(100dvh-5rem)] overflow-y-auto overscroll-contain p-5">
             {/* User Details */}
-            <div className="flex items-center gap-3 pb-4 border-b border-gray-100 dark:border-gray-700">
+            <div className="flex items-center gap-3 pb-4 border-b border-glass-divider">
                 {user?.avatarUrl ? (
                     <img src={user.avatarUrl} alt="Avatar" className="w-12 h-12 rounded-full object-cover shadow-sm border border-gray-200 dark:border-gray-700" />
                 ) : (
@@ -139,7 +142,7 @@ export default function AccountModal({ isOpen, onClose }) {
             <button
                 type="button"
                 onClick={openBilling}
-                className="mt-3 w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors text-left cursor-pointer"
+                className="mt-3 w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-black/[0.04] dark:hover:bg-white/[0.07] transition-colors text-left cursor-pointer"
             >
                 <CreditCard className={`w-4 h-4 shrink-0 ${hasPlan ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400'}`} />
                 <span className="flex-1 min-w-0">
@@ -160,12 +163,12 @@ export default function AccountModal({ isOpen, onClose }) {
             <AccountSwitcher guard={guardUploads} onNavigate={onClose} />
 
             {/* Menu Options */}
-            <div className="mt-2 pt-2 space-y-1 border-t border-gray-100 dark:border-gray-700">
+            <div className="mt-2 pt-2 space-y-1 border-t border-glass-divider">
                 <button
                     onClick={() => {
                         setIsProfileOpen(true);
                     }}
-                    className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-colors text-left cursor-pointer"
+                    className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] rounded-xl transition-colors text-left cursor-pointer"
                 >
                     <UserIcon className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                     {t('account.myAccount')}
@@ -173,7 +176,7 @@ export default function AccountModal({ isOpen, onClose }) {
                 {otherAccountCount > 0 && (
                     <button
                         onClick={handleLogoutCurrent}
-                        className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-colors text-left cursor-pointer"
+                        className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] rounded-xl transition-colors text-left cursor-pointer"
                     >
                         <LogOut className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                         {t('account.logoutCurrent')}
@@ -216,6 +219,7 @@ export default function AccountModal({ isOpen, onClose }) {
                     onClose && onClose();
                 }}
             />
+            </div>
         </div>
     );
 }

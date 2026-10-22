@@ -13,7 +13,7 @@ import { formatBytes } from '../../utils/formatFileSize';
 export default function ImageStagePill({ stage, sizeBytes, onLoadOriginal }) {
   const { t } = useLanguage();
   const base =
-    'absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-neutral-800/95 text-xs text-white/85 shadow-lg shadow-black/40 whitespace-nowrap';
+    'absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 px-3.5 py-1.5 rounded-full glass-dark text-xs text-white/90 whitespace-nowrap';
   const original = stage.original;
 
   if (stage.stage === 'placeholder' && stage.src) {
@@ -34,7 +34,7 @@ export default function ImageStagePill({ stage, sizeBytes, onLoadOriginal }) {
         </span>
         {pct != null && (
           <span className="block w-40 h-1 rounded-full bg-white/15 overflow-hidden">
-            <span className="block h-full bg-[#a8c7fa] transition-[width] duration-150" style={{ width: `${pct}%` }} />
+            <span className="block h-full bg-blue-400 transition-[width] duration-150" style={{ width: `${pct}%` }} />
           </span>
         )}
       </div>
@@ -45,7 +45,7 @@ export default function ImageStagePill({ stage, sizeBytes, onLoadOriginal }) {
   }
   if (stage.stage === 'preview' && stage.canUpgrade) {
     return (
-      <button type="button" onClick={onLoadOriginal} className={`${base} hover:bg-neutral-700 cursor-pointer`}>
+      <button type="button" onClick={onLoadOriginal} className={`${base} hover:bg-white/15 cursor-pointer`}>
         {t('preview.image.viewOriginal', { size: formatBytes(sizeBytes) })}
       </button>
     );

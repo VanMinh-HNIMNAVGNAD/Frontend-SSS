@@ -77,7 +77,7 @@ function TagRow({ tag }) {
                         }
                     }}
                     aria-label={t('tags.name')}
-                    className="w-full px-3 py-1.5 rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] text-sm text-gray-900 dark:text-gray-100 outline-none focus:border-blue-500"
+                    className="w-full px-3 py-1.5 rounded-lg glass-input text-sm text-gray-900 dark:text-gray-100 outline-none focus:border-blue-500"
                 />
                 <div className="flex items-center justify-between gap-2">
                     <ColorDots value={color} onChange={setColor} disabled={busy} />
@@ -93,7 +93,7 @@ function TagRow({ tag }) {
                             type="button"
                             onClick={save}
                             disabled={busy || !name.trim()}
-                            className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 cursor-pointer flex items-center gap-1"
+                            className="px-2.5 py-1 rounded-lg text-xs font-semibold btn-accent hover:brightness-105 disabled:opacity-50 cursor-pointer flex items-center gap-1"
                         >
                             {busy && <Loader2 className="w-3 h-3 animate-spin" />}
                             {t('common.save')}
@@ -105,7 +105,7 @@ function TagRow({ tag }) {
     }
 
     return (
-        <li className="group flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-gray-50 dark:hover:bg-white/5">
+        <li className="group flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-black/[0.04] dark:hover:bg-white/[0.07]">
             <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: tag.colorHex || DEFAULT_TAG_COLOR }} />
             <button
                 type="button"
@@ -177,7 +177,7 @@ export default function TagManagerModal() {
             <div className="p-5 space-y-4">
                 <form onSubmit={submit} className="space-y-2.5">
                     <div className="flex items-center gap-2">
-                        <div className="flex-1 flex items-center gap-2 px-3 py-2 rounded-xl border border-[var(--app-border)] focus-within:border-blue-500 bg-[var(--app-surface)]">
+                        <div className="flex-1 flex items-center gap-2 px-3 py-2 rounded-xl glass-input focus-within:border-blue-500">
                             <Tag className="w-4 h-4 shrink-0" style={{ color }} />
                             <input
                                 value={name}
@@ -191,7 +191,7 @@ export default function TagManagerModal() {
                         <button
                             type="submit"
                             disabled={!name.trim() || creating}
-                            className="shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold disabled:opacity-50 cursor-pointer"
+                            className="shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-xl btn-accent hover:brightness-105 text-sm font-semibold disabled:opacity-50 cursor-pointer"
                         >
                             {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
                             {t('tags.create')}

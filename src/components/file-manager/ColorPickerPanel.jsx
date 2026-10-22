@@ -227,7 +227,7 @@ export default function ColorPickerPanel({ item, currentColor, onSelectColor, on
     return (
         <div
             ref={panelRef}
-            className="absolute z-10 w-63 rounded-2xl border border-gray-300 dark:border-gray-700/80 bg-white dark:bg-[#282a2c] shadow-2xl px-3 py-2.5 animate-fade-in"
+            className="glass-strong absolute z-10 w-63 rounded-[20px] border px-3 py-2.5 animate-fade-in"
             style={{
                 left: pos?.left ?? 0,
                 top: pos?.top ?? 0,
@@ -269,7 +269,7 @@ export default function ColorPickerPanel({ item, currentColor, onSelectColor, on
                             key={hex}
                             title={hex}
                             onClick={() => handlePreset(hex)}
-                            className={`w-7 h-7 rounded-full transition-transform duration-100 flex items-center justify-center ring-offset-2 ring-offset-white dark:ring-offset-[#282a2c] ${
+                            className={`w-7 h-7 rounded-full transition-transform duration-100 flex items-center justify-center ring-offset-2 ring-offset-white dark:ring-offset-[#2a2a2e] ${
                                 isActive
                                     ? 'ring-2 ring-blue-500'
                                     : 'hover:scale-110 hover:ring-2 hover:ring-gray-300 dark:hover:ring-gray-500'
@@ -353,7 +353,7 @@ export default function ColorPickerPanel({ item, currentColor, onSelectColor, on
                 <button
                     onClick={handleApplyDraft}
                     disabled={!hasDraft}
-                    className="shrink-0 px-2.5 py-1.5 rounded-lg text-[12px] font-semibold bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    className="shrink-0 px-2.5 py-1.5 rounded-lg text-[12px] font-semibold btn-accent hover:brightness-105 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
                     {t('color.apply')}
                 </button>
@@ -365,7 +365,7 @@ export default function ColorPickerPanel({ item, currentColor, onSelectColor, on
                     <div className="h-px bg-gray-200 dark:bg-gray-700/60 my-2.5" />
                     <button
                         onClick={handleReset}
-                        className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-[12px] text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+                        className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-[12px] text-gray-600 dark:text-gray-400 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-colors"
                     >
                         <RotateCcw className="w-3.5 h-3.5 text-gray-500 shrink-0" />
                         <span className="flex-1 text-left truncate">{t('color.reset')}</span>

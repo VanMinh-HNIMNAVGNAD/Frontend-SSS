@@ -322,19 +322,21 @@ export default function Header({ toggleRightSidebar }) {
 
     if (selectedCount > 0) {
         return (
-            <header className="h-16 flex items-center justify-between px-2 sm:px-3 md:px-5 bg-[#0b57d0] text-white border-b border-[#0b57d0] shrink-0 gap-2 sm:gap-3 transition-colors duration-200">
+            // Thanh chọn nhiều: cùng tấm kính với header thường, chỉ ánh xanh nhạt + viền nhấn để
+            // người dùng biết đang ở chế độ chọn (trước: nền xanh đặc #0b57d0 chữ trắng).
+            <header className="h-14 sm:h-16 flex items-center justify-between px-2 sm:px-3 md:px-4 glass bg-blue-50/75! dark:bg-white/[0.09]! ring-1 ring-blue-500/25 dark:ring-blue-400/40 rounded-[20px] sm:rounded-full text-gray-900 dark:text-gray-100 shrink-0 gap-2 sm:gap-3 transition-colors duration-200 animate-fade-in">
                 {/* Left */}
                 <div className="flex items-center gap-2 sm:gap-4 min-w-0">
-                    <button onClick={deselectAll} className="p-2 hover:bg-white/20 rounded-full transition-colors cursor-pointer shrink-0" title={t('common.close')}>
+                    <button onClick={deselectAll} className="p-2 hover:bg-white/70 dark:hover:bg-white/10 rounded-full transition-colors cursor-pointer shrink-0" title={t('common.close')}>
                         <X className="w-5 h-5" />
                     </button>
-                    <span className="font-semibold text-base sm:text-lg truncate">{t('header.selected', { count: selectedCount })}</span>
+                    <span className="font-semibold text-base sm:text-lg truncate text-blue-700 dark:text-blue-300">{t('header.selected', { count: selectedCount })}</span>
                     
-                    <div className="w-px h-6 bg-white/30 dark:bg-white/5 mx-2 hidden sm:block" />
+                    <div className="w-px h-6 bg-black/10 dark:bg-white/15 mx-2 hidden sm:block" />
                     
                     <button
                         onClick={() => allCurrentSelected ? deselectAll() : selectAll(folders, files)}
-                        className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 hover:bg-white/20 rounded-lg transition-colors text-sm font-medium cursor-pointer"
+                        className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 hover:bg-white/70 dark:hover:bg-white/10 rounded-full transition-colors text-sm font-medium cursor-pointer"
                     >
                         <CheckSquare className="w-4 h-4" />
                         <span>{allCurrentSelected ? t('common.deselectAll') : t('common.selectAll')}</span>
@@ -346,7 +348,7 @@ export default function Header({ toggleRightSidebar }) {
                     {!isTrashTab && !isSpamTab ? (
                         <>
                             {canTrashSelection && (
-                            <button onClick={handleDeleteSelected} className="flex items-center gap-1.5 px-3 py-2 hover:bg-red-500/90 rounded-lg transition-colors text-sm font-medium cursor-pointer" title={t('common.delete')}>
+                            <button onClick={handleDeleteSelected} className="flex items-center gap-1.5 px-3 py-2 hover:bg-rose-500/12 hover:text-rose-600 dark:hover:text-rose-300 rounded-full transition-colors text-sm font-medium cursor-pointer" title={t('common.delete')}>
                                 <Trash2 className="w-4 h-4" />
                                 <span className="hidden lg:inline">{t('common.delete')}</span>
                             </button>
@@ -356,7 +358,7 @@ export default function Header({ toggleRightSidebar }) {
                                 onClick={() => {
                                     cutItems(Array.from(selectedIds));
                                 }} 
-                                className="flex items-center gap-1.5 px-3 py-2 hover:bg-white/20 rounded-lg transition-colors text-sm font-medium cursor-pointer" 
+                                className="flex items-center gap-1.5 px-3 py-2 hover:bg-white/70 dark:hover:bg-white/10 rounded-full transition-colors text-sm font-medium cursor-pointer" 
                                 title={t('header.action.cut')}
                             >
                                 <Scissors className="w-4 h-4" />
@@ -367,25 +369,25 @@ export default function Header({ toggleRightSidebar }) {
                                 onClick={() => {
                                     copyItems(Array.from(selectedIds));
                                 }} 
-                                className="flex items-center gap-1.5 px-3 py-2 hover:bg-white/20 rounded-lg transition-colors text-sm font-medium cursor-pointer" 
+                                className="flex items-center gap-1.5 px-3 py-2 hover:bg-white/70 dark:hover:bg-white/10 rounded-full transition-colors text-sm font-medium cursor-pointer" 
                                 title={t('header.action.copy')}
                             >
                                 <Copy className="w-4 h-4" />
                                 <span className="hidden lg:inline">{t('common.copy')}</span>
                             </button>
-                            <button onClick={handleDownloadSelected} className="flex items-center gap-1.5 px-3 py-2 hover:bg-white/20 rounded-lg transition-colors text-sm font-medium cursor-pointer" title={t('common.download')}>
+                            <button onClick={handleDownloadSelected} className="flex items-center gap-1.5 px-3 py-2 hover:bg-white/70 dark:hover:bg-white/10 rounded-full transition-colors text-sm font-medium cursor-pointer" title={t('common.download')}>
                                 <Download className="w-4 h-4" />
                                 <span className="hidden lg:inline">{t('common.download')}</span>
                             </button>
                         </>
                     ) : (
                         <>
-                            <button onClick={handleRestoreSelected} className="flex items-center gap-1.5 px-3 py-2 hover:bg-emerald-500/90 rounded-lg transition-colors text-sm font-medium cursor-pointer" title={t('common.restore')}>
+                            <button onClick={handleRestoreSelected} className="flex items-center gap-1.5 px-3 py-2 hover:bg-emerald-500/12 hover:text-emerald-700 dark:hover:text-emerald-300 rounded-full transition-colors text-sm font-medium cursor-pointer" title={t('common.restore')}>
                                 <RotateCcw className="w-4 h-4" />
                                 <span className="hidden lg:inline">{t('common.restore')}</span>
                             </button>
                             {canDeleteForeverSelection && (
-                            <button onClick={handlePermanentDeleteSelected} className="flex items-center gap-1.5 px-3 py-2 hover:bg-red-500/90 rounded-lg transition-colors text-sm font-medium cursor-pointer" title={t('common.deleteForever')}>
+                            <button onClick={handlePermanentDeleteSelected} className="flex items-center gap-1.5 px-3 py-2 hover:bg-rose-500/12 hover:text-rose-600 dark:hover:text-rose-300 rounded-full transition-colors text-sm font-medium cursor-pointer" title={t('common.deleteForever')}>
                                 <AlertCircle className="w-4 h-4" />
                                 <span className="hidden lg:inline">{t('common.deleteForever')}</span>
                             </button>
@@ -398,14 +400,16 @@ export default function Header({ toggleRightSidebar }) {
     }
 
     return (
-        <header className="h-16 flex items-center justify-between px-2 sm:px-3 md:px-5 bg-[var(--app-surface)] border-b border-[var(--app-border)] shrink-0 gap-1.5 sm:gap-3 transition-colors duration-200 shadow-2xs">
+        // Tấm kính hình viên thuốc nổi trên nền ambient. `glass` KHÔNG blur: header chứa modal
+        // Cài đặt + ngăn Lịch sử (`fixed inset-0`) — backdrop-filter sẽ nhốt chúng vào thanh này.
+        <header className="h-14 sm:h-16 flex items-center justify-between px-1.5 sm:px-2.5 md:px-3 glass rounded-[20px] sm:rounded-full shrink-0 gap-1.5 sm:gap-3 transition-colors duration-200">
             {/* LOGO & Web Title "cloudSSS" */}
             <div className="flex items-center gap-2 shrink-0">
                 {/* Nút Toggle Sidebar */}
                 <button
                     onClick={toggleSidebar}
                     title={isSidebarCollapsed ? t('header.sidebar.expand') : t('header.sidebar.collapse')}
-                    className="p-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 rounded-full transition-colors focus:outline-none cursor-pointer"
+                    className="p-2.5 text-gray-700 dark:text-gray-300 hover:bg-white/70 dark:hover:bg-white/10 rounded-full transition-colors focus:outline-none cursor-pointer"
                 >
                     <Menu className="w-5 h-5 text-gray-800 dark:text-gray-200" />
                 </button>
@@ -430,7 +434,7 @@ export default function Header({ toggleRightSidebar }) {
 
             {/* VÙNG TÌM KIẾM TO + BỘ LỌC TÌM KIẾM */}
             <div className="flex-1 min-w-0 max-w-2xl relative sm:mx-2">
-                <div className="flex items-center h-11 sm:h-auto bg-gray-100/90 dark:bg-white/5 hover:bg-gray-200/70 dark:hover:bg-white/10 focus-within:bg-white dark:focus-within:bg-[var(--app-surface)] border border-gray-200/90 dark:border-transparent focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100 dark:focus-within:ring-0 focus-within:shadow-md rounded-full pl-3 pr-1.5 sm:px-4 sm:py-2 transition-all duration-200">
+                <div className="flex items-center h-11 glass-input hover:bg-white/75 dark:hover:bg-white/[0.09] focus-within:bg-white/90 dark:focus-within:bg-white/10 focus-within:ring-2 focus-within:ring-blue-500/30 rounded-full pl-3 pr-1.5 sm:pl-4 sm:pr-2 transition-all duration-200">
                     <Search className="w-5 h-5 text-gray-600 dark:text-gray-400 mr-2 sm:mr-3 shrink-0" />
                     <input
                         id="global-search-input"
@@ -462,7 +466,7 @@ export default function Header({ toggleRightSidebar }) {
                             }}
                             title={t('header.search.clear')}
                             aria-label={t('header.search.clear')}
-                            className="p-2 sm:p-1 rounded-full text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 hover:bg-gray-200 dark:hover:bg-white/10 transition-colors ml-1 shrink-0 cursor-pointer"
+                            className="p-2 sm:p-1 rounded-full text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 hover:bg-black/5 dark:hover:bg-white/10 transition-colors ml-1 shrink-0 cursor-pointer"
                         >
                             <X className="w-4 h-4" />
                         </button>
@@ -474,8 +478,8 @@ export default function Header({ toggleRightSidebar }) {
                         onClick={() => setIsFilterOpen(!isFilterOpen)}
                         title={t('header.search.filter')}
                         aria-expanded={isFilterOpen}
-                        className={`p-2 sm:p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-white/10 transition-colors ml-1 sm:ml-2 shrink-0 cursor-pointer ${
-                            isFilterOpen || filterType !== 'all' || filterDate !== 'all' || filterOwner !== 'all' ? 'text-blue-700 dark:text-blue-400 bg-blue-100/80 dark:bg-blue-500/15' : 'text-gray-700 dark:text-gray-300'
+                        className={`p-2 sm:p-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors ml-1 sm:ml-2 shrink-0 cursor-pointer ${
+                            isFilterOpen || filterType !== 'all' || filterDate !== 'all' || filterOwner !== 'all' ? 'text-blue-700 dark:text-blue-300 bg-blue-500/12 dark:bg-blue-400/15' : 'text-gray-700 dark:text-gray-300'
                         }`}
                     >
                         <SlidersHorizontal className="w-4 h-4" />
@@ -507,7 +511,7 @@ export default function Header({ toggleRightSidebar }) {
                     onClick={handleOpenActivityLog}
                     disabled={isAuthLoading}
                     title={isAuthenticated ? t('header.activityLog') : t('header.activityLog.needLogin')}
-                    className="hidden sm:inline-flex p-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="hidden sm:inline-flex p-2.5 text-gray-700 dark:text-gray-300 hover:bg-white/70 dark:hover:bg-white/10 rounded-full transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                     <History className="w-5 h-5" />
                 </button>
@@ -535,7 +539,7 @@ export default function Header({ toggleRightSidebar }) {
                     disabled={isAuthLoading}
                     title={isAuthenticated ? t('header.ai') : t('header.ai.needLogin')}
                     aria-label={isAuthenticated ? t('header.ai') : t('header.ai.needLogin')}
-                    className="p-2 sm:p-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="p-2 sm:p-2.5 text-gray-700 dark:text-gray-300 hover:bg-white/70 dark:hover:bg-white/10 rounded-full transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                     <Sparkles className="w-5 h-5" />
                 </button>
@@ -549,7 +553,7 @@ export default function Header({ toggleRightSidebar }) {
                 <button
                     onClick={() => setIsSettingsOpen(true)}
                     title={t('header.settings')}
-                    className="hidden sm:inline-flex p-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 rounded-full transition-colors cursor-pointer"
+                    className="hidden sm:inline-flex p-2.5 text-gray-700 dark:text-gray-300 hover:bg-white/70 dark:hover:bg-white/10 rounded-full transition-colors cursor-pointer"
                 >
                     <Settings className="w-5 h-5" />
                 </button>
@@ -561,7 +565,7 @@ export default function Header({ toggleRightSidebar }) {
                         title={t('header.more')}
                         aria-label={t('header.more')}
                         aria-expanded={isMoreOpen}
-                        className="p-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 rounded-full transition-colors cursor-pointer"
+                        className="p-2 text-gray-700 dark:text-gray-300 hover:bg-white/70 dark:hover:bg-white/10 rounded-full transition-colors cursor-pointer"
                     >
                         <MoreVertical className="w-5 h-5" />
                     </button>
@@ -569,14 +573,14 @@ export default function Header({ toggleRightSidebar }) {
                         <>
                             {/* Lớp trong suốt bắt cú chạm ra ngoài để đóng menu */}
                             <div className="fixed inset-0 z-40" onClick={() => setIsMoreOpen(false)} />
-                            <div className="absolute right-0 top-full mt-2 w-56 z-50 py-1.5 bg-[var(--app-surface)] border border-[var(--app-border)] rounded-2xl shadow-xl animate-fade-in">
+                            <div className="absolute right-0 top-full mt-2 w-56 z-50 p-1.5 glass-strong rounded-[20px] animate-glass-in origin-top-right">
                                 <button
                                     onClick={() => {
                                         setIsMoreOpen(false);
                                         handleOpenActivityLog();
                                     }}
                                     disabled={isAuthLoading}
-                                    className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors text-left cursor-pointer disabled:opacity-40"
+                                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-[14px] text-sm font-medium text-gray-800 dark:text-gray-200 hover:bg-black/5 dark:hover:bg-white/10 transition-colors text-left cursor-pointer disabled:opacity-40"
                                 >
                                     <History className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                                     <span>{t('header.activityLog')}</span>
@@ -586,7 +590,7 @@ export default function Header({ toggleRightSidebar }) {
                                         setIsMoreOpen(false);
                                         setIsSettingsOpen(true);
                                     }}
-                                    className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors text-left cursor-pointer"
+                                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-[14px] text-sm font-medium text-gray-800 dark:text-gray-200 hover:bg-black/5 dark:hover:bg-white/10 transition-colors text-left cursor-pointer"
                                 >
                                     <Settings className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                                     <span>{t('header.settings')}</span>
@@ -600,12 +604,12 @@ export default function Header({ toggleRightSidebar }) {
                 <div className="relative">
                     {isAuthLoading ? (
                         /* Skeleton khi đang kiểm tra auth */
-                        <div className="w-9 h-9 rounded-full bg-gray-200 dark:bg-gray-700 animate-pulse ml-1" />
+                        <div className="w-9 h-9 rounded-full bg-black/10 dark:bg-white/10 animate-pulse ml-1" />
                     ) : !isAuthenticated ? (
                         /* Chưa đăng nhập → hiện nút Đăng nhập */
                         <button
                             onClick={() => navigate('/login')}
-                            className="ml-1 px-3 sm:px-4 py-1.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-[13px] sm:text-sm font-semibold shadow-sm transition-colors cursor-pointer whitespace-nowrap"
+                            className="ml-1 px-3 sm:px-4 py-1.5 rounded-full btn-accent hover:brightness-105 text-[13px] sm:text-sm font-semibold transition cursor-pointer whitespace-nowrap"
                         >
                             {t('common.login')}
                         </button>
@@ -615,7 +619,7 @@ export default function Header({ toggleRightSidebar }) {
                             <button
                                 onClick={() => setIsAccountOpen(!isAccountOpen)}
                                 title={t('header.account')}
-                                className="w-9 h-9 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold flex items-center justify-center hover:opacity-90 shadow-xs transition-opacity ml-1 cursor-pointer overflow-hidden border border-gray-200 dark:border-gray-700"
+                                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-blue-500 to-violet-500 text-white font-bold flex items-center justify-center hover:brightness-105 shadow-sm ring-2 ring-white/80 dark:ring-white/15 transition ml-1 mr-0.5 cursor-pointer overflow-hidden"
                             >
                                 {user?.avatarUrl ? (
                                     <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />

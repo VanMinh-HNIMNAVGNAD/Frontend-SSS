@@ -134,7 +134,7 @@ function FilterPanel({ onClose, toggleRef }) {
     return (
         <div
             ref={modalRef}
-            className="fixed inset-x-2 top-[4.25rem] max-h-[calc(100dvh-5rem)] overflow-y-auto sm:absolute sm:inset-x-0 sm:top-full sm:mt-2 sm:max-h-none sm:overflow-visible bg-white dark:bg-[#282a2c] rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 p-4 sm:p-6 z-50 text-gray-800 dark:text-gray-200 animate-fade-in cursor-default text-left"
+            className="glass-strong fixed inset-x-2 top-[4.25rem] max-h-[calc(100dvh-5rem)] overflow-y-auto sm:absolute sm:inset-x-0 sm:top-full sm:mt-2 sm:max-h-none sm:overflow-visible rounded-[20px] border p-4 sm:p-6 z-50 text-gray-800 dark:text-gray-200 animate-fade-in cursor-default text-left"
         >
             <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3 sm:mb-4">{t('search.filter.title')}</h3>
 
@@ -199,18 +199,18 @@ function FilterPanel({ onClose, toggleRef }) {
                 </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 sm:gap-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+            <div className="flex items-center justify-end gap-2 sm:gap-3 pt-3 border-t border-glass-divider">
                 <button
                     type="button"
                     onClick={handleReset}
-                    className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 rounded-full transition-colors cursor-pointer"
+                    className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] rounded-full transition-colors cursor-pointer"
                 >
                     {t('filter.reset')}
                 </button>
                 <button
                     type="button"
                     onClick={handleApply}
-                    className="px-5 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-full shadow-sm transition-colors cursor-pointer"
+                    className="px-5 py-2 text-sm font-medium btn-accent hover:brightness-105 rounded-full shadow-sm transition-colors cursor-pointer"
                 >
                     {t('search.filter.apply')}
                 </button>

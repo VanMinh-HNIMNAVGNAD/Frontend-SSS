@@ -76,9 +76,9 @@ export default function Sidebar() {
       <button
         onClick={() => setActiveTab(id)}
         title={isSidebarCollapsed ? label : undefined}
-        className={`w-full flex items-center gap-4 px-4 py-2.5 short:py-2 rounded-full transition-all duration-150 text-[14px] font-medium text-left group relative ${
+        className={`w-full flex items-center gap-4 px-4 py-2.5 short:py-2 rounded-[14px] transition-all duration-150 text-[14px] font-medium text-left group relative cursor-pointer ${
           isSidebarCollapsed ? 'justify-center px-0 py-3 short:py-2.5' : 'justify-start'
-        } ${isActive ? 'bg-[#d3e3fd] dark:bg-blue-500/25 text-[#041e49] dark:text-blue-100 font-bold shadow-2xs' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200/80 dark:hover:bg-white/5'}`}
+        } ${isActive ? 'glass-active text-gray-900 dark:text-white font-semibold' : 'text-gray-700 dark:text-gray-300 hover:bg-white/55 dark:hover:bg-white/[0.06]'}`}
       >
         <Icon
           className={`w-5 h-5 shrink-0 transition-colors duration-150 ${
@@ -104,14 +104,16 @@ export default function Sidebar() {
       {/* Mobile Backdrop */}
       {!isSidebarCollapsed && (
         <div 
-          className="lg:hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-40 transition-opacity"
+          className="lg:hidden fixed inset-0 glass-overlay z-40 transition-opacity animate-fade-in"
           onClick={() => toggleSidebar()} 
         />
       )}
+      {/* Kính NỔI: điện thoại là ngăn kéo đè lên nội dung nên có blur (`glass-strong`); máy tính
+          là tấm kính đứng cạnh vùng nội dung, chỉ có nền ambient phía sau (`lg:glass`). */}
       <aside
-        className={`bg-[var(--app-sidebar)] border-r border-[var(--app-border)] flex flex-col pt-3 short:pt-2 select-none transition-all duration-300 ease-in-out shrink-0 h-full 
-          fixed lg:relative z-50 lg:z-0 top-0 left-0
-          ${isSidebarCollapsed ? '-translate-x-full lg:translate-x-0 lg:w-20 px-2' : 'translate-x-0 w-76 px-3'}
+        className={`glass-strong lg:glass rounded-[26px] flex flex-col pt-3 short:pt-2 select-none transition-all duration-300 ease-in-out shrink-0
+          fixed lg:relative z-50 lg:z-0 top-2 bottom-2 left-2 lg:top-auto lg:bottom-auto lg:left-auto lg:my-3 lg:ml-3
+          ${isSidebarCollapsed ? '-translate-x-[110%] lg:translate-x-0 lg:w-20 px-2' : 'translate-x-0 w-76 max-w-[calc(100vw-1rem)] px-3'}
         `}
       >
         {/* Rộng 304px cả điện thoại lẫn desktop: nhãn dài nhất ("cloudSSS được chia sẻ với
@@ -145,7 +147,7 @@ export default function Sidebar() {
                     onClick={tagsCtx.openManager}
                     title={t('tags.menu.manage')}
                     aria-label={t('tags.menu.manage')}
-                    className="p-1 rounded-full hover:bg-gray-200/80 dark:hover:bg-white/10 normal-case cursor-pointer"
+                    className="p-1 rounded-full hover:bg-white/60 dark:hover:bg-white/10 normal-case cursor-pointer"
                   >
                     <Settings2 className="w-3.5 h-3.5" />
                   </button>
@@ -156,7 +158,7 @@ export default function Sidebar() {
                   type="button"
                   onClick={tagsCtx.openManager}
                   title={isSidebarCollapsed ? t('tags.sidebar.create') : undefined}
-                  className={`w-full flex items-center gap-4 px-4 py-2 short:py-1.5 rounded-full text-[13px] text-gray-600 dark:text-gray-400 hover:bg-gray-200/80 dark:hover:bg-white/5 text-left cursor-pointer ${
+                  className={`w-full flex items-center gap-4 px-4 py-2 short:py-1.5 rounded-[14px] text-[13px] text-gray-600 dark:text-gray-400 hover:bg-white/55 dark:hover:bg-white/[0.06] text-left cursor-pointer ${
                     isSidebarCollapsed ? 'justify-center px-0' : ''
                   }`}
                 >
@@ -173,9 +175,9 @@ export default function Sidebar() {
                       type="button"
                       onClick={() => navigate(`/app/tags/${tag.id}`)}
                       title={isSidebarCollapsed ? tag.name : undefined}
-                      className={`w-full flex items-center gap-4 px-4 py-2 short:py-1.5 rounded-full transition-all duration-150 text-[14px] font-medium text-left cursor-pointer ${
+                      className={`w-full flex items-center gap-4 px-4 py-2 short:py-1.5 rounded-[14px] transition-all duration-150 text-[14px] font-medium text-left cursor-pointer ${
                         isSidebarCollapsed ? 'justify-center px-0' : ''
-                      } ${active ? 'bg-[#d3e3fd] dark:bg-blue-500/25 text-[#041e49] dark:text-blue-100 font-bold' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200/80 dark:hover:bg-white/5'}`}
+                      } ${active ? 'glass-active text-gray-900 dark:text-white font-semibold' : 'text-gray-700 dark:text-gray-300 hover:bg-white/55 dark:hover:bg-white/[0.06]'}`}
                     >
                       <Tag className="w-5 h-5 shrink-0" style={{ color }} fill={active ? color : 'none'} />
                       {!isSidebarCollapsed && <span className="truncate flex-1">{tag.name}</span>}
@@ -198,22 +200,22 @@ export default function Sidebar() {
             </div>
           )}
 
-          <div className="my-2 short:my-1 border-t border-gray-200 dark:border-gray-700/60" />
+          <div className="my-2 short:my-1 mx-2 border-t border-glass-divider" />
 
-          <NavItem id="spam" label={t('nav.spam')} icon={ShieldAlert} badge={spamCount} badgeColor="bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300" hoverColor="group-hover:text-orange-600" activeColor="text-orange-600 dark:text-orange-400" />
+          <NavItem id="spam" label={t('nav.spam')} icon={ShieldAlert} badge={spamCount} badgeColor="bg-amber-100 text-amber-800 dark:bg-amber-400/15 dark:text-amber-300" hoverColor="group-hover:text-orange-600" activeColor="text-orange-600 dark:text-orange-400" />
           <NavItem id="trash" label={t('nav.trash')} icon={Trash2} badge={trashCount} hoverColor="group-hover:text-rose-600" activeColor="text-rose-600 dark:text-rose-400" />
 
-          <div className="my-2 short:my-1 border-t border-gray-200 dark:border-gray-700/60" />
+          <div className="my-2 short:my-1 mx-2 border-t border-glass-divider" />
 
           <NavItem id="billing" label={t('nav.billing')} icon={CreditCard} hoverColor="group-hover:text-purple-600" activeColor="text-purple-600 dark:text-purple-400" />
         </nav>
 
         {/* KHỐI THANH LƯU TRỮ DYNAMIC COLOR */}
-        <div className="mt-auto pt-3 pb-4 short:pt-2 short:pb-2 border-t border-gray-200 dark:border-gray-700/60">
+        <div className="mt-auto pt-3 pb-3 short:pt-2 short:pb-2">
           {isSidebarCollapsed ? (
             <div
               onClick={() => setActiveTab('billing')}
-              className="flex flex-col items-center justify-center cursor-pointer p-2 hover:bg-gray-200/60 dark:hover:bg-white/10 rounded-2xl transition-colors"
+              className="flex flex-col items-center justify-center cursor-pointer p-2 hover:bg-white/55 dark:hover:bg-white/10 rounded-2xl transition-colors"
               title={t('sidebar.storage.tooltip', {
                 used: storageInfo.usedGB,
                 total: storageInfo.totalGB,
@@ -234,7 +236,7 @@ export default function Sidebar() {
               </span>
             </div>
           ) : (
-            <div className="px-3 py-2 bg-white dark:bg-white/5 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-2xs">
+            <div className="px-3 py-2.5 glass-soft rounded-[20px]">
               <div className="flex items-center justify-between mb-2 text-xs font-semibold text-gray-700 dark:text-gray-300">
                 <div className="flex items-center gap-2">
                   <Cloud className="w-4 h-4 text-blue-600 dark:text-blue-400" />
@@ -250,7 +252,7 @@ export default function Sidebar() {
               </div>
 
               {/* Dynamic Color Progress Bar */}
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 mb-2 overflow-hidden">
+              <div className="w-full bg-black/[0.07] dark:bg-white/10 rounded-full h-1.5 mb-2 overflow-hidden">
                 <div
                   className={`${getProgressBarColor(storageStatus.level)} h-full rounded-full transition-all duration-500`}
                   style={{ width: `${storageStatus.barPercent}%` }}
@@ -281,13 +283,13 @@ export default function Sidebar() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setActiveTab('billing')}
-                  className="flex-1 py-1.5 px-2 border border-gray-300 dark:border-gray-600 rounded-full text-xs font-semibold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/15 hover:border-blue-300 transition-colors truncate"
+                  className="flex-1 py-1.5 px-2 rounded-full text-xs font-semibold btn-accent hover:brightness-105 transition truncate cursor-pointer"
                 >
                   {t('sidebar.storage.buy')}
                 </button>
                 <button
                   onClick={() => setIsCleanupOpen(true)}
-                  className="py-1.5 px-3 border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/5 text-gray-700 dark:text-gray-300 rounded-full text-xs font-semibold transition-colors shrink-0"
+                  className="py-1.5 px-3 glass-soft hover:bg-white/80 dark:hover:bg-white/10 text-gray-700 dark:text-gray-300 rounded-full text-xs font-semibold transition-colors shrink-0 cursor-pointer"
                   title={t('sidebar.storage.cleanupTitle')}
                 >
                   {t('sidebar.storage.cleanup')}

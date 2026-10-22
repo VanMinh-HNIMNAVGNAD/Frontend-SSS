@@ -9,7 +9,7 @@ export default function Download({ file, onDownload }) {
     return (
         <button
             onClick={() => onDownload && onDownload(file)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs transition-colors"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl btn-accent hover:brightness-105 font-medium text-xs transition-colors"
         >
             <DownloadIcon className="w-4 h-4" />
             <span>{t('file.downloadNamed', { name: file.name })}</span>

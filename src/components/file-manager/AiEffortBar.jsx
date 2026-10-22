@@ -59,7 +59,7 @@ export default function AiEffortBar({ levels, value, onChange, disabled = false 
             aria-disabled={disabled || undefined}
             onKeyDown={onKeyDown}
             title={`${t('ai.effort.label')}: ${t(`ai.effort.${current}`)} — ${t(`ai.effort.${current}.hint`)}`}
-            className={`shrink-0 flex items-center gap-1.5 px-2 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 ${
+            className={`shrink-0 flex items-center gap-1.5 px-2 py-1 rounded-lg bg-gray-100 dark:bg-white/[0.07] ${
                 disabled ? 'opacity-50' : ''
             }`}
         >

@@ -190,7 +190,8 @@ export const PLAN_UI_CONFIG = [
   },
   {
     key: 'ultra',
-    match: ['ultra', 'tối thượng', 'toi thuong', 'enterprise', 'business'],
+    // Tên thật trên production là "Gói Tối Đa (Max)" — trước đây thẻ này chỉ khớp được theo index.
+    match: ['ultra', 'tối thượng', 'toi thuong', 'max', 'tối đa', 'toi da', 'enterprise', 'business'],
     badge: null,
     highlight: false,
     featureKeys: [

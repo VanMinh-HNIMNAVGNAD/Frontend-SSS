@@ -31,16 +31,16 @@ export default function Modal({
 
     return (
         <div 
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/45 dark:bg-black/55 backdrop-blur-xs animate-in fade-in duration-200 cursor-pointer"
+            className="fixed inset-0 glass-overlay z-50 flex items-center justify-center p-4 duration-200 cursor-pointer animate-fade-in"
             onClick={onClose}
         >
             <div
-                className={`w-full ${maxWidth} bg-[var(--app-surface)] rounded-3xl shadow-2xl border border-[var(--app-border)] overflow-hidden transform transition-all duration-200 scale-100 animate-in zoom-in-95 cursor-default`}
+                className={`glass-strong relative w-full ${maxWidth} rounded-[28px] overflow-hidden animate-glass-in cursor-default`}
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
                 {(title || showCloseButton) && (
-                    <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--app-border)] bg-black/[0.025] dark:bg-white/[0.045]">
+                    <div className="flex items-center justify-between px-6 py-4 border-b border-glass-divider">
                         <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">{title}</h3>
                         {showCloseButton && (
                             <button

@@ -225,7 +225,7 @@ export default function AiBubble({ isThinking, unseenReply, label, onRestore }) 
                 // kéo thì bong bóng chạy sau con trỏ một nhịp, cảm giác như bị trễ.
                 transition: drag ? 'none' : 'left 0.22s ease-out, top 0.22s ease-out',
             }}
-            className={`fixed z-[60] w-14 h-14 rounded-full bg-white dark:bg-[#282a2c] border border-gray-200 dark:border-gray-700 shadow-xl flex items-center justify-center text-blue-600 dark:text-blue-400 hover:border-blue-400 dark:hover:border-blue-500 animate-fade-in select-none ${
+            className={`glass-strong fixed z-[60] w-14 h-14 rounded-full border flex items-center justify-center text-blue-600 dark:text-blue-400 hover:border-blue-400 dark:hover:border-blue-500 animate-fade-in select-none ${
                 drag ? 'cursor-grabbing scale-105' : 'cursor-grab hover:scale-105'
             }`}
         >
@@ -240,7 +240,7 @@ export default function AiBubble({ isThinking, unseenReply, label, onRestore }) 
                 <RainbowIcon Icon={Sparkles} />
             )}
             {!isThinking && unseenReply && (
-                <span className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-blue-600 dark:bg-blue-400 ring-2 ring-white dark:ring-[#282a2c]" />
+                <span className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-blue-600 dark:bg-blue-400 ring-2 ring-white dark:ring-[#2a2a2e]" />
             )}
         </button>
     );

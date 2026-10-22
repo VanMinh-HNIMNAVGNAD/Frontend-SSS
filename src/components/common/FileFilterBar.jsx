@@ -126,7 +126,7 @@ export default function FileFilterBar({
     };
 
     return (
-        <div className="flex flex-wrap items-center gap-2 py-2 mb-3 border-b border-gray-200 dark:border-gray-700 select-none">
+        <div className="flex flex-wrap items-center gap-2 py-2 mb-3 border-b border-glass-divider select-none">
             {showSort && (
                 <>
                     <SelectDropdown
@@ -138,7 +138,7 @@ export default function FileFilterBar({
                         active={sortField !== 'name' || sortDirection !== 'asc'}
                     />
 
-                    <div className="w-px h-6 bg-gray-300 dark:bg-gray-700 mx-1"></div>
+                    <div className="w-px h-6 bg-black/10 dark:bg-white/12 mx-1"></div>
                 </>
             )}
 

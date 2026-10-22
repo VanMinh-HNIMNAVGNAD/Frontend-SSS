@@ -168,7 +168,7 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                     label: t('activity.action.uploadFile'),
                     icon: Upload,
                     iconColor: 'text-emerald-600 dark:text-emerald-400',
-                    bgBadge: 'bg-emerald-50 dark:bg-emerald-950/50 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300',
+                    bgBadge: 'bg-emerald-50 dark:bg-emerald-400/15 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300',
                     timelineDot: 'bg-emerald-500 ring-emerald-100 dark:ring-emerald-900',
                 };
             case 'CREATE_FOLDER':
@@ -176,7 +176,7 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                     label: t('activity.action.createFolder'),
                     icon: FolderPlus,
                     iconColor: 'text-cyan-600 dark:text-cyan-400',
-                    bgBadge: 'bg-cyan-50 dark:bg-cyan-950/50 border-cyan-200 dark:border-cyan-800 text-cyan-700 dark:text-cyan-300',
+                    bgBadge: 'bg-cyan-50 dark:bg-cyan-400/15 border-cyan-200 dark:border-cyan-800 text-cyan-700 dark:text-cyan-300',
                     timelineDot: 'bg-cyan-500 ring-cyan-100 dark:ring-cyan-900',
                 };
             case 'RENAME_ITEM':
@@ -184,7 +184,7 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                     label: t('activity.action.rename'),
                     icon: Pencil,
                     iconColor: 'text-amber-600 dark:text-amber-400',
-                    bgBadge: 'bg-amber-50 dark:bg-amber-950/50 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300',
+                    bgBadge: 'bg-amber-50 dark:bg-amber-400/15 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300',
                     timelineDot: 'bg-amber-500 ring-amber-100 dark:ring-amber-900',
                 };
             case 'MOVE_ITEM':
@@ -192,7 +192,7 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                     label: t('activity.action.move'),
                     icon: Move,
                     iconColor: 'text-violet-600 dark:text-violet-400',
-                    bgBadge: 'bg-violet-50 dark:bg-violet-950/50 border-violet-200 dark:border-violet-800 text-violet-700 dark:text-violet-300',
+                    bgBadge: 'bg-violet-50 dark:bg-violet-400/15 border-violet-200 dark:border-violet-800 text-violet-700 dark:text-violet-300',
                     timelineDot: 'bg-violet-500 ring-violet-100 dark:ring-violet-900',
                 };
             case 'TOGGLE_STAR':
@@ -200,7 +200,7 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                     label: details.isStarred ? t('activity.action.star') : t('activity.action.unstar'),
                     icon: Star,
                     iconColor: 'text-amber-500 dark:text-amber-400',
-                    bgBadge: 'bg-amber-50 dark:bg-amber-950/50 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300',
+                    bgBadge: 'bg-amber-50 dark:bg-amber-400/15 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300',
                     timelineDot: 'bg-amber-400 ring-amber-100 dark:ring-amber-900',
                 };
             case 'TRASH_ITEM':
@@ -208,7 +208,7 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                     label: t('activity.action.trash'),
                     icon: Trash2,
                     iconColor: 'text-rose-600 dark:text-rose-400',
-                    bgBadge: 'bg-rose-50 dark:bg-rose-950/50 border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300',
+                    bgBadge: 'bg-rose-50 dark:bg-rose-400/15 border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300',
                     timelineDot: 'bg-rose-500 ring-rose-100 dark:ring-rose-900',
                 };
             case 'RESTORE_ITEM':
@@ -216,7 +216,7 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                     label: t('activity.action.restore'),
                     icon: RotateCcw,
                     iconColor: 'text-teal-600 dark:text-teal-400',
-                    bgBadge: 'bg-teal-50 dark:bg-teal-950/50 border-teal-200 dark:border-teal-800 text-teal-700 dark:text-teal-300',
+                    bgBadge: 'bg-teal-50 dark:bg-teal-400/15 border-teal-200 dark:border-teal-800 text-teal-700 dark:text-teal-300',
                     timelineDot: 'bg-teal-500 ring-teal-100 dark:ring-teal-900',
                 };
             case 'MARK_NOT_SPAM':
@@ -224,7 +224,7 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                     label: t('activity.action.notSpam'),
                     icon: RotateCcw,
                     iconColor: 'text-teal-600 dark:text-teal-400',
-                    bgBadge: 'bg-teal-50 dark:bg-teal-950/50 border-teal-200 dark:border-teal-800 text-teal-700 dark:text-teal-300',
+                    bgBadge: 'bg-teal-50 dark:bg-teal-400/15 border-teal-200 dark:border-teal-800 text-teal-700 dark:text-teal-300',
                     timelineDot: 'bg-teal-500 ring-teal-100 dark:ring-teal-900',
                 };
             case 'DELETE_PERMANENTLY':
@@ -232,7 +232,7 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                     label: t('activity.action.deleteForever'),
                     icon: AlertTriangle,
                     iconColor: 'text-red-600 dark:text-red-400',
-                    bgBadge: 'bg-red-50 dark:bg-red-950/50 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300',
+                    bgBadge: 'bg-red-50 dark:bg-red-400/15 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300',
                     timelineDot: 'bg-red-600 ring-red-100 dark:ring-red-900',
                 };
             case 'EMPTY_TRASH':
@@ -240,7 +240,7 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                     label: t('activity.action.emptyTrash'),
                     icon: Trash2,
                     iconColor: 'text-red-600 dark:text-red-400',
-                    bgBadge: 'bg-red-50 dark:bg-red-950/50 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300',
+                    bgBadge: 'bg-red-50 dark:bg-red-400/15 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300',
                     timelineDot: 'bg-red-600 ring-red-100 dark:ring-red-900',
                 };
             case 'COPY_FILE':
@@ -249,7 +249,7 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                     label: t('activity.action.copy'),
                     icon: Copy,
                     iconColor: 'text-indigo-600 dark:text-indigo-400',
-                    bgBadge: 'bg-indigo-50 dark:bg-indigo-950/50 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300',
+                    bgBadge: 'bg-indigo-50 dark:bg-indigo-400/15 border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300',
                     timelineDot: 'bg-indigo-500 ring-indigo-100 dark:ring-indigo-900',
                 };
             case 'SHARE_LINK_CREATED':
@@ -257,7 +257,7 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                     label: t('activity.action.shareLink'),
                     icon: Share2,
                     iconColor: 'text-blue-600 dark:text-blue-400',
-                    bgBadge: 'bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300',
+                    bgBadge: 'bg-blue-50 dark:bg-blue-400/15 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300',
                     timelineDot: 'bg-blue-500 ring-blue-100 dark:ring-blue-900',
                 };
             case 'SHARE_LINK_REVOKED':
@@ -265,7 +265,7 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                     label: t('activity.action.shareLinkRevoked'),
                     icon: UserMinus,
                     iconColor: 'text-purple-600 dark:text-purple-400',
-                    bgBadge: 'bg-purple-50 dark:bg-purple-950/50 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300',
+                    bgBadge: 'bg-purple-50 dark:bg-purple-400/15 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300',
                     timelineDot: 'bg-purple-500 ring-purple-100 dark:ring-purple-900',
                 };
             case 'SHARE_ACCESS_ADDED':
@@ -273,7 +273,7 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                     label: t('activity.action.shareAdd'),
                     icon: UserPlus,
                     iconColor: 'text-blue-600 dark:text-blue-400',
-                    bgBadge: 'bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300',
+                    bgBadge: 'bg-blue-50 dark:bg-blue-400/15 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300',
                     timelineDot: 'bg-blue-500 ring-blue-100 dark:ring-blue-900',
                 };
             case 'SHARE_ACCESS_REMOVED':
@@ -281,7 +281,7 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                     label: t('activity.action.shareRemove'),
                     icon: UserMinus,
                     iconColor: 'text-purple-600 dark:text-purple-400',
-                    bgBadge: 'bg-purple-50 dark:bg-purple-950/50 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300',
+                    bgBadge: 'bg-purple-50 dark:bg-purple-400/15 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300',
                     timelineDot: 'bg-purple-500 ring-purple-100 dark:ring-purple-900',
                 };
             default:
@@ -289,7 +289,7 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                     label: action ? action.replace(/_/g, ' ') : t('activity.action.other'),
                     icon: Activity,
                     iconColor: 'text-gray-600 dark:text-gray-400',
-                    bgBadge: 'bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300',
+                    bgBadge: 'bg-gray-50 dark:bg-black/20 border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300',
                     timelineDot: 'bg-gray-400 ring-gray-100 dark:ring-gray-800',
                 };
         }
@@ -315,7 +315,7 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                         })}
                         {size && <span className="text-gray-500 dark:text-gray-400"> ({size})</span>}
                         {provider && (
-                            <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
+                            <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-white/[0.07] text-gray-600 dark:text-gray-300">
                                 {provider}
                             </span>
                         )}
@@ -366,9 +366,9 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                             })}
                         </div>
                         <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5 flex-wrap">
-                            <span className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 font-mono text-xs">{from}</span>
+                            <span className="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-white/[0.07] font-mono text-xs">{from}</span>
                             <span>➔</span>
-                            <span className="px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 font-mono text-xs">{to}</span>
+                            <span className="px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-400/15 text-blue-700 dark:text-blue-300 font-mono text-xs">{to}</span>
                         </div>
                     </div>
                 );
@@ -473,7 +473,7 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                                 email: <span className="font-medium text-blue-600 dark:text-blue-400">{email}</span>,
                             })}
                         </div>
-                        <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                        <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 dark:bg-blue-400/15 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
                             <Shield className="w-3 h-3" />
                             <span>{roleText}</span>
                         </div>
@@ -519,7 +519,7 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
             default: {
                 if (Object.keys(d).length === 0) return null;
                 return (
-                    <div className="text-gray-600 dark:text-gray-400 font-mono text-xs bg-gray-50 dark:bg-gray-900 p-1.5 rounded">
+                    <div className="text-gray-600 dark:text-gray-400 font-mono text-xs bg-gray-50 dark:bg-black/20 p-1.5 rounded">
                         {JSON.stringify(d)}
                     </div>
                 );
@@ -531,20 +531,20 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
         <>
             {/* Backdrop */}
             <div
-                className="fixed inset-0 z-40 bg-black/30 dark:bg-black/60 backdrop-blur-xs transition-opacity animate-in fade-in cursor-pointer"
+                className="fixed inset-0 glass-overlay z-40 transition-opacity cursor-pointer animate-fade-in"
                 onClick={onClose}
             />
 
             {/* Slide-over Drawer Panel */}
             <aside
-                className="fixed right-0 top-0 bottom-0 z-50 w-full sm:w-[460px] md:w-[480px] bg-white dark:bg-[#1e1e1e] border-l border-gray-200 dark:border-gray-800 shadow-2xl flex flex-col font-sans text-xs text-gray-800 dark:text-gray-200 overflow-hidden cursor-default animate-in slide-in-from-right duration-200"
+                className="glass-strong fixed right-0 top-0 bottom-0 sm:right-3 sm:top-3 sm:bottom-3 z-50 w-full sm:w-[460px] md:w-[480px] sm:rounded-[26px] flex flex-col font-sans text-xs text-gray-800 dark:text-gray-200 overflow-hidden cursor-default animate-slide-left"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
-                <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-[#1e1e1e] shrink-0">
+                <div className="glass-soft px-5 py-4 border-b shrink-0">
                     <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-3 min-w-0">
-                            <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-100 dark:border-blue-900/60 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0 shadow-xs">
+                            <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-400/15 border border-blue-100 dark:border-blue-400/25 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0 shadow-xs">
                                 <History className="w-5 h-5" />
                             </div>
                             <div className="min-w-0">
@@ -572,14 +572,14 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                             <button
                                 onClick={fetchLogs}
                                 disabled={isLoading}
-                                className="p-2 rounded-full text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer disabled:opacity-50"
+                                className="p-2 rounded-full text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-colors cursor-pointer disabled:opacity-50"
                                 title={t('activity.refresh')}
                             >
                                 <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-blue-600' : ''}`} />
                             </button>
                             <button
                                 onClick={onClose}
-                                className="p-2 rounded-full text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+                                className="p-2 rounded-full text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-colors cursor-pointer"
                                 title={t('preview.close')}
                             >
                                 <X className="w-5 h-5" />
@@ -600,7 +600,7 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                                     className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap flex items-center gap-1.5 shrink-0 cursor-pointer ${
                                         isSelected
                                             ? 'bg-blue-600 text-white shadow-sm'
-                                            : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700'
+                                            : 'bg-gray-100 dark:bg-white/[0.07] text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700'
                                     }`}
                                 >
                                     <span>{t(group.labelKey)}</span>
@@ -628,10 +628,10 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                         <div className="space-y-4 animate-pulse">
                             {[1, 2, 3, 4, 5].map((idx) => (
                                 <div key={idx} className="flex gap-3.5 items-start">
-                                    <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-800 shrink-0" />
+                                    <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-white/[0.07] shrink-0" />
                                     <div className="flex-1 space-y-2 pt-1">
-                                        <div className="h-3.5 bg-gray-200 dark:bg-gray-800 rounded w-2/5" />
-                                        <div className="h-3 bg-gray-100 dark:bg-gray-800/60 rounded w-4/5" />
+                                        <div className="h-3.5 bg-gray-200 dark:bg-white/[0.07] rounded w-2/5" />
+                                        <div className="h-3 bg-gray-100 dark:bg-white/[0.07] rounded w-4/5" />
                                     </div>
                                 </div>
                             ))}
@@ -640,7 +640,7 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
 
                     {/* Error State */}
                     {!isLoading && error && (
-                        <div className="p-4 rounded-2xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-center space-y-3 my-6">
+                        <div className="p-4 rounded-2xl bg-red-50 dark:bg-red-400/15 border border-red-200 dark:border-red-900 text-center space-y-3 my-6">
                             <AlertTriangle className="w-8 h-8 text-red-500 mx-auto" />
                             <p className="text-xs text-red-700 dark:text-red-300 font-medium">{error}</p>
                             <button
@@ -656,7 +656,7 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                     {/* Empty State - No Logs at all */}
                     {!isLoading && !error && logs.length === 0 && (
                         <div className="py-16 text-center space-y-3">
-                            <div className="w-14 h-14 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center mx-auto text-gray-400">
+                            <div className="w-14 h-14 rounded-2xl bg-gray-100 dark:bg-white/[0.07] flex items-center justify-center mx-auto text-gray-400">
                                 <History className="w-7 h-7" />
                             </div>
                             <h3 className="font-bold text-sm text-gray-800 dark:text-gray-200">
@@ -671,7 +671,7 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                     {/* Empty State - Filtered No Results */}
                     {!isLoading && !error && logs.length > 0 && filteredLogs.length === 0 && (
                         <div className="py-14 text-center space-y-3">
-                            <div className="w-12 h-12 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center mx-auto text-gray-400">
+                            <div className="w-12 h-12 rounded-2xl bg-gray-100 dark:bg-white/[0.07] flex items-center justify-center mx-auto text-gray-400">
                                 <Filter className="w-6 h-6" />
                             </div>
                             <h3 className="font-bold text-sm text-gray-800 dark:text-gray-200">
@@ -682,7 +682,7 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                             </p>
                             <button
                                 onClick={() => setSelectedGroup('all')}
-                                className="px-3.5 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-semibold text-xs transition-colors cursor-pointer"
+                                className="px-3.5 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-white/[0.07] dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-semibold text-xs transition-colors cursor-pointer"
                             >
                                 {t('activity.filtered.showAll', { count: logs.length })}
                             </button>
@@ -700,13 +700,13 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                                     <div key={log.id} className="relative group">
                                         {/* Dot on timeline */}
                                         <div
-                                            className={`absolute -left-6 top-2 w-6 h-6 rounded-full flex items-center justify-center shadow-sm ring-4 bg-white dark:bg-[#1e1e1e] ring-white dark:ring-[#1e1e1e] z-10`}
+                                            className={`glass-soft absolute -left-6 top-2 w-6 h-6 rounded-full flex items-center justify-center ring-4 ring-white dark:ring-[#2a2a2e] z-10`}
                                         >
                                             <div className={`w-3.5 h-3.5 rounded-full ${visual.timelineDot}`} />
                                         </div>
 
                                         {/* Activity Item Card */}
-                                        <div className="p-4 rounded-2xl bg-white hover:bg-white dark:bg-gray-900 dark:hover:bg-gray-900 border border-gray-200 hover:border-gray-300 hover:shadow-md dark:border-gray-800 dark:hover:border-gray-700 shadow-sm transition-all space-y-2.5">
+                                        <div className="p-4 rounded-2xl bg-white hover:bg-white dark:bg-black/20 dark:hover:bg-white/[0.06] border border-gray-200 hover:border-gray-300 hover:shadow-md dark:border-gray-800 dark:hover:border-gray-700 shadow-sm transition-all space-y-2.5">
                                             {/* Action Header & Badge */}
                                             <div className="flex items-center justify-between gap-2">
                                                 <div className="flex items-center gap-2">
@@ -740,7 +740,7 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                 </div>
 
                 {/* Footer Summary */}
-                <div className="px-5 py-3 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-[#1a1a1a] flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 shrink-0">
+                <div className="px-5 py-3 border-t bg-white dark:bg-[#1a1a1a] flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 shrink-0 border-glass-divider">
                     <div className="flex items-center gap-1.5">
                         <Activity className="w-3.5 h-3.5 text-blue-500" />
                         <span>{tRich(t('activity.total'), {

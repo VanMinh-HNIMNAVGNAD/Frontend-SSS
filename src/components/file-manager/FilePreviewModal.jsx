@@ -299,7 +299,7 @@ function PdfCanvasViewer({ url, sizeBytes, zoom = 1, rotation = 0, onWheelZoom }
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center gap-3 text-slate-400 py-20">
+      <div className="flex flex-col items-center justify-center gap-3 text-zinc-400 py-20">
         <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
         <p className="text-sm font-medium">{t('preview.pdf.rendering')}</p>
       </div>
@@ -328,7 +328,7 @@ function PdfCanvasViewer({ url, sizeBytes, zoom = 1, rotation = 0, onWheelZoom }
 
       {/* Thanh chuyển trang */}
       {numPages > 1 && (
-        <div className="flex items-center gap-3 px-4 py-1.5 @lg:py-2 my-2 bg-slate-900/90 border border-white/10 rounded-full shadow-lg shrink-0 select-none">
+        <div className="relative flex items-center gap-3 px-4 py-1.5 @lg:py-2 my-2 glass-dark rounded-full shrink-0 select-none">
           <button
             onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
             disabled={currentPage <= 1}
@@ -338,7 +338,7 @@ function PdfCanvasViewer({ url, sizeBytes, zoom = 1, rotation = 0, onWheelZoom }
             <ChevronLeft className="w-4 h-4" />
           </button>
 
-          <span className="text-xs font-mono text-slate-300 font-semibold">
+          <span className="text-xs font-mono text-zinc-300 font-semibold">
             {t('preview.page.counter', { current: currentPage, total: numPages })}
           </span>
 
@@ -911,7 +911,7 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
   return (
     // Panel AI mở ra ở cột phải và ĐÈ lên cửa sổ này. Không nhường chỗ thì nó che đúng
     // góc chứa thanh công cụ — kể cả nút Đóng — nên người dùng phải đóng panel mới đóng
-    // được cửa sổ xem trước. Chừa ra đúng bề rộng của panel (26rem, 30rem từ `lg`) là hai
+    // được cửa sổ xem trước. Chừa ra bề rộng của panel (26rem, 30rem từ `lg`) + khe kính 1,5rem là hai
     // thứ đứng cạnh nhau: tài liệu bên trái, câu trả lời bên phải, không cái nào che cái
     // nào. Chỉ từ `sm` trở lên — trên điện thoại panel là hộp thoại giữa màn hình.
     // CHỈ khi panel đang nằm đó (`aiDocked`): thu nhỏ thành bong bóng thì trả lại trọn bề
@@ -922,18 +922,20 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
     // trái — điện thoại xoay ngang 844px còn 428px — mà breakpoint theo màn hình vẫn
     // tưởng là màn rộng, bày đủ nút zoom lên thanh đầu và đẩy nút Đóng ra ngoài.
     //
-    // GIAO DIỆN kiểu trình xem của Google Drive (02/10/2026): nền đen TRONG SUỐT để vẫn thấy
+    // GIAO DIỆN kiểu trình xem của Google Drive (02/10/2026): nền tối TRONG SUỐT để vẫn thấy
     // danh sách tệp phía sau, thanh đầu không viền, nút Đóng ở góc trái, các nút phóng/xoay
     // gom vào một viên bo tròn. Lớp `dark` ép mọi biến thể `dark:` bên trong sang tông tối
     // bất kể app đang sáng hay tối — trình xem luôn là "phòng tối" như Google, và chữ trắng
-    // trên nền đen trong suốt không bao giờ thành chữ đen trên nền đen ở theme sáng.
+    // trên nền tối trong suốt không bao giờ thành chữ đen trên nền đen ở theme sáng.
+    // Liquid glass (22/10/2026): "phòng tối" là kính graphite mờ (`glass-stage`) thay cho tấm
+    // đen 80%, các viên/khung nổi là kính tối (`glass-dark`) — không còn mảng navy nào.
     <div
-      className={`dark @container fixed inset-0 z-50 flex flex-col bg-black/80 animate-in fade-in duration-200 text-white select-none transition-[padding] duration-200 ${
-        aiDocked ? 'sm:pr-[26rem] lg:pr-[30rem]' : ''
+      className={`dark @container fixed inset-0 z-50 flex flex-col glass-stage animate-fade-in text-white select-none transition-[padding] duration-200 ${
+        aiDocked ? 'sm:pr-[27.5rem] lg:pr-[31.5rem]' : ''
       }`}
     >
       {/* Thanh đầu: [Đóng] [biểu tượng loại tệp] tên tệp ………… [Hỏi AI] [Tải xuống] */}
-      <div className="flex items-center justify-between gap-2 px-1.5 py-1.5 @2xl:px-3 @2xl:py-2 bg-gradient-to-b from-black/75 via-black/40 to-transparent">
+      <div className="flex items-center justify-between gap-2 px-1.5 py-1.5 @2xl:px-3 @2xl:py-2 bg-gradient-to-b from-black/35 via-black/10 to-transparent">
         <div className="flex items-center gap-1 @lg:gap-2 min-w-0 flex-1">
           <button
             onClick={onClose}
@@ -992,7 +994,7 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
               setCommentsOpen(false);
               openAi(item, 'chat');
             }}
-            className="flex items-center gap-2 px-2.5 @lg:px-4 py-2 rounded-full border border-white/30 hover:bg-white/10 text-white text-sm font-medium transition-colors cursor-pointer"
+            className="relative flex items-center gap-2 px-2.5 @lg:px-4 py-2 rounded-full glass-dark hover:bg-white/15 text-white text-sm font-medium transition-colors cursor-pointer"
             title={t('preview.askAi')}
           >
             <Sparkles className="w-4 h-4 text-sky-300" />
@@ -1003,7 +1005,7 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
             onClick={handleDownload}
             title={t('common.download')}
             aria-label={t('common.download')}
-            className="flex items-center gap-2 px-2.5 @lg:px-4 py-2 rounded-full bg-[#a8c7fa] hover:bg-[#bdd5fb] text-[#062e6f] text-sm font-medium transition-colors cursor-pointer whitespace-nowrap"
+            className="flex items-center gap-2 px-2.5 @lg:px-4 py-2 rounded-full btn-accent hover:brightness-110 text-sm font-medium transition cursor-pointer whitespace-nowrap"
           >
             <Download className="w-4 h-4" />
             <span className="hidden @lg:inline">{t('common.download')}</span>
@@ -1020,7 +1022,7 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
         {(zoomControls || comments.supported) && (
           <div className="hidden @2xl:flex absolute top-1 left-3 z-10 items-center gap-2">
             {zoomControls && (
-              <div className="flex items-center gap-0.5 px-1.5 py-1 rounded-full bg-neutral-800/95 shadow-lg shadow-black/40">
+              <div className="relative flex items-center gap-0.5 px-1.5 py-1 rounded-full glass-dark">
                 {zoomControls}
               </div>
             )}
@@ -1028,14 +1030,14 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
               <button
                 type="button"
                 onClick={toggleComments}
-                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium shadow-lg shadow-black/40 transition-colors cursor-pointer ${
-                  commentsOpen ? 'bg-[#a8c7fa] text-[#062e6f]' : 'bg-neutral-800/95 text-white/90 hover:bg-neutral-700'
+                className={`relative flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors cursor-pointer ${
+                  commentsOpen ? 'bg-white text-gray-900 shadow-lg shadow-black/30' : 'glass-dark text-white/90 hover:bg-white/15'
                 }`}
               >
                 <MessageSquarePlus className="w-[18px] h-[18px]" />
                 {t('preview.comments.button')}
                 {comments.count > 0 && (
-                  <span className={`text-xs ${commentsOpen ? 'text-[#062e6f]/70' : 'text-white/55'}`}>{comments.count}</span>
+                  <span className={`text-xs ${commentsOpen ? 'text-gray-500' : 'text-white/55'}`}>{comments.count}</span>
                 )}
               </button>
             )}
@@ -1047,7 +1049,7 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
           <button
             type="button"
             onClick={goPrev}
-            className="absolute left-2 @2xl:left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 @2xl:w-11 @2xl:h-11 rounded-full flex items-center justify-center bg-neutral-800/90 hover:bg-neutral-700 border border-white/25 text-white shadow-lg shadow-black/40 transition-colors cursor-pointer"
+            className="absolute left-2 @2xl:left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 @2xl:w-11 @2xl:h-11 rounded-full flex items-center justify-center glass-dark hover:bg-white/15 text-white transition-colors cursor-pointer"
             title={t('preview.prevFile', { name: prevItem.name })}
             aria-label={t('preview.prevFile', { name: prevItem.name })}
           >
@@ -1058,7 +1060,7 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
           <button
             type="button"
             onClick={goNext}
-            className="absolute right-2 @2xl:right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 @2xl:w-11 @2xl:h-11 rounded-full flex items-center justify-center bg-neutral-800/90 hover:bg-neutral-700 border border-white/25 text-white shadow-lg shadow-black/40 transition-colors cursor-pointer"
+            className="absolute right-2 @2xl:right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 @2xl:w-11 @2xl:h-11 rounded-full flex items-center justify-center glass-dark hover:bg-white/15 text-white transition-colors cursor-pointer"
             title={t('preview.nextFile', { name: nextItem.name })}
             aria-label={t('preview.nextFile', { name: nextItem.name })}
           >
@@ -1067,7 +1069,7 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
         )}
 
         {loading && (
-          <div className="flex flex-col items-center gap-3 text-slate-400">
+          <div className="flex flex-col items-center gap-3 text-zinc-400">
             <Loader2 className="w-10 h-10 animate-spin text-blue-500" />
             <p className="text-sm font-medium">{t('preview.loading')}</p>
           </div>
@@ -1078,7 +1080,7 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
             <p className="text-sm text-red-600 dark:text-red-300 font-medium">{error}</p>
             <button
               onClick={handleDownload}
-              className="px-4 py-2 bg-white hover:bg-slate-50 dark:bg-white/10 dark:hover:bg-white/20 border border-slate-200 dark:border-transparent text-xs font-semibold rounded-xl text-slate-700 dark:text-white transition-all cursor-pointer"
+              className="px-4 py-2 bg-white hover:bg-zinc-50 dark:bg-white/10 dark:hover:bg-white/20 border border-zinc-200 dark:border-transparent text-xs font-semibold rounded-xl text-zinc-700 dark:text-white transition-all cursor-pointer"
             >
               {t('preview.downloadToView')}
             </button>
@@ -1121,7 +1123,7 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
                     gì cụ thể. Đã có kết luận thật thì khối cảnh báo bên dưới nói rõ hơn,
                     hai khối cùng lúc chỉ chèn lên nhau. */}
                 {!playerDiagnosis && (
-                  <div className="absolute top-4 left-4 right-4 bg-slate-900/90 backdrop-blur-md text-xs text-slate-300 p-3 rounded-xl border border-white/15 opacity-0 group-hover:opacity-100 transition-all duration-200 z-10 flex flex-wrap items-center justify-between gap-2 shadow-xl">
+                  <div className="absolute top-4 left-4 right-4 glass-dark text-xs text-zinc-200 p-3 rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-200 z-10 flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2.5 min-w-0">
                       <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
                       <span className="leading-relaxed">
@@ -1130,7 +1132,7 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
                     </div>
                     <button
                       onClick={handleDownload}
-                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors font-semibold shadow-sm text-xs shrink-0 flex items-center gap-1.5"
+                      className="px-3 py-1.5 btn-accent hover:brightness-105 rounded-lg transition-colors font-semibold shadow-sm text-xs shrink-0 flex items-center gap-1.5"
                     >
                       <Download className="w-3.5 h-3.5" />
                       <span>{t('preview.downloadOriginal')}</span>
@@ -1177,7 +1179,7 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
             )}
 
             {isAudio && (
-              <div className="p-8 bg-slate-900 border border-white/10 rounded-3xl shadow-2xl flex flex-col items-center gap-6 text-center max-w-md w-full">
+              <div className="relative p-8 glass-dark rounded-[28px] flex flex-col items-center gap-6 text-center max-w-md w-full">
                 <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-indigo-500/30 to-purple-500/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30 shadow-inner animate-pulse">
                   <FileAudio className="w-10 h-10" />
                 </div>
@@ -1185,11 +1187,11 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
                   <h4 className="font-bold text-white text-base truncate px-2" title={item.name}>
                     {item.name}
                   </h4>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-zinc-400">
                     {t('preview.audio.label', { size: formatBytes(item.sizeBytes) })}
                   </p>
                 </div>
-                <div className="w-full bg-slate-950/60 p-3 rounded-2xl border border-white/5">
+                <div className="w-full bg-black/25 p-3 rounded-2xl border border-white/5">
                   <audio
                     key={`${item.id}:${mediaReloadNonce}`}
                     ref={mediaRef}
@@ -1225,35 +1227,35 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
 
             {/* Render PDF Canvas chất lượng cao không bị popup tải về */}
             {isPdf && (
-              <div className="w-full h-full max-w-5xl rounded-2xl overflow-hidden bg-slate-900/80 border border-white/10 shadow-2xl flex flex-col items-center justify-center">
+              <div className="w-full h-full max-w-5xl rounded-[22px] overflow-hidden bg-white/[0.05] border border-white/10 shadow-2xl shadow-black/40 flex flex-col items-center justify-center">
                 <PdfCanvasViewer url={url} sizeBytes={item.sizeBytes} zoom={zoom} rotation={rotation} onWheelZoom={zoomBy} />
               </div>
             )}
 
             {isDocx && (
-              <div className="w-full h-full max-w-5xl rounded-2xl overflow-hidden bg-white dark:bg-[#0d1117] border border-slate-200 dark:border-white/10 shadow-2xl flex flex-col">
-                <div className="px-4 py-2.5 bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-white/10 text-xs font-mono text-slate-600 dark:text-slate-400 flex items-center justify-between">
+              <div className="w-full h-full max-w-5xl rounded-2xl overflow-hidden bg-white dark:bg-[#1c1c1f] border border-zinc-200 dark:border-white/10 shadow-2xl flex flex-col">
+                <div className="px-4 py-2.5 bg-zinc-100 dark:bg-white/[0.04] border-b border-zinc-200 dark:border-white/10 text-xs font-mono text-zinc-600 dark:text-zinc-400 flex items-center justify-between">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block shrink-0" />
-                    <span className="hidden @lg:inline font-semibold text-slate-800 dark:text-slate-200 truncate">{item.name}</span>
+                    <span className="hidden @lg:inline font-semibold text-zinc-800 dark:text-zinc-200 truncate">{item.name}</span>
                   </div>
                   <span>{t('preview.wordDocument')} • {formatBytes(item.sizeBytes)}</span>
                 </div>
                 {/* Không còn class typography nào ở đây: `docx-preview` dựng lại
                     font, cỡ chữ, lề và khổ giấy ĐÚNG như trong tệp, nên mọi thứ áp
                     từ ngoài vào đều là ghi đè lên định dạng thật của tài liệu. */}
-                <div className="flex-1 overflow-auto p-4 @lg:p-8 bg-slate-100 dark:bg-slate-950/60 flex justify-center">
+                <div className="flex-1 overflow-auto p-4 @lg:p-8 bg-zinc-100 dark:bg-black/25 flex justify-center">
                   <DocxRenderer url={url} onDownload={handleDownload} />
                 </div>
               </div>
             )}
 
             {isSheet && (
-              <div className="w-full h-full max-w-6xl rounded-2xl overflow-hidden bg-white dark:bg-[#0d1117] border border-slate-200 dark:border-white/10 shadow-2xl flex flex-col">
-                <div className="px-4 py-2.5 bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-white/10 text-xs font-mono text-slate-600 dark:text-slate-400 flex items-center justify-between">
+              <div className="w-full h-full max-w-6xl rounded-2xl overflow-hidden bg-white dark:bg-[#1c1c1f] border border-zinc-200 dark:border-white/10 shadow-2xl flex flex-col">
+                <div className="px-4 py-2.5 bg-zinc-100 dark:bg-white/[0.04] border-b border-zinc-200 dark:border-white/10 text-xs font-mono text-zinc-600 dark:text-zinc-400 flex items-center justify-between">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block shrink-0" />
-                    <span className="hidden @lg:inline font-semibold text-slate-800 dark:text-slate-200 truncate">{item.name}</span>
+                    <span className="hidden @lg:inline font-semibold text-zinc-800 dark:text-zinc-200 truncate">{item.name}</span>
                   </div>
                   <span className="shrink-0">{t('preview.sheet.label')} • {formatBytes(item.sizeBytes)}</span>
                 </div>
@@ -1262,11 +1264,11 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
             )}
 
             {isCodeOrText && (
-              <div className="w-full h-full max-w-5xl rounded-2xl overflow-hidden bg-white dark:bg-[#0d1117] border border-slate-200 dark:border-white/10 shadow-2xl flex flex-col">
-                <div className="px-4 py-2.5 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-white/10 text-xs font-mono text-slate-600 dark:text-slate-400 flex items-center justify-between">
+              <div className="w-full h-full max-w-5xl rounded-2xl overflow-hidden bg-white dark:bg-[#1c1c1f] border border-zinc-200 dark:border-white/10 shadow-2xl flex flex-col">
+                <div className="px-4 py-2.5 bg-white dark:bg-white/[0.04] border-b border-zinc-200 dark:border-white/10 text-xs font-mono text-zinc-600 dark:text-zinc-400 flex items-center justify-between">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className={`w-2.5 h-2.5 rounded-full inline-block shrink-0 ${isMd ? 'bg-sky-400' : 'bg-emerald-500'}`} />
-                    <span className="hidden @lg:inline font-semibold text-slate-800 dark:text-slate-200 truncate">{item.name}</span>
+                    <span className="hidden @lg:inline font-semibold text-zinc-800 dark:text-zinc-200 truncate">{item.name}</span>
                     {isMd && (
                       <span className="text-[10px] px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 font-mono hidden @lg:inline-block">
                         Markdown
@@ -1275,11 +1277,11 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
                   </div>
                   <div className="flex items-center gap-2 @lg:gap-3 shrink-0">
                     {isMd && (
-                      <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-white/10">
+                      <div className="flex items-center bg-zinc-100 dark:bg-white/[0.08] p-0.5 rounded-lg border border-zinc-200 dark:border-white/10">
                         <button
                           onClick={() => setMdViewMode('preview')}
                           className={`px-2 py-1 rounded text-[11px] font-sans font-medium transition-colors cursor-pointer ${
-                            mdViewMode === 'preview' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                            mdViewMode === 'preview' ? 'bg-blue-600 text-white shadow-sm' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
                           }`}
                         >
                           {t('sharePage.previewLabel')}
@@ -1287,7 +1289,7 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
                         <button
                           onClick={() => setMdViewMode('source')}
                           className={`px-2 py-1 rounded text-[11px] font-sans font-medium transition-colors cursor-pointer ${
-                            mdViewMode === 'source' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                            mdViewMode === 'source' ? 'bg-blue-600 text-white shadow-sm' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
                           }`}
                         >
                           {t('sharePage.sourceLabel')}
@@ -1296,16 +1298,16 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
                     )}
                     <button
                       onClick={handleCopyText}
-                      className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 border border-slate-200 dark:border-transparent text-[11px] font-sans font-semibold text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
+                      className="px-2.5 py-1 rounded-lg bg-zinc-100 dark:bg-white/10 hover:bg-zinc-200 dark:hover:bg-white/20 border border-zinc-200 dark:border-transparent text-[11px] font-sans font-semibold text-zinc-700 dark:text-zinc-200 transition-colors cursor-pointer"
                     >
                       {copied ? t('preview.copied') : t('preview.copy')}
                     </button>
                     <span className="hidden @lg:inline">UTF-8 • {formatBytes(item.sizeBytes)}</span>
                   </div>
                 </div>
-                <div className="flex-1 overflow-auto text-xs text-slate-700 dark:text-slate-200 selection:bg-blue-500/40">
+                <div className="flex-1 overflow-auto text-xs text-zinc-700 dark:text-zinc-200 selection:bg-blue-500/40">
                   {isLoadingText ? (
-                    <div className="flex flex-col items-center justify-center gap-3 text-slate-400 py-20">
+                    <div className="flex flex-col items-center justify-center gap-3 text-zinc-400 py-20">
                       <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
                       <p className="text-sm font-medium">{t('preview.text.loading')}</p>
                     </div>
@@ -1319,7 +1321,7 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
                       <p className="text-sm text-red-500 dark:text-red-300 font-medium">{textError}</p>
                       <button
                         onClick={handleDownload}
-                        className="px-4 py-2 bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 text-xs font-semibold rounded-xl text-slate-700 dark:text-white transition-all cursor-pointer"
+                        className="px-4 py-2 bg-zinc-100 dark:bg-white/10 hover:bg-zinc-200 dark:hover:bg-white/20 text-xs font-semibold rounded-xl text-zinc-700 dark:text-white transition-all cursor-pointer"
                       >
                         {t('preview.downloadToView')}
                       </button>
@@ -1328,7 +1330,7 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
                     isMd && mdViewMode === 'preview' ? (
                       <Suspense
                         fallback={
-                          <pre className="m-0 p-6 @lg:p-10 max-w-4xl mx-auto text-sm text-slate-200 whitespace-pre-wrap">
+                          <pre className="m-0 p-6 @lg:p-10 max-w-4xl mx-auto text-sm text-zinc-200 whitespace-pre-wrap">
                             {textContent}
                           </pre>
                         }
@@ -1346,7 +1348,7 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
                         <div className="px-4 py-2 text-[11px] text-amber-300 bg-amber-500/10 border-b border-amber-500/20 shrink-0">
                           {t('preview.highlightOff', { size: formatBytes(item.sizeBytes) })}
                         </div>
-                        <pre className="flex-1 overflow-auto p-4 m-0 text-xs font-mono text-slate-200 whitespace-pre">
+                        <pre className="flex-1 overflow-auto p-4 m-0 text-xs font-mono text-zinc-200 whitespace-pre">
                           {textContent}
                         </pre>
                       </div>
@@ -1355,7 +1357,7 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
                       // thay vì một khung trống.
                       <Suspense
                         fallback={
-                          <pre className="m-0 p-4 text-xs font-mono text-slate-200 whitespace-pre">
+                          <pre className="m-0 p-4 text-xs font-mono text-zinc-200 whitespace-pre">
                             {textContent}
                           </pre>
                         }
@@ -1398,24 +1400,24 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
                       </Suspense>
                     )
                   ) : (
-                    <div className="text-slate-400 p-6 font-mono text-center">{t('preview.text.empty')}</div>
+                    <div className="text-zinc-400 p-6 font-mono text-center">{t('preview.text.empty')}</div>
                   )}
                 </div>
               </div>
             )}
 
             {!isImage && !isVideo && !isAudio && !isPdf && !isCodeOrText && !isDocx && !isSheet && (
-              <div className="p-8 bg-slate-900 border border-white/10 rounded-3xl shadow-2xl flex flex-col items-center gap-4 text-center max-w-sm">
+              <div className="relative p-8 glass-dark rounded-[28px] flex flex-col items-center gap-4 text-center max-w-sm">
                 <FileText className="w-16 h-16 text-blue-400" />
                 <h4 className="font-bold text-white text-sm">{item.name}</h4>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-zinc-400">
                   {Number(item.sizeBytes) > PREVIEW_MAX_BYTES
                     ? t('preview.tooBig')
                     : t('preview.unsupported')}
                 </p>
                 <button
                   onClick={handleDownload}
-                  className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-xs font-semibold rounded-xl text-white shadow-lg transition-all"
+                  className="w-full py-2.5 btn-accent hover:brightness-110 text-xs font-semibold rounded-xl transition cursor-pointer"
                 >
                   {t('preview.downloadOriginal')}
                 </button>
@@ -1431,7 +1433,7 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
           onClose={() => setCommentsOpen(false)}
           // Rộng: một cột cạnh vùng xem (vùng xem co lại, không bị che). Hẹp: tấm trượt từ
           // đáy lên, chiếm phần dưới màn hình như bảng bình luận trên điện thoại.
-          className="absolute inset-x-0 bottom-0 h-[70%] z-30 rounded-t-2xl border-t @2xl:static @2xl:h-auto @2xl:w-[22rem] @2xl:shrink-0 @2xl:rounded-none @2xl:border-t-0 @2xl:border-l"
+          className="absolute inset-x-0 bottom-0 h-[70%] z-30 rounded-t-[22px] border-t @2xl:relative @2xl:h-auto @2xl:w-[22rem] @2xl:shrink-0 @2xl:rounded-none @2xl:border-t-0 @2xl:border-l"
         />
       )}
       </div>
@@ -1439,13 +1441,13 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
       {/* Bottom Info Bar — cửa sổ rộng: dòng phím tắt. Hẹp (điện thoại): không có bàn phím nên
           dòng đó vô nghĩa và tốn hai dòng chữ; chỗ này nhường cho bộ nút phóng/xoay (chỉ
           khi tệp có), không có thì ẩn luôn thanh để phần xem được thêm chỗ. */}
-      <div className={`px-3 py-2 @2xl:px-6 @2xl:py-2.5 bg-gradient-to-t from-black/50 to-transparent items-center justify-center @2xl:justify-end text-xs text-white/45 ${
+      <div className={`px-3 py-2 @2xl:px-6 @2xl:py-2.5 bg-gradient-to-t from-black/25 to-transparent items-center justify-center @2xl:justify-end text-xs text-white/50 ${
         // Màn hình cảm ứng (máy tính bảng) không có bàn phím: dòng phím tắt vô nghĩa, và
         // không có viên phóng/xoay thì ẩn luôn cả thanh.
         zoomControls ? 'flex @2xl:pointer-coarse:hidden' : 'hidden @2xl:flex @2xl:pointer-coarse:hidden'
       }`}>
         {zoomControls && (
-          <div className="flex @2xl:hidden items-center gap-0.5 px-1.5 py-1 rounded-full bg-neutral-800/95 shadow-lg shadow-black/40">
+          <div className="relative flex @2xl:hidden items-center gap-0.5 px-1.5 py-1 rounded-full glass-dark">
             {zoomControls}
           </div>
         )}

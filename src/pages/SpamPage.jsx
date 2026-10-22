@@ -26,7 +26,7 @@ export default function SpamPage() {
         <div className="flex flex-col h-full" onContextMenu={(e) => e.preventDefault()}>
             {/* Header */}
             <div className="mb-2">
-                <div className="flex items-center justify-between mb-2 pb-2 border-b border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between mb-2 pb-2 border-b border-glass-divider">
                     <div className="flex items-center gap-2">
                         <ShieldAlert className="w-6 h-6 text-amber-600 dark:text-amber-400" />
                         <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">{t('page.spam.title')}</h1>
@@ -38,7 +38,7 @@ export default function SpamPage() {
                             onClick={() => setViewMode('list')}
                             title={t('view.list')}
                             className={`p-1.5 rounded-full transition-colors ${viewMode === 'list'
-                                    ? 'bg-white dark:bg-[#282a2c] shadow-xs text-blue-700 dark:text-blue-400 font-bold'
+                                    ? 'glass-active text-blue-700 dark:text-blue-300 font-bold'
                                     : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
                                 }`}
                         >
@@ -48,7 +48,7 @@ export default function SpamPage() {
                             onClick={() => setViewMode('grid')}
                             title={t('view.grid')}
                             className={`p-1.5 rounded-full transition-colors ${viewMode === 'grid'
-                                    ? 'bg-white dark:bg-[#282a2c] shadow-xs text-blue-700 dark:text-blue-400 font-bold'
+                                    ? 'glass-active text-blue-700 dark:text-blue-300 font-bold'
                                     : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
                                 }`}
                         >

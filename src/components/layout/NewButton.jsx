@@ -142,7 +142,7 @@ export default function NewButton({ isCollapsed }) {
       {/* Nút + Mới */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center justify-center gap-3 bg-white dark:bg-[#282a2c] text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-xs hover:shadow-md hover:bg-gray-50 dark:hover:bg-white/5 active:bg-gray-100 font-medium text-sm transition-all duration-200 ${
+        className={`glass-soft flex items-center justify-center gap-3 text-gray-800 dark:text-gray-200 border rounded-2xl hover:shadow-md hover:bg-white/80 dark:hover:bg-white/10 active:bg-gray-100 font-medium text-sm transition-all duration-200 ${
           isCollapsed ? 'w-12 h-12 p-0 rounded-full' : 'px-5 py-3'
         }`}
         title={t('newBtn.title')}
@@ -153,16 +153,16 @@ export default function NewButton({ isCollapsed }) {
 
       {/* Dropdown Menu */}
       {isOpen && (
-        <div className="absolute top-full mt-2 bg-white dark:bg-[#282a2c] rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 py-2 w-64 z-50 animate-in fade-in zoom-in-95 duration-150 left-0">
+        <div className="glass-strong absolute top-full mt-2 rounded-[20px] border py-2 w-64 z-50 left-0 animate-glass-in">
           {/* Thư mục người khác chia sẻ: nói lý do NGAY trong menu và khoá ba lệnh — không để
               người dùng chọn tệp, tải lên rồi mới bị từ chối (##78). */}
           {isWriteLocked && (
-            <div role="note" className="mx-2 mb-1 rounded-xl bg-amber-50 dark:bg-amber-950/25 border border-amber-200 dark:border-amber-500/30 px-3 py-2">
+            <div role="note" className="mx-2 mb-1 rounded-xl bg-amber-50 dark:bg-amber-400/15 border border-amber-200 dark:border-amber-500/30 px-3 py-2">
               <p className="text-[12.5px] leading-snug text-amber-800 dark:text-amber-200">{t(writeLockKey)}</p>
             </div>
           )}
           {viewTag && (
-            <div role="note" className="mx-2 mb-1 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-500/30 px-3 py-2">
+            <div role="note" className="mx-2 mb-1 rounded-xl bg-blue-50 dark:bg-blue-400/15 border border-blue-200 dark:border-blue-500/30 px-3 py-2">
               <p className="text-[12.5px] leading-snug text-blue-800 dark:text-blue-200">{t('newBtn.tagView', { name: viewTag.name })}</p>
             </div>
           )}
@@ -171,13 +171,13 @@ export default function NewButton({ isCollapsed }) {
           <button
             onClick={handleCreateFolderPrompt}
             disabled={isWriteLocked}
-            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors text-left disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-colors text-left disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
           >
             <FolderPlus className="w-5 h-5 text-gray-600 dark:text-gray-300" />
             <span>{t('newBtn.newFolder')}</span>
           </button>
 
-          <div className="my-1 border-t border-gray-100 dark:border-gray-700" />
+          <div className="my-1 border-t border-glass-divider" />
 
           {/* Tải nhiều file lên */}
           <button
@@ -186,7 +186,7 @@ export default function NewButton({ isCollapsed }) {
               fileInputRef.current?.click();
             }}
             disabled={isWriteLocked}
-            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors text-left disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-colors text-left disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
           >
             <FileUp className="w-5 h-5 text-blue-500" />
             <div className="flex flex-col items-start">
@@ -201,7 +201,7 @@ export default function NewButton({ isCollapsed }) {
               folderInputRef.current?.click();
             }}
             disabled={isBuildingTree || isWriteLocked}
-            className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors text-left ${
+            className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-colors text-left ${
               isWriteLocked
                 ? 'disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent'
                 : 'disabled:opacity-60 disabled:cursor-wait'

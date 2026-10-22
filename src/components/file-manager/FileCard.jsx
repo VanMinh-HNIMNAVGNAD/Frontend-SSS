@@ -84,12 +84,12 @@ function FileCard({ file, onDoubleClick, onContextMenu, isSelected, isCut = fals
             onDoubleClick={() => onDoubleClick && onDoubleClick(file)}
             onContextMenu={(e) => onContextMenu && onContextMenu(e, file)}
             style={colorVars}
-            className={`group relative flex flex-col px-2.5 phone:px-2 pt-1.5 pb-1.5 rounded-2xl cursor-pointer transition-all duration-200 border shadow-sm hover:shadow-md hover:-translate-y-0.5 ${FILE_CARD_HEIGHT_CLASS}
+            className={`group relative flex flex-col px-2.5 phone:px-2 pt-1.5 pb-1.5 rounded-[18px] cursor-pointer transition-all duration-200 border shadow-[inset_0_1px_0_rgba(255,255,255,0.75),0_1px_2px_rgba(15,23,42,0.05)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_1px_2px_rgba(0,0,0,0.3)] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_10px_24px_-12px_rgba(15,23,42,0.28)] dark:hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_10px_24px_-12px_rgba(0,0,0,0.7)] hover:-translate-y-0.5 ${FILE_CARD_HEIGHT_CLASS}
                 bg-[var(--fc-surface-l)] dark:bg-[var(--fc-surface-d)]
                 hover:bg-[var(--fc-hover-l)] dark:hover:bg-[var(--fc-hover-d)]
                 border-[var(--fc-border-l)] dark:border-[var(--fc-border-d)] ${
                 isCut ? 'opacity-50 border-dashed' : ''
-            } ${isSelected ? 'ring-2 ring-blue-500 ring-offset-1 ring-offset-white dark:ring-offset-[#1e1e1e]' : ''}`}
+            } ${isSelected ? 'ring-2 ring-blue-500/80 ring-offset-2 ring-offset-transparent' : ''}`}
         >
             {/* Hàng đầu: icon loại tệp căn đều ở góc trên trái, tên tệp nâng cao và chữ nhỏ đi,
                 ô chọn hiện đè lên icon khi rê chuột/đã chọn, nút sao đã bỏ vì có trong context menu */}

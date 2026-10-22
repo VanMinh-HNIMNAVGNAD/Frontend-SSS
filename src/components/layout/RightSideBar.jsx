@@ -9,7 +9,7 @@ export default function RightSideBar({ isOpen }) {
     const { t } = useLanguage();
 
     return (
-        <aside className={`transition-all duration-300 ease-in-out flex flex-col items-center bg-[var(--app-bg)]
+        <aside className={`transition-all duration-300 ease-in-out flex flex-col items-center
         ${isOpen ? 'w-12 lg:w-16 opacity-100 mr-0 lg:mr-2' : 'w-0 opacity-0 overflow-hidden'}`}>
             <div className="flex flex-col items-center w-12 lg:w-16 pt-3 gap-5">
                 {/* ... Nút Tài khoản và Cài đặt giữ nguyên ... */}

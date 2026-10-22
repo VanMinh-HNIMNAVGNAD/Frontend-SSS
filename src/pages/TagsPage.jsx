@@ -52,7 +52,7 @@ export default function TagsPage() {
 
     return (
         <div className="flex flex-col h-full" onContextMenu={(e) => e.preventDefault()}>
-            <div className="mb-2 pb-2 border-b border-gray-200 dark:border-gray-700">
+            <div className="mb-2 pb-2 border-b border-glass-divider">
                 <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2 min-w-0">
                         <Tag className="w-6 h-6 shrink-0" style={{ color }} fill={color} />
@@ -83,7 +83,7 @@ export default function TagsPage() {
                                 onClick={() => setViewMode('list')}
                                 title={t('view.list')}
                                 className={`p-1.5 rounded-full transition-colors ${
-                                    viewMode === 'list' ? 'bg-white dark:bg-[#282a2c] shadow-xs text-blue-700 dark:text-blue-400 font-bold' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+                                    viewMode === 'list' ? 'glass-active text-blue-700 dark:text-blue-300 font-bold' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
                                 }`}
                             >
                                 <List className="w-4 h-4" />
@@ -92,7 +92,7 @@ export default function TagsPage() {
                                 onClick={() => setViewMode('grid')}
                                 title={t('view.grid')}
                                 className={`p-1.5 rounded-full transition-colors ${
-                                    viewMode === 'grid' ? 'bg-white dark:bg-[#282a2c] shadow-xs text-blue-700 dark:text-blue-400 font-bold' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+                                    viewMode === 'grid' ? 'glass-active text-blue-700 dark:text-blue-300 font-bold' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
                                 }`}
                             >
                                 <LayoutGrid className="w-4 h-4" />
@@ -127,14 +127,14 @@ export default function TagsPage() {
                             <button
                                 type="button"
                                 onClick={() => fileInputRef.current?.click()}
-                                className="px-4 py-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow-sm cursor-pointer"
+                                className="px-4 py-2 rounded-full btn-accent hover:brightness-105 text-sm font-semibold shadow-sm cursor-pointer"
                             >
                                 {t('tags.page.uploadHere')}
                             </button>
                             <button
                                 type="button"
                                 onClick={() => navigate('/app/my-drive')}
-                                className="px-4 py-2 rounded-full border border-[var(--app-border)] text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer"
+                                className="px-4 py-2 rounded-full border border-[var(--app-border)] text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] cursor-pointer"
                             >
                                 {t('tags.page.openMyDrive')}
                             </button>

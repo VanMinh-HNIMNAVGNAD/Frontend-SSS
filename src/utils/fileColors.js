@@ -194,9 +194,14 @@ export function getEffectiveColor(item) {
 // nền vừa tính. Nhờ vậy màu vàng nhạt (#FDE68A) hay xanh navy tối (#1E293B)
 // đều đọc được, chủ thể không bị chìm vào nền ở chế độ lưới.
 
-/** Nền trang thật sự phía sau thẻ — xem MainLayout.jsx */
-const BASE_LIGHT = '#F8FAFD';
-const BASE_DARK  = '#1E1E1E';
+/**
+ * Màu MẮT THẤY phía sau thẻ: tấm kính vùng nội dung (`glass` ở index.css) đè lên nền ambient.
+ * Thẻ giờ là kính ánh màu (rgba, xem `buildScheme`), nên tương phản của chữ phải tính trên màu
+ * đã trộn với nền này chứ không trên chính mã rgba.
+ */
+const BASE_LIGHT = '#F6F7F8';
+const BASE_DARK  = '#252527';
+const WHITE = { r: 255, g: 255, b: 255 };
 
 function hexToRgb(hex) {
   const m = /^#?([\da-f]{3}|[\da-f]{6})$/i.exec(String(hex).trim());
@@ -209,6 +214,7 @@ function hexToRgb(hex) {
 
 const toHex2 = (n) => Math.round(Math.min(255, Math.max(0, n))).toString(16).padStart(2, '0');
 const rgbToHex = ({ r, g, b }) => `#${toHex2(r)}${toHex2(g)}${toHex2(b)}`.toUpperCase();
+const rgba = ({ r, g, b }, a) => `rgba(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)}, ${a})`;
 
 /** Trộn `fg` lên trên `bg` với độ mờ `a` (0–1) — mô phỏng đúng phép alpha blend. */
 function blend(fg, bg, a) {
@@ -282,18 +288,31 @@ function readable(hsl, bgRgb, target, toward) {
   return toward > 0.5 ? { r: 255, g: 255, b: 255 } : { r: 17, g: 17, b: 17 };
 }
 
-/** Một chế độ (sáng hoặc tối) của bảng màu thẻ */
+/**
+ * Một chế độ (sáng hoặc tối) của bảng màu thẻ.
+ *
+ * Liquid glass (22/10/2026): nền / viền thẻ là KÍNH ÁNH MÀU (rgba) chứ không còn là mã hex đặc
+ * — thẻ để lộ tấm kính vùng nội dung phía sau, đổi theme hay đặt thẻ lên modal/ngăn kéo đều
+ * tự hoà vào nền. Bản Sáng là kính trắng pha chút màu (trắng là thứ làm nó đọc ra là kính);
+ * bản Tối là một lớp màu mỏng trên graphite. Chữ / icon vẫn là hex đặc, tính tương phản trên
+ * màu MẮT THẤY (`seen`: lớp rgba trộn lên `baseHex`).
+ */
 function buildScheme(rgb, baseHex, isDark) {
   const base = hexToRgb(baseHex);
   const hsl = rgbToHsl(rgb);
 
-  // Nền thẻ: pha loãng màu trên nền trang. Đậm hơn ở chế độ tối vì màu trên nền
-  // tối luôn trông nhạt hơn cùng tỉ lệ trên nền sáng.
-  const surface      = blend(rgb, base, isDark ? 0.26 : 0.18);
-  const surfaceHover = blend(rgb, base, isDark ? 0.38 : 0.30);
+  // [màu phủ, độ đục] của từng lớp. Sáng: trộn màu vào trắng rồi phủ bán trong suốt.
+  const layer = (tint, alpha) => (isDark
+    ? { color: rgb, alpha: tint }
+    : { color: blend(rgb, WHITE, tint), alpha });
+  // Bản Tối: nền gần như trung tính, màu nằm ở viền / icon / chữ — xanh của .docx pha 10–15% trên
+  // graphite đã ngả hẳn sang navy (đúng thứ bản kính này bỏ đi).
+  const surfaceL = layer(isDark ? 0.055 : 0.16, 0.62);
+  const hoverL   = layer(isDark ? 0.1 : 0.27, 0.74);
   // Khung xem trước giữ gần như trung tính để ảnh / bảng tính không bị ám màu
-  const panel        = blend(rgb, base, isDark ? 0.12 : 0.07);
-  const border       = blend(rgb, base, isDark ? 0.55 : 0.50);
+  const panelL   = layer(isDark ? 0.02 : 0.05, 0.66);
+  const seen = (l) => blend(l.color, base, l.alpha);
+  const surface = seen(surfaceL);
 
   // Ngưỡng: 5.5 cho tên tệp (chữ nhỏ, đậm), 4.0 cho chữ phụ, 3.0 cho icon/đồ hoạ
   const toward = isDark ? 1 : 0;
@@ -303,15 +322,13 @@ function buildScheme(rgb, baseHex, isDark) {
 
   // Badge đuôi tệp: nền màu đặc hơn hẳn nền thẻ để nổi lên như một con tem
   const badgeBg = blend(rgb, base, isDark ? 0.55 : 0.85);
-  const badgeFg = contrast(badgeBg, { r: 255, g: 255, b: 255 }) >= 4.5
-    ? { r: 255, g: 255, b: 255 }
-    : { r: 17, g: 17, b: 17 };
+  const badgeFg = contrast(badgeBg, WHITE) >= 4.5 ? WHITE : { r: 17, g: 17, b: 17 };
 
   return {
-    surface:      rgbToHex(surface),
-    surfaceHover: rgbToHex(surfaceHover),
-    panel:        rgbToHex(panel),
-    border:       rgbToHex(border),
+    surface:      rgba(surfaceL.color, surfaceL.alpha),
+    surfaceHover: rgba(hoverL.color, hoverL.alpha),
+    panel:        rgba(panelL.color, panelL.alpha),
+    border:       rgba(rgb, isDark ? 0.38 : 0.28),
     ink:          rgbToHex(ink),
     muted:        rgbToHex(muted),
     icon:         rgbToHex(icon),

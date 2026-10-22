@@ -220,11 +220,11 @@ export default function SettingsModal({ isOpen, onClose }) {
 
   // Dùng lại cho cả 3 <select> — cùng một kiểu ô nhập thì phải cùng một bộ màu
   const selectClass =
-    'w-full border border-gray-300 dark:border-gray-600 rounded-xl px-3 py-2 text-xs bg-white dark:bg-[#1e1e1e] text-gray-800 dark:text-gray-100 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 outline-none transition-colors';
+    'glass-input w-full border rounded-xl px-3 py-2 text-xs text-gray-800 dark:text-gray-100 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 outline-none transition-colors';
 
   // Dùng lại cho 2 công tắc (phím tắt + hiển thị thông tin cá nhân)
   const switchClass = (on) =>
-    `relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#282a2c] ${
+    `relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#2a2a2e] ${
       on ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
     }`;
 
@@ -235,15 +235,15 @@ export default function SettingsModal({ isOpen, onClose }) {
 
   return (
     <div
-      className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200"
+      className="fixed inset-0 glass-overlay flex items-center justify-center z-50 p-4 duration-200 animate-fade-in"
       onClick={onClose}
     >
       <div
-        className="bg-white dark:bg-[#282a2c] rounded-3xl shadow-2xl w-full max-w-[614px] overflow-hidden flex flex-col max-h-[88vh] animate-in zoom-in-95 duration-200 border border-gray-100 dark:border-gray-700 text-left"
+        className="glass-strong relative rounded-[28px] w-full max-w-[614px] overflow-hidden flex flex-col max-h-[88vh] border text-left animate-glass-in"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-white/5">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b bg-gray-50/80 dark:bg-white/5 border-glass-divider">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-blue-600/10 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
               <Settings className="w-4.5 h-4.5" />
@@ -263,17 +263,17 @@ export default function SettingsModal({ isOpen, onClose }) {
         {/* Body Container */}
         <div className="flex flex-1 overflow-hidden">
           {/* Sidebar Left Tabs */}
-          <div className="w-44 bg-gray-50/70 dark:bg-white/5 border-r border-gray-200 dark:border-gray-700 p-2.5 flex flex-col gap-1 shrink-0">
+          <div className="w-44 bg-gray-50/70 dark:bg-white/5 border-r p-2.5 flex flex-col gap-1 shrink-0 border-glass-divider">
             {TABS.map(({ id, Icon, labelKey }) => (
               <button
                 key={id}
                 type="button"
                 onClick={() => setActiveTab(id)}
                 aria-pressed={activeTab === id}
-                className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-left transition-all ${
+                className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-left transition-all cursor-pointer ${
                   activeTab === id
-                    ? 'bg-blue-600 text-white shadow-xs'
-                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200/70 dark:hover:bg-gray-700'
+                    ? 'glass-active text-blue-700 dark:text-blue-300'
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-black/[0.05] dark:hover:bg-white/[0.08]'
                 }`}
               >
                 <Icon className="w-3.5 h-3.5 shrink-0" />
@@ -316,7 +316,7 @@ export default function SettingsModal({ isOpen, onClose }) {
                 </div>
 
                 {/* 2. Ngôn ngữ */}
-                <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+                <div className="pt-2 border-t border-glass-divider">
                   <label className="block text-xs font-semibold text-gray-800 dark:text-gray-200 mb-1.5">{t('settings.language.label')}</label>
                   <select
                     value={language}
@@ -331,7 +331,7 @@ export default function SettingsModal({ isOpen, onClose }) {
                 </div>
 
                 {/* 3. Trang khởi động */}
-                <div className="pt-2 border-t border-gray-100 dark:border-gray-700">
+                <div className="pt-2 border-t border-glass-divider">
                   <label
                     htmlFor="startup-page-select"
                     className="block text-xs font-semibold text-gray-800 dark:text-gray-200 mb-1.5"
@@ -422,7 +422,7 @@ export default function SettingsModal({ isOpen, onClose }) {
                     còn thuộc diện này nữa — nó đã lưu DB, nên câu chữ của
                     'settings.privacy.localOnly' chỉ nói về ô chọn quyền. Gỡ đi khi
                     quyền mặc định cũng được đồng bộ (xem constants/privacy.js). */}
-                <p className="text-[11px] text-gray-400 dark:text-gray-500 leading-relaxed px-0.5 pt-1 border-t border-gray-100 dark:border-gray-700">
+                <p className="text-[11px] text-gray-400 dark:text-gray-500 leading-relaxed px-0.5 pt-1 border-t border-glass-divider">
                   {t('settings.privacy.localOnly')}
                 </p>
               </div>
@@ -497,10 +497,10 @@ export default function SettingsModal({ isOpen, onClose }) {
         </div>
 
         {/* Footer — mọi lựa chọn đã được lưu ngay lúc bấm, nút này chỉ để đóng */}
-        <div className="flex justify-end px-5 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50/80 dark:bg-white/5">
+        <div className="flex justify-end px-5 py-3 border-t bg-gray-50/80 dark:bg-white/5 border-glass-divider">
           <button
             onClick={onClose}
-            className="px-5 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all shadow-xs"
+            className="px-5 py-1.5 text-xs font-semibold btn-accent hover:brightness-105 rounded-xl transition-all shadow-xs"
           >
             {t('settings.saveAndClose')}
           </button>

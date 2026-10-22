@@ -6,14 +6,12 @@ import React from "react";
  */
 export default function AuthBackground({ children }) {
   return (
-    <div className="min-h-screen w-full flex items-center justify-center p-4 bg-[var(--app-bg)] relative overflow-hidden">
-      {/* Điểm sáng nhẹ tập trung ngay phía sau form để tôn form nổi bật trên nền đơn sắc */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-500/[0.10] dark:bg-blue-500/[0.06] rounded-full blur-[140px] pointer-events-none" />
-
-      {/* Hoạ tiết lưới siêu nhẹ tạo chiều sâu tối giản. Nét lưới của bản tối là màu
-          trắng, nên bản sáng cần một lớp nét tối riêng — dùng chung thì lưới biến mất. */}
-      <div className="absolute inset-0 bg-grid-pattern-ink opacity-60 dark:hidden pointer-events-none" />
-      <div className="absolute inset-0 bg-grid-pattern opacity-[0.03] hidden dark:block pointer-events-none" />
+    // Nền trong suốt: lớp dưới cùng là nền ambient của <body> (index.css). Vài khối sáng mềm
+    // trung tính (trắng / xám bạc — không có sắc xanh navy) để thẻ kính có thứ mà làm mờ.
+    <div className="min-h-screen w-full flex items-center justify-center p-4 relative overflow-hidden">
+      <div className="absolute -top-32 -left-24 w-[520px] h-[520px] rounded-full bg-white/80 dark:bg-white/[0.06] blur-[110px] pointer-events-none" />
+      <div className="absolute top-1/3 -right-40 w-[560px] h-[560px] rounded-full bg-slate-300/45 dark:bg-zinc-500/[0.12] blur-[120px] pointer-events-none" />
+      <div className="absolute -bottom-40 left-1/4 w-[620px] h-[460px] rounded-full bg-stone-300/40 dark:bg-stone-400/[0.08] blur-[120px] pointer-events-none" />
 
       {/* Nội dung form */}
       <div className="relative z-10 w-full max-w-[460px]">

@@ -217,7 +217,7 @@ const FolderTableRow = memo(function FolderTableRow({
             <td className="py-3.5 px-3 text-center">
                 <button
                     onClick={(e) => onContextMenu(e, folder)}
-                    className="p-1 rounded-full text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+                    className="p-1 rounded-full text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-colors"
                 >
                     <MoreVertical className="w-4 h-4" />
                 </button>
@@ -362,7 +362,7 @@ const FileTableRow = memo(function FileTableRow({
             <td className="py-3.5 px-3 text-center">
                 <button
                     onClick={(e) => onContextMenu(e, file)}
-                    className="p-1 rounded-full text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+                    className="p-1 rounded-full text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-colors"
                 >
                     <MoreVertical className="w-4 h-4" />
                 </button>
@@ -713,14 +713,14 @@ export default function FileListView() {
                 `h-full` nên bảng cuộn TRONG một ô riêng, còn bên dưới luôn chừa 96px trống —
                 danh sách dừng cách đáy màn hình một đoạn, và thẻ trắng bao quanh làm rối mắt. */}
             <div
-                className={`w-full overflow-x-auto border-b border-gray-200 dark:border-gray-700 transition-opacity duration-150 ${
+                className={`w-full overflow-x-auto border-b transition-opacity duration-150 border-glass-divider ${
                     isRefreshing ? 'opacity-50 pointer-events-none' : ''
                 }`}
                 aria-busy={isRefreshing}
             >
                 <table className="w-full text-left border-collapse min-w-[560px] lg:min-w-[850px]">
                     <thead>
-                        <tr className="border-b border-gray-200 dark:border-gray-700 text-[11px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider bg-gray-100/90 dark:bg-white/5 select-none">
+                        <tr className="border-b text-[11px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider bg-gray-100/90 dark:bg-white/5 select-none border-glass-divider">
                             {/* Checkbox Header */}
                             <th className="py-3 px-3 w-8 text-center">
                                 <button
@@ -815,7 +815,7 @@ export default function FileListView() {
                         <button
                             disabled={currentPage === 1}
                             onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                            className="p-1.5 rounded-lg border border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-white/5 disabled:opacity-40 disabled:hover:bg-transparent transition-colors text-gray-700 dark:text-gray-300"
+                            className="p-1.5 rounded-lg border border-gray-300 dark:border-gray-700 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] disabled:opacity-40 disabled:hover:bg-transparent transition-colors text-gray-700 dark:text-gray-300"
                         >
                             <ChevronLeft className="w-4 h-4" />
                         </button>
@@ -825,7 +825,7 @@ export default function FileListView() {
                         <button
                             disabled={currentPage === totalPages}
                             onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                            className="p-1.5 rounded-lg border border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-white/5 disabled:opacity-40 disabled:hover:bg-transparent transition-colors text-gray-700 dark:text-gray-300"
+                            className="p-1.5 rounded-lg border border-gray-300 dark:border-gray-700 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] disabled:opacity-40 disabled:hover:bg-transparent transition-colors text-gray-700 dark:text-gray-300"
                         >
                             <ChevronRight className="w-4 h-4" />
                         </button>

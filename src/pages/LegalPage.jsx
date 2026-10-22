@@ -86,7 +86,7 @@ export default function LegalPage({ docId }) {
           <a
             key={index}
             href={`mailto:${tokens.email}`}
-            className="text-blue-400 hover:text-blue-300 underline decoration-blue-400/40 underline-offset-2 break-all"
+            className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 underline decoration-blue-400/40 underline-offset-2 break-all"
           >
             {tokens.email}
           </a>
@@ -121,16 +121,16 @@ export default function LegalPage({ docId }) {
         return (
           <div
             key={index}
-            className="overflow-x-auto -mx-1 rounded-xl border border-white/10 bg-white/[0.02]"
+            className="overflow-x-auto -mx-1 rounded-xl border border-glass-divider bg-white/40 dark:bg-white/[0.03]"
           >
             <table className="w-full min-w-[520px] text-sm border-collapse">
               <thead>
-                <tr className="bg-white/[0.04]">
+                <tr className="bg-black/[0.03] dark:bg-white/[0.04]">
                   {block.head.map((cell, i) => (
                     <th
                       key={i}
                       scope="col"
-                      className="text-left font-bold text-slate-200 px-4 py-3 border-b border-white/10"
+                      className="text-left font-bold text-gray-800 dark:text-gray-200 px-4 py-3 border-b border-glass-divider"
                     >
                       {cell}
                     </th>
@@ -139,9 +139,9 @@ export default function LegalPage({ docId }) {
               </thead>
               <tbody>
                 {block.rows.map((row, i) => (
-                  <tr key={i} className="border-b border-white/[0.06] last:border-0 align-top">
+                  <tr key={i} className="border-b border-glass-divider last:border-0 align-top">
                     {row.map((cell, j) => (
-                      <td key={j} className="px-4 py-3 text-slate-300">
+                      <td key={j} className="px-4 py-3 text-gray-700 dark:text-gray-300">
                         {fill(cell)}
                       </td>
                     ))}
@@ -156,7 +156,7 @@ export default function LegalPage({ docId }) {
         return (
           <p
             key={index}
-            className="border-l-2 border-amber-400/60 bg-amber-400/[0.06] rounded-r-lg px-4 py-3 text-slate-200"
+            className="border-l-2 border-amber-400/60 bg-amber-400/[0.06] rounded-r-lg px-4 py-3 text-gray-800 dark:text-gray-200"
           >
             {fill(block.text)}
           </p>
@@ -173,21 +173,21 @@ export default function LegalPage({ docId }) {
     .map((id) => ({ id, path: LEGAL_PATHS[id], title: dict[id].title }));
 
   return (
-    <div className="min-h-screen bg-[#0a0e17] text-slate-300">
+    <div className="min-h-screen text-gray-700 dark:text-gray-300">
       {/* Thanh trên: đường ra khỏi trang + nút đổi ngôn ngữ. `sticky` vì tài liệu
           dài, mà người đọc giữa mục 9 vẫn cần một đường quay lại. */}
-      <header className="sticky top-0 z-20 bg-[#0a0e17]/95 backdrop-blur border-b border-white/10">
+      <header className="sticky top-2 z-20 mx-2 sm:mx-auto sm:max-w-3xl mt-2 glass-strong rounded-full">
         <div className="max-w-3xl mx-auto px-5 py-3 flex items-center justify-between gap-4">
           <Link
             to="/login"
-            className="inline-flex items-center gap-2 text-sm font-semibold text-slate-400 hover:text-white transition-colors"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:text-white transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>{t('legal.back')}</span>
           </Link>
 
           <div
-            className="flex items-center rounded-lg border border-white/10 p-0.5 text-xs font-bold"
+            className="flex items-center rounded-full glass-soft p-0.5 text-xs font-bold"
             role="group"
             aria-label={t('legal.language')}
           >
@@ -197,10 +197,10 @@ export default function LegalPage({ docId }) {
                 type="button"
                 onClick={() => changeLanguage(code)}
                 aria-pressed={language === code}
-                className={`px-2.5 py-1 rounded-md transition-colors cursor-pointer ${
+                className={`px-2.5 py-1 rounded-full transition-colors cursor-pointer ${
                   language === code
-                    ? 'bg-blue-600 text-white'
-                    : 'text-slate-400 hover:text-white hover:bg-white/[0.06]'
+                    ? 'btn-accent'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:text-white hover:bg-black/[0.05] dark:hover:bg-white/[0.06]'
                 }`}
               >
                 {code.toUpperCase()}
@@ -210,19 +210,19 @@ export default function LegalPage({ docId }) {
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-5 py-10">
-        <h1 className="text-3xl font-extrabold text-white tracking-tight">{doc.title}</h1>
+      <main className="max-w-3xl my-4 sm:my-6 mx-2 sm:mx-auto px-5 sm:px-8 py-8 sm:py-10 glass rounded-[28px]">
+        <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight">{doc.title}</h1>
 
-        <p className="mt-2 text-sm text-slate-500">
+        <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
           {t('legal.effective', { date: LEGAL_EFFECTIVE_DATE })} · {SERVICE_NAME} ({tokens.site})
         </p>
 
-        <p className="mt-6 text-[15px] leading-relaxed text-slate-300">{fill(doc.intro)}</p>
+        <p className="mt-6 text-[15px] leading-relaxed text-gray-700 dark:text-gray-300">{fill(doc.intro)}</p>
 
         {/* Mục lục — mười ba mục thì cuộn tay không còn là cách đọc hợp lý.
             Dùng neo #id thay vì router: cùng một trang, không đổi route. */}
-        <nav className="mt-8 rounded-xl border border-white/10 bg-white/[0.02] p-4" aria-label={t('legal.toc')}>
-          <p className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">
+        <nav className="mt-8 rounded-xl border border-glass-divider bg-white/40 dark:bg-white/[0.03] p-4" aria-label={t('legal.toc')}>
+          <p className="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3">
             {t('legal.toc')}
           </p>
           <ol className="space-y-1.5 text-sm">
@@ -230,7 +230,7 @@ export default function LegalPage({ docId }) {
               <li key={index}>
                 <a
                   href={`#muc-${index + 1}`}
-                  className="text-slate-400 hover:text-blue-400 transition-colors"
+                  className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                 >
                   {section.heading}
                 </a>
@@ -242,7 +242,7 @@ export default function LegalPage({ docId }) {
         <div className="mt-10 space-y-10">
           {doc.sections.map((section, index) => (
             <section key={index} id={`muc-${index + 1}`} className="scroll-mt-20">
-              <h2 className="text-lg font-bold text-white mb-4">{section.heading}</h2>
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">{section.heading}</h2>
               <div className="space-y-4 text-[15px] leading-relaxed">
                 {section.blocks.map(renderBlock)}
               </div>
@@ -252,13 +252,13 @@ export default function LegalPage({ docId }) {
 
         {/* Chân trang: hộp thư liên hệ và hai tài liệu còn lại. Đặt ở đây vì
             người đọc hết một tài liệu pháp lý thường cần đúng hai thứ đó. */}
-        <footer className="mt-14 pt-8 border-t border-white/10 space-y-4">
+        <footer className="mt-14 pt-8 border-t border-glass-divider space-y-4">
           <p className="flex items-center gap-2 text-sm">
-            <Mail className="w-4 h-4 text-slate-500 shrink-0" />
-            <span className="text-slate-400">{t('legal.contact')}</span>
+            <Mail className="w-4 h-4 text-gray-500 dark:text-gray-400 shrink-0" />
+            <span className="text-gray-600 dark:text-gray-400">{t('legal.contact')}</span>
             <a
               href={`mailto:${LEGAL_CONTACT_EMAIL}`}
-              className="text-blue-400 hover:text-blue-300 font-semibold underline decoration-blue-400/40 underline-offset-2 break-all"
+              className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-semibold underline decoration-blue-400/40 underline-offset-2 break-all"
             >
               {LEGAL_CONTACT_EMAIL}
             </a>
@@ -269,17 +269,17 @@ export default function LegalPage({ docId }) {
               <Link
                 key={sibling.id}
                 to={sibling.path}
-                className="text-slate-400 hover:text-blue-400 transition-colors"
+                className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
               >
                 {sibling.title}
               </Link>
             ))}
-            <Link to="/register" className="text-slate-400 hover:text-blue-400 transition-colors">
+            <Link to="/register" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
               {t('legal.toRegister')}
             </Link>
           </div>
 
-          <p className="text-xs text-slate-600">
+          <p className="text-xs text-gray-500 dark:text-gray-500">
             {t('legal.version', { version: LEGAL_VERSION })}
           </p>
         </footer>

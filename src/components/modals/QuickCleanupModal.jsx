@@ -72,16 +72,16 @@ export default function QuickCleanupModal({ isOpen, onClose }) {
 
   return (
     <div
-      className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200"
+      className="fixed inset-0 glass-overlay flex items-center justify-center z-50 p-4 duration-200 animate-fade-in"
       onClick={onClose}
     >
       <div
-        className="bg-white dark:bg-[#282a2c] rounded-3xl shadow-2xl w-full max-w-lg p-6 space-y-6 relative border border-gray-100 dark:border-gray-700 animate-in zoom-in-95 duration-200"
+        className="glass-strong rounded-[28px] w-full max-w-lg p-6 space-y-6 relative border animate-glass-in"
         onClick={(e) => e.stopPropagation()}
       >
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+          className="absolute right-4 top-4 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 p-1.5 rounded-full hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-colors"
         >
           <X className="w-5 h-5" />
         </button>
@@ -94,7 +94,7 @@ export default function QuickCleanupModal({ isOpen, onClose }) {
         </div>
 
         {/* Suggestion 1: Empty Trash */}
-        <div className="p-4 rounded-2xl border border-amber-200 dark:border-amber-900/50 bg-amber-50/50 dark:bg-amber-950/30 space-y-3">
+        <div className="p-4 rounded-2xl border border-amber-200 dark:border-amber-900/50 bg-amber-50/50 dark:bg-amber-400/15 space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <Trash2 className="w-5 h-5 text-amber-600 dark:text-amber-400" />
@@ -139,7 +139,7 @@ export default function QuickCleanupModal({ isOpen, onClose }) {
                 return (
                   <div
                     key={file.id}
-                    className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-xl text-xs hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
+                    className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-xl text-xs hover:bg-black/[0.04] dark:hover:bg-white/[0.07] transition-colors"
                   >
                     <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-2">
                       <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
@@ -162,7 +162,7 @@ export default function QuickCleanupModal({ isOpen, onClose }) {
           )}
         </div>
 
-        <div className="pt-2 border-t border-gray-100 dark:border-gray-700 flex justify-end">
+        <div className="pt-2 border-t flex justify-end border-glass-divider">
           <button
             onClick={onClose}
             className="px-5 py-2 text-xs font-bold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors"

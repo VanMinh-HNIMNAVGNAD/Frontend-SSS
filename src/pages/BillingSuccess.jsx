@@ -139,8 +139,8 @@ export default function BillingSuccess() {
   }, []);
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 bg-gray-50 dark:bg-[#1b1c1d]">
-      <div className="w-full max-w-md bg-white dark:bg-[#282a2c] rounded-3xl border border-gray-200 dark:border-gray-700 shadow-xl p-8 text-center">
+    <div className="min-h-screen flex items-center justify-center p-6">
+      <div className="glass-strong relative w-full max-w-md rounded-[28px] border p-8 text-center">
         {!orderCode ? (
           <MissingOrderCode />
         ) : isChecking ? (
@@ -335,7 +335,7 @@ function RetryButton({ onClick }) {
   return (
     <button
       onClick={onClick}
-      className="mt-6 w-full py-3 px-4 rounded-xl bg-white dark:bg-transparent text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-white/5 font-bold text-[15px] transition-all flex items-center justify-center gap-2 cursor-pointer"
+      className="mt-6 w-full py-3 px-4 rounded-xl bg-white dark:bg-transparent text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700 hover:bg-black/[0.04] dark:hover:bg-white/[0.07] font-bold text-[15px] transition-all flex items-center justify-center gap-2 cursor-pointer"
     >
       <RefreshCw className="w-4 h-4" /> {t('payResult.recheck')}
     </button>
@@ -348,7 +348,7 @@ function BackLinks({ primaryLabel }) {
     <div className="mt-4 space-y-3">
       <Link
         to="/app/billing"
-        className="w-full py-3.5 px-4 rounded-xl bg-gray-900 dark:bg-blue-600 hover:bg-black dark:hover:bg-blue-500 text-white font-bold text-[15px] shadow-lg transition-all flex items-center justify-center gap-2"
+        className="w-full py-3.5 px-4 rounded-xl btn-accent hover:brightness-105 font-bold text-[15px] shadow-lg transition-all flex items-center justify-center gap-2"
       >
         <ArrowLeft className="w-4 h-4" /> {primaryLabel ?? t('payResult.backToBilling')}
       </Link>

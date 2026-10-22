@@ -257,15 +257,15 @@ export default function ShareModal({ isOpen, item, onClose }) {
 
     return (
         <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in cursor-pointer"
+            className="fixed inset-0 glass-overlay z-50 flex items-center justify-center p-4 animate-fade-in cursor-pointer"
             onClick={onClose}
         >
             <div
-                className="bg-white dark:bg-[#282a2c] text-gray-900 dark:text-gray-100 rounded-2xl shadow-2xl w-full max-w-lg border border-gray-200 dark:border-gray-700 overflow-hidden cursor-default"
+                className="glass-strong relative text-gray-900 dark:text-gray-100 rounded-[20px] w-full max-w-lg border overflow-hidden cursor-default"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-glass-divider">
                     <div className="flex items-center gap-2.5 font-bold text-base text-gray-900 dark:text-gray-100">
                         <div className="p-1.5 rounded-lg bg-blue-600/10 dark:bg-blue-500/15">
                             <UserPlus className="w-4 h-4 text-blue-600 dark:text-blue-400" />
@@ -331,7 +331,7 @@ export default function ShareModal({ isOpen, item, onClose }) {
                             <button
                                 type="submit"
                                 disabled={!email.trim() || isSubmitting}
-                                className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center gap-1.5"
+                                className="px-4 py-2.5 btn-accent hover:brightness-105 font-semibold rounded-xl shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center gap-1.5"
                             >
                                 {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>{t('share.send')}</span>}
                             </button>
@@ -360,7 +360,7 @@ export default function ShareModal({ isOpen, item, onClose }) {
                                 return (
                                     <div
                                         key={member.id}
-                                        className="flex items-center justify-between p-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group"
+                                        className="flex items-center justify-between p-2.5 rounded-xl hover:bg-black/[0.04] dark:hover:bg-white/[0.07] transition-colors group"
                                     >
                                         <div className="flex items-center gap-3 min-w-0">
                                             <Avatar name={member.name} avatarUrl={member.avatarUrl} />
@@ -377,8 +377,8 @@ export default function ShareModal({ isOpen, item, onClose }) {
                                                 className={`text-xs px-2 py-1 rounded-lg border cursor-pointer outline-none bg-transparent ${roleInfo.bg} hover:opacity-80 transition`}
                                                 title={t('share.changeRole')}
                                             >
-                                                <option value="VIEWER" className="bg-white dark:bg-[#282a2c] text-gray-900 dark:text-gray-100">{t('share.role.viewer')}</option>
-                                                <option value="EDITOR" className="bg-white dark:bg-[#282a2c] text-gray-900 dark:text-gray-100">{t('share.role.editor')}</option>
+                                                <option value="VIEWER" className="glass-soft text-gray-900 dark:text-gray-100">{t('share.role.viewer')}</option>
+                                                <option value="EDITOR" className="glass-soft text-gray-900 dark:text-gray-100">{t('share.role.editor')}</option>
                                             </select>
                                             {/* Remove Button */}
                                             <button
@@ -399,7 +399,7 @@ export default function ShareModal({ isOpen, item, onClose }) {
                     </div>
 
                     {/* Advanced Share Link Options */}
-                    <div className="pt-4 border-t border-gray-200 dark:border-gray-700 space-y-3">
+                    <div className="pt-4 border-t space-y-3 border-glass-divider">
                         <h4 className="font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-[11px]">
                             {t('share.linkSecurity')}
                         </h4>
@@ -476,7 +476,7 @@ export default function ShareModal({ isOpen, item, onClose }) {
                     </div>
 
                     {/* Footer */}
-                    <div className="pt-3 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                    <div className="pt-3 border-t flex items-center justify-between border-glass-divider">
                         <button
                             onClick={handleCopyLink}
                             className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors font-medium text-sm cursor-pointer"
@@ -487,7 +487,7 @@ export default function ShareModal({ isOpen, item, onClose }) {
 
                         <button
                             onClick={onClose}
-                            className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl shadow-sm transition-all cursor-pointer"
+                            className="px-5 py-2 btn-accent hover:brightness-105 font-semibold rounded-xl shadow-sm transition-all cursor-pointer"
                         >
                             {t('common.done')}
                         </button>

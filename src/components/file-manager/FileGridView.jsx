@@ -341,7 +341,7 @@ export default function FileGridView() {
 
             {/* Pagination Controls */}
             {totalPages > 1 && (
-                <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+                <div className="flex items-center justify-between pt-4 border-t text-xs text-gray-500 dark:text-gray-400 border-glass-divider">
                     <div>
                         {tRich(t('list.pagination.showing'), {
                             from: <span className="font-semibold text-gray-700 dark:text-gray-300">{((currentPage - 1) * pageSize) + 1}</span>,
@@ -353,7 +353,7 @@ export default function FileGridView() {
                         <button
                             disabled={currentPage === 1}
                             onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                            className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-white/5 disabled:opacity-40 disabled:hover:bg-transparent transition-colors"
+                            className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] disabled:opacity-40 disabled:hover:bg-transparent transition-colors"
                         >
                             <ChevronLeft className="w-4 h-4" />
                         </button>
@@ -363,7 +363,7 @@ export default function FileGridView() {
                         <button
                             disabled={currentPage === totalPages}
                             onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                            className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-white/5 disabled:opacity-40 disabled:hover:bg-transparent transition-colors"
+                            className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] disabled:opacity-40 disabled:hover:bg-transparent transition-colors"
                         >
                             <ChevronRight className="w-4 h-4" />
                         </button>

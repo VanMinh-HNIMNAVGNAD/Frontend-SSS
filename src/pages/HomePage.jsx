@@ -127,7 +127,7 @@ const SectionGrid = ({ itemList, emptyMessage, onItemOpen, onToggleStar, onConte
                     onDoubleClick={() => onItemOpen && onItemOpen(item, itemList)}
                     onContextMenu={(e) => onContextMenu && onContextMenu(e, item)}
                     title={t('home.doubleClickToOpen')}
-                    className="bg-white dark:bg-[#282a2c] border border-gray-300/80 dark:border-gray-700/60 rounded-xl p-2 hover:shadow-md hover:border-blue-400 transition-all cursor-pointer flex flex-col group h-44 select-none shadow-2xs"
+                    className="glass-soft border rounded-xl p-2 hover:shadow-md hover:border-blue-400 transition-all cursor-pointer flex flex-col group h-44 select-none"
                 >
                     {/* Hàng đầu: icon loại tệp và tên tệp nâng cao, nút sao đã bỏ vì có trong context menu */}
                     <div className="flex items-center justify-between gap-1 mb-1 h-4.5">
@@ -144,7 +144,7 @@ const SectionGrid = ({ itemList, emptyMessage, onItemOpen, onToggleStar, onConte
                                 onContextMenu && onContextMenu(e, item);
                             }}
                             onDoubleClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
-                            className="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 p-0.5 rounded-full hover:bg-gray-100 dark:hover:bg-white/5 opacity-0 group-hover:opacity-100 pointer-coarse:opacity-100 transition-opacity shrink-0"
+                            className="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 p-0.5 rounded-full hover:bg-black/[0.05] dark:hover:bg-white/[0.08] opacity-0 group-hover:opacity-100 pointer-coarse:opacity-100 transition-opacity shrink-0"
                             title={t('home.moreActions')}
                         >
                             <MoreVertical className="w-3.5 h-3.5" />
@@ -327,7 +327,7 @@ export default function HomePage() {
                 onClick={() => setViewMode('list')}
                 title={t('view.list')}
                 className={`p-1.5 rounded-full transition-colors ${viewMode === 'list'
-                        ? 'bg-white dark:bg-[#282a2c] shadow-xs text-blue-700 dark:text-blue-400 font-bold'
+                        ? 'glass-active text-blue-700 dark:text-blue-300 font-bold'
                         : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
                     }`}
             >
@@ -337,7 +337,7 @@ export default function HomePage() {
                 onClick={() => setViewMode('grid')}
                 title={t('view.grid')}
                 className={`p-1.5 rounded-full transition-colors ${viewMode === 'grid'
-                        ? 'bg-white dark:bg-[#282a2c] shadow-xs text-blue-700 dark:text-blue-400 font-bold'
+                        ? 'glass-active text-blue-700 dark:text-blue-300 font-bold'
                         : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
                     }`}
             >
@@ -357,13 +357,13 @@ export default function HomePage() {
         const shown = items.length;
         return (
             <div className="flex flex-col h-full">
-                <div className="flex items-center justify-between gap-3 mb-2 pb-2 border-b border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between gap-3 mb-2 pb-2 border-b border-glass-divider">
                     <div className="flex items-center gap-3 min-w-0">
                         <button
                             onClick={() => setSearchQuery('')}
                             title={t('home.search.back')}
                             aria-label={t('home.search.back')}
-                            className="p-1.5 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg text-gray-500 dark:text-gray-400 transition-colors shrink-0 cursor-pointer"
+                            className="p-1.5 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] rounded-lg text-gray-500 dark:text-gray-400 transition-colors shrink-0 cursor-pointer"
                         >
                             <ArrowLeft className="w-5 h-5" />
                         </button>
@@ -430,7 +430,7 @@ export default function HomePage() {
             aria-busy={isRefreshing}
         >
             {/* Header Toolbar */}
-            <div className="flex items-center justify-between pb-2 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between pb-2 border-b border-glass-divider">
                 <div className="flex items-center gap-2">
                     <Home className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                     <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">{t('home.title')}</h1>
@@ -445,7 +445,7 @@ export default function HomePage() {
                         <button
                             onClick={handleRestoreDismissed}
                             title={t('home.restoreDismissed.hint')}
-                            className="flex items-center gap-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 px-2.5 py-1.5 rounded-full border border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                            className="flex items-center gap-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 px-2.5 py-1.5 rounded-full border border-gray-300 dark:border-gray-700 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-colors cursor-pointer"
                         >
                             <EyeOff className="w-3.5 h-3.5" />
                             {t('home.restoreDismissed', { count: dismissed.size })}
@@ -458,7 +458,7 @@ export default function HomePage() {
 
             {/* SECTION 1: MY DRIVE */}
             <section className="space-y-2">
-                <div className="flex items-center justify-between pb-1 border-b border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between pb-1 border-b border-glass-divider">
                     <div className="flex items-center gap-2">
                         <HardDrive className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                         <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{t('home.myDrive')}</h2>
@@ -492,7 +492,7 @@ export default function HomePage() {
 
             {/* SECTION 2: RECENT */}
             <section className="space-y-2">
-                <div className="flex items-center justify-between pb-1 border-b border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between pb-1 border-b border-glass-divider">
                     <div className="flex items-center gap-2">
                         <Clock className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                         <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{t('page.recent.title')}</h2>
@@ -526,7 +526,7 @@ export default function HomePage() {
 
             {/* SECTION 3: SHARED WITH ME */}
             <section className="space-y-2">
-                <div className="flex items-center justify-between pb-1 border-b border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between pb-1 border-b border-glass-divider">
                     <div className="flex items-center gap-2">
                         <Users className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                         <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{t('page.sharedWithMe.title')}</h2>

@@ -7,7 +7,7 @@ export default function FileSkeleton({ count = 8, type = 'table' }) {
         return (
             <div className="space-y-2 animate-pulse py-2">
                 {[...Array(5)].map((_, i) => (
-                    <div key={i} className="flex items-center justify-between py-2.5 px-3 border-b border-gray-100 dark:border-gray-700">
+                    <div key={i} className="flex items-center justify-between py-2.5 px-3 border-b border-glass-divider">
                         <div className="flex items-center gap-3 flex-1">
                             <div className="w-5 h-5 bg-gray-200 dark:bg-gray-700 rounded shrink-0" />
                             <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/3" />
@@ -52,9 +52,9 @@ export default function FileSkeleton({ count = 8, type = 'table' }) {
 
     // 3. Extended Metadata Table / List Mode Skeleton (For FileListView)
     return (
-        <div className="w-full overflow-hidden animate-pulse border-b border-gray-200 dark:border-gray-700">
+        <div className="w-full overflow-hidden animate-pulse border-b border-glass-divider">
             {/* Table Header Skeleton */}
-            <div className="grid grid-cols-12 items-center border-b border-gray-200 dark:border-gray-700 py-3 px-3 bg-gray-50/80 dark:bg-white/5 text-xs">
+            <div className="grid grid-cols-12 items-center border-b py-3 px-3 bg-gray-50/80 dark:bg-white/5 text-xs border-glass-divider">
                 <div className="col-span-3 flex items-center gap-2">
                     <div className="w-4 h-4 bg-gray-200 dark:bg-gray-700 rounded shrink-0" />
                     <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24" />

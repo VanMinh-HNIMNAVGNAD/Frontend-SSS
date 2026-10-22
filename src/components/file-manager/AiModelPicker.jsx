@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown, Check, MapPin } from 'lucide-react';
+import { ChevronDown, Check, Lock, MapPin } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { localeTagOf } from '../../utils/locale';
+import { TIER_LABEL, tierRank } from '../../constants/aiTiers';
 
 /**
  * Nút chọn model của khung Hỏi AI (##91).
@@ -15,6 +16,10 @@ import { localeTagOf } from '../../utils/locale';
  *   • đọc được gì ngoài chữ (`reads`) — model chỉ đọc chữ không xem được ảnh, PDF, video.
  *
  * Backend cũ chưa có `provider`/`location` thì vẫn vẽ được: gom vào một nhóm, bỏ trống phần thiếu.
+ *
+ * MODEL THEO GÓI (22/10/2026): model gói hiện tại chưa tới bậc (`locked` từ `GET /ai/status`) không
+ * biến mất mà xuống nhóm "Mở khoá khi nâng cấp", có ổ khoá + "Gói Plus+". Bấm vào nó KHÔNG đổi model
+ * (backend sẽ 403) mà gọi `onLockedPick` — khung chat hiện khối mời nâng cấp.
  */
 const regionLabel = (t, location) => {
     if (!location) return null;
@@ -23,7 +28,7 @@ const regionLabel = (t, location) => {
     return label === key ? location : label;
 };
 
-export default function AiModelPicker({ models, value, onChange, disabled = false }) {
+export default function AiModelPicker({ models, value, onChange, onLockedPick, plan, disabled = false }) {
     const { t, language } = useLanguage();
     const [open, setOpen] = useState(false);
     const rootRef = useRef(null);
@@ -37,6 +42,7 @@ export default function AiModelPicker({ models, value, onChange, disabled = fals
     const groups = useMemo(() => {
         const byProvider = new Map();
         for (const m of models) {
+            if (m.locked) continue;
             const key = m.provider || 'google';
             if (!byProvider.has(key)) byProvider.set(key, []);
             byProvider.get(key).push(m);
@@ -45,6 +51,17 @@ export default function AiModelPicker({ models, value, onChange, disabled = fals
         // model mặc định luôn ở trên cùng.
         return [...byProvider.entries()];
     }, [models]);
+
+    // Model cần gói cao hơn — xếp theo bậc cần có (Pro trước Plus), cùng bậc giữ thứ tự backend.
+    const lockedModels = useMemo(
+        () =>
+            models
+                .map((m, index) => ({ m, index }))
+                .filter(({ m }) => m.locked)
+                .sort((a, b) => tierRank(a.m.minTier) - tierRank(b.m.minTier) || a.index - b.index)
+                .map(({ m }) => m),
+        [models],
+    );
 
     useEffect(() => {
         if (!open) return undefined;
@@ -88,8 +105,9 @@ export default function AiModelPicker({ models, value, onChange, disabled = fals
                 aria-expanded={open}
                 aria-label={t('ai.model.label')}
                 title={t('ai.model.label')}
-                className="flex items-center gap-1.5 max-w-[15rem] px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-1.5 max-w-[15rem] px-2.5 py-1 rounded-full bg-black/[0.05] dark:bg-white/[0.08] ring-1 ring-black/[0.04] dark:ring-white/10 text-gray-800 dark:text-gray-200 font-medium hover:bg-black/[0.08] dark:hover:bg-white/[0.12] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
+                {selected?.locked && <Lock className="w-3 h-3 shrink-0 text-amber-600 dark:text-amber-400" />}
                 <span className="truncate">{selected?.label ?? value}</span>
                 {selected?.location && selected.location !== 'global' && (
                     <span className="shrink-0 flex items-center gap-0.5 text-[10px] text-emerald-700 dark:text-emerald-400">
@@ -101,87 +119,144 @@ export default function AiModelPicker({ models, value, onChange, disabled = fals
             </button>
 
             {open && (
-                <div
-                    role="listbox"
-                    aria-label={t('ai.model.label')}
-                    className="absolute bottom-full left-0 mb-2 z-30 w-[min(22rem,calc(100vw-2rem))] max-h-[min(60vh,28rem)] overflow-y-auto rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1f2023] shadow-2xl py-1.5 animate-fade-in"
-                >
-                    {groups.map(([provider, list]) => (
-                        <div key={provider} className="py-0.5">
-                            <div className="px-3 pt-1.5 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                                {t(`ai.provider.${provider}`)}
-                            </div>
-                            {list.map((m) => {
-                                const active = m.id === selected?.id;
-                                const weight = typeof m.quotaWeight === 'number' ? m.quotaWeight : null;
-                                return (
-                                    <button
+                // Khung kính KHÔNG cuộn, phần cuộn nằm trong: lớp blur `::before` của `glass-strong` là
+                // phần tử absolute — đặt nó trong khung cuộn thì nó trôi theo nội dung và nửa dưới
+                // danh sách mất blur.
+                <div className="glass-strong absolute bottom-full left-0 mb-2 z-30 w-[min(22rem,calc(100vw-2rem))] rounded-[20px] overflow-hidden animate-glass-in origin-bottom-left">
+                    <div
+                        role="listbox"
+                        aria-label={t('ai.model.label')}
+                        className="max-h-[min(60vh,30rem)] overflow-y-auto overscroll-contain p-1.5"
+                    >
+                        {groups.map(([provider, list]) => (
+                            <div key={provider} className="py-0.5">
+                                <div className="px-2.5 pt-1.5 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                                    {t(`ai.provider.${provider}`)}
+                                </div>
+                                {list.map((m) => (
+                                    <ModelRow
                                         key={m.id}
-                                        type="button"
-                                        role="option"
-                                        aria-selected={active}
-                                        onClick={() => {
+                                        m={m}
+                                        active={m.id === selected?.id}
+                                        onPick={() => {
                                             onChange(m.id);
                                             setOpen(false);
                                         }}
-                                        className={`w-full flex items-start gap-2 px-3 py-2 text-left transition-colors cursor-pointer ${
-                                            active ? 'bg-blue-50 dark:bg-blue-500/10' : 'hover:bg-gray-50 dark:hover:bg-white/5'
-                                        }`}
-                                    >
-                                        <span className="w-4 shrink-0 pt-0.5">
-                                            {active && <Check className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />}
+                                        readsText={readsText(m)}
+                                        number={number}
+                                        t={t}
+                                    />
+                                ))}
+                            </div>
+                        ))}
+
+                        {/* Model cần gói cao hơn: vẫn liệt kê (người dùng biết nó tồn tại và cần gì
+                            để dùng), bấm vào thì mời nâng cấp chứ không đổi model. */}
+                        {lockedModels.length > 0 && (
+                            <div className="mt-1 pt-1 border-t border-glass-divider">
+                                <div className="px-2.5 pt-1.5 pb-1 flex items-center justify-between gap-2 text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                                    <span>{t('ai.model.lockedSection')}</span>
+                                    {plan?.tier && (
+                                        <span className="normal-case tracking-normal font-semibold">
+                                            {t('ai.model.yourPlan', { plan: TIER_LABEL[plan.tier] ?? plan.tier })}
                                         </span>
-                                        <span className="min-w-0 flex-1">
-                                            <span className="flex items-center gap-1.5 flex-wrap">
-                                                <span className="text-[13px] font-semibold text-gray-900 dark:text-gray-100">{m.label}</span>
-                                                {m.preview && (
-                                                    <span className="px-1 rounded text-[9px] font-bold uppercase bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300">
-                                                        preview
-                                                    </span>
-                                                )}
-                                            </span>
-                                            {readsText(m) && (
-                                                <span className="block text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">{readsText(m)}</span>
-                                            )}
-                                        </span>
-                                        <span className="shrink-0 flex flex-col items-end gap-0.5 text-[10px]">
-                                            {m.location && (
-                                                <span
-                                                    className={`flex items-center gap-0.5 ${
-                                                        m.location === 'global'
-                                                            ? 'text-gray-500 dark:text-gray-400'
-                                                            : 'text-emerald-700 dark:text-emerald-400 font-semibold'
-                                                    }`}
-                                                >
-                                                    <MapPin className="w-3 h-3" />
-                                                    {regionLabel(t, m.location)}
-                                                </span>
-                                            )}
-                                            {weight !== null && (
-                                                <span
-                                                    className={`font-mono font-semibold ${
-                                                        weight > 1.05
-                                                            ? 'text-rose-600 dark:text-rose-400'
-                                                            : weight < 0.95
-                                                              ? 'text-emerald-700 dark:text-emerald-400'
-                                                              : 'text-gray-500 dark:text-gray-400'
-                                                    }`}
-                                                    title={t('ai.model.weightHint', { weight: number.format(weight) })}
-                                                >
-                                                    ×{number.format(weight)}
-                                                </span>
-                                            )}
-                                        </span>
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    ))}
-                    <p className="px-3 pt-1.5 pb-1 text-[10px] leading-snug text-gray-500 dark:text-gray-400 border-t border-gray-100 dark:border-gray-800 mt-1">
-                        {t('ai.model.footnote')}
-                    </p>
+                                    )}
+                                </div>
+                                {lockedModels.map((m) => (
+                                    <ModelRow
+                                        key={m.id}
+                                        m={m}
+                                        locked
+                                        onPick={() => {
+                                            setOpen(false);
+                                            onLockedPick?.(m);
+                                        }}
+                                        readsText={readsText(m)}
+                                        number={number}
+                                        t={t}
+                                    />
+                                ))}
+                            </div>
+                        )}
+
+                        <p className="px-2.5 pt-1.5 pb-1 text-[10px] leading-snug text-gray-500 dark:text-gray-400 border-t mt-1 border-glass-divider">
+                            {t('ai.model.footnote')}
+                        </p>
+                    </div>
                 </div>
             )}
         </div>
+    );
+}
+
+/** Một hàng trong danh sách model. `locked`: gói chưa tới bậc — mờ đi, ổ khoá + "Gói Plus+". */
+function ModelRow({ m, active = false, locked = false, onPick, readsText, number, t }) {
+    const weight = typeof m.quotaWeight === 'number' ? m.quotaWeight : null;
+    return (
+        <button
+            type="button"
+            role="option"
+            aria-selected={active}
+            // KHÔNG `aria-disabled`: hàng khoá vẫn bấm được (mở khối mời nâng cấp). Trạng thái khoá
+            // đã nằm trong chính nội dung hàng (huy hiệu "Gói Plus+") nên trình đọc màn hình đọc ra.
+            data-locked={locked || undefined}
+            onClick={onPick}
+            title={locked ? t('ai.model.lockedHint', { tier: TIER_LABEL[m.minTier] ?? m.minTier }) : undefined}
+            className={`w-full flex items-start gap-2 px-2.5 py-2 rounded-[12px] text-left transition-colors cursor-pointer ${
+                active ? 'bg-blue-500/10 dark:bg-blue-400/15' : 'hover:bg-black/[0.05] dark:hover:bg-white/[0.08]'
+            }`}
+        >
+            <span className="w-4 shrink-0 pt-0.5">
+                {active && <Check className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />}
+                {locked && <Lock className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />}
+            </span>
+            <span className={`min-w-0 flex-1 ${locked ? 'opacity-60' : ''}`}>
+                <span className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[13px] font-semibold text-gray-900 dark:text-gray-100">{m.label}</span>
+                    {m.preview && (
+                        <span className="px-1 rounded text-[9px] font-bold uppercase bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300">
+                            preview
+                        </span>
+                    )}
+                </span>
+                {readsText && (
+                    <span className="block text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">{readsText}</span>
+                )}
+            </span>
+            <span className="shrink-0 flex flex-col items-end gap-0.5 text-[10px]">
+                {locked ? (
+                    <span className="px-1.5 py-0.5 rounded-full font-bold bg-gradient-to-r from-amber-400/20 to-rose-400/20 text-amber-800 dark:text-amber-300 ring-1 ring-amber-500/25 whitespace-nowrap">
+                        {t('ai.model.tierBadge', { tier: TIER_LABEL[m.minTier] ?? m.minTier })}
+                    </span>
+                ) : (
+                    m.location && (
+                        <span
+                            className={`flex items-center gap-0.5 ${
+                                m.location === 'global'
+                                    ? 'text-gray-500 dark:text-gray-400'
+                                    : 'text-emerald-700 dark:text-emerald-400 font-semibold'
+                            }`}
+                        >
+                            <MapPin className="w-3 h-3" />
+                            {regionLabel(t, m.location)}
+                        </span>
+                    )
+                )}
+                {weight !== null && (
+                    <span
+                        className={`font-mono font-semibold ${locked ? 'opacity-60' : ''} ${
+                            weight > 1.05
+                                ? 'text-rose-600 dark:text-rose-400'
+                                : weight < 0.95
+                                  ? 'text-emerald-700 dark:text-emerald-400'
+                                  : 'text-gray-500 dark:text-gray-400'
+                        }`}
+                        title={t('ai.model.weightHint', { weight: number.format(weight) })}
+                    >
+                        ×{number.format(weight)}
+                    </span>
+                )}
+            </span>
+        </button>
     );
 }

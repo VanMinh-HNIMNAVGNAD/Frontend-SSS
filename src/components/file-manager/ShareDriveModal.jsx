@@ -114,7 +114,7 @@ export default function ShareDriveModal({ isOpen, drive, onClose, onChanged }) {
                 render inline nên nằm trong đó — chặn event tại đây để còn Dán được vào ô email */}
             <div className="space-y-5" onContextMenu={(e) => e.stopPropagation()}>
                 {/* Giải thích bản chất share của Bộ nhớ dùng chung */}
-                <div className="flex gap-2.5 p-3 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/50 text-[12px] text-indigo-900 dark:text-indigo-200 leading-relaxed">
+                <div className="flex gap-2.5 p-3 rounded-2xl bg-indigo-50/70 dark:bg-indigo-400/15 border border-indigo-100 dark:border-indigo-400/25 text-[12px] text-indigo-900 dark:text-indigo-200 leading-relaxed">
                     <Users className="w-4 h-4 shrink-0 mt-0.5 text-indigo-600 dark:text-indigo-400" />
                     <p>
                         {tRich(t('driveShare.explain'), {
@@ -145,12 +145,12 @@ export default function ShareDriveModal({ isOpen, drive, onClose, onChanged }) {
                                 value={email}
                                 onChange={(e) => { setEmail(e.target.value); setErrorMsg(''); }}
                                 placeholder={t('driveShare.email.placeholder')}
-                                className="flex-1 min-w-0 px-3.5 py-2.5 rounded-2xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-[#282a2c] text-sm text-slate-800 dark:text-gray-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                                className="glass-input flex-1 min-w-0 px-3.5 py-2.5 rounded-2xl border text-sm text-slate-800 dark:text-gray-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
                             />
                             <select
                                 value={role}
                                 onChange={(e) => setRole(e.target.value)}
-                                className="px-3 py-2.5 rounded-2xl border border-slate-200 dark:border-gray-700 bg-white dark:bg-[#282a2c] text-sm font-medium text-slate-700 dark:text-gray-300 outline-none focus:ring-2 focus:ring-indigo-500/20 cursor-pointer"
+                                className="glass-input px-3 py-2.5 rounded-2xl border text-sm font-medium text-slate-700 dark:text-gray-300 outline-none focus:ring-2 focus:ring-indigo-500/20 cursor-pointer"
                             >
                                 {ROLE_OPTIONS.map((r) => (
                                     <option key={r.value} value={r.value}>{t(r.labelKey)}</option>
@@ -246,7 +246,7 @@ export default function ShareDriveModal({ isOpen, drive, onClose, onChanged }) {
                     </p>
                 )}
 
-                <div className="flex justify-end pt-3 border-t border-slate-100 dark:border-gray-700">
+                <div className="flex justify-end pt-3 border-t border-glass-divider">
                     <button
                         onClick={onClose}
                         className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl shadow-sm transition-all cursor-pointer"

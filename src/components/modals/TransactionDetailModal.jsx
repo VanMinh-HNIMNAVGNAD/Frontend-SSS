@@ -147,12 +147,12 @@ export default function TransactionDetailModal({ transaction, onClose, onCancell
 
   return (
     <div
-      className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[110] flex items-center justify-center p-4 animate-in fade-in duration-200"
+      className="fixed inset-0 glass-overlay z-[110] flex items-center justify-center p-4 duration-200 animate-fade-in"
       onClick={handleBackdropClick}
       role="presentation"
     >
       <div
-        className="bg-white dark:bg-[#282a2c] rounded-3xl max-w-md w-full p-7 shadow-2xl relative animate-in zoom-in-95 duration-300 border border-gray-100 dark:border-gray-700"
+        className="glass-strong rounded-[28px] max-w-md w-full p-7 relative border animate-glass-in"
         onClick={(event) => event.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -209,14 +209,14 @@ export default function TransactionDetailModal({ transaction, onClose, onCancell
           <div className="space-y-3">
             <Link
               to={`/billing/success?orderCode=${transaction.orderCode}`}
-              className="w-full py-3 rounded-xl bg-gray-900 hover:bg-black dark:bg-blue-600 dark:hover:bg-blue-500 text-white font-bold text-[14px] transition-all flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full py-3 rounded-xl btn-accent hover:brightness-105 font-bold text-[14px] transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
               <ExternalLink className="w-4 h-4" /> {t('tx.recheck')}
             </Link>
 
             {/* PROCESSING: nói rõ vì sao KHÔNG có nút huỷ, thay vì im lặng giấu nút đi. */}
             {!canCancel && (
-              <div className="flex items-start gap-2.5 rounded-2xl border border-amber-200 dark:border-amber-500/30 bg-amber-50/60 dark:bg-amber-950/30 p-4">
+              <div className="flex items-start gap-2.5 rounded-2xl border border-amber-200 dark:border-amber-500/30 bg-amber-50/60 dark:bg-amber-400/15 p-4">
                 <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                 <p className="text-[13.5px] text-amber-800 dark:text-amber-200 leading-snug">
                   {t('tx.processingNote')}
@@ -225,7 +225,7 @@ export default function TransactionDetailModal({ transaction, onClose, onCancell
             )}
 
             {!canCancel ? null : confirmingCancel ? (
-              <div className="rounded-2xl border border-rose-200 dark:border-rose-500/30 bg-rose-50/60 dark:bg-rose-950/30 p-4 space-y-3">
+              <div className="rounded-2xl border border-rose-200 dark:border-rose-500/30 bg-rose-50/60 dark:bg-rose-400/15 p-4 space-y-3">
                 <div className="flex items-start gap-2.5">
                   <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
                   <p className="text-[13.5px] text-rose-800 dark:text-rose-200 leading-snug">
@@ -236,7 +236,7 @@ export default function TransactionDetailModal({ transaction, onClose, onCancell
                   <button
                     onClick={() => setConfirmingCancel(false)}
                     disabled={isCancelling}
-                    className="flex-1 py-2.5 rounded-xl bg-white dark:bg-[#282a2c] border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 font-bold text-[14px] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="glass-soft flex-1 py-2.5 rounded-xl border text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-white/10 font-bold text-[14px] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {t('tx.detail.keep')}
                   </button>
@@ -258,7 +258,7 @@ export default function TransactionDetailModal({ transaction, onClose, onCancell
             ) : (
               <button
                 onClick={() => setConfirmingCancel(true)}
-                className="w-full py-3 rounded-xl bg-white dark:bg-[#282a2c] border border-rose-200 dark:border-rose-500/30 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 font-bold text-[14px] transition-all flex items-center justify-center gap-2 cursor-pointer"
+                className="glass-soft w-full py-3 rounded-xl border border-rose-200 dark:border-rose-500/30 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 font-bold text-[14px] transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Ban className="w-4 h-4" /> {t('tx.cancelInvoice')}
               </button>
@@ -269,7 +269,7 @@ export default function TransactionDetailModal({ transaction, onClose, onCancell
         {!isOpen && (
           <button
             onClick={onClose}
-            className="w-full py-3 rounded-xl bg-white dark:bg-[#282a2c] border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 font-bold text-[14px] transition-all cursor-pointer"
+            className="glass-soft w-full py-3 rounded-xl border text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-white/10 font-bold text-[14px] transition-all cursor-pointer"
           >
             {t('common.close')}
           </button>

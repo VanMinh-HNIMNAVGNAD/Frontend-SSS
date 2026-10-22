@@ -24,14 +24,18 @@ export default function App() {
                                 position="top-right" 
                                 toastOptions={{
                                     duration: 3500,
+                                    // Toast là kính nổi như menu/popover (`glass-strong` ở index.css) —
+                                    // viết bằng style vì react-hot-toast nhận style, không nhận class.
                                     style: {
-                                        borderRadius: '12px',
-                                        background: 'var(--app-surface)',
+                                        borderRadius: '18px',
+                                        background: 'var(--glass-fill-strong)',
+                                        WebkitBackdropFilter: 'blur(var(--glass-blur)) saturate(var(--glass-saturate))',
+                                        backdropFilter: 'blur(var(--glass-blur)) saturate(var(--glass-saturate))',
                                         color: 'var(--app-ink)',
-                                        border: '1px solid var(--app-border)',
+                                        border: '1px solid var(--glass-rim)',
                                         fontSize: '13px',
                                         fontWeight: '500',
-                                        boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+                                        boxShadow: 'var(--glass-highlight), 0 0 0 1px var(--glass-hairline), var(--glass-shadow-pop)',
                                     },
                                     success: {
                                         iconTheme: {

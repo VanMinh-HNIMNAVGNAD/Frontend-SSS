@@ -21,7 +21,7 @@ export default function RecentPage() {
 
     return (
         <div className="flex flex-col h-full" onContextMenu={(e) => e.preventDefault()}>
-            <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between mb-4 pb-2 border-b border-glass-divider">
                 <div className="flex items-center gap-2">
                     <Clock className="w-6 h-6 text-purple-600 dark:text-purple-400" />
                     <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">{t('page.recent.title')}</h1>
@@ -32,7 +32,7 @@ export default function RecentPage() {
                         onClick={() => setViewMode('list')}
                         title={t('view.list')}
                         className={`p-1.5 rounded-full transition-colors ${
-                            viewMode === 'list' ? 'bg-white dark:bg-[#282a2c] shadow-xs text-blue-700 dark:text-blue-400 font-bold' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+                            viewMode === 'list' ? 'glass-active text-blue-700 dark:text-blue-300 font-bold' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
                         }`}
                     >
                         <List className="w-4 h-4" />
@@ -41,7 +41,7 @@ export default function RecentPage() {
                         onClick={() => setViewMode('grid')}
                         title={t('view.grid')}
                         className={`p-1.5 rounded-full transition-colors ${
-                            viewMode === 'grid' ? 'bg-white dark:bg-[#282a2c] shadow-xs text-blue-700 dark:text-blue-400 font-bold' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+                            viewMode === 'grid' ? 'glass-active text-blue-700 dark:text-blue-300 font-bold' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
                         }`}
                     >
                         <LayoutGrid className="w-4 h-4" />

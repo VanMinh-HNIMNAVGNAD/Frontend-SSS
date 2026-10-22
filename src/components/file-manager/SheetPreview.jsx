@@ -103,9 +103,9 @@ export default function SheetPreview({ url, onDownload }) {
   }
 
   const headerCell =
-    'sticky top-0 z-20 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-semibold text-[11px] px-2 py-1 border-b border-r border-slate-300 dark:border-white/10 text-center';
+    'sticky top-0 z-20 bg-slate-100 dark:bg-white/[0.07] text-slate-500 dark:text-slate-400 font-semibold text-[11px] px-2 py-1 border-b border-r dark:border-white/10 text-center border-glass-divider';
   const indexCell =
-    'sticky left-0 z-10 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-normal text-[11px] px-2 py-1 border-b border-r border-slate-300 dark:border-white/10 text-right tabular-nums';
+    'sticky left-0 z-10 bg-slate-100 dark:bg-white/[0.07] text-slate-500 dark:text-slate-400 font-normal text-[11px] px-2 py-1 border-b border-r dark:border-white/10 text-right tabular-nums border-glass-divider';
 
   return (
     // `flex-1 min-h-0` chứ không phải `h-full`: cả hai nơi gọi đều đặt component
@@ -149,7 +149,7 @@ export default function SheetPreview({ url, onDownload }) {
                       key={cell.address}
                       rowSpan={cell.rowSpan > 1 ? cell.rowSpan : undefined}
                       colSpan={cell.colSpan > 1 ? cell.colSpan : undefined}
-                      className={`px-2 py-1 border-b border-r border-slate-200 dark:border-white/[0.07] whitespace-pre max-w-xs truncate align-top ${
+                      className={`px-2 py-1 border-b border-r dark:border-white/[0.07] whitespace-pre max-w-xs truncate align-top border-glass-divider ${
                         cell.numeric ? 'text-right tabular-nums' : 'text-left'
                       }`}
                       title={cell.text || undefined}
@@ -167,7 +167,7 @@ export default function SheetPreview({ url, onDownload }) {
       </div>
 
       {book && book.SheetNames.length > 1 && (
-        <div className="flex items-center gap-1 px-3 py-2 overflow-x-auto border-t border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-slate-900 shrink-0">
+        <div className="flex items-center gap-1 px-3 py-2 overflow-x-auto border-t dark:border-white/10 bg-slate-100 dark:bg-black/20 shrink-0 border-glass-divider">
           {book.SheetNames.map((sheetName, index) => (
             <button
               key={sheetName}

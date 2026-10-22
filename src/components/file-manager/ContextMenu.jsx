@@ -64,20 +64,22 @@ const RENAME_SHORTCUT_KEYS =
 // `justify-between`, hàng không có dùng `gap-3`, nên nhãn ở hai kiểu hàng không
 // nằm cùng một cột và bề rộng w-60/w-64 lệch nhau giữa các menu. Gom về đây để
 // mọi hàng, mọi menu đều chung một lưới: [icon 16px][gap 12px][nhãn co giãn][phần đuôi].
+//
+// Kính nổi (`glass-strong`, index.css): menu không chứa con `position: fixed` nên được blur.
 const MENU_SHELL =
-    'fixed z-50 w-72 max-w-[calc(100vw-16px)] bg-white dark:bg-[#282a2c]/95 backdrop-blur-md ' +
-    'text-gray-900 dark:text-gray-200 rounded-2xl shadow-2xl px-1.5 py-1.5 ' +
-    'border border-gray-300 dark:border-gray-700/80 text-[13px] font-sans select-none animate-fade-in';
+    'glass-strong fixed z-50 w-72 max-w-[calc(100vw-16px)] ' +
+    'text-gray-900 dark:text-gray-100 rounded-[20px] px-1.5 py-1.5 ' +
+    'text-[13px] font-sans select-none animate-glass-in';
 
-const ROW_BASE = 'w-full px-2.5 py-2 rounded-xl flex items-center gap-3 text-left transition-colors';
+const ROW_BASE = 'w-full px-2.5 py-2 rounded-[12px] flex items-center gap-3 text-left transition-colors';
 
 const TONE = {
-    default: 'text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#37393b]',
-    strong: 'text-gray-900 dark:text-gray-100 font-medium hover:bg-gray-100 dark:hover:bg-[#37393b]',
-    accent: 'text-blue-700 dark:text-blue-300 font-medium hover:bg-gray-100 dark:hover:bg-[#37393b]',
+    default: 'text-gray-800 dark:text-gray-200 hover:bg-black/[0.06] dark:hover:bg-white/[0.09]',
+    strong: 'text-gray-900 dark:text-gray-100 font-medium hover:bg-black/[0.06] dark:hover:bg-white/[0.09]',
+    accent: 'text-blue-700 dark:text-blue-300 font-medium hover:bg-black/[0.06] dark:hover:bg-white/[0.09]',
     danger: 'text-rose-600 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-500/10',
     // Chỉ chữ chuyển sang đỏ khi rê chuột (Chuyển vào thùng rác)
-    dangerHover: 'text-gray-800 dark:text-gray-200 hover:text-rose-700 dark:hover:text-rose-300 hover:bg-gray-100 dark:hover:bg-[#37393b]',
+    dangerHover: 'text-gray-800 dark:text-gray-200 hover:text-rose-700 dark:hover:text-rose-300 hover:bg-black/[0.06] dark:hover:bg-white/[0.09]',
 };
 
 /**
@@ -104,7 +106,7 @@ function MenuRow({
             {...buttonProps}
             onClick={onClick}
             disabled={disabled}
-            className={`${ROW_BASE} ${TONE[tone]} ${active ? 'bg-gray-100 dark:bg-[#37393b]' : ''} ${
+            className={`${ROW_BASE} ${TONE[tone]} ${active ? 'bg-black/[0.06] dark:bg-white/[0.09]' : ''} ${
                 disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
             }`}
         >
@@ -151,9 +153,12 @@ function MenuSeparator() {
 // backdrop-blur lồng trong lớp backdrop-blur khác của menu cha là làm mờ hai lần.
 // Bề rộng (`w-56`) truyền riêng qua `SubmenuRow.panelWidth`: menu con "Chỉnh sửa" có hàng mang
 // phím tắt ("Dán vào thư mục này  Ctrl+V") nên cần rộng hơn "Tải lên ▸".
+//
+// Đặc hơn menu cha: menu cha có backdrop-filter nên là "backdrop root" của menu con — phần menu
+// con thò ra ngoài khung menu cha KHÔNG được blur, nền phải tự đủ đặc để chữ đọc được.
 const SUBMENU_SHELL =
-    'absolute z-10 max-w-[calc(100vw-16px)] bg-white dark:bg-[#282a2c] rounded-2xl ' +
-    'shadow-2xl px-1.5 py-1.5 border border-gray-300 dark:border-gray-700/80 animate-fade-in';
+    'glass-strong bg-white/95! dark:bg-[#2a2a2e]/95! absolute z-10 max-w-[calc(100vw-16px)] rounded-[18px] ' +
+    'px-1.5 py-1.5 animate-glass-in';
 
 // Neo của menu con là <div className="relative"> bọc hàng cha — nằm trong padding 6px
 // + viền 1px của menu cha. Lùi lên đúng 7px thì hàng ĐẦU của menu con thẳng hàng với
@@ -482,7 +487,7 @@ function TagMenu({ item, closeMenu }) {
                         }}
                         placeholder={t('tags.newPlaceholder')}
                         aria-label={t('tags.name')}
-                        className="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#1e1f20] text-[13px] outline-none focus:border-blue-500"
+                        className="glass-input flex-1 min-w-0 px-2.5 py-1.5 rounded-lg border text-[13px] outline-none focus:border-blue-500"
                     />
                     <button
                         type="button"
@@ -490,7 +495,7 @@ function TagMenu({ item, closeMenu }) {
                         disabled={busy || !draft.trim()}
                         title={t('tags.create')}
                         aria-label={t('tags.create')}
-                        className="shrink-0 p-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 cursor-pointer"
+                        className="shrink-0 p-1.5 rounded-lg btn-accent hover:brightness-105 disabled:opacity-50 cursor-pointer"
                     >
                         {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
                     </button>
@@ -749,7 +754,7 @@ export default function ContextMenu({
                 onContextMenu={(e) => e.preventDefault()}
             >
                 {/* Header */}
-                <div className="px-2.5 pt-1 pb-2 mb-1 border-b border-gray-200 dark:border-gray-700/60 text-xs font-semibold text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                <div className="px-2.5 pt-1 pb-2 mb-1 border-b text-xs font-semibold text-gray-500 dark:text-gray-400 flex items-center gap-2 border-glass-divider">
                     <span className="flex-1 min-w-0 truncate">{item.name}</span>
                     {item.userRole && (
                         <span className={`shrink-0 px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
@@ -872,7 +877,7 @@ export default function ContextMenu({
             onContextMenu={(e) => e.preventDefault()}
         >
             {/* Header */}
-            <div className="px-2.5 pt-1 pb-2 mb-1 border-b border-gray-200 dark:border-gray-700/60 text-xs font-bold text-gray-700 dark:text-gray-400 flex items-center gap-2">
+            <div className="px-2.5 pt-1 pb-2 mb-1 border-b text-xs font-bold text-gray-700 dark:text-gray-400 flex items-center gap-2 border-glass-divider">
                 <span className="flex-1 min-w-0 truncate">{item.name}</span>
                 {isShared && sharedRole && (
                     <span className={`shrink-0 px-1.5 py-0.5 rounded-md text-[10px] font-bold ${

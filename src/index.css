@@ -3,6 +3,33 @@
 
 @theme {
   --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  /* Liquid glass (22/10/2026): thang `gray` và `slate` mặc định của Tailwind v4 ÁNH XANH (gray-800 =
+     oklch(27.8% 0.033 256.8), slate còn xanh hơn) — ở bản Tối, mọi `dark:bg-gray-800/900` ra màu
+     xám-navy mà chủ hệ thống muốn bỏ. Ghi đè cả hai thang bằng giá trị của `zinc` (xám trung tính,
+     chỉ hơi lạnh như xám hệ thống của Apple): sửa một chỗ, đúng cho hàng trăm class trong app. */
+  --color-gray-50: oklch(98.5% 0 0);
+  --color-gray-100: oklch(96.7% 0.001 286.375);
+  --color-gray-200: oklch(92% 0.004 286.32);
+  --color-gray-300: oklch(87.1% 0.006 286.286);
+  --color-gray-400: oklch(70.5% 0.015 286.067);
+  --color-gray-500: oklch(55.2% 0.016 285.938);
+  --color-gray-600: oklch(44.2% 0.017 285.786);
+  --color-gray-700: oklch(37% 0.013 285.805);
+  --color-gray-800: oklch(27.4% 0.006 286.033);
+  --color-gray-900: oklch(21% 0.006 285.885);
+  --color-gray-950: oklch(14.1% 0.005 285.823);
+  --color-slate-50: oklch(98.5% 0 0);
+  --color-slate-100: oklch(96.7% 0.001 286.375);
+  --color-slate-200: oklch(92% 0.004 286.32);
+  --color-slate-300: oklch(87.1% 0.006 286.286);
+  --color-slate-400: oklch(70.5% 0.015 286.067);
+  --color-slate-500: oklch(55.2% 0.016 285.938);
+  --color-slate-600: oklch(44.2% 0.017 285.786);
+  --color-slate-700: oklch(37% 0.013 285.805);
+  --color-slate-800: oklch(27.4% 0.006 286.033);
+  --color-slate-900: oklch(21% 0.006 285.885);
+  --color-slate-950: oklch(14.1% 0.005 285.823);
 }
 
 body {
@@ -42,42 +69,306 @@ body {
   }
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   LIQUID GLASS (22/10/2026) — mọi bề mặt là kính mờ trên một nền ambient xám/trắng.
+
+   Kiểu "kính" ở đây chỉ là LÀM MỜ + trong suốt + viền sáng (không khúc xạ ánh sáng như
+   Liquid Glass của Apple). Không còn mảng nền xanh navy nào: lớp phủ modal, khung xem
+   trước, thanh chọn nhiều… đều là kính trắng (Sáng) hoặc kính graphite xám (Tối).
+
+   Ba lớp, từ dưới lên:
+     1. `--app-ambient`  — nền của <body>: dải sáng mềm trung tính, thứ cho kính "có gì để
+                           làm mờ". Tô ở <body> (canvas) nên luôn nằm dưới mọi thứ.
+     2. bề mặt kính      — `glass`, `glass-strong`, `glass-soft`… (@utility bên dưới), đọc
+                           token `--glass-*` nên không cần biến thể `dark:`.
+     3. lớp phủ          — `glass-overlay`: nền mờ của modal, thay cho `bg-slate-950/70`.
+
+   BẪY BẮT BUỘC NHỚ: `backdrop-filter` biến phần tử thành CONTAINING BLOCK cho con cháu
+   `position: fixed` (và tạo stacking context). Đặt nó lên Header/Sidebar/<main> là mọi
+   modal `fixed inset-0` nằm trong chúng bị nhốt vào khung đó. Vì vậy:
+     • khung lớn (sidebar, header, vùng nội dung) dùng `glass` — KHÔNG blur: phía sau
+       chúng chỉ có nền ambient vốn đã mềm, blur không đổi được gì mà chỉ tốn GPU;
+     • phần tử NỔI (menu, popover, modal, ngăn kéo, toast) dùng `glass-strong`: blur đặt ở
+       `::before` của nó nên con `fixed` bên trong vẫn neo theo màn hình (xem utility).
+   Thẻ tệp/hàng danh sách cũng không blur: hàng trăm lớp backdrop-filter là giật khi cuộn.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 :root {
   color-scheme: light;
-  --app-bg: #f3f6fa;
-  --app-surface: #ffffff;
-  --app-sidebar: #eef3f8;
-  --app-border: #dbe3ec;
-  --app-ink: #172033;
-  --app-muted: #64748b;
+  --app-bg: #eceef1;
+  --app-surface: rgba(255, 255, 255, 0.78);
+  --app-sidebar: rgba(255, 255, 255, 0.5);
+  --app-border: rgba(15, 23, 42, 0.09);
+  --app-ink: #1c1f26;
+  --app-muted: #646b78;
+
+  /* Nền ambient: trắng ngọc + xám bạc, chỉ hơi ấm/lạnh ở các góc — không có sắc xanh navy. */
+  --app-ambient:
+    radial-gradient(1100px 760px at 6% -6%, rgba(255, 255, 255, 0.95), transparent 62%),
+    radial-gradient(900px 680px at 100% 0%, rgba(214, 219, 227, 0.75), transparent 60%),
+    radial-gradient(1000px 820px at 96% 104%, rgba(229, 224, 218, 0.7), transparent 62%),
+    radial-gradient(880px 760px at -4% 100%, rgba(210, 215, 222, 0.7), transparent 60%),
+    linear-gradient(180deg, #f1f2f4 0%, #e7e9ec 100%);
+
+  /* Kính: lớp phủ trắng trong suốt + viền sáng + bóng mềm nhiều lớp. */
+  --glass-fill: rgba(255, 255, 255, 0.56);
+  --glass-fill-strong: rgba(255, 255, 255, 0.8);
+  --glass-fill-soft: rgba(255, 255, 255, 0.46);
+  --glass-fill-hover: rgba(255, 255, 255, 0.72);
+  --glass-tint: rgba(255, 255, 255, 0.35);
+  --glass-rim: rgba(255, 255, 255, 0.78);
+  --glass-hairline: rgba(15, 23, 42, 0.07);
+  --glass-divider: rgba(15, 23, 42, 0.08);
+  --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --glass-shadow:
+    0 1px 1px rgba(15, 23, 42, 0.03),
+    0 8px 22px -10px rgba(15, 23, 42, 0.12),
+    0 26px 48px -28px rgba(15, 23, 42, 0.16);
+  --glass-shadow-pop:
+    0 1px 2px rgba(15, 23, 42, 0.05),
+    0 18px 40px -12px rgba(15, 23, 42, 0.22),
+    0 40px 80px -32px rgba(15, 23, 42, 0.28);
+  --glass-blur: 22px;
+  --glass-saturate: 170%;
+  /* Lớp phủ modal: kính trắng mờ thay cho tấm phủ navy. */
+  --glass-overlay: rgba(232, 234, 238, 0.42);
+  /* Mục đang chọn (thanh bên, tab, phân đoạn): viên kính sáng hơn hẳn nền xung quanh. */
+  --glass-active: rgba(255, 255, 255, 0.9);
+  --glass-input: rgba(255, 255, 255, 0.6);
+  --scrollbar-thumb: rgba(15, 23, 42, 0.18);
+  --scrollbar-thumb-hover: rgba(15, 23, 42, 0.32);
 }
 
 .dark {
   color-scheme: dark;
-  --app-bg: #25272a;
-  --app-surface: #303236;
-  --app-sidebar: #292c30;
-  --app-border: #454950;
-  --app-ink: #f1f5f9;
-  --app-muted: #aeb7c4;
+  --app-bg: #161618;
+  --app-surface: rgba(38, 38, 42, 0.82);
+  --app-sidebar: rgba(255, 255, 255, 0.05);
+  --app-border: rgba(255, 255, 255, 0.09);
+  --app-ink: #f2f2f4;
+  --app-muted: #a3a6ad;
+
+  /* Graphite: xám than trung tính, các góc sáng/ấm rất nhẹ để kính có chiều sâu. */
+  --app-ambient:
+    radial-gradient(1100px 760px at 6% -6%, rgba(255, 255, 255, 0.07), transparent 62%),
+    radial-gradient(900px 680px at 100% 0%, rgba(120, 122, 130, 0.16), transparent 60%),
+    radial-gradient(1000px 820px at 96% 104%, rgba(110, 104, 98, 0.14), transparent 62%),
+    radial-gradient(880px 760px at -4% 100%, rgba(96, 98, 104, 0.14), transparent 60%),
+    linear-gradient(180deg, #1b1b1e 0%, #121214 100%);
+
+  --glass-fill: rgba(255, 255, 255, 0.055);
+  --glass-fill-strong: rgba(40, 40, 44, 0.78);
+  --glass-fill-soft: rgba(255, 255, 255, 0.045);
+  --glass-fill-hover: rgba(255, 255, 255, 0.09);
+  --glass-tint: rgba(255, 255, 255, 0.03);
+  --glass-rim: rgba(255, 255, 255, 0.1);
+  --glass-hairline: rgba(0, 0, 0, 0.35);
+  --glass-divider: rgba(255, 255, 255, 0.08);
+  --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  --glass-shadow:
+    0 1px 1px rgba(0, 0, 0, 0.25),
+    0 12px 30px -14px rgba(0, 0, 0, 0.6);
+  --glass-shadow-pop:
+    0 1px 2px rgba(0, 0, 0, 0.3),
+    0 20px 44px -14px rgba(0, 0, 0, 0.7),
+    0 40px 90px -30px rgba(0, 0, 0, 0.6);
+  --glass-overlay: rgba(14, 14, 16, 0.42);
+  --glass-active: rgba(255, 255, 255, 0.13);
+  --glass-input: rgba(255, 255, 255, 0.06);
+  --scrollbar-thumb: rgba(255, 255, 255, 0.16);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.3);
+}
+
+/* Trình duyệt không có backdrop-filter, hoặc người dùng bật "Giảm độ trong suốt": kính
+   thành bề mặt gần như đặc — chữ trên menu/modal vẫn đọc được dù không có lớp mờ. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root {
+    --glass-fill-strong: rgba(250, 250, 251, 0.98);
+    --glass-overlay: rgba(220, 223, 228, 0.78);
+  }
+  .dark {
+    --glass-fill-strong: rgba(36, 36, 40, 0.98);
+    --glass-overlay: rgba(10, 10, 12, 0.72);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --glass-fill: rgba(255, 255, 255, 0.92);
+    --glass-fill-strong: rgba(250, 250, 251, 0.98);
+    --glass-fill-soft: rgba(255, 255, 255, 0.88);
+    --glass-overlay: rgba(220, 223, 228, 0.82);
+    --glass-blur: 0px;
+  }
+  .dark {
+    --glass-fill: rgba(44, 44, 48, 0.96);
+    --glass-fill-strong: rgba(36, 36, 40, 0.98);
+    --glass-fill-soft: rgba(48, 48, 52, 0.94);
+    --glass-overlay: rgba(10, 10, 12, 0.8);
+    --glass-blur: 0px;
+  }
 }
 
 html,
 body,
 #root {
   min-height: 100%;
-  background: var(--app-bg);
   color: var(--app-ink);
 }
 
-/* Giữ các modal/drawer cũ đồng bộ trong khi chúng vẫn dùng utility màu hex. */
-.dark [class~="dark:bg-[#282a2c]"],
-.dark [class~="dark:bg-[#282a2c]/95"] {
-  background-color: var(--app-surface) !important;
+html,
+body {
+  background-color: var(--app-bg);
+  background-image: var(--app-ambient);
+  background-attachment: fixed;
 }
 
+/* ── Bề mặt kính ─────────────────────────────────────────────────────────── */
+
+/* Khung lớn (thanh bên, header, vùng nội dung): trong suốt + viền sáng, KHÔNG blur — xem
+   khối chú thích ở trên vì sao. */
+@utility glass {
+  background-color: var(--glass-fill);
+  border: 1px solid var(--glass-rim);
+  box-shadow: var(--glass-highlight), 0 0 0 1px var(--glass-hairline), var(--glass-shadow);
+}
+
+/* Phần tử NỔI: menu, popover, modal, ngăn kéo, toast — có blur.
+
+   Blur nằm ở `::before`, KHÔNG ở chính phần tử: bảng tải lên chứa <Modal> hỏi lại trước khi
+   huỷ, hộp thoại hồ sơ chứa hộp xác nhận xoá tài khoản… — `backdrop-filter` trên chính phần
+   tử sẽ biến nó thành containing block của các lớp `fixed inset-0` đó (bị nhốt + bị cắt bởi
+   overflow-hidden). Pseudo-element không có con nên không nhốt được ai.
+   `isolation: isolate` để `::before` (z-index -1) nằm ngay dưới nội dung của chính phần tử
+   chứ không chìm xuống dưới nền của tổ tiên. Phần tử PHẢI được định vị (fixed/absolute/
+   relative) để `::before` phủ đúng khung của nó. */
+@utility glass-strong {
+  background-color: var(--glass-fill-strong);
+  border: 1px solid var(--glass-rim);
+  box-shadow: var(--glass-highlight), 0 0 0 1px var(--glass-hairline), var(--glass-shadow-pop);
+  isolation: isolate;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    pointer-events: none;
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  }
+}
+
+/* Bề mặt phụ nằm TRÊN một tấm kính khác (thẻ, khối thống kê, ô nhập phụ): nhạt, không blur. */
+@utility glass-soft {
+  background-color: var(--glass-fill-soft);
+  border: 1px solid var(--glass-rim);
+  box-shadow: var(--glass-highlight), 0 0 0 1px var(--glass-hairline);
+}
+
+/* Lớp phủ của modal/ngăn kéo: kính mờ trắng (Sáng) / graphite (Tối) thay cho tấm phủ navy.
+   Blur ở `::before` cùng lý do với `glass-strong`: lớp phủ thường BỌC luôn hộp thoại, và
+   hộp thoại có thể mở tiếp một hộp xác nhận `fixed`. */
+@utility glass-overlay {
+  background-color: var(--glass-overlay);
+  isolation: isolate;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    -webkit-backdrop-filter: blur(14px) saturate(130%);
+    backdrop-filter: blur(14px) saturate(130%);
+  }
+}
+
+/* "Phòng tối" của trình xem tệp (FilePreviewModal, trang chia sẻ công khai): LUÔN tối ở cả hai
+   theme — ảnh/video đọc rõ nhất trên nền tối, và chữ trắng của trình xem không bao giờ thành
+   chữ trắng trên kính trắng. Graphite xám mờ, không còn nền đen/navy đặc. */
+@utility glass-stage {
+  background-color: rgba(22, 22, 25, 0.68);
+  isolation: isolate;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    -webkit-backdrop-filter: blur(28px) saturate(115%);
+    backdrop-filter: blur(28px) saturate(115%);
+  }
+}
+
+/* Viên/khung kính tối nổi trên `glass-stage`: thanh phóng/xoay, nút ‹ ›, cột Nhận xét. */
+@utility glass-dark {
+  background-color: rgba(48, 48, 52, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 12px 30px -12px rgba(0, 0, 0, 0.65);
+  isolation: isolate;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    pointer-events: none;
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    backdrop-filter: blur(20px) saturate(140%);
+  }
+}
+
+/* Viên "đang chọn" — mục thanh bên, tab, nút phân đoạn. */
+@utility glass-active {
+  background-color: var(--glass-active);
+  box-shadow: var(--glass-highlight), 0 0 0 1px var(--glass-hairline), 0 4px 12px -6px rgba(15, 23, 42, 0.18);
+}
+
+/* Ô nhập trên nền kính. */
+@utility glass-input {
+  background-color: var(--glass-input);
+  border: 1px solid var(--glass-rim);
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.05), 0 0 0 1px var(--glass-hairline);
+}
+
+/* Nền rê chuột / chọn nhẹ của hàng, nút tròn trên kính. */
+@utility glass-hover {
+  background-color: var(--glass-fill-hover);
+}
+
+/* Đường kẻ chia trên kính. */
+@utility border-glass-divider {
+  border-color: var(--glass-divider);
+}
+
+/* Nút chính màu nhấn: xanh hệ thống có ánh sáng ở mép trên như một giọt kính. Bị vô hiệu thì
+   thành viên kính xám — xanh mờ 50% trên nền tối là đúng màu navy mà bản này muốn bỏ. */
+@utility btn-accent {
+  background-image: linear-gradient(180deg, #3b8cff 0%, #1f6fe5 100%);
+  color: #fff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 1px 2px rgba(15, 23, 42, 0.12),
+    0 8px 18px -8px rgba(31, 111, 229, 0.55);
+
+  &:disabled {
+    background-image: none;
+    background-color: var(--glass-fill-hover);
+    color: var(--app-muted);
+    box-shadow: inset 0 0 0 1px var(--glass-hairline);
+  }
+}
+
+/* Chỗ nào còn sót màu hex cũ của bản tối (`#282a2c`, `#1e1e1e`) thì vẫn ra kính graphite
+   chứ không ra một mảng đặc lệch tông. */
+.dark [class~="dark:bg-[#282a2c]"],
+.dark [class~="dark:bg-[#282a2c]/95"],
 .dark [class~="dark:bg-[#1e1e1e]"] {
-  background-color: var(--app-bg) !important;
+  background-color: var(--glass-fill-strong) !important;
 }
 
 body {
@@ -103,6 +394,13 @@ body {
     to   { opacity: 1; transform: translateX(0); }
   }
 
+  /* Kính "nở" ra từ điểm bấm: hơi nhỏ + mờ → đúng cỡ. Đường cong có chút vượt (overshoot)
+     cho cảm giác mềm như giọt nước, nhưng ngắn (0.22s) để không làm chậm thao tác. */
+  @keyframes driverGlassIn {
+    from { opacity: 0; transform: scale(0.96) translateY(4px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+  }
+
   .animate-fade-in {
     animation: driverFadeIn 0.15s ease-out;
   }
@@ -111,9 +409,15 @@ body {
     animation: driverSlideLeft 0.2s ease-out;
   }
 
+  .animate-glass-in {
+    animation: driverGlassIn 0.22s cubic-bezier(0.2, 0.9, 0.3, 1.15);
+    transform-origin: top center;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .animate-fade-in,
-    .animate-slide-left {
+    .animate-slide-left,
+    .animate-glass-in {
       animation: none;
     }
   }
@@ -297,10 +601,11 @@ html {
   scroll-behavior: smooth;
 }
 
-/* Custom Scrollbar */
+/* Thanh cuộn mảnh, trong suốt — nằm trên kính nên rãnh không có nền riêng (rãnh tô màu là
+   một vệt đặc cắt ngang tấm kính). */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
 }
 
 ::-webkit-scrollbar-track {
@@ -308,24 +613,19 @@ html {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 4px;
+  background: var(--scrollbar-thumb);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: var(--scrollbar-thumb-hover);
+  background-clip: padding-box;
 }
 
-.dark ::-webkit-scrollbar-track {
-  background: #1e1e1e;
-}
-
-.dark ::-webkit-scrollbar-thumb {
-  background: #374151;
-}
-
-.dark ::-webkit-scrollbar-thumb:hover {
-  background: #4b5563;
+::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 /* Markdown Preview Styling */
@@ -335,19 +635,19 @@ html {
 }
 
 .dark .markdown-preview-content {
-  --preview-ink: #e2e8f0;
-  --preview-heading: #f8fafc;
+  --preview-ink: #e4e4e7;
+  --preview-heading: #fafafa;
   --preview-border: rgba(255, 255, 255, 0.12);
-  --preview-code-bg: rgba(15, 23, 42, 0.72);
-  --preview-code-ink: #e2e8f0;
+  --preview-code-bg: rgba(0, 0, 0, 0.32);
+  --preview-code-ink: #e4e4e7;
 }
 
 :root:not(.dark) .markdown-preview-content {
-  --preview-ink: #334155;
-  --preview-heading: #0f172a;
-  --preview-border: rgba(15, 23, 42, 0.14);
-  --preview-code-bg: #f1f5f9;
-  --preview-code-ink: #1e293b;
+  --preview-ink: #3a3d44;
+  --preview-heading: #17181c;
+  --preview-border: rgba(15, 23, 42, 0.12);
+  --preview-code-bg: rgba(255, 255, 255, 0.7);
+  --preview-code-ink: #26282d;
 }
 
 .markdown-preview-content h1 {
@@ -582,8 +882,8 @@ html {
 /* Khối code cuộn ngang trong bong bóng thay vì kéo giãn cả khung chat: một dòng
    log dài không được phép đẩy toàn bộ hội thoại rộng ra. */
 .prose-ai pre {
-  background: #0f172a;
-  color: #e2e8f0;
+  background: #1f2024;
+  color: #e7e7ea;
   border-radius: 0.6rem;
   padding: 0.7rem 0.85rem;
   margin: 0.6rem 0;

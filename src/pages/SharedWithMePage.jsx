@@ -29,7 +29,7 @@ export default function SharedWithMePage() {
     return (
         <div className="flex flex-col h-full" onContextMenu={(e) => e.preventDefault()}>
             {/* Header */}
-            <div className="flex items-center justify-between mb-2 pb-2 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between mb-2 pb-2 border-b border-glass-divider">
                 <div className="flex items-center gap-2 flex-1 min-w-0">
                     <Users className="w-6 h-6 text-blue-600 dark:text-blue-400 shrink-0" />
                     {currentFolderId ? (
@@ -70,7 +70,7 @@ export default function SharedWithMePage() {
                         title={t('view.list')}
                         className={`p-1.5 rounded-full transition-colors ${
                             viewMode === 'list'
-                                ? 'bg-white dark:bg-[#282a2c] shadow-xs text-blue-700 dark:text-blue-400 font-bold'
+                                ? 'glass-active text-blue-700 dark:text-blue-300 font-bold'
                                 : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
                         }`}
                     >
@@ -81,7 +81,7 @@ export default function SharedWithMePage() {
                         title={t('view.grid')}
                         className={`p-1.5 rounded-full transition-colors ${
                             viewMode === 'grid'
-                                ? 'bg-white dark:bg-[#282a2c] shadow-xs text-blue-700 dark:text-blue-400 font-bold'
+                                ? 'glass-active text-blue-700 dark:text-blue-300 font-bold'
                                 : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
                         }`}
                     >

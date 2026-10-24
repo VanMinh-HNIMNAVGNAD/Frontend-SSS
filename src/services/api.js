@@ -1625,6 +1625,9 @@ export const billingApi = {
   // `getTransactions` là dữ liệu tiền bạc, hiện một trạng thái thanh toán cũ 15
   // phút là đúng kiểu sai lầm khiến người dùng trả tiền hai lần.
   getPlans: () => plansCache.get('all', () => api.get('/billing/plans')),
+  // Luôn hỏi server (trừ khi bản đệm vừa lấy từ mạng chưa tới 10 giây) — trang Gói cước gọi sau
+  // `getPlans` để giá đổi trong DB hiện ra ngay, không chờ bản đệm 1 tiếng hết hạn.
+  refreshPlans: () => plansCache.refresh('all', () => api.get('/billing/plans'), { minAgeMs: 10_000 }),
 
   // Gói ĐANG CHẠY của chính mình, hoặc null nếu chưa từng mua (đang ở hạn mức mặc định).
   // Trả { planId, planName, storageBytes, billingCycle, status, cancelAtPeriodEnd, startDate,

@@ -172,6 +172,16 @@ export default function BillingAndQuota() {
         if (cancelled) return;
         setPlans(Array.isArray(data) ? data : []);
         setPlansError(null);
+        // Bản vừa vẽ có thể là bản đệm trên đĩa tới 1 tiếng tuổi (`plansCache`), sống qua cả F5 —
+        // đổi giá trong DB xong, khách vẫn thấy giá cũ trên thẻ trong khi payOS thu giá mới
+        // (24/10/2026). Vẽ bản đệm cho nhanh, rồi hỏi lại server ở nền và thay nếu khác. Lỗi ở
+        // lượt này thì giữ bản đang hiện: tiền thu vẫn tính ở backend theo giá trong DB.
+        billingApi
+          .refreshPlans()
+          .then((fresh) => {
+            if (!cancelled && Array.isArray(fresh)) setPlans(fresh);
+          })
+          .catch(() => {});
       } catch (err) {
         if (cancelled) return;
         setPlans([]);

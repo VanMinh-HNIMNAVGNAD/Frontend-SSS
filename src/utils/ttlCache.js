@@ -89,6 +89,35 @@ export function createTtlCache({ ttlMs, maxEntries = 100, persistAs = null } = {
       return promise;
     },
 
+    /**
+     * Hỏi lại nguồn thật kể cả khi bản đệm còn hạn, rồi lưu kết quả như `get` — cho kiểu "vẽ bản
+     * đệm trước, lấy bản mới sau" (bảng giá). Bản đệm có từ mạng chưa quá `minAgeMs` thì trả
+     * luôn: `get` ngay trước đó trượt đệm và vừa hỏi server rồi, hỏi tiếp là thừa một lượt.
+     * Tuổi suy từ `expiresAt - ttlMs`, nên bản nạp từ đĩa mang đúng tuổi thật của nó.
+     */
+    async refresh(key, loader, { minAgeMs = 0 } = {}) {
+      const hit = entries.get(key);
+      if (hit && Date.now() - (hit.expiresAt - ttlMs) < minAgeMs) return hit.value;
+
+      const flying = inFlight.get(key);
+      if (flying) return flying;
+
+      const promise = (async () => {
+        try {
+          const value = await loader();
+          const expiresAt = Date.now() + ttlMs;
+          remember(key, value, expiresAt);
+          if (persistAs) void writeCached(persistAs, key, value, expiresAt);
+          return value;
+        } finally {
+          inFlight.delete(key);
+        }
+      })();
+
+      inFlight.set(key, promise);
+      return promise;
+    },
+
     /** Bỏ một mục — dùng sau khi thao tác ghi làm câu trả lời cũ thành sai. */
     invalidate(key) {
       entries.delete(key);
@@ -132,6 +161,10 @@ const CONTENT_TTL_MS = 60 * 60 * 1000;
 /**
  * Bảng giá gói dịch vụ. Gần như tĩnh (đổi khi vận hành sửa bảng giá), nhưng
  * trang Gói dịch vụ tải lại nó mỗi lần người dùng ghé qua.
+ *
+ * Bản đệm chỉ để VẼ NHANH: trang Gói cước luôn hỏi lại server ngay sau đó
+ * (`billingApi.refreshPlans`). Trước 24/10/2026 thì không, và đổi giá trong DB xong
+ * khách còn thấy giá cũ tới một tiếng — kể cả sau F5, vì bản đệm nằm trên đĩa.
  */
 export const plansCache = createTtlCache({
   ttlMs: 60 * 60 * 1000,

@@ -11,6 +11,8 @@ import AccountModal from './AccountModal';
 import ActivityLogDrawer from '../file-manager/ActivityLogDrawer';
 import NotificationBell from './NotificationBell';
 import { useAiPanel } from '../../context/AiPanelContext';
+import GlassLight from '../ui/GlassLight';
+import LiquidGroup from '../ui/LiquidGroup';
 import { 
     Menu, 
     Search, 
@@ -324,9 +326,12 @@ export default function Header({ toggleRightSidebar }) {
         return (
             // Thanh chọn nhiều: cùng tấm kính với header thường, chỉ ánh xanh nhạt + viền nhấn để
             // người dùng biết đang ở chế độ chọn (trước: nền xanh đặc #0b57d0 chữ trắng).
-            <header className="h-14 sm:h-16 flex items-center justify-between px-2 sm:px-3 md:px-4 glass bg-blue-50/75! dark:bg-white/[0.09]! ring-1 ring-blue-500/25 dark:ring-blue-400/40 rounded-[20px] sm:rounded-full text-gray-900 dark:text-gray-100 shrink-0 gap-2 sm:gap-3 transition-colors duration-200 animate-fade-in">
+            <header className="relative h-14 sm:h-16 flex items-center justify-between px-2 sm:px-3 md:px-4 glass bg-blue-50/75! dark:bg-white/[0.09]! ring-1 ring-blue-500/25 dark:ring-blue-400/40 rounded-[20px] sm:rounded-full text-gray-900 dark:text-gray-100 shrink-0 gap-2 sm:gap-3 transition-colors duration-200 animate-fade-in">
+                {/* Ánh sáng theo chuột — xem chú thích ở header thường bên dưới. */}
+                <GlassLight className="z-auto" />
+
                 {/* Left */}
-                <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+                <div className="relative flex items-center gap-2 sm:gap-4 min-w-0">
                     <button onClick={deselectAll} className="p-2 hover:bg-white/70 dark:hover:bg-white/10 rounded-full transition-colors cursor-pointer shrink-0" title={t('common.close')}>
                         <X className="w-5 h-5" />
                     </button>
@@ -344,7 +349,7 @@ export default function Header({ toggleRightSidebar }) {
                 </div>
 
                 {/* Right */}
-                <div className="flex items-center gap-0.5 sm:gap-2 shrink-0">
+                <div className="relative flex items-center gap-0.5 sm:gap-2 shrink-0">
                     {!isTrashTab && !isSpamTab ? (
                         <>
                             {canTrashSelection && (
@@ -402,9 +407,16 @@ export default function Header({ toggleRightSidebar }) {
     return (
         // Tấm kính hình viên thuốc nổi trên nền ambient. `glass` KHÔNG blur: header chứa modal
         // Cài đặt + ngăn Lịch sử (`fixed inset-0`) — backdrop-filter sẽ nhốt chúng vào thanh này.
-        <header className="h-14 sm:h-16 flex items-center justify-between px-1.5 sm:px-2.5 md:px-3 glass rounded-[20px] sm:rounded-full shrink-0 gap-1.5 sm:gap-3 transition-colors duration-200">
+        <header className="relative h-14 sm:h-16 flex items-center justify-between px-1.5 sm:px-2.5 md:px-3 glass rounded-[20px] sm:rounded-full shrink-0 gap-1.5 sm:gap-3 transition-colors duration-200">
+            {/* Ánh sáng theo chuột. Header KHÔNG được là stacking context: popover tài khoản, bộ
+                lọc tìm kiếm… (`z-50` bên trong) đang so z-index trực tiếp với <main> (`z-0`) — nhốt
+                chúng vào header là chúng chui xuống dưới vùng nội dung. Vì vậy lớp sáng không
+                dùng được `z-index: -1` mà là `z-auto` + con ĐẦU TIÊN, và ba khối nội dung đều
+                `relative` để được vẽ đè lên nó (cùng tầng, đứng sau trong cây DOM). */}
+            <GlassLight className="z-auto" />
+
             {/* LOGO & Web Title "cloudSSS" */}
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="relative flex items-center gap-2 shrink-0">
                 {/* Nút Toggle Sidebar */}
                 <button
                     onClick={toggleSidebar}
@@ -573,29 +585,32 @@ export default function Header({ toggleRightSidebar }) {
                         <>
                             {/* Lớp trong suốt bắt cú chạm ra ngoài để đóng menu */}
                             <div className="fixed inset-0 z-40" onClick={() => setIsMoreOpen(false)} />
-                            <div className="absolute right-0 top-full mt-2 w-56 z-50 p-1.5 glass-strong rounded-[20px] animate-glass-in origin-top-right">
+                            <LiquidGroup className="absolute right-0 top-full mt-2 w-56 z-50 p-1.5 glass-strong rounded-[20px] animate-glass-in origin-top-right">
+                                <GlassLight />
                                 <button
+                                    data-liquid-key="activity"
                                     onClick={() => {
                                         setIsMoreOpen(false);
                                         handleOpenActivityLog();
                                     }}
                                     disabled={isAuthLoading}
-                                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-[14px] text-sm font-medium text-gray-800 dark:text-gray-200 hover:bg-black/5 dark:hover:bg-white/10 transition-colors text-left cursor-pointer disabled:opacity-40"
+                                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-[14px] text-sm font-medium text-gray-800 dark:text-gray-200 active:bg-black/5 dark:active:bg-white/10 transition-colors text-left cursor-pointer disabled:opacity-40"
                                 >
                                     <History className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                                     <span>{t('header.activityLog')}</span>
                                 </button>
                                 <button
+                                    data-liquid-key="settings"
                                     onClick={() => {
                                         setIsMoreOpen(false);
                                         setIsSettingsOpen(true);
                                     }}
-                                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-[14px] text-sm font-medium text-gray-800 dark:text-gray-200 hover:bg-black/5 dark:hover:bg-white/10 transition-colors text-left cursor-pointer"
+                                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-[14px] text-sm font-medium text-gray-800 dark:text-gray-200 active:bg-black/5 dark:active:bg-white/10 transition-colors text-left cursor-pointer"
                                 >
                                     <Settings className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                                     <span>{t('header.settings')}</span>
                                 </button>
-                            </div>
+                            </LiquidGroup>
                         </>
                     )}
                 </div>

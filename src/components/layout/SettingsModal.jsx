@@ -8,6 +8,8 @@ import {
   areShortcutsEnabled,
 } from '../../hooks/useGlobalShortcuts';
 import useTheme from '../../hooks/useTheme';
+import GlassLight from '../ui/GlassLight';
+import LiquidGroup from '../ui/LiquidGroup';
 import { useLanguage } from '../../context/LanguageContext';
 import { userApi } from '../../services/api';
 import { STARTUP_PAGE_KEY, STARTUP_PAGES, readStartupPage } from '../../constants/routes';
@@ -242,6 +244,8 @@ export default function SettingsModal({ isOpen, onClose }) {
         className="glass-strong relative rounded-[28px] w-full max-w-[614px] overflow-hidden flex flex-col max-h-[88vh] border text-left animate-glass-in"
         onClick={(e) => e.stopPropagation()}
       >
+        <GlassLight />
+
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3.5 border-b bg-gray-50/80 dark:bg-white/5 border-glass-divider">
           <div className="flex items-center gap-2.5">
@@ -262,25 +266,29 @@ export default function SettingsModal({ isOpen, onClose }) {
 
         {/* Body Container */}
         <div className="flex flex-1 overflow-hidden">
-          {/* Sidebar Left Tabs */}
-          <div className="w-44 bg-gray-50/70 dark:bg-white/5 border-r p-2.5 flex flex-col gap-1 shrink-0 border-glass-divider">
+          {/* Sidebar Left Tabs — viên kính "đang chọn" trượt giữa các tab (LiquidGroup). */}
+          <LiquidGroup
+            activeKey={activeTab}
+            className="w-44 bg-gray-50/70 dark:bg-white/5 border-r p-2.5 flex flex-col gap-1 shrink-0 border-glass-divider"
+          >
             {TABS.map(({ id, Icon, labelKey }) => (
               <button
                 key={id}
                 type="button"
+                data-liquid-key={id}
                 onClick={() => setActiveTab(id)}
                 aria-pressed={activeTab === id}
-                className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-left transition-all cursor-pointer ${
+                className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-left transition-colors cursor-pointer ${
                   activeTab === id
-                    ? 'glass-active text-blue-700 dark:text-blue-300'
-                    : 'text-gray-700 dark:text-gray-300 hover:bg-black/[0.05] dark:hover:bg-white/[0.08]'
+                    ? 'text-blue-700 dark:text-blue-300'
+                    : 'text-gray-700 dark:text-gray-300'
                 }`}
               >
                 <Icon className="w-3.5 h-3.5 shrink-0" />
                 <span className="truncate">{t(labelKey)}</span>
               </button>
             ))}
-          </div>
+          </LiquidGroup>
 
           {/* Right Main Content */}
           <div className="flex-1 p-4 sm:p-5 overflow-y-auto">

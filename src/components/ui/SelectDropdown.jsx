@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { ChevronDown, Check } from 'lucide-react';
+import GlassLight from './GlassLight';
+import LiquidGroup from './LiquidGroup';
 
 /**
  * Reusable Dropdown Component (Single Responsibility: Dropdown UI render & toggle state)
@@ -55,7 +57,9 @@ export default function SelectDropdown({
 
             {isOpen && (
                 <div className="absolute left-0 mt-2 w-52 glass-strong rounded-[18px] p-1.5 z-50 animate-glass-in origin-top-left">
-                    <div className="max-h-60 overflow-y-auto custom-scrollbar">
+                    <GlassLight />
+                    {/* Giọt nước theo chuột thay cho nền rê chuột của từng lựa chọn (LiquidGroup). */}
+                    <LiquidGroup className="max-h-60 overflow-y-auto custom-scrollbar">
                         {options.map((option) => {
                             const isSelected = option.value === value;
                             const OptionIcon = option.icon;
@@ -63,14 +67,15 @@ export default function SelectDropdown({
                                 <button
                                     key={option.value}
                                     type="button"
+                                    data-liquid-key={String(option.value)}
                                     onClick={() => {
                                         onChange(option.value);
                                         setIsOpen(false);
                                     }}
                                     className={`w-full text-left px-2.5 py-2 rounded-xl text-xs flex items-center justify-between transition-colors cursor-pointer ${
-                                        isSelected 
-                                            ? 'bg-blue-500/12 dark:bg-blue-400/15 text-blue-800 dark:text-blue-200 font-bold' 
-                                            : 'text-gray-800 dark:text-gray-200 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] font-medium'
+                                        isSelected
+                                            ? 'bg-blue-500/12 dark:bg-blue-400/15 text-blue-800 dark:text-blue-200 font-bold'
+                                            : 'text-gray-800 dark:text-gray-200 pointer-coarse:active:bg-black/[0.05] dark:pointer-coarse:active:bg-white/[0.08] font-medium'
                                     }`}
                                 >
                                     <div className="flex items-center gap-2.5 truncate pr-2">
@@ -81,7 +86,7 @@ export default function SelectDropdown({
                                 </button>
                             );
                         })}
-                    </div>
+                    </LiquidGroup>
                 </div>
             )}
         </div>

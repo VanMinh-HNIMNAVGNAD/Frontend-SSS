@@ -28,6 +28,7 @@ import { useFiles } from '../context/FileContext';
 import { formatBytes } from '../utils/formatFileSize';
 import { getStorageStatus } from '../utils/storageStatus';
 import TransactionDetailModal from '../components/modals/TransactionDetailModal';
+import LiquidGroup from '../components/ui/LiquidGroup';
 import { aiStatusCache, plansCache } from '../utils/ttlCache';
 import {
   CYCLES,
@@ -767,26 +768,33 @@ export default function BillingAndQuota() {
                 </p>
               </div>
 
-              {/* Billing Cycle Selector Tabs */}
-              <div className="glass-soft flex items-center gap-1.5 p-1.5 rounded-2xl border w-full lg:w-auto overflow-x-auto">
+              {/* Billing Cycle Selector Tabs — viên kính "đang chọn" trượt giữa các chu kỳ (LiquidGroup). */}
+              <LiquidGroup
+                activeKey={billingCycle}
+                className="glass-soft flex items-center gap-1.5 p-1.5 rounded-2xl border w-full lg:w-auto overflow-x-auto"
+              >
                 {CYCLES.map((cycle) => {
                   const isSelected = billingCycle === cycle.id;
                   return (
                     <button
                       key={cycle.id}
+                      data-liquid-key={cycle.id}
                       onClick={() => setBillingCycle(cycle.id)}
-                      className={`px-4 py-2.5 rounded-xl text-[14px] font-bold transition-all whitespace-nowrap cursor-pointer flex items-center justify-center gap-2 ${
+                      aria-pressed={isSelected}
+                      className={`px-4 py-2.5 rounded-xl text-[14px] font-bold transition-colors whitespace-nowrap cursor-pointer flex items-center justify-center gap-2 ${
                         isSelected
-                          ? 'glass-active text-gray-900 dark:text-white'
-                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-black/[0.04] dark:hover:bg-white/[0.07]'
+                          ? 'text-gray-900 dark:text-white'
+                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
                       }`}
                     >
                       <span>{t(cycle.labelKey)}</span>
+                      {/* Đang chọn: chip xanh đặc. Bản cũ là chữ trắng trên `bg-white/20` — trên viên
+                          kính trắng của bản Sáng thì gần như không đọc được. */}
                       {cycle.badge && (
                         <span
                           className={`px-1.5 py-0.5 text-[11px] rounded-md font-extrabold ${
                             isSelected
-                              ? 'bg-white/20 text-white'
+                              ? 'bg-emerald-600 text-white dark:bg-emerald-500'
                               : 'bg-emerald-100 dark:bg-emerald-400/15 text-emerald-700 dark:text-emerald-300'
                           }`}
                         >
@@ -796,7 +804,7 @@ export default function BillingAndQuota() {
                     </button>
                   );
                 })}
-              </div>
+              </LiquidGroup>
             </div>
 
             {plansLoading ? (

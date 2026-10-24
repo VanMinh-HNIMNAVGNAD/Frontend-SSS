@@ -143,10 +143,17 @@ export const CYCLE_LABEL_KEY = {
 // Dòng quyền lợi đầu tiên của mỗi thẻ được sinh động từ dung lượng API, nên
 // `features` ở đây cố ý không nhắc tới dung lượng gói.
 //
+// Từ migration 042 tên gói chỉ còn tiếng Anh ("Free", "Lite", "Pro", "Pro Plus", "Max"); các từ
+// khoá tiếng Việt trong `match` giữ lại cho gói ngừng bán còn mang tên cũ trong lịch sử.
+//
+// Quyền lợi (`featureKeys`) chỉ ghi điều hệ thống THẬT SỰ làm khác nhau giữa các gói: hạn mức AI,
+// hạn mức cộng dồn theo kỳ đã mua (##87), tải lên tự chuyển đám mây dự phòng (chỉ gói trả phí —
+// `StorageService.getPresignedUploadUrl`). Đừng thêm lại "mã hoá E2EE" / "tốc độ ưu tiên": không
+// có gói nào làm vậy, và backend đọc nội dung tệp (AI, thumbnail) nên E2EE là sai.
+//
 // CHỈ gói được làm nổi (`highlight`) mới có huy hiệu, và thẻ KHÔNG có icon. Các huy hiệu
-// "Cơ Bản" / "Tiết Kiệm" / "Tối Thượng" cũ đã bỏ: tên gói trong DB ("Gói Tiết Kiệm (Lite)",
-// "Gói Tối Thượng (Ultra)"…) đã nói đúng điều đó, huy hiệu chỉ nhắc lại một lần nữa — và
-// năm huy hiệu cho năm gói thì không còn gói nào nổi lên được. Icon đám mây / tia sét /
+// "Cơ Bản" / "Tiết Kiệm" / "Tối Thượng" cũ đã bỏ: tên gói đã nói đúng điều đó, huy hiệu chỉ
+// nhắc lại một lần nữa — và năm huy hiệu cho năm gói thì không còn gói nào nổi lên được. Icon đám mây / tia sét /
 // vương miện cạnh tên gói cũng bỏ vì cùng lý do: trang trí, không thêm thông tin nào.
 // Huy hiệu nằm vắt trên viền trên của thẻ (BillingAndQuota.jsx), nên thẻ không có huy
 // hiệu không phải chừa ô trống để các thẻ cùng hàng thẳng nhau.
@@ -157,14 +164,14 @@ export const PLAN_UI_CONFIG = [
     match: ['free', 'miễn phí', 'mien phi'],
     badge: null,
     highlight: false,
-    featureKeys: ['billing.feature.free.ai', 'billing.feature.free.storage', 'billing.feature.free.sync'],
+    featureKeys: ['billing.feature.free.ai', 'billing.feature.free.share', 'billing.feature.free.devices'],
   },
   {
     key: 'lite',
     match: ['lite', 'starter', 'tiêu chuẩn', 'tieu chuan'],
     badge: null,
     highlight: false,
-    featureKeys: ['billing.feature.lite.ai', 'billing.feature.lite.crypto', 'billing.feature.lite.speed'],
+    featureKeys: ['billing.feature.lite.ai', 'billing.feature.paid.upgrade', 'billing.feature.paid.fallback'],
   },
   {
     key: 'pro',
@@ -174,30 +181,26 @@ export const PLAN_UI_CONFIG = [
       tone: 'bg-blue-600 text-white shadow-sm',
     },
     highlight: true,
-    featureKeys: ['billing.feature.pro.ai', 'billing.feature.lite.crypto', 'billing.feature.pro.speed'],
+    featureKeys: ['billing.feature.pro.ai', 'billing.feature.paid.pooled', 'billing.feature.paid.fallback'],
   },
   {
     key: 'plus',
-    match: ['plus', 'cao cấp', 'cao cap', 'premium'],
+    // 'pro plus' dài hơn 'pro' nên `resolvePlanUi` chọn thẻ này cho "Pro Plus".
+    match: ['pro plus', 'proplus', 'plus', 'cao cấp', 'cao cap', 'premium'],
     badge: null,
     highlight: false,
-    featureKeys: [
-      'billing.feature.plus.ai',
-      'billing.feature.plus.crypto',
-      'billing.feature.plus.speed',
-      'billing.feature.plus.drives',
-    ],
+    featureKeys: ['billing.feature.plus.ai', 'billing.feature.paid.pooled', 'billing.feature.paid.fallback'],
   },
   {
     key: 'ultra',
-    // Tên thật trên production là "Gói Tối Đa (Max)" — trước đây thẻ này chỉ khớp được theo index.
+    // Gói Max (tên cũ "Gói Tối Đa (Max)" / "(Ultra)"); `key` giữ 'ultra' vì `tierOfPlanUiKey` dò theo nó.
     match: ['ultra', 'tối thượng', 'toi thuong', 'max', 'tối đa', 'toi da', 'enterprise', 'business'],
     badge: null,
     highlight: false,
     featureKeys: [
       'billing.feature.ultra.ai',
-      'billing.feature.ultra.crypto',
-      'billing.feature.ultra.speed',
+      'billing.feature.paid.pooled',
+      'billing.feature.paid.fallback',
       'billing.feature.ultra.support',
     ],
   },

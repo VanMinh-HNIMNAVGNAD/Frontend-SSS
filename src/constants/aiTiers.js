@@ -11,12 +11,12 @@
 
 export const AI_TIERS = ['free', 'lite', 'pro', 'plus', 'max'];
 
-/** Nhãn ngắn của bậc — trùng hậu tố trong ngoặc của tên gói ("Gói Cao Cấp (Plus)"). */
+/** Nhãn ngắn của bậc — trùng tên gói trong bảng giá (migration 042: "Pro Plus" là bậc `plus`). */
 export const TIER_LABEL = {
     free: 'Free',
     lite: 'Lite',
     pro: 'Pro',
-    plus: 'Plus',
+    plus: 'Pro Plus',
     max: 'Max',
 };
 
@@ -25,7 +25,7 @@ export const tierRank = (tier) => Math.max(0, AI_TIERS.indexOf(tier));
 
 /**
  * Bậc của một thẻ gói trên trang Gói cước, từ `key` của `resolvePlanUi` (constants/billing.js).
- * Thẻ "ultra" là gói Max (tên DB "Gói Tối Đa (Max)" / cũ "(Ultra)"); thẻ lạ = null (không hiện
+ * Thẻ "ultra" là gói Max (tên DB "Max", cũ hơn "Gói Tối Đa (Max)" / "(Ultra)"); thẻ lạ = null (không hiện
  * dòng model nào thay vì đoán).
  */
 export const tierOfPlanUiKey = (key) =>
@@ -41,7 +41,7 @@ const modelNames = (list) => list.map((m) => m.label || m.id).join(', ');
  *
  *   Free / Lite  → "Gemini 2.5 Flash"
  *   Pro          → "Gemini 3.5 Flash, Gemini 3.1 Pro, Gemini 3.5 Flash-Lite, Gemini 2.5 Flash"
- *   Plus         → "Gemini 3.8 Flash, Gemini 4 Argon + mọi model của gói Pro"
+ *   Pro Plus     → "Gemini 3.8 Flash, Gemini 4 Argon + mọi model của gói Pro"
  *   Max          → "Mọi model AI"
  */
 export function aiModelsLineFor(tier, models) {

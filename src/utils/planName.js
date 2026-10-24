@@ -7,6 +7,9 @@
  * Việt ở trang Thanh toán, khung AI, hồ sơ. Chọn English → lấy phần trong ngoặc; tên không theo
  * mẫu (gói quản trị tự đặt tên khác) giữ nguyên.
  *
+ * Từ migration 042 gói đang bán chỉ còn tên tiếng Anh ("Pro Plus"…) nên đi thẳng qua nhánh giữ
+ * nguyên ở cả hai ngôn ngữ; mẫu trên còn cần cho gói ngừng bán mang tên cũ trong lịch sử giao dịch.
+ *
  * Backend làm đúng việc này khi chèn tên gói vào câu báo (`common/i18n/translate-message.ts`).
  */
 const PLAN_NAME_PATTERN = /^Gói\s+.+\(([^()]+)\)\s*$/i;

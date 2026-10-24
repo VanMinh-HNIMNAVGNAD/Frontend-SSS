@@ -5,6 +5,8 @@ import { useLanguage } from '../../context/LanguageContext';
 import { filesApi } from '../../services/api';
 import { formatBytes } from '../../utils/formatFileSize';
 import { localeTagOf } from '../../utils/locale';
+import GlassLight from '../ui/GlassLight';
+import LiquidGroup from '../ui/LiquidGroup';
 import { 
     X, 
     FileText, 
@@ -311,6 +313,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                 className="glass-strong fixed right-0 top-0 bottom-0 sm:right-3 sm:top-3 sm:bottom-3 z-50 w-full sm:w-96 sm:rounded-[26px] flex flex-col font-sans animate-slide-left text-xs text-gray-800 dark:text-gray-200 overflow-hidden cursor-default"
                 onClick={(e) => e.stopPropagation()}
             >
+            <GlassLight />
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-glass-divider">
                 <div className="flex items-center gap-2.5 min-w-0 pr-2">
@@ -334,13 +337,15 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
             </div>
 
             {/* Tab Navigation */}
-            {/* Thanh phân đoạn kính (segmented control) thay cho tab gạch chân trên nền xám. */}
-            <div className="flex gap-1 mx-4 mt-3 mb-1 p-1 rounded-full glass-soft">
+            {/* Thanh phân đoạn kính (segmented control) thay cho tab gạch chân trên nền xám. Viên kính
+                "đang chọn" trượt giữa các tab, giọt nước theo chuột (LiquidGroup). */}
+            <LiquidGroup activeKey={currentTab} className="flex gap-1 mx-4 mt-3 mb-1 p-1 rounded-full glass-soft">
                 <button
+                    data-liquid-key="details"
                     onClick={() => setCurrentTab('details')}
                     className={`flex-1 py-1.5 rounded-full text-center font-semibold transition-colors flex items-center justify-center gap-1.5 cursor-pointer ${
                         currentTab === 'details'
-                            ? 'glass-active text-blue-700 dark:text-blue-300 font-bold'
+                            ? 'text-blue-700 dark:text-blue-300 font-bold'
                             : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 font-medium'
                     }`}
                 >
@@ -349,10 +354,11 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                 </button>
 
                 <button
+                    data-liquid-key="activity"
                     onClick={() => setCurrentTab('activity')}
                     className={`flex-1 py-1.5 rounded-full text-center font-semibold transition-colors flex items-center justify-center gap-1.5 cursor-pointer ${
                         currentTab === 'activity'
-                            ? 'glass-active text-blue-700 dark:text-blue-300 font-bold'
+                            ? 'text-blue-700 dark:text-blue-300 font-bold'
                             : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 font-medium'
                     }`}
                 >
@@ -362,10 +368,11 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
 
                 {!isFolder && (
                     <button
+                        data-liquid-key="versions"
                         onClick={() => setCurrentTab('versions')}
                         className={`flex-1 py-1.5 rounded-full text-center font-semibold transition-colors flex items-center justify-center gap-1.5 cursor-pointer ${
                             currentTab === 'versions'
-                                ? 'glass-active text-blue-700 dark:text-blue-300 font-bold'
+                                ? 'text-blue-700 dark:text-blue-300 font-bold'
                                 : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 font-medium'
                         }`}
                     >
@@ -373,7 +380,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                         <span>{t('info.tab.versions')}</span>
                     </button>
                 )}
-            </div>
+            </LiquidGroup>
 
             {/* Tab Body Content */}
             <div className="flex-1 overflow-y-auto p-5 space-y-6">

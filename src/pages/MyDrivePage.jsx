@@ -5,8 +5,9 @@ import FileListView from '../components/file-manager/FileListView';
 import FileGridView from '../components/file-manager/FileGridView';
 import FileFilterBar from '../components/common/FileFilterBar';
 import Breadcrumb from '../components/file-manager/Breadcrumb';
-import { List, LayoutGrid, UploadCloud, FolderInput, Loader2 } from 'lucide-react';
+import { UploadCloud, FolderInput, Loader2 } from 'lucide-react';
 import { collectDropEntries } from '../utils/uploadTree';
+import ViewModeToggle from '../components/common/ViewModeToggle';
 
 export default function MyDrivePage() {
     const { t } = useLanguage();
@@ -135,28 +136,7 @@ export default function MyDrivePage() {
             </button>
           )}
 
-          <div className="flex items-center bg-gray-200/90 dark:bg-gray-700 rounded-full p-0.5 border border-gray-300 dark:border-gray-700">
-            <button
-              onClick={() => setViewMode('list')}
-              title={t('view.list')}
-              className={`p-1.5 rounded-full transition-colors ${viewMode === 'list'
-                  ? 'glass-active text-blue-700 dark:text-blue-300 font-bold'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
-                }`}
-            >
-              <List className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setViewMode('grid')}
-              title={t('view.grid')}
-              className={`p-1.5 rounded-full transition-colors ${viewMode === 'grid'
-                  ? 'glass-active text-blue-700 dark:text-blue-300 font-bold'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
-                }`}
-            >
-              <LayoutGrid className="w-4 h-4" />
-            </button>
-          </div>
+          <ViewModeToggle viewMode={viewMode} setViewMode={setViewMode} />
         </div>
       </div>
 

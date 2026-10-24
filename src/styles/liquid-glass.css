@@ -1,0 +1,257 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   LIQUID GLASS 2 (24/10/2026) — ÁNH SÁNG THEO CHUỘT + GIỌT KÍNH TRƯỢT
+
+   Bản 22/10 mới có kính mờ tĩnh. Bản này thêm ba thứ, đều chỉ là lớp trang trí (không đổi
+   bố cục, không bắt sự kiện chuột):
+
+     1. `.glass-light`  — ánh sáng đi theo chuột trên tấm kính LỚN (thanh bên, header, vùng nội
+                          dung, menu, hộp thoại). Component: components/ui/GlassLight.jsx.
+     2. Đốm bóng        — `.glass-soft`, `.glass-input`, `.btn-accent`, `[data-spotlight]` (thẻ
+                          tệp/thư mục) sáng lên ngay dưới con trỏ khi rê vào.
+     3. Giọt kính       — `.liquid-pill` (viên đang chọn) và `.liquid-drop` (giọt nước đi theo
+                          chuột) của components/ui/LiquidGroup.jsx.
+
+   Toạ độ con trỏ do JS ghi vào biến CSS (utils/glassSpotlight.js, LiquidGroup.jsx); file này
+   chỉ quyết định TRÔNG như thế nào.
+
+   Vì sao ánh sáng của tấm kính lớn là một PHẦN TỬ CON riêng mà không phải background-image của
+   chính tấm kính: đổi background-image là trình duyệt vẽ lại cả lớp của tấm kính — với vùng nội
+   dung là vẽ lại toàn bộ danh sách tệp mỗi khung hình. Phần tử con chỉ đổi `translate`, được GPU
+   ghép lớp, không phải vẽ lại gì.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* Ánh sáng trên tấm kính lớn. Ở bản Sáng, ánh trắng trên kính trắng gần như không thấy, nên
+     quầng ngoài pha chút xanh lạnh — đọc ra là "phát sáng" mà không thành vệt màu. */
+  --glass-light-size: 520px;
+  --glass-light-core: rgba(255, 255, 255, 0.9);
+  --glass-light-halo: rgba(170, 202, 255, 0.3);
+  --glass-light-rim: rgba(255, 255, 255, 1);
+  --glass-light-rim-halo: rgba(96, 156, 255, 0.55);
+
+  /* Đốm bóng trên nút/ô nhập/thẻ. */
+  --spot-core: rgba(255, 255, 255, 0.95);
+  --spot-halo: rgba(170, 202, 255, 0.24);
+  --spot-accent: rgba(255, 255, 255, 0.42);
+
+  /* Giọt kính. `--drop-*` cho giọt đi theo chuột: gần như trong suốt, nổi khối nhờ viền sáng,
+     ánh mép trên và bóng đổ — đúng chất một giọt nước nằm trên mặt kính. */
+  /* Lớp trắng của giọt phủ LÊN chữ: đậm hơn chừng này là nhãn của mục đang rê bị nhạt đi. */
+  --drop-fill: rgba(255, 255, 255, 0.05);
+  --drop-sheen: rgba(255, 255, 255, 0.85);
+  --drop-spot: rgba(255, 255, 255, 0.2);
+  --drop-rim: rgba(255, 255, 255, 0.85);
+  --drop-rim-bottom: rgba(255, 255, 255, 0.55);
+  --drop-caustic: rgba(255, 255, 255, 0.7);
+  --drop-edge: rgba(15, 23, 42, 0.1);
+  --drop-shadow: rgba(15, 23, 42, 0.26);
+}
+
+.dark {
+  --glass-light-core: rgba(255, 255, 255, 0.11);
+  --glass-light-halo: rgba(150, 180, 255, 0.05);
+  --glass-light-rim: rgba(255, 255, 255, 0.75);
+  --glass-light-rim-halo: rgba(150, 190, 255, 0.28);
+
+  --spot-core: rgba(255, 255, 255, 0.12);
+  --spot-halo: rgba(150, 180, 255, 0.05);
+  --spot-accent: rgba(255, 255, 255, 0.3);
+
+  --drop-fill: rgba(255, 255, 255, 0.05);
+  --drop-sheen: rgba(255, 255, 255, 0.32);
+  --drop-spot: rgba(255, 255, 255, 0.1);
+  --drop-rim: rgba(255, 255, 255, 0.24);
+  --drop-rim-bottom: rgba(255, 255, 255, 0.12);
+  --drop-caustic: rgba(255, 255, 255, 0.14);
+  --drop-edge: rgba(0, 0, 0, 0.4);
+  --drop-shadow: rgba(0, 0, 0, 0.55);
+}
+
+/* Lớp `components`: các tiện ích Tailwind (`z-auto`, `fixed`, `absolute`…) đặt trên cùng phần
+   tử vẫn thắng — ví dụ Header cần ánh sáng ở `z-auto` thay vì `-1`. */
+@layer components {
+  /* ── 1. Ánh sáng theo chuột trên tấm kính lớn ───────────────────────────── */
+
+  /* `z-index: -1`: nằm NGAY TRÊN nền kính, DƯỚI nội dung — chữ không bị ánh sáng phủ nhạt đi.
+     Muốn vậy tấm kính phải là stacking context (thanh bên, <main>, menu `glass-strong` đều
+     đã là). Header thì không được (xem Header.jsx) nên dùng `z-auto` + đặt làm con ĐẦU TIÊN. */
+  .glass-light {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    overflow: hidden;
+    pointer-events: none;
+    contain: strict;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+  }
+
+  .glass-light-glow {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: var(--glass-light-size);
+    height: var(--glass-light-size);
+    margin: calc(var(--glass-light-size) / -2) 0 0 calc(var(--glass-light-size) / -2);
+    border-radius: 50%;
+    background: radial-gradient(closest-side, var(--glass-light-core), var(--glass-light-halo) 40%, transparent);
+    /* --lx/--ly: vị trí chuột trong tấm kính, do utils/glassSpotlight.js ghi. */
+    translate: var(--lx, -9999px) var(--ly, -9999px);
+  }
+
+  /* Viền bắt sáng: một vòng 1.5px (mask khoét rỗng phần giữa) với đốm sáng nhỏ, đậm hơn — mép
+     kính sáng lên ở đoạn gần con trỏ như cạnh vát của một tấm kính thật. */
+  .glass-light-rim {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1.5px;
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  }
+
+  .glass-light-rim > .glass-light-glow {
+    --glass-light-size: 300px;
+    background: radial-gradient(closest-side, var(--glass-light-rim), var(--glass-light-rim-halo) 45%, transparent);
+  }
+
+  @media (hover: hover) {
+    :hover > .glass-light {
+      opacity: 1;
+      transition-duration: 0.25s;
+    }
+
+    /* Chỉ xin lớp GPU riêng lúc đang rê chuột — 6–8 tấm kính mà lúc nào cũng giữ sẵn lớp
+       520×520 là vài chục MB bộ nhớ đồ hoạ cho thứ không ai nhìn thấy. */
+    :hover > .glass-light .glass-light-glow {
+      will-change: translate;
+    }
+  }
+
+  /* ── 3. Giọt kính (LiquidGroup) ─────────────────────────────────────────── */
+
+  /* Nhóm chứa giọt: cần là khung định vị (giọt `absolute` bên trong) và stacking context riêng
+     (viên đang chọn `z-index: -1` nằm dưới chữ nhưng trên nền của nhóm). */
+  .liquid-group {
+    position: relative;
+    isolation: isolate;
+  }
+
+  /* Vị trí/kích thước do JS ghi (`translate`, `width`, `height`, `transform: scale` khi giọt
+     kéo dãn) — xem utils/liquidMotion.js. */
+  .liquid-pill,
+  .liquid-drop {
+    position: absolute;
+    left: 0;
+    top: 0;
+    pointer-events: none;
+    opacity: 0;
+  }
+
+  /* Viên "đang chọn": cùng chất liệu với `glass-active` cũ, chỉ khác là TRƯỢT sang mục mới
+     thay vì nhảy. Nằm dưới chữ. */
+  .liquid-pill {
+    z-index: -1;
+    background-color: var(--glass-active);
+    box-shadow:
+      var(--glass-highlight),
+      0 0 0 1px var(--glass-hairline),
+      0 4px 12px -6px rgba(15, 23, 42, 0.18);
+    transition: opacity 0.2s ease;
+  }
+
+  .liquid-pill.is-visible {
+    opacity: 1;
+  }
+
+  /* Giọt nước đi theo chuột: nằm TRÊN chữ (để khúc xạ được chữ bên dưới — xem
+     utils/liquidRefraction.js) nhưng gần như trong suốt nên chữ vẫn đọc rõ. Hiện ra/biến mất
+     bằng `scale` + `opacity` (thuộc tính riêng, không đụng `transform` mà JS dùng để kéo dãn). */
+  .liquid-drop {
+    z-index: 1;
+    background:
+      radial-gradient(circle 64px at var(--mx, 50%) var(--my, 50%), var(--drop-spot), transparent 70%),
+      linear-gradient(180deg, var(--drop-sheen), transparent 8px),
+      var(--drop-fill);
+    box-shadow:
+      inset 0 0 0 1px var(--drop-rim),
+      inset 0 -1px 1px var(--drop-rim-bottom),
+      inset 0 -8px 14px -10px var(--drop-caustic),
+      0 0 0 0.5px var(--drop-edge),
+      0 6px 16px -8px var(--drop-shadow);
+    scale: 0.9;
+    transition:
+      opacity 0.22s ease,
+      scale 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.3);
+  }
+
+  .liquid-drop.is-visible {
+    opacity: 1;
+    scale: 1;
+  }
+
+  /* Bấm xuống: giọt nước lún nhẹ. */
+  .liquid-drop.is-visible.is-pressed {
+    scale: 0.97;
+    transition-duration: 0.12s;
+  }
+
+  .liquid-drop[data-tone='danger'] {
+    --drop-fill: rgba(244, 63, 94, 0.1);
+    --drop-spot: rgba(255, 228, 230, 0.35);
+    --drop-rim: rgba(251, 113, 133, 0.55);
+    --drop-caustic: rgba(251, 113, 133, 0.35);
+  }
+
+  /* SVG chứa bộ lọc khúc xạ: kích thước 0 thay vì `display: none` — bộ lọc trong một <svg>
+     bị ẩn bằng display:none thì `url(#…)` không còn tham chiếu được. */
+  .liquid-defs {
+    position: absolute;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+}
+
+/* ── 2. Đốm bóng dưới con trỏ ─────────────────────────────────────────────── */
+
+/* Lớp `utilities`: `btn-accent` là tiện ích có sẵn `background-image` (gradient xanh), đặt ở lớp
+   thấp hơn thì đốm bóng luôn thua. `--spot-x/--spot-y` do utils/glassSpotlight.js ghi. */
+@layer utilities {
+  @media (hover: hover) {
+    :is(.glass-soft, .glass-input, [data-spotlight]):hover {
+      background-image: radial-gradient(
+        circle var(--spot-size, 120px) at var(--spot-x, 50%) var(--spot-y, 50%),
+        var(--spot-core),
+        var(--spot-halo) 45%,
+        transparent
+      );
+    }
+
+    .btn-accent:not(:disabled):hover {
+      background-image:
+        radial-gradient(circle 90px at var(--spot-x, 50%) var(--spot-y, 50%), var(--spot-accent), transparent),
+        linear-gradient(180deg, #3b8cff 0%, #1f6fe5 100%);
+    }
+  }
+}
+
+/* Màn cảm ứng không có "rê chuột": không cần lớp ánh sáng nào. Chế độ tương phản cao của
+   Windows: bỏ hết lớp trang trí, để màu hệ thống lo phần nổi bật. */
+@media (hover: none), (forced-colors: active) {
+  .glass-light,
+  .liquid-drop {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .liquid-drop,
+  .liquid-pill {
+    transition: opacity 0.15s ease;
+    scale: 1;
+  }
+}

@@ -6,6 +6,8 @@ import { useTags } from '../../context/TagsContext';
 import { DEFAULT_TAG_COLOR } from '../../constants/tags';
 import NewButton from './NewButton';
 import QuickCleanupModal from '../modals/QuickCleanupModal';
+import GlassLight from '../ui/GlassLight';
+import LiquidGroup from '../ui/LiquidGroup';
 import { formatBytes } from '../../utils/formatFileSize';
 import { getStorageStatus } from '../../utils/storageStatus';
 import {
@@ -25,6 +27,56 @@ import {
 
 /** Thanh bên hiện chừng này nhãn đầu (theo tên) — còn lại xem/sửa trong hộp quản lý. */
 const SIDEBAR_TAG_LIMIT = 8;
+
+/**
+ * Một mục menu của thanh bên. Nền "đang chọn" và nền rê chuột KHÔNG còn nằm ở đây: viên kính
+ * đang chọn và giọt nước theo chuột do <LiquidGroup> bọc ngoài vẽ, nối với mục qua
+ * `data-liquid-key`. Mục chỉ còn đổi màu chữ/icon.
+ *
+ * Khai báo ở cấp module: trước đây NavItem nằm TRONG thân Sidebar, nên mỗi lần Sidebar render
+ * (FileContext đổi là đổi) React thấy một kiểu component mới và gỡ/dựng lại toàn bộ nút menu.
+ */
+function NavItem({
+  id,
+  label,
+  icon: Icon,
+  badge,
+  badgeColor = 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300',
+  hoverColor = 'group-hover:text-blue-600',
+  activeColor = 'text-blue-600 dark:text-blue-400',
+  isActive,
+  isCollapsed,
+  onSelect,
+}) {
+  return (
+    <button
+      type="button"
+      data-liquid-key={id}
+      onClick={() => onSelect(id)}
+      title={isCollapsed ? label : undefined}
+      aria-current={isActive ? 'page' : undefined}
+      className={`w-full flex items-center gap-4 px-4 py-2.5 short:py-2 rounded-[14px] transition-colors duration-150 text-[14px] font-medium text-left group relative cursor-pointer ${
+        isCollapsed ? 'justify-center px-0 py-3 short:py-2.5' : 'justify-start'
+      } ${isActive ? 'text-gray-900 dark:text-white font-semibold' : 'text-gray-700 dark:text-gray-300'}`}
+    >
+      <Icon
+        className={`w-5 h-5 shrink-0 transition-colors duration-150 ${
+          isActive ? activeColor : `text-gray-600 dark:text-gray-400 ${hoverColor}`
+        }`}
+      />
+
+      {!isCollapsed && <span className="truncate flex-1">{label}</span>}
+
+      {!isCollapsed && badge > 0 && (
+        <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${badgeColor}`}>{badge}</span>
+      )}
+
+      {isCollapsed && badge > 0 && (
+        <span className="absolute top-1 right-2 w-2 h-2 rounded-full bg-rose-500" />
+      )}
+    </button>
+  );
+}
 
 export default function Sidebar() {
   const { activeTab, setActiveTab, isSidebarCollapsed, toggleSidebar, storageInfo, items, currentTagId } = useFiles();
@@ -61,43 +113,11 @@ export default function Sidebar() {
     warning: { labelKey: 'sidebar.storage.warning', tone: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/15' },
   }[storageStatus.level];
 
-  const NavItem = ({
-    id,
-    label,
-    icon: Icon,
-    badge,
-    badgeColor = 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300',
-    hoverColor = 'group-hover:text-blue-600',
-    activeColor = 'text-blue-600 dark:text-blue-400',
-  }) => {
-    const isActive = activeTab === id;
+  // Ba thứ mọi NavItem đều cần — gom lại để mỗi dòng bên dưới chỉ còn phần riêng của nó.
+  const navProps = (id) => ({ id, isActive: activeTab === id, isCollapsed: isSidebarCollapsed, onSelect: setActiveTab });
 
-    return (
-      <button
-        onClick={() => setActiveTab(id)}
-        title={isSidebarCollapsed ? label : undefined}
-        className={`w-full flex items-center gap-4 px-4 py-2.5 short:py-2 rounded-[14px] transition-all duration-150 text-[14px] font-medium text-left group relative cursor-pointer ${
-          isSidebarCollapsed ? 'justify-center px-0 py-3 short:py-2.5' : 'justify-start'
-        } ${isActive ? 'glass-active text-gray-900 dark:text-white font-semibold' : 'text-gray-700 dark:text-gray-300 hover:bg-white/55 dark:hover:bg-white/[0.06]'}`}
-      >
-        <Icon
-          className={`w-5 h-5 shrink-0 transition-colors duration-150 ${
-            isActive ? activeColor : `text-gray-600 dark:text-gray-400 ${hoverColor}`
-          }`}
-        />
-
-        {!isSidebarCollapsed && <span className="truncate flex-1">{label}</span>}
-
-        {!isSidebarCollapsed && badge > 0 && (
-          <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${badgeColor}`}>{badge}</span>
-        )}
-
-        {isSidebarCollapsed && badge > 0 && (
-          <span className="absolute top-1 right-2 w-2 h-2 rounded-full bg-rose-500" />
-        )}
-      </button>
-    );
-  };
+  // Khoá của viên kính "đang chọn": trang Nhãn thì là nhãn đang mở, còn lại là tab.
+  const activeNavKey = activeTab === 'tags' ? `tag:${currentTagId}` : activeTab;
 
   return (
     <>
@@ -116,6 +136,10 @@ export default function Sidebar() {
           ${isSidebarCollapsed ? '-translate-x-[110%] lg:translate-x-0 lg:w-20 px-2' : 'translate-x-0 w-76 max-w-[calc(100vw-1rem)] px-3'}
         `}
       >
+        {/* Ánh sáng theo chuột — `z-50`/`lg:z-0` ở trên đã cho thanh bên stacking context riêng
+            nên lớp sáng nằm được dưới chữ. */}
+        <GlassLight />
+
         {/* Rộng 304px cả điện thoại lẫn desktop: nhãn dài nhất ("cloudSSS được chia sẻ với
             tôi") in đậm lúc đang chọn cần ~198px, bản 256px cũ chỉ cho 159px nên bị cắt
             thành "...". Thêm mục mới thì đo lại, đừng để nhãn nào phải cắt. */}
@@ -127,14 +151,16 @@ export default function Sidebar() {
         {/* DANH SÁCH MENU SIDEBAR
             `short:` thu mật độ ở màn thấp (xem src/index.css) để cả menu nằm gọn ở
             zoom 100% trên laptop 768px/720px. `overflow-y-auto` chỉ còn là lưới an
-            toàn cho màn thấp hơn nữa. */}
-        <nav className="flex-1 overflow-y-auto space-y-1 short:space-y-0.5 pr-1 custom-scrollbar">
-          <NavItem id="home" label={t('nav.home')} icon={Home} hoverColor="group-hover:text-blue-600" activeColor="text-blue-600 dark:text-blue-400" />
-          <NavItem id="my-drive" label={t('nav.myDrive')} icon={HardDrive} hoverColor="group-hover:text-emerald-600" activeColor="text-emerald-600 dark:text-emerald-400" />
-          <NavItem id="shared-drives" label={t('nav.sharedDrives')} icon={FolderGit2} hoverColor="group-hover:text-indigo-600" activeColor="text-indigo-600 dark:text-indigo-400" />
-          <NavItem id="shared-with-me" label={t('nav.sharedWithMe')} icon={Users} hoverColor="group-hover:text-teal-600" activeColor="text-teal-600 dark:text-teal-400" />
-          <NavItem id="recent" label={t('nav.recent')} icon={Clock} hoverColor="group-hover:text-amber-500" activeColor="text-amber-500 dark:text-amber-400" />
-          <NavItem id="starred" label={t('nav.starred')} icon={Star} hoverColor="group-hover:text-yellow-500" activeColor="text-yellow-500 dark:text-yellow-400" />
+            toàn cho màn thấp hơn nữa.
+            LiquidGroup: viên kính "đang chọn" trượt giữa các mục khi đổi trang, giọt nước trong
+            suốt lướt theo chuột (components/ui/LiquidGroup.jsx). */}
+        <LiquidGroup as="nav" activeKey={activeNavKey} className="flex-1 overflow-y-auto space-y-1 short:space-y-0.5 pr-1 custom-scrollbar">
+          <NavItem {...navProps('home')} label={t('nav.home')} icon={Home} hoverColor="group-hover:text-blue-600" activeColor="text-blue-600 dark:text-blue-400" />
+          <NavItem {...navProps('my-drive')} label={t('nav.myDrive')} icon={HardDrive} hoverColor="group-hover:text-emerald-600" activeColor="text-emerald-600 dark:text-emerald-400" />
+          <NavItem {...navProps('shared-drives')} label={t('nav.sharedDrives')} icon={FolderGit2} hoverColor="group-hover:text-indigo-600" activeColor="text-indigo-600 dark:text-indigo-400" />
+          <NavItem {...navProps('shared-with-me')} label={t('nav.sharedWithMe')} icon={Users} hoverColor="group-hover:text-teal-600" activeColor="text-teal-600 dark:text-teal-400" />
+          <NavItem {...navProps('recent')} label={t('nav.recent')} icon={Clock} hoverColor="group-hover:text-amber-500" activeColor="text-amber-500 dark:text-amber-400" />
+          <NavItem {...navProps('starred')} label={t('nav.starred')} icon={Star} hoverColor="group-hover:text-yellow-500" activeColor="text-yellow-500 dark:text-yellow-400" />
 
           {/* NHÃN (##91) — mỗi nhãn mở trang "Nhãn" của nó: mọi mục gắn nhãn đó, ở bất cứ đâu. */}
           {tagsCtx && (
@@ -156,9 +182,10 @@ export default function Sidebar() {
               {tags.length === 0 ? (
                 <button
                   type="button"
+                  data-liquid-key="tags:create"
                   onClick={tagsCtx.openManager}
                   title={isSidebarCollapsed ? t('tags.sidebar.create') : undefined}
-                  className={`w-full flex items-center gap-4 px-4 py-2 short:py-1.5 rounded-[14px] text-[13px] text-gray-600 dark:text-gray-400 hover:bg-white/55 dark:hover:bg-white/[0.06] text-left cursor-pointer ${
+                  className={`w-full flex items-center gap-4 px-4 py-2 short:py-1.5 rounded-[14px] text-[13px] text-gray-600 dark:text-gray-400 text-left cursor-pointer ${
                     isSidebarCollapsed ? 'justify-center px-0' : ''
                   }`}
                 >
@@ -173,11 +200,13 @@ export default function Sidebar() {
                     <button
                       key={tag.id}
                       type="button"
+                      data-liquid-key={`tag:${tag.id}`}
                       onClick={() => navigate(`/app/tags/${tag.id}`)}
                       title={isSidebarCollapsed ? tag.name : undefined}
-                      className={`w-full flex items-center gap-4 px-4 py-2 short:py-1.5 rounded-[14px] transition-all duration-150 text-[14px] font-medium text-left cursor-pointer ${
+                      aria-current={active ? 'page' : undefined}
+                      className={`w-full flex items-center gap-4 px-4 py-2 short:py-1.5 rounded-[14px] transition-colors duration-150 text-[14px] font-medium text-left cursor-pointer ${
                         isSidebarCollapsed ? 'justify-center px-0' : ''
-                      } ${active ? 'glass-active text-gray-900 dark:text-white font-semibold' : 'text-gray-700 dark:text-gray-300 hover:bg-white/55 dark:hover:bg-white/[0.06]'}`}
+                      } ${active ? 'text-gray-900 dark:text-white font-semibold' : 'text-gray-700 dark:text-gray-300'}`}
                     >
                       <Tag className="w-5 h-5 shrink-0" style={{ color }} fill={active ? color : 'none'} />
                       {!isSidebarCollapsed && <span className="truncate flex-1">{tag.name}</span>}
@@ -202,13 +231,13 @@ export default function Sidebar() {
 
           <div className="my-2 short:my-1 mx-2 border-t border-glass-divider" />
 
-          <NavItem id="spam" label={t('nav.spam')} icon={ShieldAlert} badge={spamCount} badgeColor="bg-amber-100 text-amber-800 dark:bg-amber-400/15 dark:text-amber-300" hoverColor="group-hover:text-orange-600" activeColor="text-orange-600 dark:text-orange-400" />
-          <NavItem id="trash" label={t('nav.trash')} icon={Trash2} badge={trashCount} hoverColor="group-hover:text-rose-600" activeColor="text-rose-600 dark:text-rose-400" />
+          <NavItem {...navProps('spam')} label={t('nav.spam')} icon={ShieldAlert} badge={spamCount} badgeColor="bg-amber-100 text-amber-800 dark:bg-amber-400/15 dark:text-amber-300" hoverColor="group-hover:text-orange-600" activeColor="text-orange-600 dark:text-orange-400" />
+          <NavItem {...navProps('trash')} label={t('nav.trash')} icon={Trash2} badge={trashCount} hoverColor="group-hover:text-rose-600" activeColor="text-rose-600 dark:text-rose-400" />
 
           <div className="my-2 short:my-1 mx-2 border-t border-glass-divider" />
 
-          <NavItem id="billing" label={t('nav.billing')} icon={CreditCard} hoverColor="group-hover:text-purple-600" activeColor="text-purple-600 dark:text-purple-400" />
-        </nav>
+          <NavItem {...navProps('billing')} label={t('nav.billing')} icon={CreditCard} hoverColor="group-hover:text-purple-600" activeColor="text-purple-600 dark:text-purple-400" />
+        </LiquidGroup>
 
         {/* KHỐI THANH LƯU TRỮ DYNAMIC COLOR */}
         <div className="mt-auto pt-3 pb-3 short:pt-2 short:pb-2">

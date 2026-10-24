@@ -4,6 +4,8 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useTags } from '../../context/TagsContext';
 import { Plus, FolderPlus, FileUp, FolderUp, Loader2 } from 'lucide-react';
 import { collectInputEntries } from '../../utils/uploadTree';
+import GlassLight from '../ui/GlassLight';
+import LiquidGroup from '../ui/LiquidGroup';
 
 export default function NewButton({ isCollapsed }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -152,26 +154,29 @@ export default function NewButton({ isCollapsed }) {
       </button>
 
       {/* Dropdown Menu */}
+      {/* LiquidGroup: một giọt nước trượt giữa các lệnh thay cho nền rê chuột từng hàng. */}
       {isOpen && (
-        <div className="glass-strong absolute top-full mt-2 rounded-[20px] border py-2 w-64 z-50 left-0 animate-glass-in">
+        <LiquidGroup className="glass-strong absolute top-full mt-2 rounded-[20px] border p-1.5 w-64 z-50 left-0 animate-glass-in">
+          <GlassLight />
           {/* Thư mục người khác chia sẻ: nói lý do NGAY trong menu và khoá ba lệnh — không để
               người dùng chọn tệp, tải lên rồi mới bị từ chối (##78). */}
           {isWriteLocked && (
-            <div role="note" className="mx-2 mb-1 rounded-xl bg-amber-50 dark:bg-amber-400/15 border border-amber-200 dark:border-amber-500/30 px-3 py-2">
+            <div role="note" className="mx-0.5 mb-1 rounded-xl bg-amber-50 dark:bg-amber-400/15 border border-amber-200 dark:border-amber-500/30 px-3 py-2">
               <p className="text-[12.5px] leading-snug text-amber-800 dark:text-amber-200">{t(writeLockKey)}</p>
             </div>
           )}
           {viewTag && (
-            <div role="note" className="mx-2 mb-1 rounded-xl bg-blue-50 dark:bg-blue-400/15 border border-blue-200 dark:border-blue-500/30 px-3 py-2">
+            <div role="note" className="mx-0.5 mb-1 rounded-xl bg-blue-50 dark:bg-blue-400/15 border border-blue-200 dark:border-blue-500/30 px-3 py-2">
               <p className="text-[12.5px] leading-snug text-blue-800 dark:text-blue-200">{t('newBtn.tagView', { name: viewTag.name })}</p>
             </div>
           )}
 
           {/* Tạo thư mục mới */}
           <button
+            data-liquid-key="new-folder"
             onClick={handleCreateFolderPrompt}
             disabled={isWriteLocked}
-            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-colors text-left disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-[14px] text-sm text-gray-700 dark:text-gray-300 pointer-coarse:active:bg-black/[0.05] dark:pointer-coarse:active:bg-white/[0.08] transition-colors text-left disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <FolderPlus className="w-5 h-5 text-gray-600 dark:text-gray-300" />
             <span>{t('newBtn.newFolder')}</span>
@@ -181,12 +186,13 @@ export default function NewButton({ isCollapsed }) {
 
           {/* Tải nhiều file lên */}
           <button
+            data-liquid-key="upload-file"
             onClick={() => {
               setIsOpen(false);
               fileInputRef.current?.click();
             }}
             disabled={isWriteLocked}
-            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-colors text-left disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-[14px] text-sm text-gray-700 dark:text-gray-300 pointer-coarse:active:bg-black/[0.05] dark:pointer-coarse:active:bg-white/[0.08] transition-colors text-left disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <FileUp className="w-5 h-5 text-blue-500" />
             <div className="flex flex-col items-start">
@@ -196,14 +202,15 @@ export default function NewButton({ isCollapsed }) {
 
           {/* Tải thư mục lên (giữ cấu trúc) */}
           <button
+            data-liquid-key="upload-folder"
             onClick={() => {
               setIsOpen(false);
               folderInputRef.current?.click();
             }}
             disabled={isBuildingTree || isWriteLocked}
-            className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-colors text-left ${
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-[14px] text-sm text-gray-700 dark:text-gray-300 pointer-coarse:active:bg-black/[0.05] dark:pointer-coarse:active:bg-white/[0.08] transition-colors text-left ${
               isWriteLocked
-                ? 'disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent'
+                ? 'disabled:opacity-40 disabled:cursor-not-allowed'
                 : 'disabled:opacity-60 disabled:cursor-wait'
             }`}
           >
@@ -217,7 +224,7 @@ export default function NewButton({ isCollapsed }) {
               </span>
             </div>
           </button>
-        </div>
+        </LiquidGroup>
       )}
     </div>
   );

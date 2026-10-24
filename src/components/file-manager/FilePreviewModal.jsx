@@ -332,7 +332,7 @@ function PdfCanvasViewer({ url, sizeBytes, zoom = 1, rotation = 0, onWheelZoom }
           <button
             onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
             disabled={currentPage <= 1}
-            className="p-1.5 rounded-full hover:bg-white/10 text-white disabled:opacity-30 transition-colors cursor-pointer"
+            className="p-1.5 rounded-full text-white disabled:opacity-30 transition-colors cursor-pointer"
             title={t('preview.page.prev')}
           >
             <ChevronLeft className="w-4 h-4" />
@@ -345,7 +345,7 @@ function PdfCanvasViewer({ url, sizeBytes, zoom = 1, rotation = 0, onWheelZoom }
           <button
             onClick={() => setCurrentPage((p) => Math.min(numPages, p + 1))}
             disabled={currentPage >= numPages}
-            className="p-1.5 rounded-full hover:bg-white/10 text-white disabled:opacity-30 transition-colors cursor-pointer"
+            className="p-1.5 rounded-full text-white disabled:opacity-30 transition-colors cursor-pointer"
             title={t('preview.page.next')}
           >
             <ChevronRight className="w-4 h-4" />
@@ -407,7 +407,7 @@ function MediaSupportNotice({ diagnosis, fileName, onDownload, t, inline = false
       </div>
       <button
         onClick={onDownload}
-        className="px-3 py-1.5 bg-white/15 hover:bg-white/25 text-white rounded-lg transition-colors font-semibold text-xs shrink-0 flex items-center gap-1.5 cursor-pointer"
+        className="px-3 py-1.5 bg-white/15 text-white rounded-lg transition-colors font-semibold text-xs shrink-0 flex items-center gap-1.5 cursor-pointer"
       >
         <Download className="w-3.5 h-3.5" />
         <span>{t('preview.media.downloadAndOpenLocally')}</span>
@@ -886,7 +886,7 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
   // Kiểu Google Drive: các nút chỉ là biểu tượng nằm chung MỘT viên bo tròn (xem
   // `PILL`), không mỗi nút một nền riêng.
   const iconButton =
-    'p-2 rounded-full text-white/90 hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent transition-colors cursor-pointer';
+    'p-2 rounded-full text-white/90 disabled:opacity-30 transition-colors cursor-pointer';
   const zoomControls = (isImage || isPdf) && url ? (
     <>
       <button onClick={handleZoomOut} disabled={zoom <= ZOOM_MIN} className={iconButton} title={t('preview.zoomOut')}>
@@ -939,7 +939,7 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
         <div className="flex items-center gap-1 @lg:gap-2 min-w-0 flex-1">
           <button
             onClick={onClose}
-            className="p-2.5 rounded-full text-white/90 hover:bg-white/10 transition-colors cursor-pointer shrink-0"
+            className="p-2.5 rounded-full text-white/90 transition-colors cursor-pointer shrink-0"
             title={t('preview.close')}
             aria-label={t('preview.close')}
           >
@@ -971,7 +971,7 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
               type="button"
               onClick={toggleComments}
               className={`@2xl:hidden relative p-2 rounded-full border transition-colors cursor-pointer ${
-                commentsOpen ? 'bg-white/15 border-white/40' : 'border-white/30 hover:bg-white/10'
+                commentsOpen ? 'bg-white/15 border-white/40' : 'border-white/30'
               }`}
               title={t('preview.comments.title')}
               aria-label={t('preview.comments.title')}
@@ -994,7 +994,7 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
               setCommentsOpen(false);
               openAi(item, 'chat');
             }}
-            className="relative flex items-center gap-2 px-2.5 @lg:px-4 py-2 rounded-full glass-dark hover:bg-white/15 text-white text-sm font-medium transition-colors cursor-pointer"
+            className="relative flex items-center gap-2 px-2.5 @lg:px-4 py-2 rounded-full glass-dark text-white text-sm font-medium transition-colors cursor-pointer"
             title={t('preview.askAi')}
           >
             <Sparkles className="w-4 h-4 text-sky-300" />
@@ -1031,7 +1031,7 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
                 type="button"
                 onClick={toggleComments}
                 className={`relative flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors cursor-pointer ${
-                  commentsOpen ? 'bg-white text-gray-900 shadow-lg shadow-black/30' : 'glass-dark text-white/90 hover:bg-white/15'
+                  commentsOpen ? 'bg-white text-gray-900 shadow-lg shadow-black/30' : 'glass-dark text-white/90'
                 }`}
               >
                 <MessageSquarePlus className="w-[18px] h-[18px]" />
@@ -1049,7 +1049,7 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
           <button
             type="button"
             onClick={goPrev}
-            className="absolute left-2 @2xl:left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 @2xl:w-11 @2xl:h-11 rounded-full flex items-center justify-center glass-dark hover:bg-white/15 text-white transition-colors cursor-pointer"
+            className="absolute left-2 @2xl:left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 @2xl:w-11 @2xl:h-11 rounded-full flex items-center justify-center glass-dark text-white transition-colors cursor-pointer"
             title={t('preview.prevFile', { name: prevItem.name })}
             aria-label={t('preview.prevFile', { name: prevItem.name })}
           >
@@ -1060,7 +1060,7 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
           <button
             type="button"
             onClick={goNext}
-            className="absolute right-2 @2xl:right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 @2xl:w-11 @2xl:h-11 rounded-full flex items-center justify-center glass-dark hover:bg-white/15 text-white transition-colors cursor-pointer"
+            className="absolute right-2 @2xl:right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 @2xl:w-11 @2xl:h-11 rounded-full flex items-center justify-center glass-dark text-white transition-colors cursor-pointer"
             title={t('preview.nextFile', { name: nextItem.name })}
             aria-label={t('preview.nextFile', { name: nextItem.name })}
           >
@@ -1080,7 +1080,7 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
             <p className="text-sm text-red-600 dark:text-red-300 font-medium">{error}</p>
             <button
               onClick={handleDownload}
-              className="px-4 py-2 bg-white hover:bg-zinc-50 dark:bg-white/10 dark:hover:bg-white/20 border border-zinc-200 dark:border-transparent text-xs font-semibold rounded-xl text-zinc-700 dark:text-white transition-all cursor-pointer"
+              className="px-4 py-2 bg-white dark:bg-white/10 border border-zinc-200 dark:border-transparent text-xs font-semibold rounded-xl text-zinc-700 dark:text-white transition-all cursor-pointer"
             >
               {t('preview.downloadToView')}
             </button>
@@ -1217,7 +1217,7 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
                 />
                 <button
                   onClick={handleDownload}
-                  className="flex items-center justify-center gap-2 w-full py-2.5 bg-white/10 hover:bg-white/20 text-xs font-semibold rounded-xl text-white transition-all cursor-pointer"
+                  className="flex items-center justify-center gap-2 w-full py-2.5 bg-white/10 text-xs font-semibold rounded-xl text-white transition-all cursor-pointer"
                 >
                   <Download className="w-4 h-4" />
                   <span>{t('preview.audio.download')}</span>
@@ -1298,7 +1298,7 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
                     )}
                     <button
                       onClick={handleCopyText}
-                      className="px-2.5 py-1 rounded-lg bg-zinc-100 dark:bg-white/10 hover:bg-zinc-200 dark:hover:bg-white/20 border border-zinc-200 dark:border-transparent text-[11px] font-sans font-semibold text-zinc-700 dark:text-zinc-200 transition-colors cursor-pointer"
+                      className="px-2.5 py-1 rounded-lg bg-zinc-100 dark:bg-white/10 border border-zinc-200 dark:border-transparent text-[11px] font-sans font-semibold text-zinc-700 dark:text-zinc-200 transition-colors cursor-pointer"
                     >
                       {copied ? t('preview.copied') : t('preview.copy')}
                     </button>
@@ -1321,7 +1321,7 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
                       <p className="text-sm text-red-500 dark:text-red-300 font-medium">{textError}</p>
                       <button
                         onClick={handleDownload}
-                        className="px-4 py-2 bg-zinc-100 dark:bg-white/10 hover:bg-zinc-200 dark:hover:bg-white/20 text-xs font-semibold rounded-xl text-zinc-700 dark:text-white transition-all cursor-pointer"
+                        className="px-4 py-2 bg-zinc-100 dark:bg-white/10 text-xs font-semibold rounded-xl text-zinc-700 dark:text-white transition-all cursor-pointer"
                       >
                         {t('preview.downloadToView')}
                       </button>

@@ -116,10 +116,14 @@ const FolderTableRow = memo(function FolderTableRow({
             onDoubleClick={() => onDoubleClick(folder)}
             onContextMenu={(e) => onContextMenu(e, folder)}
             style={getCardColorVars(folder)}
+            // Khối kính hover chung trượt giữa các hàng (utils/liquidHover.js); hàng đang chọn đã có
+            // nền + viền xanh nên khối kính bỏ qua nó.
+            data-liquid-hover
+            data-liquid-selected={isSelected || undefined}
             className={`transition-colors group cursor-pointer ${isCut ? 'opacity-50 border-dashed' : ''} ${
                 isSelected
                     ? 'ring-1 ring-inset ring-blue-400 bg-[var(--fc-hover-l)] dark:bg-[var(--fc-hover-d)]'
-                    : 'bg-[var(--fc-panel-l)] dark:bg-[var(--fc-panel-d)] hover:bg-[var(--fc-surface-l)] dark:hover:bg-[var(--fc-surface-d)]'
+                    : 'bg-[var(--fc-panel-l)] dark:bg-[var(--fc-panel-d)]'
             }`}
         >
             {/* Checkbox Column – only this triggers selection */}
@@ -217,7 +221,7 @@ const FolderTableRow = memo(function FolderTableRow({
             <td className="py-3.5 px-3 text-center">
                 <button
                     onClick={(e) => onContextMenu(e, folder)}
-                    className="p-1 rounded-full text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-colors"
+                    className="p-1 rounded-full text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
                 >
                     <MoreVertical className="w-4 h-4" />
                 </button>
@@ -247,10 +251,14 @@ const FileTableRow = memo(function FileTableRow({
             onDoubleClick={() => onDoubleClick(file)}
             onContextMenu={(e) => onContextMenu(e, file)}
             style={getCardColorVars(file)}
+            // Khối kính hover chung trượt giữa các hàng (utils/liquidHover.js); hàng đang chọn đã có
+            // nền + viền xanh nên khối kính bỏ qua nó.
+            data-liquid-hover
+            data-liquid-selected={isSelected || undefined}
             className={`transition-colors group cursor-pointer ${isCut ? 'opacity-50 border-dashed' : ''} ${
                 isSelected
                     ? 'ring-1 ring-inset ring-blue-400 bg-[var(--fc-hover-l)] dark:bg-[var(--fc-hover-d)]'
-                    : 'bg-[var(--fc-panel-l)] dark:bg-[var(--fc-panel-d)] hover:bg-[var(--fc-surface-l)] dark:hover:bg-[var(--fc-surface-d)]'
+                    : 'bg-[var(--fc-panel-l)] dark:bg-[var(--fc-panel-d)]'
             }`}
         >
             {/* Checkbox Column – only this triggers selection */}
@@ -362,7 +370,7 @@ const FileTableRow = memo(function FileTableRow({
             <td className="py-3.5 px-3 text-center">
                 <button
                     onClick={(e) => onContextMenu(e, file)}
-                    className="p-1 rounded-full text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-colors"
+                    className="p-1 rounded-full text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
                 >
                     <MoreVertical className="w-4 h-4" />
                 </button>
@@ -815,7 +823,7 @@ export default function FileListView() {
                         <button
                             disabled={currentPage === 1}
                             onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                            className="p-1.5 rounded-lg border border-gray-300 dark:border-gray-700 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] disabled:opacity-40 disabled:hover:bg-transparent transition-colors text-gray-700 dark:text-gray-300"
+                            className="p-1.5 rounded-lg border border-gray-300 dark:border-gray-700 disabled:opacity-40 disabled:hover:bg-transparent transition-colors text-gray-700 dark:text-gray-300"
                         >
                             <ChevronLeft className="w-4 h-4" />
                         </button>
@@ -825,7 +833,7 @@ export default function FileListView() {
                         <button
                             disabled={currentPage === totalPages}
                             onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                            className="p-1.5 rounded-lg border border-gray-300 dark:border-gray-700 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] disabled:opacity-40 disabled:hover:bg-transparent transition-colors text-gray-700 dark:text-gray-300"
+                            className="p-1.5 rounded-lg border border-gray-300 dark:border-gray-700 disabled:opacity-40 disabled:hover:bg-transparent transition-colors text-gray-700 dark:text-gray-300"
                         >
                             <ChevronRight className="w-4 h-4" />
                         </button>

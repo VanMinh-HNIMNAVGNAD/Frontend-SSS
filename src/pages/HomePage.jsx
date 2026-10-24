@@ -60,7 +60,9 @@ const SectionTable = ({ itemList, emptyMessage, onItemOpen, onToggleStar, onCont
                     onDoubleClick={() => onItemOpen && onItemOpen(item, itemList)}
                     onContextMenu={(e) => onContextMenu && onContextMenu(e, item)}
                     title={t('home.doubleClickToOpen')}
-                    className="flex items-center justify-between py-2.5 px-3 hover:bg-gray-100/70 dark:hover:bg-white/5 transition-colors cursor-pointer rounded-lg select-none"
+                    // Hàng bấm được nhưng là <div>: xin khối kính hover chung (utils/liquidHover.js).
+                    data-liquid-hover
+                    className="flex items-center justify-between py-2.5 px-3 transition-colors cursor-pointer rounded-lg select-none"
                 >
                     {/* Name & mini thumbnail (ảnh / video / trang đầu PDF, còn lại là icon) */}
                     <div className="flex items-center gap-3 flex-1 min-w-0 pr-4">
@@ -99,7 +101,7 @@ const SectionTable = ({ itemList, emptyMessage, onItemOpen, onToggleStar, onCont
                                 onContextMenu && onContextMenu(e, item);
                             }}
                             onDoubleClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
-                            className="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 p-1 rounded-full hover:bg-gray-200/60 dark:hover:bg-white/10"
+                            className="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 p-1 rounded-full"
                             title={t('home.moreActions')}
                         >
                             <MoreVertical className="w-4 h-4" />
@@ -143,7 +145,7 @@ const SectionGrid = ({ itemList, emptyMessage, onItemOpen, onToggleStar, onConte
                                 onContextMenu && onContextMenu(e, item);
                             }}
                             onDoubleClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
-                            className="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 p-0.5 rounded-full hover:bg-black/[0.05] dark:hover:bg-white/[0.08] opacity-0 group-hover:opacity-100 pointer-coarse:opacity-100 transition-opacity shrink-0"
+                            className="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 p-0.5 rounded-full opacity-0 group-hover:opacity-100 pointer-coarse:opacity-100 transition-opacity shrink-0"
                             title={t('home.moreActions')}
                         >
                             <MoreVertical className="w-3.5 h-3.5" />
@@ -341,7 +343,7 @@ export default function HomePage() {
                             onClick={() => setSearchQuery('')}
                             title={t('home.search.back')}
                             aria-label={t('home.search.back')}
-                            className="p-1.5 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] rounded-lg text-gray-500 dark:text-gray-400 transition-colors shrink-0 cursor-pointer"
+                            className="p-1.5 rounded-lg text-gray-500 dark:text-gray-400 transition-colors shrink-0 cursor-pointer"
                         >
                             <ArrowLeft className="w-5 h-5" />
                         </button>
@@ -423,7 +425,7 @@ export default function HomePage() {
                         <button
                             onClick={handleRestoreDismissed}
                             title={t('home.restoreDismissed.hint')}
-                            className="flex items-center gap-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 px-2.5 py-1.5 rounded-full border border-gray-300 dark:border-gray-700 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-colors cursor-pointer"
+                            className="flex items-center gap-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 px-2.5 py-1.5 rounded-full border border-gray-300 dark:border-gray-700 transition-colors cursor-pointer"
                         >
                             <EyeOff className="w-3.5 h-3.5" />
                             {t('home.restoreDismissed', { count: dismissed.size })}

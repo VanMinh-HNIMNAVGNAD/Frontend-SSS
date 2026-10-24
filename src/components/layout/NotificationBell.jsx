@@ -57,7 +57,7 @@ const isInternalLink = (url) => typeof url === 'string' && url.startsWith('/') &
 
 /** Nút biểu tượng nhỏ trên một hàng thông báo — luôn hiện, không chỉ khi rê chuột (##92). */
 const ROW_ACTION_CLASS =
-    'p-1.5 rounded-full text-gray-400 dark:text-gray-500 hover:text-gray-800 dark:hover:text-gray-100 hover:bg-gray-200/70 dark:hover:bg-white/10 transition-colors cursor-pointer';
+    'p-1.5 rounded-full text-gray-400 dark:text-gray-500 hover:text-gray-800 dark:hover:text-gray-100 transition-colors cursor-pointer';
 
 export default function NotificationBell() {
     const { t, language } = useLanguage();
@@ -294,7 +294,7 @@ export default function NotificationBell() {
                 aria-label={unread > 0 ? t('notifications.unreadAria', { count: unread }) : t('notifications.title')}
                 aria-haspopup="dialog"
                 aria-expanded={open}
-                className="relative p-2 sm:p-2.5 text-gray-700 dark:text-gray-300 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] rounded-full transition-colors cursor-pointer"
+                className="relative p-2 sm:p-2.5 text-gray-700 dark:text-gray-300 rounded-full transition-colors cursor-pointer"
             >
                 <Bell className="w-5 h-5" />
                 {unread > 0 && (
@@ -330,7 +330,7 @@ export default function NotificationBell() {
                                     onClick={() => setOpen(false)}
                                     title={t('common.close')}
                                     aria-label={t('common.close')}
-                                    className="p-1 rounded-full text-gray-500 hover:bg-gray-100 dark:hover:bg-white/10 cursor-pointer"
+                                    className="p-1 rounded-full text-gray-500 cursor-pointer"
                                 >
                                     <X className="w-4 h-4" />
                                 </button>
@@ -360,7 +360,7 @@ export default function NotificationBell() {
                                                 <button
                                                     type="button"
                                                     onClick={() => openNotification(n)}
-                                                    className={`w-full flex items-start gap-3 pl-5 pr-[4.5rem] py-3 text-left transition-colors cursor-pointer hover:bg-black/[0.04] dark:hover:bg-white/[0.07] ${
+                                                    className={`w-full flex items-start gap-3 pl-5 pr-[4.5rem] py-3 text-left transition-colors cursor-pointer ${
                                                         n.isRead ? '' : 'bg-blue-50/60 dark:bg-blue-500/5'
                                                     }`}
                                                 >

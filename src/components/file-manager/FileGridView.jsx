@@ -353,7 +353,7 @@ export default function FileGridView() {
                         <button
                             disabled={currentPage === 1}
                             onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                            className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] disabled:opacity-40 disabled:hover:bg-transparent transition-colors"
+                            className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-40 disabled:hover:bg-transparent transition-colors"
                         >
                             <ChevronLeft className="w-4 h-4" />
                         </button>
@@ -363,7 +363,7 @@ export default function FileGridView() {
                         <button
                             disabled={currentPage === totalPages}
                             onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                            className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] disabled:opacity-40 disabled:hover:bg-transparent transition-colors"
+                            className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-40 disabled:hover:bg-transparent transition-colors"
                         >
                             <ChevronRight className="w-4 h-4" />
                         </button>

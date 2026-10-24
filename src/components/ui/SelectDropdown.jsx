@@ -1,7 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
 import { ChevronDown, Check } from 'lucide-react';
-import GlassLight from './GlassLight';
-import LiquidGroup from './LiquidGroup';
 
 /**
  * Reusable Dropdown Component (Single Responsibility: Dropdown UI render & toggle state)
@@ -47,7 +45,7 @@ export default function SelectDropdown({
                 className={`flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-150 select-none cursor-pointer ${
                     active
                         ? 'glass-soft bg-blue-500/12! dark:bg-blue-400/15! text-blue-800 dark:text-blue-200 ring-1 ring-blue-500/35'
-                        : 'glass-soft text-gray-800 dark:text-gray-200 hover:bg-white/75! dark:hover:bg-white/10!'
+                        : 'glass-soft text-gray-800 dark:text-gray-200'
                 }`}
             >
                 {Icon && <Icon className={`w-3.5 h-3.5 shrink-0 ${active ? 'text-blue-700 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'}`} />}
@@ -57,9 +55,7 @@ export default function SelectDropdown({
 
             {isOpen && (
                 <div className="absolute left-0 mt-2 w-52 glass-strong rounded-[18px] p-1.5 z-50 animate-glass-in origin-top-left">
-                    <GlassLight />
-                    {/* Giọt nước theo chuột thay cho nền rê chuột của từng lựa chọn (LiquidGroup). */}
-                    <LiquidGroup className="max-h-60 overflow-y-auto custom-scrollbar">
+                    <div className="max-h-60 overflow-y-auto custom-scrollbar">
                         {options.map((option) => {
                             const isSelected = option.value === value;
                             const OptionIcon = option.icon;
@@ -67,7 +63,6 @@ export default function SelectDropdown({
                                 <button
                                     key={option.value}
                                     type="button"
-                                    data-liquid-key={String(option.value)}
                                     onClick={() => {
                                         onChange(option.value);
                                         setIsOpen(false);
@@ -86,7 +81,7 @@ export default function SelectDropdown({
                                 </button>
                             );
                         })}
-                    </LiquidGroup>
+                    </div>
                 </div>
             )}
         </div>

@@ -77,7 +77,7 @@ export default function BillingCancel() {
           </Link>
           <Link
             to="/app"
-            className="w-full py-3 px-4 rounded-xl bg-white dark:bg-transparent text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-black/[0.04] dark:hover:bg-white/[0.07] font-bold text-[15px] transition-all flex items-center justify-center gap-2"
+            className="w-full py-3 px-4 rounded-xl bg-white dark:bg-transparent text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 font-bold text-[15px] transition-all flex items-center justify-center gap-2"
           >
             {t('billing.cancel.backToApp')}
           </Link>

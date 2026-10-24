@@ -335,7 +335,7 @@ function RetryButton({ onClick }) {
   return (
     <button
       onClick={onClick}
-      className="mt-6 w-full py-3 px-4 rounded-xl bg-white dark:bg-transparent text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700 hover:bg-black/[0.04] dark:hover:bg-white/[0.07] font-bold text-[15px] transition-all flex items-center justify-center gap-2 cursor-pointer"
+      className="mt-6 w-full py-3 px-4 rounded-xl bg-white dark:bg-transparent text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700 font-bold text-[15px] transition-all flex items-center justify-center gap-2 cursor-pointer"
     >
       <RefreshCw className="w-4 h-4" /> {t('payResult.recheck')}
     </button>

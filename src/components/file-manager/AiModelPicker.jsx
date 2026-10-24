@@ -105,7 +105,7 @@ export default function AiModelPicker({ models, value, onChange, onLockedPick, p
                 aria-expanded={open}
                 aria-label={t('ai.model.label')}
                 title={t('ai.model.label')}
-                className="flex items-center gap-1.5 max-w-[15rem] px-2.5 py-1 rounded-full bg-black/[0.05] dark:bg-white/[0.08] ring-1 ring-black/[0.04] dark:ring-white/10 text-gray-800 dark:text-gray-200 font-medium hover:bg-black/[0.08] dark:hover:bg-white/[0.12] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-1.5 max-w-[15rem] px-2.5 py-1 rounded-full bg-black/[0.05] dark:bg-white/[0.08] ring-1 ring-black/[0.04] dark:ring-white/10 text-gray-800 dark:text-gray-200 font-medium transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
                 {selected?.locked && <Lock className="w-3 h-3 shrink-0 text-amber-600 dark:text-amber-400" />}
                 <span className="truncate">{selected?.label ?? value}</span>
@@ -203,7 +203,7 @@ function ModelRow({ m, active = false, locked = false, onPick, readsText, number
             onClick={onPick}
             title={locked ? t('ai.model.lockedHint', { tier: TIER_LABEL[m.minTier] ?? m.minTier }) : undefined}
             className={`w-full flex items-start gap-2 px-2.5 py-2 rounded-[12px] text-left transition-colors cursor-pointer ${
-                active ? 'bg-blue-500/10 dark:bg-blue-400/15' : 'hover:bg-black/[0.05] dark:hover:bg-white/[0.08]'
+                active ? 'bg-blue-500/10 dark:bg-blue-400/15' : ''
             }`}
         >
             <span className="w-4 shrink-0 pt-0.5">

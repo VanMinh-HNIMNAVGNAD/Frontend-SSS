@@ -45,7 +45,7 @@ export default function ImageStagePill({ stage, sizeBytes, onLoadOriginal }) {
   }
   if (stage.stage === 'preview' && stage.canUpgrade) {
     return (
-      <button type="button" onClick={onLoadOriginal} className={`${base} hover:bg-white/15 cursor-pointer`}>
+      <button type="button" onClick={onLoadOriginal} className={`${base} cursor-pointer`}>
         {t('preview.image.viewOriginal', { size: formatBytes(sizeBytes) })}
       </button>
     );

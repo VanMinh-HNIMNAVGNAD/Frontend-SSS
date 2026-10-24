@@ -285,7 +285,7 @@ function PdfCanvasViewer({ url, sizeBytes, zoom: externalZoom, rotation: externa
             <button
               onClick={() => setZoom((z) => Math.max(0.5, z - 0.25))}
               title={t('sharePage.zoomOut')}
-              className="p-1.5 rounded-full hover:bg-white/10 text-white/60 hover:text-white transition-colors cursor-pointer"
+              className="p-1.5 rounded-full text-white/60 hover:text-white transition-colors cursor-pointer"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607ZM13.5 10.5h-6" />
@@ -297,7 +297,7 @@ function PdfCanvasViewer({ url, sizeBytes, zoom: externalZoom, rotation: externa
             <button
               onClick={() => setZoom((z) => Math.min(3, z + 0.25))}
               title={t('sharePage.zoomIn')}
-              className="p-1.5 rounded-full hover:bg-white/10 text-white/60 hover:text-white transition-colors cursor-pointer"
+              className="p-1.5 rounded-full text-white/60 hover:text-white transition-colors cursor-pointer"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607ZM10.5 7.5v6m3-3h-6" />
@@ -312,7 +312,7 @@ function PdfCanvasViewer({ url, sizeBytes, zoom: externalZoom, rotation: externa
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage <= 1}
-              className="p-1.5 rounded-full hover:bg-white/10 text-white disabled:opacity-30 transition-colors cursor-pointer"
+              className="p-1.5 rounded-full text-white disabled:opacity-30 transition-colors cursor-pointer"
               title={t('preview.page.prev')}
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -325,7 +325,7 @@ function PdfCanvasViewer({ url, sizeBytes, zoom: externalZoom, rotation: externa
             <button
               onClick={() => setCurrentPage((p) => Math.min(numPages, p + 1))}
               disabled={currentPage >= numPages}
-              className="p-1.5 rounded-full hover:bg-white/10 text-white disabled:opacity-30 transition-colors cursor-pointer"
+              className="p-1.5 rounded-full text-white disabled:opacity-30 transition-colors cursor-pointer"
               title={t('preview.page.next')}
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -454,7 +454,7 @@ function CodeTextPreview({ url, name }) {
           )}
           <button
             onClick={handleCopy}
-            className="px-2.5 py-1 rounded-md bg-white/10 hover:bg-white/20 text-xs text-white transition-colors cursor-pointer"
+            className="px-2.5 py-1 rounded-md bg-white/10 text-xs text-white transition-colors cursor-pointer"
           >
             {copied ? t('preview.copied') : t('sharePage.copyCode')}
           </button>
@@ -724,7 +724,7 @@ function ChildFilePreviewModal({
               <button
                 onClick={zoomOut}
                 disabled={zoom <= ZOOM_MIN}
-                className="p-2 rounded-xl bg-white/10 hover:bg-white/20 disabled:opacity-30 text-white transition-all cursor-pointer"
+                className="p-2 rounded-xl bg-white/10 disabled:opacity-30 text-white transition-all cursor-pointer"
                 title={t('preview.zoomOut')}
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -737,7 +737,7 @@ function ChildFilePreviewModal({
               <button
                 onClick={zoomIn}
                 disabled={zoom >= ZOOM_MAX}
-                className="p-2 rounded-xl bg-white/10 hover:bg-white/20 disabled:opacity-30 text-white transition-all cursor-pointer"
+                className="p-2 rounded-xl bg-white/10 disabled:opacity-30 text-white transition-all cursor-pointer"
                 title={t('preview.zoomIn')}
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -746,7 +746,7 @@ function ChildFilePreviewModal({
               </button>
               <button
                 onClick={() => setRotation((r) => (r + 90) % 360)}
-                className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all cursor-pointer"
+                className="p-2 rounded-xl bg-white/10 text-white transition-all cursor-pointer"
                 title={t('preview.rotate')}
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -814,7 +814,7 @@ function ChildFilePreviewModal({
             {isDownloadAllowed && (
               <button
                 onClick={handleDownloadClick}
-                className="px-4 py-2 bg-white/10 hover:bg-white/20 text-xs font-semibold rounded-xl text-white transition-all cursor-pointer"
+                className="px-4 py-2 bg-white/10 text-xs font-semibold rounded-xl text-white transition-all cursor-pointer"
               >
                 {t('preview.downloadToView')}
               </button>

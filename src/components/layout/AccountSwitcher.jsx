@@ -97,7 +97,7 @@ export default function AccountSwitcher({ guard, onNavigate }) {
                     </p>
                     <ul className="space-y-0.5">
                         {others.map((account) => (
-                            <li key={account.id} className="group flex items-center gap-1 rounded-xl hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-colors">
+                            <li key={account.id} className="group flex items-center gap-1 rounded-xl">
                                 <button
                                     type="button"
                                     onClick={() => handleSwitch(account)}
@@ -161,7 +161,7 @@ export default function AccountSwitcher({ guard, onNavigate }) {
                 onClick={() => goToLogin()}
                 disabled={atLimit || Boolean(busyId)}
                 title={atLimit ? t('account.switch.addLimit', { count: maxSignedInAccounts }) : undefined}
-                className="mt-1 w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] rounded-xl transition-colors text-left cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                className="mt-1 w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 rounded-xl transition-colors text-left cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
                 <UserPlus className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                 {t('account.switch.add')}

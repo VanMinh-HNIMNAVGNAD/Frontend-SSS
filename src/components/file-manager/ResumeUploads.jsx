@@ -107,7 +107,7 @@ export default function ResumeUploads() {
         </div>
         <button
           onClick={() => setDismissed(true)}
-          className="p-1 hover:bg-white/20 rounded transition-colors cursor-pointer"
+          className="p-1 rounded transition-colors cursor-pointer"
           title={t('resume.hidePanel')}
         >
           <X className="w-4 h-4" />
@@ -158,7 +158,7 @@ export default function ResumeUploads() {
                 </button>
                 <button
                   onClick={() => handleDiscard(session)}
-                  className="px-2 py-1 rounded-full text-[11px] font-medium text-gray-500 dark:text-gray-400 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-colors cursor-pointer"
+                  className="px-2 py-1 rounded-full text-[11px] font-medium text-gray-500 dark:text-gray-400 transition-colors cursor-pointer"
                   title={t('resume.dropSession')}
                 >
                   {t('resume.drop')}

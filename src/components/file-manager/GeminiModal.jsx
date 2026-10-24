@@ -1547,7 +1547,7 @@ export default function GeminiModal({
                                 className={`p-2 rounded-lg transition-colors cursor-pointer ${
                                     menuOpen
                                         ? 'bg-black/[0.06] dark:bg-white/[0.09] text-gray-900 dark:text-gray-100'
-                                        : 'text-gray-500 dark:text-gray-400 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] hover:text-gray-900 dark:hover:text-gray-100'
+                                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
                                 }`}
                             >
                                 <MoreVertical className="w-4 h-4" />
@@ -1561,7 +1561,7 @@ export default function GeminiModal({
                                     <button
                                         role="menuitem"
                                         onClick={openHistory}
-                                        className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-left text-gray-700 dark:text-gray-200 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-colors cursor-pointer"
+                                        className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-left text-gray-700 dark:text-gray-200 transition-colors cursor-pointer"
                                     >
                                         <History className="w-4 h-4 shrink-0 text-gray-400 dark:text-gray-500" />
                                         {t('ai.history.open')}
@@ -1576,7 +1576,7 @@ export default function GeminiModal({
                                             className={`w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-left transition-colors cursor-pointer ${
                                                 confirmClear
                                                     ? 'font-medium text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-900/30'
-                                                    : 'text-gray-700 dark:text-gray-200 hover:bg-black/[0.05] dark:hover:bg-white/[0.08]'
+                                                    : 'text-gray-700 dark:text-gray-200'
                                             }`}
                                         >
                                             <Eraser
@@ -1626,7 +1626,7 @@ export default function GeminiModal({
                             onClick={onMinimize}
                             title={t('ai.minimize')}
                             aria-label={t('ai.minimize')}
-                            className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] hover:text-gray-900 dark:hover:text-gray-100 transition-colors cursor-pointer"
+                            className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors cursor-pointer"
                         >
                             <Minus className="w-4 h-4" />
                         </button>
@@ -1635,7 +1635,7 @@ export default function GeminiModal({
                             onClick={onClose}
                             title={t('common.close')}
                             aria-label={t('common.close')}
-                            className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] hover:text-gray-900 dark:hover:text-gray-100 transition-colors cursor-pointer"
+                            className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors cursor-pointer"
                         >
                             <X className="w-4 h-4" />
                         </button>
@@ -2011,7 +2011,7 @@ export default function GeminiModal({
                                                     onClick={() => removeAttachment(src.key)}
                                                     title={t('ai.attach.remove')}
                                                     aria-label={t('ai.attach.remove', { name: src.name })}
-                                                    className="relative shrink-0 p-0.5 rounded text-gray-400 hover:text-rose-600 dark:hover:text-rose-300 hover:bg-white dark:hover:bg-white/[0.08] transition-colors cursor-pointer"
+                                                    className="relative shrink-0 p-0.5 rounded text-gray-400 hover:text-rose-600 dark:hover:text-rose-300 transition-colors cursor-pointer"
                                                 >
                                                     <X className="w-3 h-3" />
                                                 </button>
@@ -2073,7 +2073,7 @@ export default function GeminiModal({
                                       : t('ai.attach.add', { left: slotsLeft })
                             }
                             aria-label={t('ai.attach.add', { left: slotsLeft })}
-                            className="shrink-0 p-2 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] hover:text-gray-900 dark:hover:text-gray-100 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                            className="shrink-0 p-2 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                             {uploading ? (
                                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -2193,7 +2193,7 @@ export default function GeminiModal({
                                 className={`shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg font-medium transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
                                     webSearchOn
                                         ? 'bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-500/15 dark:text-blue-300 dark:hover:bg-blue-500/25'
-                                        : 'bg-gray-100 text-gray-400 hover:bg-gray-200 dark:bg-white/[0.07] dark:text-gray-500 dark:hover:bg-gray-700'
+                                        : 'bg-gray-100 text-gray-400 dark:bg-white/[0.07] dark:text-gray-500'
                                 }`}
                             >
                                 <Globe className="w-3.5 h-3.5" />
@@ -2222,7 +2222,7 @@ export default function GeminiModal({
                                     <button
                                         onClick={() => setViewing(null)}
                                         title={t('ai.history.back')}
-                                        className="p-1.5 rounded-full text-gray-500 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-colors cursor-pointer shrink-0"
+                                        className="p-1.5 rounded-full text-gray-500 transition-colors cursor-pointer shrink-0"
                                     >
                                         <ChevronLeft className="w-4 h-4" />
                                     </button>
@@ -2246,7 +2246,7 @@ export default function GeminiModal({
                             <button
                                 onClick={() => { setHistoryOpen(false); setViewing(null); }}
                                 title={t('ai.history.close')}
-                                className="p-1.5 rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-colors cursor-pointer shrink-0"
+                                className="p-1.5 rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors cursor-pointer shrink-0"
                             >
                                 <X className="w-5 h-5" />
                             </button>
@@ -2303,7 +2303,7 @@ export default function GeminiModal({
                                     {historyList.items.map((c) => (
                                         <div
                                             key={c.id}
-                                            className="group flex items-center gap-2 rounded-xl hover:bg-gray-100 dark:hover:bg-white/[0.08] transition-colors"
+                                            className="group flex items-center gap-2 rounded-xl"
                                         >
                                             <button
                                                 onClick={() => openConversation(c.id)}
@@ -2352,7 +2352,7 @@ export default function GeminiModal({
                                                 className={`mr-2 rounded-full transition-colors cursor-pointer shrink-0 flex items-center gap-1 ${
                                                     confirmDeleteId === c.id
                                                         ? 'px-2 py-1 text-[11px] font-medium text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-900/30 border border-rose-200 dark:border-rose-900/60'
-                                                        : 'p-1.5 text-gray-400 hover:text-rose-600 dark:hover:text-rose-300 hover:bg-white dark:hover:bg-white/[0.08]'
+                                                        : 'p-1.5 text-gray-400 hover:text-rose-600 dark:hover:text-rose-300'
                                                 }`}
                                             >
                                                 <Trash2 className="w-3.5 h-3.5 shrink-0" />
@@ -2365,7 +2365,7 @@ export default function GeminiModal({
                                         <button
                                             onClick={() => loadHistory(historyList.nextBefore)}
                                             disabled={historyLoading}
-                                            className="w-full mt-1 py-2 text-[11px] font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/[0.08] rounded-lg transition-colors cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5"
+                                            className="w-full mt-1 py-2 text-[11px] font-medium text-gray-600 dark:text-gray-300 rounded-lg transition-colors cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5"
                                         >
                                             {historyLoading && <Loader2 className="w-3 h-3 animate-spin" />}
                                             {t('ai.history.loadMore')}

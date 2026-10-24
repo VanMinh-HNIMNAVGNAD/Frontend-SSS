@@ -324,7 +324,7 @@ export default memo(function UploadProgress({ queue, onDismissError, onRetry }) 
                     )}
                     <button
                         onClick={() => setIsMinimized(!isMinimized)}
-                        className="p-1 hover:bg-black/[0.06] dark:hover:bg-white/10 rounded-full transition-colors text-gray-500 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white cursor-pointer"
+                        className="p-1 rounded-full transition-colors text-gray-500 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white cursor-pointer"
                         title={isMinimized ? t('upload.expand') : t('upload.collapse')}
                         aria-expanded={!isMinimized}
                     >
@@ -335,7 +335,7 @@ export default memo(function UploadProgress({ queue, onDismissError, onRetry }) 
                     {allDone && (
                         <button
                             onClick={clearQueue}
-                            className="p-1 hover:bg-black/[0.06] dark:hover:bg-white/10 rounded-full transition-colors text-gray-500 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white cursor-pointer"
+                            className="p-1 rounded-full transition-colors text-gray-500 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white cursor-pointer"
                             title={t('upload.closePanel')}
                         >
                             <X className="w-4 h-4" />
@@ -623,7 +623,7 @@ const FileJobRow = memo(function FileJobRow({ job, jobId, etaSeconds, onDismissE
                     </button>
                     <button
                         onClick={handleDismiss}
-                        className="p-1 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] rounded transition-colors cursor-pointer"
+                        className="p-1 rounded transition-colors cursor-pointer"
                         title={status === 'canceled' ? t('upload.dismissRow') : t('upload.clearError')}
                     >
                         <X className={`w-3.5 h-3.5 ${status === 'error' ? 'text-rose-400' : 'text-gray-400 dark:text-gray-500'}`} />

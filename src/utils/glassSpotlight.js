@@ -5,6 +5,9 @@
  * ngược từ phần tử dưới con trỏ lên tới gốc và ghi toạ độ con trỏ — tính theo khung của từng
  * phần tử — vào biến CSS của:
  *   • tấm kính LỚN có <GlassLight/> bên trong   → `--lx` / `--ly` trên chính lớp ánh sáng;
+ *   • bề mặt nổi `.glass-strong` / `.glass-dark` (menu, hộp thoại, ngăn kéo…)
+ *                                                → `--lx` / `--ly` trên bề mặt đó (CSS vẽ bằng
+ *                                                  `::before` / `::after`);
  *   • phần tử có đốm bóng (`.glass-soft`, `.glass-input`, `.btn-accent`, `[data-spotlight]`)
  *                                                → `--spot-x` / `--spot-y` trên phần tử đó.
  * Ghi cho MỌI cấp chứ không chỉ cấp trong cùng: rê lên nút "+ Mới" thì cả nút lẫn thanh bên
@@ -15,6 +18,7 @@
  */
 
 const SPOT_SELECTOR = '.glass-soft, .glass-input, .btn-accent, [data-spotlight]';
+const SURFACE_SELECTOR = '.glass-strong, .glass-dark';
 
 /** Tấm kính → lớp ánh sáng của nó. WeakMap: tấm kính bị gỡ khỏi DOM là tự rơi ra. */
 const lights = new WeakMap();
@@ -45,7 +49,9 @@ function paint() {
     for (let el = target; el && el !== document.documentElement; el = el.parentElement) {
         const light = lights.get(el);
         const isSpot = el.matches(SPOT_SELECTOR);
-        if (!light && !isSpot) continue;
+        // Bề mặt nổi đã có <GlassLight/> riêng (thanh bên trên điện thoại) thì lớp đó lo.
+        const isSurface = !light && el.matches(SURFACE_SELECTOR);
+        if (!light && !isSpot && !isSurface) continue;
 
         // Theo khung đệm (padding box) — gốc toạ độ của cả `background` lẫn con `absolute`.
         const rect = el.getBoundingClientRect();
@@ -54,6 +60,10 @@ function paint() {
         if (isSpot) {
             el.style.setProperty('--spot-x', x);
             el.style.setProperty('--spot-y', y);
+        }
+        if (isSurface) {
+            el.style.setProperty('--lx', x);
+            el.style.setProperty('--ly', y);
         }
         if (light) {
             light.style.setProperty('--lx', x);

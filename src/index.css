@@ -121,7 +121,8 @@ body {
   --glass-rim: rgba(255, 255, 255, 0.78);
   --glass-hairline: rgba(15, 23, 42, 0.07);
   --glass-divider: rgba(15, 23, 42, 0.08);
-  --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  /* Vát cạnh: sáng ở mép trên, hắt nhẹ ở mép dưới — như cạnh một tấm kính dày. */
+  --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.9), inset 0 -1px 0 rgba(255, 255, 255, 0.35);
   --glass-shadow:
     0 1px 1px rgba(15, 23, 42, 0.03),
     0 8px 22px -10px rgba(15, 23, 42, 0.12),
@@ -166,7 +167,7 @@ body {
   --glass-rim: rgba(255, 255, 255, 0.1);
   --glass-hairline: rgba(0, 0, 0, 0.35);
   --glass-divider: rgba(255, 255, 255, 0.08);
-  --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.07), inset 0 -1px 0 rgba(255, 255, 255, 0.025);
   --glass-shadow:
     0 1px 1px rgba(0, 0, 0, 0.25),
     0 12px 30px -14px rgba(0, 0, 0, 0.6);

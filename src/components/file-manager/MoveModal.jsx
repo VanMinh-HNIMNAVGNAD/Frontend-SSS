@@ -266,7 +266,7 @@ function MovePanel({ items, onClose, onMoved }) {
                         onClick={onClose}
                         disabled={isMoving}
                         aria-label={t('common.close')}
-                        className="p-1 rounded-full shrink-0 disabled:opacity-50 disabled:cursor-not-allowed text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+                        className="p-1 rounded-full shrink-0 disabled:opacity-50 disabled:cursor-not-allowed text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors cursor-pointer"
                     >
                         <X className="w-5 h-5" />
                     </button>
@@ -306,7 +306,7 @@ function MovePanel({ items, onClose, onMoved }) {
                     {location.area === 'roots' ? (
                         <ul className="space-y-0.5">
                             <li>
-                                <button type="button" className={`${rowClass} hover:bg-black/[0.05] dark:hover:bg-white/[0.08] cursor-pointer`} onClick={() => enterArea(rootCrumb('my-drive'))}>
+                                <button type="button" className={`${rowClass} cursor-pointer`} onClick={() => enterArea(rootCrumb('my-drive'))}>
                                     <HardDrive className="w-4 h-4 shrink-0 text-blue-600 dark:text-blue-400" />
                                     <span className="flex-1 min-w-0 truncate font-medium">{t('nav.myDrive')}</span>
                                     <ChevronRight className="w-4 h-4 shrink-0 text-gray-400" />
@@ -321,7 +321,7 @@ function MovePanel({ items, onClose, onMoved }) {
                                     <li key={drive.id}>
                                         <button
                                             type="button"
-                                            className={`${rowClass} hover:bg-black/[0.05] dark:hover:bg-white/[0.08] cursor-pointer`}
+                                            className={`${rowClass} cursor-pointer`}
                                             onClick={() => enterArea(rootCrumb('drive', { driveId: drive.id, name: drive.name }))}
                                         >
                                             <FolderGit2 className="w-4 h-4 shrink-0 text-indigo-600 dark:text-indigo-400" />
@@ -342,7 +342,7 @@ function MovePanel({ items, onClose, onMoved }) {
                             <button
                                 type="button"
                                 onClick={() => setReloadKey((n) => n + 1)}
-                                className="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] cursor-pointer"
+                                className="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 cursor-pointer"
                             >
                                 {t('move.retry')}
                             </button>
@@ -367,7 +367,7 @@ function MovePanel({ items, onClose, onMoved }) {
                                             title={isSelf ? t('move.selfFolder') : folder.name}
                                             onClick={() => enterFolder(folder)}
                                             style={getCardColorVars(folder)}
-                                            className={`${rowClass} ${isSelf ? 'opacity-45 cursor-not-allowed' : 'hover:bg-black/[0.05] dark:hover:bg-white/[0.08] cursor-pointer'}`}
+                                            className={`${rowClass} ${isSelf ? 'opacity-45 cursor-not-allowed' : 'cursor-pointer'}`}
                                         >
                                             <Folder className="w-4 h-4 shrink-0 fill-current text-[var(--fc-icon-l)] dark:text-[var(--fc-icon-d)]" />
                                             <span className="flex-1 min-w-0 truncate">{folder.name}</span>
@@ -401,7 +401,7 @@ function MovePanel({ items, onClose, onMoved }) {
                             type="button"
                             onClick={onClose}
                             disabled={isMoving}
-                            className="px-4 py-2 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors cursor-pointer"
+                            className="px-4 py-2 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed text-gray-600 dark:text-gray-300 rounded-xl transition-colors cursor-pointer"
                         >
                             {t('common.cancel')}
                         </button>

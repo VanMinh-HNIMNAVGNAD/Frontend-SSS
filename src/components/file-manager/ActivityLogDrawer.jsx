@@ -572,14 +572,14 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                             <button
                                 onClick={fetchLogs}
                                 disabled={isLoading}
-                                className="p-2 rounded-full text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-colors cursor-pointer disabled:opacity-50"
+                                className="p-2 rounded-full text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 transition-colors cursor-pointer disabled:opacity-50"
                                 title={t('activity.refresh')}
                             >
                                 <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-blue-600' : ''}`} />
                             </button>
                             <button
                                 onClick={onClose}
-                                className="p-2 rounded-full text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-colors cursor-pointer"
+                                className="p-2 rounded-full text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 transition-colors cursor-pointer"
                                 title={t('preview.close')}
                             >
                                 <X className="w-5 h-5" />
@@ -600,7 +600,7 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                                     className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all whitespace-nowrap flex items-center gap-1.5 shrink-0 cursor-pointer ${
                                         isSelected
                                             ? 'bg-blue-600 text-white shadow-sm'
-                                            : 'bg-gray-100 dark:bg-white/[0.07] text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700'
+                                            : 'bg-gray-100 dark:bg-white/[0.07] text-gray-700 dark:text-gray-200'
                                     }`}
                                 >
                                     <span>{t(group.labelKey)}</span>
@@ -682,7 +682,7 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                             </p>
                             <button
                                 onClick={() => setSelectedGroup('all')}
-                                className="px-3.5 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 dark:bg-white/[0.07] dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-semibold text-xs transition-colors cursor-pointer"
+                                className="px-3.5 py-1.5 rounded-lg bg-gray-100 dark:bg-white/[0.07] text-gray-700 dark:text-gray-300 font-semibold text-xs transition-colors cursor-pointer"
                             >
                                 {t('activity.filtered.showAll', { count: logs.length })}
                             </button>

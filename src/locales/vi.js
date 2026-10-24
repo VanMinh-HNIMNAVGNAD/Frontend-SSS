@@ -1120,7 +1120,7 @@ const vi = {
   'billing.cycleLabel.3months': '3 tháng (-5%)',
   'billing.cycleLabel.6months': '6 tháng (-15%)',
   'billing.cycleLabel.yearly': '1 năm (-17%)',
-  'billing.badge.pro': 'Phổ Biến',
+  'billing.badge.popular': 'Phổ Biến',
   'billing.feature.free.ai': 'Hỏi AI miễn phí mỗi 30 ngày',
   'billing.feature.free.share': 'Chia sẻ link có mật khẩu',
   'billing.feature.free.devices': 'Dùng trên mọi thiết bị',

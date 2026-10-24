@@ -1100,7 +1100,7 @@ const en = {
   'billing.cycleLabel.3months': '3 months (−5%)',
   'billing.cycleLabel.6months': '6 months (−15%)',
   'billing.cycleLabel.yearly': '1 year (−17%)',
-  'billing.badge.pro': 'Popular',
+  'billing.badge.popular': 'Popular',
   'billing.feature.free.ai': 'Free AI, renewed every 30 days',
   'billing.feature.free.share': 'Password-protected links',
   'billing.feature.free.devices': 'Works on every device',

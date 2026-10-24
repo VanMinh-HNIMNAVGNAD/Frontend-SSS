@@ -176,19 +176,21 @@ export const PLAN_UI_CONFIG = [
   {
     key: 'pro',
     match: ['pro', 'cá nhân', 'ca nhan', 'personal'],
-    badge: {
-      labelKey: 'billing.badge.pro',
-      tone: 'bg-blue-600 text-white shadow-sm',
-    },
-    highlight: true,
+    badge: null,
+    highlight: false,
     featureKeys: ['billing.feature.pro.ai', 'billing.feature.paid.pooled', 'billing.feature.paid.fallback'],
   },
   {
     key: 'plus',
     // 'pro plus' dài hơn 'pro' nên `resolvePlanUi` chọn thẻ này cho "Pro Plus".
     match: ['pro plus', 'proplus', 'plus', 'cao cấp', 'cao cap', 'premium'],
-    badge: null,
-    highlight: false,
+    // Gói được làm nổi từ 24/10/2026 (migration 043): chỉ hơn Pro 10.000 ₫/tháng mà gấp 10 lần dung
+    // lượng, có thêm model AI bậc Plus — gói chủ hệ thống muốn khách chọn.
+    badge: {
+      labelKey: 'billing.badge.popular',
+      tone: 'bg-blue-600 text-white shadow-sm',
+    },
+    highlight: true,
     featureKeys: ['billing.feature.plus.ai', 'billing.feature.paid.pooled', 'billing.feature.paid.fallback'],
   },
   {

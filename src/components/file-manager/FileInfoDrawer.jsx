@@ -5,7 +5,6 @@ import { useLanguage } from '../../context/LanguageContext';
 import { filesApi } from '../../services/api';
 import { formatBytes } from '../../utils/formatFileSize';
 import { localeTagOf } from '../../utils/locale';
-import GlassLight from '../ui/GlassLight';
 import LiquidGroup from '../ui/LiquidGroup';
 import { 
     X, 
@@ -313,7 +312,6 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                 className="glass-strong fixed right-0 top-0 bottom-0 sm:right-3 sm:top-3 sm:bottom-3 z-50 w-full sm:w-96 sm:rounded-[26px] flex flex-col font-sans animate-slide-left text-xs text-gray-800 dark:text-gray-200 overflow-hidden cursor-default"
                 onClick={(e) => e.stopPropagation()}
             >
-            <GlassLight />
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-glass-divider">
                 <div className="flex items-center gap-2.5 min-w-0 pr-2">
@@ -329,7 +327,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                 </div>
                 <button
                     onClick={onClose}
-                    className="p-1.5 rounded-full text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-colors shrink-0 cursor-pointer"
+                    className="p-1.5 rounded-full text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 transition-colors shrink-0 cursor-pointer"
                     title={t('common.close')}
                 >
                     <X className="w-5 h-5" />
@@ -343,6 +341,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                 <button
                     data-liquid-key="details"
                     onClick={() => setCurrentTab('details')}
+                    aria-pressed={currentTab === 'details'}
                     className={`flex-1 py-1.5 rounded-full text-center font-semibold transition-colors flex items-center justify-center gap-1.5 cursor-pointer ${
                         currentTab === 'details'
                             ? 'text-blue-700 dark:text-blue-300 font-bold'
@@ -356,6 +355,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                 <button
                     data-liquid-key="activity"
                     onClick={() => setCurrentTab('activity')}
+                    aria-pressed={currentTab === 'activity'}
                     className={`flex-1 py-1.5 rounded-full text-center font-semibold transition-colors flex items-center justify-center gap-1.5 cursor-pointer ${
                         currentTab === 'activity'
                             ? 'text-blue-700 dark:text-blue-300 font-bold'
@@ -370,6 +370,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                     <button
                         data-liquid-key="versions"
                         onClick={() => setCurrentTab('versions')}
+                        aria-pressed={currentTab === 'versions'}
                         className={`flex-1 py-1.5 rounded-full text-center font-semibold transition-colors flex items-center justify-center gap-1.5 cursor-pointer ${
                             currentTab === 'versions'
                                 ? 'text-blue-700 dark:text-blue-300 font-bold'
@@ -406,7 +407,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                                     {!isFolder && (
                                         <button
                                             onClick={() => { openPreview(item); onClose?.(); }}
-                                            className="px-2.5 py-1.5 bg-gray-100 hover:bg-gray-200 dark:bg-white/[0.07] dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-xl font-semibold flex items-center gap-1 shadow-xs transition-all cursor-pointer"
+                                            className="px-2.5 py-1.5 bg-gray-100 dark:bg-white/[0.07] text-gray-800 dark:text-gray-200 rounded-xl font-semibold flex items-center gap-1 shadow-xs transition-all cursor-pointer"
                                         >
                                             <Eye className="w-3.5 h-3.5 text-blue-500" /> {t('menu.preview')}
                                         </button>
@@ -501,7 +502,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                             {activityLogs.length > 0 && !loadingTab && (
                                 <button
                                     onClick={fetchActivityLogs}
-                                    className="p-1 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-colors cursor-pointer"
+                                    className="p-1 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors cursor-pointer"
                                     title={t('info.refresh')}
                                 >
                                     <RefreshCw className="w-3.5 h-3.5" />

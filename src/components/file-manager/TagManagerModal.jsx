@@ -85,7 +85,7 @@ function TagRow({ tag }) {
                         <button
                             type="button"
                             onClick={() => setEditing(false)}
-                            className="px-2.5 py-1 rounded-lg text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/10 cursor-pointer"
+                            className="px-2.5 py-1 rounded-lg text-xs font-medium text-gray-600 dark:text-gray-300 cursor-pointer"
                         >
                             {t('common.cancel')}
                         </button>
@@ -105,7 +105,7 @@ function TagRow({ tag }) {
     }
 
     return (
-        <li className="group flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-black/[0.04] dark:hover:bg-white/[0.07]">
+        <li className="group flex items-center gap-3 px-3 py-2 rounded-xl">
             <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: tag.colorHex || DEFAULT_TAG_COLOR }} />
             <button
                 type="button"
@@ -128,7 +128,7 @@ function TagRow({ tag }) {
                 }}
                 title={t('tags.edit')}
                 aria-label={t('tags.edit')}
-                className="p-1.5 rounded-full text-gray-500 hover:text-gray-800 dark:hover:text-gray-100 hover:bg-gray-200 dark:hover:bg-white/10 cursor-pointer"
+                className="p-1.5 rounded-full text-gray-500 hover:text-gray-800 dark:hover:text-gray-100 cursor-pointer"
             >
                 <Pencil className="w-3.5 h-3.5" />
             </button>

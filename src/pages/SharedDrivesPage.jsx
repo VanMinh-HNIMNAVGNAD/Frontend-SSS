@@ -285,7 +285,7 @@ export default function SharedDrivesPage() {
                                 setCurrentSharedDriveId(null);
                             }}
                             title={t('drives.back')}
-                            className="p-1.5 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] rounded-lg text-gray-500 dark:text-gray-400 transition-colors"
+                            className="p-1.5 rounded-lg text-gray-500 dark:text-gray-400 transition-colors"
                         >
                             <ArrowLeft className="w-5 h-5" />
                         </button>
@@ -333,7 +333,7 @@ export default function SharedDrivesPage() {
                             onClick={resetFilters}
                             title={t('drives.results.back')}
                             aria-label={t('drives.results.back')}
-                            className="p-1.5 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] rounded-lg text-gray-500 dark:text-gray-400 transition-colors shrink-0 cursor-pointer"
+                            className="p-1.5 rounded-lg text-gray-500 dark:text-gray-400 transition-colors shrink-0 cursor-pointer"
                         >
                             <ArrowLeft className="w-5 h-5" />
                         </button>
@@ -456,7 +456,7 @@ export default function SharedDrivesPage() {
                                     <button
                                         onClick={(e) => openDriveMenu(e, drive)}
                                         title={t('drives.moreOptions')}
-                                        className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 rounded-full hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                        className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 rounded-full transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
                                     >
                                         <MoreVertical className="w-4 h-4" />
                                     </button>
@@ -502,7 +502,7 @@ export default function SharedDrivesPage() {
                             </div>
                             <button 
                                 onClick={() => setIsCreateModalOpen(false)}
-                                className="text-slate-400 hover:text-slate-600 p-1.5 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl transition-colors ml-2"
+                                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-xl transition-colors ml-2"
                             >
                                 <X className="w-4 h-4" />
                             </button>
@@ -539,7 +539,7 @@ export default function SharedDrivesPage() {
                                 <button
                                     type="button"
                                     onClick={() => setIsCreateModalOpen(false)}
-                                    className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl transition-colors"
+                                    className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-gray-300 rounded-xl transition-colors"
                                 >
                                     {t('common.cancel')}
                                 </button>
@@ -596,7 +596,7 @@ export default function SharedDrivesPage() {
                         <button
                             type="button"
                             onClick={() => setRenameTarget(null)}
-                            className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl transition-colors cursor-pointer"
+                            className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-gray-300 rounded-xl transition-colors cursor-pointer"
                         >
                             {t('common.cancel')}
                         </button>
@@ -647,7 +647,7 @@ export default function SharedDrivesPage() {
                         <button
                             type="button"
                             onClick={() => setDeleteTarget(null)}
-                            className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl transition-colors cursor-pointer"
+                            className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-gray-300 rounded-xl transition-colors cursor-pointer"
                         >
                             {t('common.cancel')}
                         </button>
@@ -694,7 +694,7 @@ export default function SharedDrivesPage() {
                         <button
                             type="button"
                             onClick={() => setLeaveTarget(null)}
-                            className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-white/5 rounded-xl transition-colors cursor-pointer"
+                            className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-gray-300 rounded-xl transition-colors cursor-pointer"
                         >
                             {t('common.cancel')}
                         </button>

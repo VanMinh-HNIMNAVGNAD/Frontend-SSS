@@ -81,7 +81,7 @@ export default function QuickCleanupModal({ isOpen, onClose }) {
       >
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 p-1.5 rounded-full hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-colors"
+          className="absolute right-4 top-4 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 p-1.5 rounded-full transition-colors"
         >
           <X className="w-5 h-5" />
         </button>
@@ -165,7 +165,7 @@ export default function QuickCleanupModal({ isOpen, onClose }) {
         <div className="pt-2 border-t flex justify-end border-glass-divider">
           <button
             onClick={onClose}
-            className="px-5 py-2 text-xs font-bold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors"
+            className="px-5 py-2 text-xs font-bold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-full transition-colors"
           >
             {t('common.close')}
           </button>

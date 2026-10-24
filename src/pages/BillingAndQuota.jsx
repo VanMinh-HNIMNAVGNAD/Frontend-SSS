@@ -535,7 +535,7 @@ export default function BillingAndQuota() {
                   className={`px-4 sm:px-5 py-2.5 sm:py-2 text-[15px] font-bold rounded-xl transition-all cursor-pointer text-center whitespace-nowrap ${
                     activeSection === tab.id
                       ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-gray-900/5 dark:ring-white/10'
-                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-black/[0.04] dark:hover:bg-white/[0.07]'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
                   }`}
                 >
                   {t(tab.labelKey)}
@@ -549,7 +549,7 @@ export default function BillingAndQuota() {
               onClick={handleRefresh}
               disabled={isSyncing || (activeSection === 'history' && txLoading)}
               title={t('billing.quota.syncTitle')}
-              className="shrink-0 px-4 sm:px-5 py-2.5 sm:py-2 text-[15px] font-bold rounded-xl text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-black/[0.04] dark:hover:bg-white/[0.07] active:bg-gray-100 dark:active:bg-gray-700 transition-all cursor-pointer flex items-center justify-center gap-2 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+              className="shrink-0 px-4 sm:px-5 py-2.5 sm:py-2 text-[15px] font-bold rounded-xl text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 active:bg-gray-100 dark:active:bg-gray-700 transition-all cursor-pointer flex items-center justify-center gap-2 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <RefreshCw className={`w-4 h-4 ${isSyncing || (activeSection === 'history' && txLoading) ? 'animate-spin' : ''}`} />
               <span>{t('info.refresh')}</span>
@@ -697,7 +697,7 @@ export default function BillingAndQuota() {
               {!subscription.cancelAtPeriodEnd && !confirmCancelRenewal && (
                 <button
                   onClick={() => setConfirmCancelRenewal(true)}
-                  className="shrink-0 self-start sm:self-auto px-4 py-2.5 rounded-xl text-[14px] font-bold text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-black/[0.04] dark:hover:bg-white/[0.07] hover:text-rose-600 dark:hover:text-rose-400 hover:border-rose-200 dark:hover:border-rose-500/40 transition-all cursor-pointer"
+                  className="shrink-0 self-start sm:self-auto px-4 py-2.5 rounded-xl text-[14px] font-bold text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:text-rose-600 dark:hover:text-rose-400 hover:border-rose-200 dark:hover:border-rose-500/40 transition-all cursor-pointer"
                 >
                   {t('billing.current.cancelRenewal')}
                 </button>
@@ -731,7 +731,7 @@ export default function BillingAndQuota() {
                   <button
                     onClick={() => setConfirmCancelRenewal(false)}
                     disabled={isCancellingRenewal}
-                    className="px-4 py-2.5 rounded-xl text-[14px] font-bold text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:bg-black/[0.04] dark:hover:bg-white/[0.07] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-4 py-2.5 rounded-xl text-[14px] font-bold text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {t('billing.renewal.keep')}
                   </button>
@@ -942,7 +942,7 @@ export default function BillingAndQuota() {
                             ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-md hover:shadow-lg cursor-pointer'
                             : plan.isPopular
                             ? 'btn-accent hover:brightness-105 cursor-pointer'
-                            : 'glass-soft text-gray-900 dark:text-gray-100 hover:bg-white/85 dark:hover:bg-white/10 cursor-pointer'
+                            : 'glass-soft text-gray-900 dark:text-gray-100 cursor-pointer'
                         }`}
                       >
                         {plan.isResumable ? (
@@ -979,7 +979,7 @@ export default function BillingAndQuota() {
               <button
                 onClick={fetchTransactions}
                 disabled={txLoading}
-                className="glass-soft px-4 py-2 rounded-xl border text-gray-700 dark:text-gray-300 hover:bg-white/80 dark:hover:bg-white/10 font-bold text-[14px] transition-all inline-flex items-center gap-2 shrink-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                className="glass-soft px-4 py-2 rounded-xl border text-gray-700 dark:text-gray-300 font-bold text-[14px] transition-all inline-flex items-center gap-2 shrink-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <RefreshCw className={`w-4 h-4 ${txLoading ? 'animate-spin' : ''}`} /> {t('info.refresh')}
               </button>
@@ -1044,7 +1044,7 @@ export default function BillingAndQuota() {
                               }
                             }}
                             aria-label={t('billing.tx.viewDetails', { code: row.orderCode })}
-                            className="hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500"
+                            className="transition-colors group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500"
                           >
                             <td className="py-4 px-6">
                               <div className="font-mono font-bold text-gray-900 dark:text-gray-100">{row.orderCode}</div>
@@ -1114,7 +1114,7 @@ export default function BillingAndQuota() {
               <button
                 onClick={closePaymentModal}
                 disabled={isCreatingLink}
-                className="absolute right-5 top-5 text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 bg-gray-50 dark:bg-white/5 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] p-2 rounded-full transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                className="absolute right-5 top-5 text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 bg-gray-50 dark:bg-white/5 p-2 rounded-full transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <X className="w-5 h-5" />
               </button>

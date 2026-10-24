@@ -537,7 +537,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-200/60 dark:hover:bg-white/10 rounded-full text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+            className="p-2 rounded-full text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -940,7 +940,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                   <button
                     onClick={fetchSessions}
                     disabled={isLoadingSessions}
-                    className="p-2 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] rounded-xl text-gray-600 dark:text-gray-300 transition-colors"
+                    className="p-2 rounded-xl text-gray-600 dark:text-gray-300 transition-colors"
                     title={t('profile.sessions.refresh')}
                   >
                     <RefreshCw className={`w-4 h-4 ${isLoadingSessions ? 'animate-spin' : ''}`} />
@@ -1230,7 +1230,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                 type="button"
                 disabled={isDeletingAccount}
                 onClick={() => setShowDeleteModal(false)}
-                className="px-4 py-2.5 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-300 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-colors disabled:opacity-50 cursor-pointer"
+                className="px-4 py-2.5 rounded-xl text-xs font-bold text-gray-700 dark:text-gray-300 transition-colors disabled:opacity-50 cursor-pointer"
               >
                 {t('common.cancel')}
               </button>

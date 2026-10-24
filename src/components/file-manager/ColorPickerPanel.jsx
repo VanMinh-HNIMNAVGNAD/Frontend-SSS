@@ -365,7 +365,7 @@ export default function ColorPickerPanel({ item, currentColor, onSelectColor, on
                     <div className="h-px bg-gray-200 dark:bg-gray-700/60 my-2.5" />
                     <button
                         onClick={handleReset}
-                        className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-[12px] text-gray-600 dark:text-gray-400 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] transition-colors"
+                        className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-[12px] text-gray-600 dark:text-gray-400 transition-colors"
                     >
                         <RotateCcw className="w-3.5 h-3.5 text-gray-500 shrink-0" />
                         <span className="flex-1 text-left truncate">{t('color.reset')}</span>

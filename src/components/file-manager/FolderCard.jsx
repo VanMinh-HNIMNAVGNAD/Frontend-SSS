@@ -124,7 +124,7 @@ function FolderCard({ folder, onDoubleClick, onContextMenu, onStarToggle, isSele
                 <button
                     onClick={(e) => onContextMenu && onContextMenu(e, folder)}
                     onDoubleClick={stopDoubleClick}
-                    className="p-1 rounded-full transition-colors text-[var(--fc-muted-l)] dark:text-[var(--fc-muted-d)] hover:text-[var(--fc-ink-l)] dark:hover:text-[var(--fc-ink-d)] hover:bg-white/60 dark:hover:bg-white/10"
+                    className="p-1 rounded-full transition-colors text-[var(--fc-muted-l)] dark:text-[var(--fc-muted-d)] hover:text-[var(--fc-ink-l)] dark:hover:text-[var(--fc-ink-d)]"
                     title={t('home.moreActions')}
                 >
                     <MoreVertical className="w-4 h-4" />

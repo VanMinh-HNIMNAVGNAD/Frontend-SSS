@@ -125,7 +125,7 @@ export default function DocxRenderer({ url, onDownload }) {
           {onDownload && (
             <button
               onClick={onDownload}
-              className="px-4 py-2 bg-white/10 hover:bg-white/20 text-xs font-semibold rounded-xl text-white transition-all cursor-pointer"
+              className="px-4 py-2 bg-white/10 text-xs font-semibold rounded-xl text-white transition-all cursor-pointer"
             >
               {t('preview.downloadToView')}
             </button>

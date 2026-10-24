@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { X } from 'lucide-react';
-import GlassLight from '../ui/GlassLight';
 
 export default function Modal({
     isOpen,
@@ -39,8 +38,6 @@ export default function Modal({
                 className={`glass-strong relative w-full ${maxWidth} rounded-[28px] overflow-hidden animate-glass-in cursor-default`}
                 onClick={(e) => e.stopPropagation()}
             >
-                <GlassLight />
-
                 {/* Header */}
                 {(title || showCloseButton) && (
                     <div className="flex items-center justify-between px-6 py-4 border-b border-glass-divider">
@@ -48,7 +45,7 @@ export default function Modal({
                         {showCloseButton && (
                             <button
                                 onClick={onClose}
-                                className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 rounded-full hover:bg-gray-200/70 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                                className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 rounded-full transition-colors cursor-pointer"
                             >
                                 <X className="w-5 h-5" />
                             </button>

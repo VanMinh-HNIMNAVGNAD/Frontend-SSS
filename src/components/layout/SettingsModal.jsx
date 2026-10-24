@@ -8,7 +8,6 @@ import {
   areShortcutsEnabled,
 } from '../../hooks/useGlobalShortcuts';
 import useTheme from '../../hooks/useTheme';
-import GlassLight from '../ui/GlassLight';
 import LiquidGroup from '../ui/LiquidGroup';
 import { useLanguage } from '../../context/LanguageContext';
 import { userApi } from '../../services/api';
@@ -244,8 +243,6 @@ export default function SettingsModal({ isOpen, onClose }) {
         className="glass-strong relative rounded-[28px] w-full max-w-[614px] overflow-hidden flex flex-col max-h-[88vh] border text-left animate-glass-in"
         onClick={(e) => e.stopPropagation()}
       >
-        <GlassLight />
-
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3.5 border-b bg-gray-50/80 dark:bg-white/5 border-glass-divider">
           <div className="flex items-center gap-2.5">
@@ -258,7 +255,7 @@ export default function SettingsModal({ isOpen, onClose }) {
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-200/70 dark:hover:bg-gray-700 rounded-full transition-colors"
+            className="p-1.5 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 rounded-full transition-colors"
           >
             <X className="w-4.5 h-4.5" />
           </button>
@@ -313,7 +310,7 @@ export default function SettingsModal({ isOpen, onClose }) {
                         className={`flex flex-col items-center justify-center py-2.5 px-1.5 rounded-xl border gap-1 transition-all cursor-pointer ${
                           theme === value
                             ? 'border-blue-600 bg-blue-50 dark:bg-blue-500/15 text-blue-800 dark:text-blue-300 font-bold shadow-2xs'
-                            : 'border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-800 dark:text-gray-300 font-medium'
+                            : 'border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-300 font-medium'
                         }`}
                       >
                         <Icon className={`w-4.5 h-4.5 ${iconClass}`} />

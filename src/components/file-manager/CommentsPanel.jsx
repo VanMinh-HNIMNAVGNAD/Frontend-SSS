@@ -126,7 +126,7 @@ export default function CommentsPanel({ comments, onClose, className = '' }) {
         <button
           type="button"
           onClick={onClose}
-          className="p-1.5 rounded-full text-white/80 hover:bg-white/10 transition-colors cursor-pointer"
+          className="p-1.5 rounded-full text-white/80 transition-colors cursor-pointer"
           title={t('common.close')}
           aria-label={t('common.close')}
         >
@@ -147,7 +147,7 @@ export default function CommentsPanel({ comments, onClose, className = '' }) {
             <button
               type="button"
               onClick={comments.reload}
-              className="px-3 py-1.5 rounded-full border border-white/25 hover:bg-white/10 text-xs cursor-pointer"
+              className="px-3 py-1.5 rounded-full border border-white/25 text-xs cursor-pointer"
             >
               {t('preview.comments.retry')}
             </button>
@@ -189,7 +189,7 @@ export default function CommentsPanel({ comments, onClose, className = '' }) {
                     <button
                       type="button"
                       onClick={() => setEditing(null)}
-                      className="px-3 py-1 rounded-full text-xs text-white/80 hover:bg-white/10 cursor-pointer"
+                      className="px-3 py-1 rounded-full text-xs text-white/80 cursor-pointer"
                     >
                       {t('preview.comments.cancel')}
                     </button>

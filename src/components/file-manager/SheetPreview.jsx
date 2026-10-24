@@ -93,7 +93,7 @@ export default function SheetPreview({ url, onDownload }) {
         {onDownload && (
           <button
             onClick={onDownload}
-            className="px-4 py-2 bg-white/10 hover:bg-white/20 text-xs font-semibold rounded-xl text-white transition-all cursor-pointer"
+            className="px-4 py-2 bg-white/10 text-xs font-semibold rounded-xl text-white transition-all cursor-pointer"
           >
             {t('preview.downloadToView')}
           </button>
@@ -175,7 +175,7 @@ export default function SheetPreview({ url, onDownload }) {
               className={`px-3 py-1 rounded-lg text-[11px] font-medium whitespace-nowrap transition-colors cursor-pointer ${
                 index === active
                   ? 'bg-emerald-600 text-white shadow-sm'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-white/10'
+                  : 'text-slate-600 dark:text-slate-400'
               }`}
             >
               {sheetName}

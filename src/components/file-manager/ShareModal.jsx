@@ -274,7 +274,7 @@ export default function ShareModal({ isOpen, item, onClose }) {
                     </div>
                     <button
                         onClick={onClose}
-                        className="p-1.5 rounded-full text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-200/70 dark:hover:bg-white/10 transition-colors cursor-pointer"
+                        className="p-1.5 rounded-full text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 transition-colors cursor-pointer"
                     >
                         <X className="w-4 h-4" />
                     </button>

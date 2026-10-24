@@ -142,7 +142,7 @@ function FileCard({ file, onDoubleClick, onContextMenu, isSelected, isCut = fals
                 <button
                     onClick={(e) => onContextMenu && onContextMenu(e, file)}
                     onDoubleClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
-                    className="shrink-0 -mr-0.5 p-0.5 rounded-full transition-colors opacity-80 group-hover:opacity-100 text-[var(--fc-muted-l)] dark:text-[var(--fc-muted-d)] hover:text-[var(--fc-ink-l)] dark:hover:text-[var(--fc-ink-d)] hover:bg-white/60 dark:hover:bg-white/10"
+                    className="shrink-0 -mr-0.5 p-0.5 rounded-full transition-colors opacity-80 group-hover:opacity-100 text-[var(--fc-muted-l)] dark:text-[var(--fc-muted-d)] hover:text-[var(--fc-ink-l)] dark:hover:text-[var(--fc-ink-d)]"
                     title={t('card.fileOptions')}
                 >
                     <MoreVertical className="w-3.5 h-3.5" />

@@ -173,7 +173,7 @@ export default function Sidebar() {
                     onClick={tagsCtx.openManager}
                     title={t('tags.menu.manage')}
                     aria-label={t('tags.menu.manage')}
-                    className="p-1 rounded-full hover:bg-white/60 dark:hover:bg-white/10 normal-case cursor-pointer"
+                    className="p-1 rounded-full normal-case cursor-pointer"
                   >
                     <Settings2 className="w-3.5 h-3.5" />
                   </button>
@@ -244,7 +244,8 @@ export default function Sidebar() {
           {isSidebarCollapsed ? (
             <div
               onClick={() => setActiveTab('billing')}
-              className="flex flex-col items-center justify-center cursor-pointer p-2 hover:bg-white/55 dark:hover:bg-white/10 rounded-2xl transition-colors"
+              data-liquid-hover
+              className="flex flex-col items-center justify-center cursor-pointer p-2 rounded-2xl transition-colors"
               title={t('sidebar.storage.tooltip', {
                 used: storageInfo.usedGB,
                 total: storageInfo.totalGB,
@@ -318,7 +319,7 @@ export default function Sidebar() {
                 </button>
                 <button
                   onClick={() => setIsCleanupOpen(true)}
-                  className="py-1.5 px-3 glass-soft hover:bg-white/80 dark:hover:bg-white/10 text-gray-700 dark:text-gray-300 rounded-full text-xs font-semibold transition-colors shrink-0 cursor-pointer"
+                  className="py-1.5 px-3 glass-soft text-gray-700 dark:text-gray-300 rounded-full text-xs font-semibold transition-colors shrink-0 cursor-pointer"
                   title={t('sidebar.storage.cleanupTitle')}
                 >
                   {t('sidebar.storage.cleanup')}

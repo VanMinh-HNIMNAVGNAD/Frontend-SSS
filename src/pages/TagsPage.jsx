@@ -74,7 +74,7 @@ export default function TagsPage() {
                                 onClick={tagsCtx.openManager}
                                 title={t('tags.menu.manage')}
                                 aria-label={t('tags.menu.manage')}
-                                className="p-1.5 rounded-full text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/10 cursor-pointer"
+                                className="p-1.5 rounded-full text-gray-600 dark:text-gray-400 cursor-pointer"
                             >
                                 <Settings2 className="w-4 h-4" />
                             </button>
@@ -116,7 +116,7 @@ export default function TagsPage() {
                             <button
                                 type="button"
                                 onClick={() => navigate('/app/my-drive')}
-                                className="px-4 py-2 rounded-full border border-[var(--app-border)] text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] cursor-pointer"
+                                className="px-4 py-2 rounded-full border border-[var(--app-border)] text-sm font-medium text-gray-700 dark:text-gray-200 cursor-pointer"
                             >
                                 {t('tags.page.openMyDrive')}
                             </button>

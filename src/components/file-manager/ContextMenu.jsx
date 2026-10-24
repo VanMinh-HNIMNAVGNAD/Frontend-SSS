@@ -3,7 +3,6 @@ import {
     useCallback,
     useContext,
     useEffect,
-    useId,
     useLayoutEffect,
     useMemo,
     useRef,
@@ -47,8 +46,6 @@ import { useTags } from '../../context/TagsContext';
 import { DEFAULT_TAG_COLOR, TAG_COLORS, TAG_NAME_MAX } from '../../constants/tags';
 import { SHORTCUT_HINTS } from '../../hooks/useGlobalShortcuts';
 import ColorPickerPanel from './ColorPickerPanel';
-import GlassLight from '../ui/GlassLight';
-import LiquidGroup from '../ui/LiquidGroup';
 
 // Bảng phím tắt lấy thẳng từ hook — đã format sẵn theo hệ điều hành đang chạy,
 // nên phần hiển thị không bao giờ lệch với phím thật sự đang được lắng nghe.
@@ -69,8 +66,9 @@ const RENAME_SHORTCUT_KEYS =
 // mọi hàng, mọi menu đều chung một lưới: [icon 16px][gap 12px][nhãn co giãn][phần đuôi].
 //
 // Kính nổi (`glass-strong`, index.css): menu không chứa con `position: fixed` nên được blur.
-// Menu là một LiquidGroup (components/ui/LiquidGroup.jsx): nền rê chuột của từng hàng nay là
-// MỘT giọt nước trượt giữa các hàng, nên hàng không còn `hover:bg-*` riêng.
+// Nền rê chuột của từng hàng là khối kính hover chung của ứng dụng (utils/liquidHover.js) trượt
+// giữa các hàng, nên hàng không có `hover:bg-*` riêng. Ánh sáng + viền kính của khung menu do
+// `glass-strong` tự lo (styles/liquid-glass.css).
 const MENU_SHELL =
     'glass-strong fixed z-50 w-72 max-w-[calc(100vw-16px)] ' +
     'text-gray-900 dark:text-gray-100 rounded-[20px] px-1.5 py-1.5 ' +
@@ -90,7 +88,7 @@ const TONE = {
     dangerHover: 'text-gray-800 dark:text-gray-200 hover:text-rose-700 dark:hover:text-rose-300',
 };
 
-/** Hàng xoá/huỷ: giọt nước ánh đỏ khi rê qua. */
+/** Hàng xoá/huỷ: khối kính hover ánh đỏ khi rê qua. */
 const DANGER_TONES = new Set(['danger', 'dangerHover']);
 
 /**
@@ -111,12 +109,9 @@ function MenuRow({
     active = false,
     ...buttonProps
 }) {
-    // Khoá cho giọt nước của menu — chỉ cần duy nhất trong menu, không cần ổn định giữa các lần mở.
-    const liquidKey = useId();
     return (
         <button
             type="button"
-            data-liquid-key={liquidKey}
             data-liquid-tone={DANGER_TONES.has(tone) ? 'danger' : undefined}
             {...buttonProps}
             onClick={onClick}
@@ -362,9 +357,8 @@ function SubmenuPanel({ widthClass, children }) {
         [ctx, pos?.side, preferredSide],
     );
 
-    // Menu con là một LiquidGroup riêng: giọt nước của menu cha không lẫn sang hàng của nó.
     return (
-        <LiquidGroup
+        <div
             ref={panelRef}
             className={`${SUBMENU_SHELL} ${widthClass}`}
             style={{
@@ -374,7 +368,6 @@ function SubmenuPanel({ widthClass, children }) {
                 visibility: pos ? 'visible' : 'hidden',
             }}
         >
-            <GlassLight />
             {/* Cầu nối vô hình phủ khe giữa hai menu (cả padding + viền của menu cha):
                 chuột đi ngang qua đó vẫn tính là đang ở trong hàng cha, nên menu con
                 không gập giữa đường. Nới 24px trên/dưới cho đường chéo. Khi tấm đè lên
@@ -393,7 +386,7 @@ function SubmenuPanel({ widthClass, children }) {
                 />
             )}
             <SubmenuContext.Provider value={childCtx}>{children}</SubmenuContext.Provider>
-        </LiquidGroup>
+        </div>
     );
 }
 
@@ -725,14 +718,13 @@ export default function ContextMenu({
             canPaste && !isTrashTab && !isSpamTab && ['my-drive', 'shared-drives'].includes(activeTab);
 
         return withSubmenus(
-            <LiquidGroup
+            <div
                 ref={menuRef}
                 className={MENU_SHELL}
                 style={{ top: pos.top, left: pos.left }}
                 onClick={(e) => e.stopPropagation()}
                 onContextMenu={(e) => e.preventDefault()}
             >
-                <GlassLight />
                 {renderCreateRows('upload')}
 
                 {canPasteHere && (
@@ -751,7 +743,7 @@ export default function ContextMenu({
                         />
                     </>
                 )}
-            </LiquidGroup>
+            </div>
         );
     }
 
@@ -764,14 +756,13 @@ export default function ContextMenu({
         const isDriveAdmin = item.userRole === 'ADMIN';
 
         return withSubmenus(
-            <LiquidGroup
+            <div
                 ref={menuRef}
                 className={MENU_SHELL}
                 style={{ top: pos.top, left: pos.left }}
                 onClick={(e) => e.stopPropagation()}
                 onContextMenu={(e) => e.preventDefault()}
             >
-                <GlassLight />
                 {/* Header */}
                 <div className="px-2.5 pt-1 pb-2 mb-1 border-b text-xs font-semibold text-gray-500 dark:text-gray-400 flex items-center gap-2 border-glass-divider">
                     <span className="flex-1 min-w-0 truncate">{item.name}</span>
@@ -851,7 +842,7 @@ export default function ContextMenu({
                         onClick={() => { onLeaveDrive?.(item); closeMenu(); }}
                     />
                 )}
-            </LiquidGroup>
+            </div>
         );
     }
 
@@ -888,14 +879,13 @@ export default function ContextMenu({
     const canToggleStar = !item.isSharedWithMe;
 
     return withSubmenus(
-        <LiquidGroup
+        <div
             ref={menuRef}
             className={MENU_SHELL}
             style={{ top: pos.top, left: pos.left }}
             onClick={(e) => e.stopPropagation()}
             onContextMenu={(e) => e.preventDefault()}
         >
-            <GlassLight />
             {/* Header */}
             <div className="px-2.5 pt-1 pb-2 mb-1 border-b text-xs font-bold text-gray-700 dark:text-gray-400 flex items-center gap-2 border-glass-divider">
                 <span className="flex-1 min-w-0 truncate">{item.name}</span>
@@ -1187,6 +1177,6 @@ export default function ContextMenu({
                     )}
                 </>
             )}
-        </LiquidGroup>
+        </div>
     );
 }

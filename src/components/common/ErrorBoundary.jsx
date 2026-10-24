@@ -77,7 +77,7 @@ export function ErrorFallback({ error, onRetry, onClose, variant = 'page' }) {
           <button
             type="button"
             onClick={onRetry}
-            className="flex items-center gap-2 rounded-2xl glass-soft px-5 py-2.5 text-sm font-bold text-gray-800 dark:text-gray-100 transition-all hover:bg-white/80 dark:hover:bg-white/10 cursor-pointer"
+            className="flex items-center gap-2 rounded-2xl glass-soft px-5 py-2.5 text-sm font-bold text-gray-800 dark:text-gray-100 transition-all cursor-pointer"
           >
             <RotateCcw className="h-4 w-4" /> {t('crash.retry')}
           </button>
@@ -86,7 +86,7 @@ export function ErrorFallback({ error, onRetry, onClose, variant = 'page' }) {
           <button
             type="button"
             onClick={onClose}
-            className="rounded-2xl glass-soft px-5 py-2.5 text-sm font-bold text-gray-800 dark:text-gray-100 transition-all hover:bg-white/80 dark:hover:bg-white/10 cursor-pointer"
+            className="rounded-2xl glass-soft px-5 py-2.5 text-sm font-bold text-gray-800 dark:text-gray-100 transition-all cursor-pointer"
           >
             {t('common.close')}
           </button>
@@ -94,7 +94,7 @@ export function ErrorFallback({ error, onRetry, onClose, variant = 'page' }) {
           variant === 'page' && (
             <a
               href="/app"
-              className="flex items-center gap-2 rounded-2xl glass-soft px-5 py-2.5 text-sm font-bold text-gray-800 dark:text-gray-100 transition-all hover:bg-white/80 dark:hover:bg-white/10 cursor-pointer"
+              className="flex items-center gap-2 rounded-2xl glass-soft px-5 py-2.5 text-sm font-bold text-gray-800 dark:text-gray-100 transition-all cursor-pointer"
             >
               <Home className="h-4 w-4" /> {t('crash.home')}
             </a>

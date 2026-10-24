@@ -113,7 +113,7 @@ export default function RenameModal({ isOpen, item, onClose, onRename }) {
                     <button 
                         onClick={onClose}
                         disabled={isSubmitting}
-                        className="p-1 rounded-full disabled:opacity-50 disabled:cursor-not-allowed text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+                        className="p-1 rounded-full disabled:opacity-50 disabled:cursor-not-allowed text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors cursor-pointer"
                     >
                         <X className="w-5 h-5" />
                     </button>
@@ -166,7 +166,7 @@ export default function RenameModal({ isOpen, item, onClose, onRename }) {
                             type="button"
                             onClick={onClose}
                             disabled={isSubmitting}
-                            className="px-4 py-2 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors cursor-pointer"
+                            className="px-4 py-2 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed text-gray-600 dark:text-gray-300 rounded-xl transition-colors cursor-pointer"
                         >
                             {t('common.cancel')}
                         </button>

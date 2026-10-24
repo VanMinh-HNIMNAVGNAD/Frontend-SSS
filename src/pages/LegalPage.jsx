@@ -200,7 +200,7 @@ export default function LegalPage({ docId }) {
                 className={`px-2.5 py-1 rounded-full transition-colors cursor-pointer ${
                   language === code
                     ? 'btn-accent'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:text-white hover:bg-black/[0.05] dark:hover:bg-white/[0.06]'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:text-white'
                 }`}
               >
                 {code.toUpperCase()}

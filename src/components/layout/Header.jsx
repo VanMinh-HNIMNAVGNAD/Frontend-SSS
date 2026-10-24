@@ -12,7 +12,6 @@ import ActivityLogDrawer from '../file-manager/ActivityLogDrawer';
 import NotificationBell from './NotificationBell';
 import { useAiPanel } from '../../context/AiPanelContext';
 import GlassLight from '../ui/GlassLight';
-import LiquidGroup from '../ui/LiquidGroup';
 import { 
     Menu, 
     Search, 
@@ -332,7 +331,7 @@ export default function Header({ toggleRightSidebar }) {
 
                 {/* Left */}
                 <div className="relative flex items-center gap-2 sm:gap-4 min-w-0">
-                    <button onClick={deselectAll} className="p-2 hover:bg-white/70 dark:hover:bg-white/10 rounded-full transition-colors cursor-pointer shrink-0" title={t('common.close')}>
+                    <button onClick={deselectAll} className="p-2 rounded-full transition-colors cursor-pointer shrink-0" title={t('common.close')}>
                         <X className="w-5 h-5" />
                     </button>
                     <span className="font-semibold text-base sm:text-lg truncate text-blue-700 dark:text-blue-300">{t('header.selected', { count: selectedCount })}</span>
@@ -341,7 +340,7 @@ export default function Header({ toggleRightSidebar }) {
                     
                     <button
                         onClick={() => allCurrentSelected ? deselectAll() : selectAll(folders, files)}
-                        className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 hover:bg-white/70 dark:hover:bg-white/10 rounded-full transition-colors text-sm font-medium cursor-pointer"
+                        className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-colors text-sm font-medium cursor-pointer"
                     >
                         <CheckSquare className="w-4 h-4" />
                         <span>{allCurrentSelected ? t('common.deselectAll') : t('common.selectAll')}</span>
@@ -363,7 +362,7 @@ export default function Header({ toggleRightSidebar }) {
                                 onClick={() => {
                                     cutItems(Array.from(selectedIds));
                                 }} 
-                                className="flex items-center gap-1.5 px-3 py-2 hover:bg-white/70 dark:hover:bg-white/10 rounded-full transition-colors text-sm font-medium cursor-pointer" 
+                                className="flex items-center gap-1.5 px-3 py-2 rounded-full transition-colors text-sm font-medium cursor-pointer" 
                                 title={t('header.action.cut')}
                             >
                                 <Scissors className="w-4 h-4" />
@@ -374,13 +373,13 @@ export default function Header({ toggleRightSidebar }) {
                                 onClick={() => {
                                     copyItems(Array.from(selectedIds));
                                 }} 
-                                className="flex items-center gap-1.5 px-3 py-2 hover:bg-white/70 dark:hover:bg-white/10 rounded-full transition-colors text-sm font-medium cursor-pointer" 
+                                className="flex items-center gap-1.5 px-3 py-2 rounded-full transition-colors text-sm font-medium cursor-pointer" 
                                 title={t('header.action.copy')}
                             >
                                 <Copy className="w-4 h-4" />
                                 <span className="hidden lg:inline">{t('common.copy')}</span>
                             </button>
-                            <button onClick={handleDownloadSelected} className="flex items-center gap-1.5 px-3 py-2 hover:bg-white/70 dark:hover:bg-white/10 rounded-full transition-colors text-sm font-medium cursor-pointer" title={t('common.download')}>
+                            <button onClick={handleDownloadSelected} className="flex items-center gap-1.5 px-3 py-2 rounded-full transition-colors text-sm font-medium cursor-pointer" title={t('common.download')}>
                                 <Download className="w-4 h-4" />
                                 <span className="hidden lg:inline">{t('common.download')}</span>
                             </button>
@@ -421,7 +420,7 @@ export default function Header({ toggleRightSidebar }) {
                 <button
                     onClick={toggleSidebar}
                     title={isSidebarCollapsed ? t('header.sidebar.expand') : t('header.sidebar.collapse')}
-                    className="p-2.5 text-gray-700 dark:text-gray-300 hover:bg-white/70 dark:hover:bg-white/10 rounded-full transition-colors focus:outline-none cursor-pointer"
+                    className="p-2.5 text-gray-700 dark:text-gray-300 rounded-full transition-colors focus:outline-none cursor-pointer"
                 >
                     <Menu className="w-5 h-5 text-gray-800 dark:text-gray-200" />
                 </button>
@@ -478,7 +477,7 @@ export default function Header({ toggleRightSidebar }) {
                             }}
                             title={t('header.search.clear')}
                             aria-label={t('header.search.clear')}
-                            className="p-2 sm:p-1 rounded-full text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 hover:bg-black/5 dark:hover:bg-white/10 transition-colors ml-1 shrink-0 cursor-pointer"
+                            className="p-2 sm:p-1 rounded-full text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 transition-colors ml-1 shrink-0 cursor-pointer"
                         >
                             <X className="w-4 h-4" />
                         </button>
@@ -490,7 +489,7 @@ export default function Header({ toggleRightSidebar }) {
                         onClick={() => setIsFilterOpen(!isFilterOpen)}
                         title={t('header.search.filter')}
                         aria-expanded={isFilterOpen}
-                        className={`p-2 sm:p-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors ml-1 sm:ml-2 shrink-0 cursor-pointer ${
+                        className={`p-2 sm:p-1.5 rounded-full transition-colors ml-1 sm:ml-2 shrink-0 cursor-pointer ${
                             isFilterOpen || filterType !== 'all' || filterDate !== 'all' || filterOwner !== 'all' ? 'text-blue-700 dark:text-blue-300 bg-blue-500/12 dark:bg-blue-400/15' : 'text-gray-700 dark:text-gray-300'
                         }`}
                     >
@@ -523,7 +522,7 @@ export default function Header({ toggleRightSidebar }) {
                     onClick={handleOpenActivityLog}
                     disabled={isAuthLoading}
                     title={isAuthenticated ? t('header.activityLog') : t('header.activityLog.needLogin')}
-                    className="hidden sm:inline-flex p-2.5 text-gray-700 dark:text-gray-300 hover:bg-white/70 dark:hover:bg-white/10 rounded-full transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="hidden sm:inline-flex p-2.5 text-gray-700 dark:text-gray-300 rounded-full transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                     <History className="w-5 h-5" />
                 </button>
@@ -551,7 +550,7 @@ export default function Header({ toggleRightSidebar }) {
                     disabled={isAuthLoading}
                     title={isAuthenticated ? t('header.ai') : t('header.ai.needLogin')}
                     aria-label={isAuthenticated ? t('header.ai') : t('header.ai.needLogin')}
-                    className="p-2 sm:p-2.5 text-gray-700 dark:text-gray-300 hover:bg-white/70 dark:hover:bg-white/10 rounded-full transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="p-2 sm:p-2.5 text-gray-700 dark:text-gray-300 rounded-full transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                     <Sparkles className="w-5 h-5" />
                 </button>
@@ -565,7 +564,7 @@ export default function Header({ toggleRightSidebar }) {
                 <button
                     onClick={() => setIsSettingsOpen(true)}
                     title={t('header.settings')}
-                    className="hidden sm:inline-flex p-2.5 text-gray-700 dark:text-gray-300 hover:bg-white/70 dark:hover:bg-white/10 rounded-full transition-colors cursor-pointer"
+                    className="hidden sm:inline-flex p-2.5 text-gray-700 dark:text-gray-300 rounded-full transition-colors cursor-pointer"
                 >
                     <Settings className="w-5 h-5" />
                 </button>
@@ -577,7 +576,7 @@ export default function Header({ toggleRightSidebar }) {
                         title={t('header.more')}
                         aria-label={t('header.more')}
                         aria-expanded={isMoreOpen}
-                        className="p-2 text-gray-700 dark:text-gray-300 hover:bg-white/70 dark:hover:bg-white/10 rounded-full transition-colors cursor-pointer"
+                        className="p-2 text-gray-700 dark:text-gray-300 rounded-full transition-colors cursor-pointer"
                     >
                         <MoreVertical className="w-5 h-5" />
                     </button>
@@ -585,10 +584,8 @@ export default function Header({ toggleRightSidebar }) {
                         <>
                             {/* Lớp trong suốt bắt cú chạm ra ngoài để đóng menu */}
                             <div className="fixed inset-0 z-40" onClick={() => setIsMoreOpen(false)} />
-                            <LiquidGroup className="absolute right-0 top-full mt-2 w-56 z-50 p-1.5 glass-strong rounded-[20px] animate-glass-in origin-top-right">
-                                <GlassLight />
+                            <div className="absolute right-0 top-full mt-2 w-56 z-50 p-1.5 glass-strong rounded-[20px] animate-glass-in origin-top-right">
                                 <button
-                                    data-liquid-key="activity"
                                     onClick={() => {
                                         setIsMoreOpen(false);
                                         handleOpenActivityLog();
@@ -600,7 +597,6 @@ export default function Header({ toggleRightSidebar }) {
                                     <span>{t('header.activityLog')}</span>
                                 </button>
                                 <button
-                                    data-liquid-key="settings"
                                     onClick={() => {
                                         setIsMoreOpen(false);
                                         setIsSettingsOpen(true);
@@ -610,7 +606,7 @@ export default function Header({ toggleRightSidebar }) {
                                     <Settings className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                                     <span>{t('header.settings')}</span>
                                 </button>
-                            </LiquidGroup>
+                            </div>
                         </>
                     )}
                 </div>

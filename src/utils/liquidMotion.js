@@ -1,38 +1,49 @@
 /**
- * Chuyển động "giọt nước" cho LiquidGroup — vật lý lò xo, không dùng CSS transition.
+ * Chuyển động kính lỏng — vật lý lò xo, không dùng CSS transition.
  *
- * Mỗi giọt có BỐN lò xo, một cho mỗi mép (trái, phải, trên, dưới). Khi giọt chuyển sang mục
- * khác, mép ở phía trước (mép DẪN) dùng lò xo cứng — đi nhanh, hơi vượt đích một chút rồi bật
- * lại; mép phía sau (mép KÉO) dùng lò xo mềm hơn — đi chậm. Nhờ vậy giọt TỰ KÉO DÀI ra khi
- * đang trượt và co tròn lại khi tới nơi, đúng như một giọt nước bị kéo trên mặt kính, mà không
- * phải "diễn" độ dãn bằng tay theo vận tốc.
+ * Mỗi khối kính có BỐN lò xo, một cho mỗi mép (trái, phải, trên, dưới). Khi khối chuyển sang
+ * mục khác, mép phía trước (mép DẪN) dùng lò xo cứng hơn mép phía sau (mép KÉO) một chút, nên
+ * khối hơi thuôn ra theo hướng đi rồi tròn lại khi tới nơi — như một giọt nước được kéo trên mặt
+ * kính, mà không phải "diễn" độ dãn bằng tay theo vận tốc.
  *
- * Vì sao không dùng `transition: transform`: transition chạy theo một đường cong cố định từ
- * điểm đầu tới điểm cuối, nên rê chuột lướt nhanh qua 4 mục là 4 lần bắt đầu lại từ vận tốc 0
- * — giọt giật cục. Lò xo giữ nguyên vận tốc đang có khi đổi đích, nên lướt qua nhiều mục giọt
- * vẫn trôi một mạch.
+ * Thông số lò xo lấy theo cách Apple mô tả lò xo trong SwiftUI: `response` (thời gian một chu kỳ,
+ * giây) và `dampingFraction` (tỉ lệ giảm chấn). `.smooth` của Apple là ~0.5 / 1.0, `.snappy`
+ * ~0.3 / 0.85 — chuyển động "liquid glass" của iOS 26 nằm quanh 0.35–0.4 / 0.75–0.85: tới nơi
+ * nhanh, nảy rất nhẹ một lần rồi dừng, không lắc lư.
  *
- * Mọi giọt trên trang dùng chung MỘT vòng requestAnimationFrame, và vòng đó tự tắt khi không
- * còn giọt nào đang chuyển động.
+ * Vì sao không dùng `transition`: transition chạy theo một đường cong cố định từ đầu tới cuối,
+ * nên rê chuột lướt qua 4 mục là 4 lần bắt đầu lại từ vận tốc 0 — giật cục. Lò xo giữ nguyên
+ * vận tốc đang có khi đổi đích, nên lướt qua nhiều mục khối kính vẫn trôi một mạch.
+ *
+ * Mọi khối kính trên trang dùng chung MỘT vòng requestAnimationFrame, tự tắt khi tất cả đứng yên.
  */
 
-/** Mép dẫn: cứng, hơi vượt đích (ζ < 1) cho cảm giác nảy nhẹ của chất lỏng. */
-const LEAD = spring(360, 0.74);
-/** Mép kéo: mềm và gần như không vượt — giọt "kéo đuôi" theo sau. */
-const TRAIL = spring(175, 0.88);
+/**
+ * Lò xo theo thông số kiểu Apple.
+ * @param {number} response Thời gian một chu kỳ dao động (giây) — nhỏ là nhanh.
+ * @param {number} dampingFraction 1 = không nảy; < 1 = nảy nhẹ.
+ */
+function appleSpring(response, dampingFraction) {
+    const omega = (2 * Math.PI) / response;
+    return { k: omega * omega, c: 2 * dampingFraction * omega };
+}
+
+/**
+ * Bộ lò xo dựng sẵn: `lead` cho mép phía trước, `trail` cho mép phía sau.
+ * - SELECT: viên kính "đang chọn" khi đổi mục — có thời gian để thấy nó nhấc lên, trượt, đáp.
+ * - HOVER:  vùng sáng theo chuột — phải bám tay, gần như không thuôn.
+ */
+export const SPRINGS = {
+    SELECT: { lead: appleSpring(0.36, 0.78), trail: appleSpring(0.44, 0.86), maxStretch: 1.18 },
+    HOVER: { lead: appleSpring(0.24, 0.86), trail: appleSpring(0.28, 0.9), maxStretch: 1.12 },
+};
+
 /** Bước tích phân cố định — đủ nhỏ để lò xo cứng không mất ổn định khi máy chậm, khung dài. */
 const SUBSTEP = 1 / 240;
 /** Dưới ngưỡng này (px, px/s) coi như đã đứng yên. */
 const REST_DISTANCE = 0.05;
 const REST_SPEED = 0.5;
-/** Giọt dài tối đa bằng chừng này lần cỡ gốc — nhảy xa từ đầu xuống cuối thanh bên vẫn chỉ
- * là một giọt hơi thuôn, không thành một vệt dài nửa màn hình. */
-const MAX_STRETCH = 1.9;
-const MIN_SQUEEZE = 0.55;
-
-function spring(stiffness, dampingRatio) {
-    return { k: stiffness, c: 2 * dampingRatio * Math.sqrt(stiffness) };
-}
+const MIN_SQUEEZE = 0.6;
 
 const reducedMotion =
     typeof window !== 'undefined' && typeof window.matchMedia === 'function'
@@ -46,7 +57,7 @@ let frame = 0;
 let lastTime = 0;
 
 function tick(now) {
-    // Tab bị ẩn rồi quay lại thì `now - lastTime` có thể là vài giây: kẹp lại để giọt không
+    // Tab bị ẩn rồi quay lại thì `now - lastTime` có thể là vài giây: kẹp lại để khối kính không
     // "dịch chuyển tức thời" qua một bước tích phân khổng lồ.
     const dt = Math.min((now - lastTime) / 1000, 1 / 30);
     lastTime = now;
@@ -64,33 +75,39 @@ function wake(body) {
     }
 }
 
-// ── Một giọt ────────────────────────────────────────────────────────────────
-
-function makeEdge() {
-    return { x: 0, v: 0, to: 0, ...LEAD };
-}
+// ── Một khối kính ───────────────────────────────────────────────────────────
 
 /**
  * @typedef {{ l: number, t: number, r: number, b: number, radius: number }} LiquidBox
- *   Khung đích (px, trong hệ toạ độ của nhóm) và bán kính bo góc của mục.
+ *   Khung đích (px) và bán kính bo góc.
  */
 
 export class LiquidBody {
     /**
-     * @param {HTMLElement} el Phần tử giọt (`.liquid-pill` / `.liquid-drop`)
-     * @param {{ onResize?: (w: number, h: number, radius: number) => void, onRender?: () => void }} [hooks]
-     *   `onResize` — cỡ gốc đổi (bản đồ khúc xạ phải vẽ lại); `onRender` — sau mỗi khung hình.
+     * @param {HTMLElement | HTMLElement[]} els Một hay nhiều phần tử đi CÙNG một hình dạng
+     *   (viên kính dưới chữ + thấu kính trên chữ của LiquidGroup).
+     * @param {object} [options]
+     * @param {'scale'|'size'} [options.mode='scale'] Cách vẽ độ dãn khi đang trượt:
+     *   `scale` — cỡ thật cố định theo đích, dãn bằng `transform: scale` (bản đồ khúc xạ dãn theo,
+     *   luôn khớp); `size` — ghi thẳng width/height mỗi khung (góc bo luôn tròn đúng — cho vùng
+     *   sáng hover, nơi không có khúc xạ).
+     * @param {typeof SPRINGS.SELECT} [options.spring]
+     * @param {(w: number, h: number, radius: number) => void} [options.onResize] Cỡ gốc đổi.
+     * @param {() => void} [options.onRender] Sau mỗi khung hình.
+     * @param {() => void} [options.onStart] Bắt đầu trượt sang đích mới (`glide`).
+     * @param {() => void} [options.onSettle] Đã đứng yên.
      */
-    constructor(el, hooks = {}) {
-        this.el = el;
-        this.hooks = hooks;
-        this.edges = { l: makeEdge(), r: makeEdge(), t: makeEdge(), b: makeEdge() };
+    constructor(els, options = {}) {
+        this.els = Array.isArray(els) ? els : [els];
+        this.mode = options.mode ?? 'scale';
+        this.spring = options.spring ?? SPRINGS.SELECT;
+        this.hooks = options;
+        this.edges = { l: this.#edge(), r: this.#edge(), t: this.#edge(), b: this.#edge() };
         this.baseW = 0;
         this.baseH = 0;
         this.radius = -1;
-        /** Vị trí góc trên-trái của khung gốc (chưa tính kéo dãn) — để tính đốm sáng trong giọt. */
-        this.x = 0;
-        this.y = 0;
+        /** Khung đang vẽ (sau lò xo, trước khi thắt) — cho đốm sáng và clip của bên dùng. */
+        this.current = { l: 0, t: 0, r: 0, b: 0 };
         this.placed = false;
         this.visible = false;
     }
@@ -105,10 +122,11 @@ export class LiquidBody {
             edge.x = edge.to = value;
             edge.v = 0;
         }
-        moving.delete(this);
+        const wasMoving = moving.delete(this);
         this.#setBase(box);
         this.placed = true;
         this.render();
+        if (wasMoving) this.hooks.onSettle?.();
     }
 
     /** Trượt tới khung mới: mép phía trước dẫn, mép phía sau kéo theo. */
@@ -118,12 +136,14 @@ export class LiquidBody {
             return;
         }
         const { l, r, t, b } = this.edges;
+        const { lead, trail } = this.spring;
         const dx = box.l + box.r - (l.x + r.x);
         const dy = box.t + box.b - (t.x + b.x);
-        Object.assign(r, dx < -0.5 ? TRAIL : LEAD);
-        Object.assign(l, dx > 0.5 ? TRAIL : LEAD);
-        Object.assign(b, dy < -0.5 ? TRAIL : LEAD);
-        Object.assign(t, dy > 0.5 ? TRAIL : LEAD);
+        Object.assign(r, dx < -0.5 ? trail : lead);
+        Object.assign(l, dx > 0.5 ? trail : lead);
+        Object.assign(b, dy < -0.5 ? trail : lead);
+        Object.assign(t, dy > 0.5 ? trail : lead);
+        this.hooks.onStart?.();
         this.retarget(box);
     }
 
@@ -141,19 +161,26 @@ export class LiquidBody {
 
     setVisible(visible, { instant = false } = {}) {
         this.visible = visible;
-        if (instant) {
-            // Lần hiện đầu tiên (trang vừa mở): bỏ qua hiệu ứng mờ dần, viên đang chọn có
-            // ngay từ khung hình đầu như cái nền tĩnh cũ.
-            this.el.style.transition = 'none';
-            this.el.classList.toggle('is-visible', visible);
-            void this.el.offsetWidth;
-            this.el.style.transition = '';
-        } else {
-            this.el.classList.toggle('is-visible', visible);
+        for (const el of this.els) {
+            if (instant) {
+                // Lần hiện đầu tiên (trang vừa mở): bỏ qua hiệu ứng mờ dần — viên đang chọn có
+                // ngay từ khung hình đầu như một cái nền tĩnh.
+                el.style.transition = 'none';
+                el.classList.toggle('is-visible', visible);
+                void el.offsetWidth;
+                el.style.transition = '';
+            } else {
+                el.classList.toggle('is-visible', visible);
+            }
         }
     }
 
-    /** Một bước mô phỏng; trả `false` khi đã đứng yên (vòng lặp bỏ giọt này ra). */
+    /** Thêm/bỏ một class trên mọi phần tử của khối (`is-lifted`, `is-pressed`…). */
+    toggleClass(name, on) {
+        for (const el of this.els) el.classList.toggle(name, on);
+    }
+
+    /** Một bước mô phỏng; trả `false` khi đã đứng yên (vòng lặp bỏ khối này ra). */
     step(dt) {
         const edges = Object.values(this.edges);
         const n = Math.max(1, Math.ceil(dt / SUBSTEP));
@@ -178,26 +205,46 @@ export class LiquidBody {
             }
         }
         this.render();
+        if (settled) this.hooks.onSettle?.();
         return !settled;
     }
 
     render() {
         const { l, r, t, b } = this.edges;
+        this.current = { l: l.x, t: t.x, r: r.x, b: b.x };
+
+        if (this.mode === 'size') {
+            const w = Math.max(0, r.x - l.x);
+            const h = Math.max(0, b.x - t.x);
+            for (const el of this.els) {
+                el.style.translate = `${l.x}px ${t.x}px`;
+                el.style.width = `${w}px`;
+                el.style.height = `${h}px`;
+            }
+            this.hooks.onRender?.();
+            return;
+        }
+
         const w = this.baseW || 1;
         const h = this.baseH || 1;
         const fx = (r.x - l.x) / w;
         const fy = (b.x - t.x) / h;
-        // Kéo dài theo chiều này thì thắt nhẹ chiều kia — giọt nước giữ thể tích. Số mũ nhỏ: dãn
-        // gấp đôi chỉ thắt ~10%; thắt theo đúng thể tích (mũ 0.5) thì giọt mảnh như sợi chỉ.
+        // Thuôn theo chiều này thì thắt nhẹ chiều kia — giọt nước giữ thể tích. Số mũ nhỏ: thắt
+        // đúng theo thể tích (mũ 0.5) thì khối kính mảnh như sợi chỉ.
         const sx = fx / (fy > 1 ? fy ** 0.15 : 1);
         const sy = fy / (fx > 1 ? fx ** 0.15 : 1);
-
-        this.x = (l.x + r.x - w) / 2;
-        this.y = (t.x + b.x - h) / 2;
-        this.el.style.translate = `${this.x}px ${this.y}px`;
-        this.el.style.transform =
-            Math.abs(sx - 1) < 1e-3 && Math.abs(sy - 1) < 1e-3 ? '' : `scale(${sx}, ${sy})`;
+        const x = (l.x + r.x - w) / 2;
+        const y = (t.x + b.x - h) / 2;
+        const transform = Math.abs(sx - 1) < 1e-3 && Math.abs(sy - 1) < 1e-3 ? '' : `scale(${sx}, ${sy})`;
+        for (const el of this.els) {
+            el.style.translate = `${x}px ${y}px`;
+            el.style.transform = transform;
+        }
         this.hooks.onRender?.();
+    }
+
+    #edge() {
+        return { x: 0, v: 0, to: 0, ...this.spring.lead };
     }
 
     #pairs(box) {
@@ -206,8 +253,8 @@ export class LiquidBody {
     }
 
     /**
-     * Cỡ gốc = cỡ của mục đích. Đặt bằng width/height thật (không phải scale) để góc bo luôn
-     * tròn đúng khi giọt đứng yên; độ dãn lúc trượt mới là `transform: scale`.
+     * Cỡ gốc = cỡ của đích. Chế độ `scale` đặt width/height thật theo đích (góc bo luôn tròn đúng
+     * khi đứng yên); chế độ `size` tự ghi width/height mỗi khung nên chỉ cần bán kính.
      */
     #setBase(box) {
         const w = Math.max(1, box.r - box.l);
@@ -217,20 +264,25 @@ export class LiquidBody {
         this.baseW = w;
         this.baseH = h;
         this.radius = radius;
-        this.el.style.width = `${w}px`;
-        this.el.style.height = `${h}px`;
-        this.el.style.borderRadius = `${radius}px`;
+        for (const el of this.els) {
+            if (this.mode === 'scale') {
+                el.style.width = `${w}px`;
+                el.style.height = `${h}px`;
+            }
+            el.style.borderRadius = `${radius}px`;
+        }
         this.hooks.onResize?.(w, h, radius);
     }
 
-    /** Kẹp độ dài giọt trong [MIN_SQUEEZE, MAX_STRETCH] lần cỡ gốc bằng cách kéo MÉP SAU lại. */
+    /** Kẹp độ dài trong [MIN_SQUEEZE, maxStretch] lần cỡ gốc bằng cách kéo MÉP SAU lại. */
     #limitStretch(a, b, base) {
         if (!base) return;
+        const max = this.spring.maxStretch;
         const len = b.x - a.x;
         const trailing = a.k < b.k ? a : b.k < a.k ? b : null;
-        if (len > base * MAX_STRETCH) {
-            if (trailing === a) a.x = b.x - base * MAX_STRETCH;
-            else b.x = a.x + base * MAX_STRETCH;
+        if (len > base * max) {
+            if (trailing === a) a.x = b.x - base * max;
+            else b.x = a.x + base * max;
         } else if (len < base * MIN_SQUEEZE) {
             const mid = (a.x + b.x) / 2;
             a.x = mid - (base * MIN_SQUEEZE) / 2;

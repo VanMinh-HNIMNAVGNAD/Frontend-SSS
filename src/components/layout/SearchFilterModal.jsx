@@ -203,7 +203,7 @@ function FilterPanel({ onClose, toggleRef }) {
                 <button
                     type="button"
                     onClick={handleReset}
-                    className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-black/[0.05] dark:hover:bg-white/[0.08] rounded-full transition-colors cursor-pointer"
+                    className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 rounded-full transition-colors cursor-pointer"
                 >
                     {t('filter.reset')}
                 </button>

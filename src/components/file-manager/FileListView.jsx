@@ -116,14 +116,10 @@ const FolderTableRow = memo(function FolderTableRow({
             onDoubleClick={() => onDoubleClick(folder)}
             onContextMenu={(e) => onContextMenu(e, folder)}
             style={getCardColorVars(folder)}
-            // Khối kính hover chung trượt giữa các hàng (utils/liquidHover.js); hàng đang chọn đã có
-            // nền + viền xanh nên khối kính bỏ qua nó.
-            data-liquid-hover
-            data-liquid-selected={isSelected || undefined}
             className={`transition-colors group cursor-pointer ${isCut ? 'opacity-50 border-dashed' : ''} ${
                 isSelected
                     ? 'ring-1 ring-inset ring-blue-400 bg-[var(--fc-hover-l)] dark:bg-[var(--fc-hover-d)]'
-                    : 'bg-[var(--fc-panel-l)] dark:bg-[var(--fc-panel-d)]'
+                    : 'bg-[var(--fc-panel-l)] dark:bg-[var(--fc-panel-d)] hover:bg-[var(--fc-surface-l)] dark:hover:bg-[var(--fc-surface-d)]'
             }`}
         >
             {/* Checkbox Column – only this triggers selection */}
@@ -251,14 +247,10 @@ const FileTableRow = memo(function FileTableRow({
             onDoubleClick={() => onDoubleClick(file)}
             onContextMenu={(e) => onContextMenu(e, file)}
             style={getCardColorVars(file)}
-            // Khối kính hover chung trượt giữa các hàng (utils/liquidHover.js); hàng đang chọn đã có
-            // nền + viền xanh nên khối kính bỏ qua nó.
-            data-liquid-hover
-            data-liquid-selected={isSelected || undefined}
             className={`transition-colors group cursor-pointer ${isCut ? 'opacity-50 border-dashed' : ''} ${
                 isSelected
                     ? 'ring-1 ring-inset ring-blue-400 bg-[var(--fc-hover-l)] dark:bg-[var(--fc-hover-d)]'
-                    : 'bg-[var(--fc-panel-l)] dark:bg-[var(--fc-panel-d)]'
+                    : 'bg-[var(--fc-panel-l)] dark:bg-[var(--fc-panel-d)] hover:bg-[var(--fc-surface-l)] dark:hover:bg-[var(--fc-surface-d)]'
             }`}
         >
             {/* Checkbox Column – only this triggers selection */}

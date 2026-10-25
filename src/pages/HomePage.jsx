@@ -60,9 +60,7 @@ const SectionTable = ({ itemList, emptyMessage, onItemOpen, onToggleStar, onCont
                     onDoubleClick={() => onItemOpen && onItemOpen(item, itemList)}
                     onContextMenu={(e) => onContextMenu && onContextMenu(e, item)}
                     title={t('home.doubleClickToOpen')}
-                    // Hàng bấm được nhưng là <div>: xin khối kính hover chung (utils/liquidHover.js).
-                    data-liquid-hover
-                    className="flex items-center justify-between py-2.5 px-3 transition-colors cursor-pointer rounded-lg select-none"
+                    className="flex items-center justify-between py-2.5 px-3 hover:bg-gray-100/70 dark:hover:bg-white/5 transition-colors cursor-pointer rounded-lg select-none"
                 >
                     {/* Name & mini thumbnail (ảnh / video / trang đầu PDF, còn lại là icon) */}
                     <div className="flex items-center gap-3 flex-1 min-w-0 pr-4">

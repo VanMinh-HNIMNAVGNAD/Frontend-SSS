@@ -1,24 +1,23 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   LIQUID GLASS 3 (25/10/2026) — gần với Liquid Glass của Apple (iOS 26 / macOS Tahoe) hơn.
+   LIQUID GLASS 4 (25/10/2026)
 
-   Bản 2 (24/10) có một "giọt nước" riêng cho từng nhóm, nằm ĐÈ lên chữ, phủ trắng + bóng đổ, kéo
-   dãn gấp đôi khi trượt — trông như hạt nhựa nổi, không tự nhiên. Bản này làm theo cách Apple:
+   Hai thứ làm nên chất "kính lỏng" của giao diện:
 
-     1. HOVER (utils/liquidHover.js) — như con trỏ iPadOS: MỘT khối kính duy nhất cho cả ứng dụng,
-        trượt + đổi hình sang nút đang rê, hơi hút theo con trỏ. Không phủ trắng lên chữ: lớp tô
-        dùng `mix-blend-mode` (Sáng: multiply — chỉ làm tối nhẹ; Tối: screen — chỉ làm sáng).
-     2. CHỌN (components/ui/LiquidGroup.jsx) — viên kính "đang chọn" nằm dưới chữ; khi đổi mục nó
-        NHẤC LÊN thành lớp kính trong, trượt sang, rồi ĐÁP xuống — như thanh tab của iOS 26 khi
-        chạm đổi tab. (Không bẻ cong chữ: Apple chỉ làm vậy khi nhấn giữ rồi kéo viên chọn; bản 2
-        bẻ cong chữ mỗi lần bấm và chữ bị méo trông như lỗi.)
-     3. CHẤT LIỆU — mọi tấm kính có VIỀN SÁNG CÓ HƯỚNG (sáng nhất ở mép trên-trái, mờ ở hai bên,
-        hắt nhẹ ở mép dưới-phải — dấu hiệu dễ nhận nhất của Liquid Glass) và ánh sáng theo chuột:
+     1. GIỌT KÍNH ĐANG CHỌN (components/ui/LiquidGroup.jsx) — thanh bên, tab, nút phân đoạn. Khi
+        đổi mục, giọt NHẢY như một giọt nước: vươn dài ra (mép sau còn dính), bứt đi, đáp xuống dẹt
+        lại rồi nảy về; trong lúc bay nó được nhấc lên (bóng đổ xa hơn) và một lớp kính trong hiện
+        trên chữ. Chuyển động: utils/liquidMotion.js — file này chỉ vẽ chất liệu, đọc độ nhấc qua
+        biến `--lift` (0 → 1) mà JS ghi mỗi khung hình.
+     2. CHẤT LIỆU KÍNH — mọi tấm kính có VIỀN SÁNG CÓ HƯỚNG (sáng nhất ở mép trên-trái, hắt nhẹ ở
+        mép dưới-phải) và ánh sáng đi theo chuột:
           • tấm lớn (thanh bên, header, vùng nội dung) — <GlassLight/>;
           • bề mặt nổi `glass-strong` / `glass-dark` (menu, hộp thoại, ngăn kéo, trình xem tệp…)
             — TỰ ĐỘNG bằng `::before` / `::after` bên dưới, không phải sửa từng component.
         Nút/ô nhập kính và thẻ tệp có đốm bóng dưới con trỏ.
 
-   Toạ độ con trỏ do JS ghi vào biến CSS; file này chỉ quyết định TRÔNG như thế nào.
+   KHÔNG có khối hover chạy theo nút nữa: bản 3 có một khối kính xám trượt giữa mọi nút (kiểu con
+   trỏ iPadOS) nhưng trông phẳng — đã bỏ. Nút không đổi nền khi rê chuột, giống thanh công cụ và
+   thanh bên của macOS.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 /* Độ sáng của ánh-sáng-theo-chuột trên bề mặt `glass-strong`: 0 → 1 khi rê vào. Khai báo kiểu
@@ -54,17 +53,20 @@
   --spot-halo: rgba(170, 202, 255, 0.24);
   --spot-accent: rgba(255, 255, 255, 0.42);
 
-  /* Khối kính hover (trộn `multiply` ở bản Sáng: màu càng gần trắng càng ít tác dụng). */
-  --hover-tint: rgba(30, 41, 59, 0.06);
-  --hover-spot: rgba(255, 255, 255, 1);
-  --hover-rim: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.3) 45%, rgba(15, 23, 42, 0.07));
-  --hover-rim-spot: rgba(255, 255, 255, 1);
+  /* Giọt kính đang chọn: sáng dần từ trên xuống, ánh đỉnh rõ, ánh đáy hắt lại và một chút ánh xanh
+     ở đáy như nước — đủ để đọc ra là một giọt nước nằm trên mặt kính mờ. */
+  --drop-fill: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.84));
+  --drop-spec-top: rgba(255, 255, 255, 1);
+  --drop-spec-bottom: rgba(255, 255, 255, 0.7);
+  --drop-caustic: rgba(140, 180, 255, 0.24);
+  --drop-hairline: rgba(15, 23, 42, 0.08);
+  --drop-shadow-rgb: 15 23 42;
+  --drop-shadow-alpha: 0.15;
 
-  /* Thấu kính khi viên "đang chọn" nhấc lên. */
+  /* Lớp kính trong hiện trên chữ khi giọt đang bay. */
   --lens-rim: rgba(255, 255, 255, 0.55);
   --lens-rim-top: rgba(255, 255, 255, 0.95);
   --lens-rim-bottom: rgba(255, 255, 255, 0.5);
-  --lens-shadow: rgba(15, 23, 42, 0.22);
 }
 
 .dark {
@@ -87,16 +89,17 @@
   --spot-halo: rgba(150, 180, 255, 0.05);
   --spot-accent: rgba(255, 255, 255, 0.3);
 
-  /* Trộn `screen` ở bản Tối: chỉ làm sáng. */
-  --hover-tint: rgba(255, 255, 255, 0.075);
-  --hover-spot: rgba(255, 255, 255, 0.16);
-  --hover-rim: linear-gradient(180deg, rgba(255, 255, 255, 0.32), rgba(255, 255, 255, 0.08) 45%, rgba(255, 255, 255, 0.05));
-  --hover-rim-spot: rgba(255, 255, 255, 0.6);
+  --drop-fill: linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.085));
+  --drop-spec-top: rgba(255, 255, 255, 0.26);
+  --drop-spec-bottom: rgba(255, 255, 255, 0.07);
+  --drop-caustic: rgba(150, 185, 255, 0.1);
+  --drop-hairline: rgba(0, 0, 0, 0.35);
+  --drop-shadow-rgb: 0 0 0;
+  --drop-shadow-alpha: 0.4;
 
   --lens-rim: rgba(255, 255, 255, 0.2);
   --lens-rim-top: rgba(255, 255, 255, 0.4);
   --lens-rim-bottom: rgba(255, 255, 255, 0.14);
-  --lens-shadow: rgba(0, 0, 0, 0.5);
 }
 
 /* Các vòng viền bên dưới đều cắt bằng cùng một mask: `padding` là bề dày vòng, phần giữa
@@ -253,145 +256,56 @@
     --glass-light-rim-halo: rgba(150, 190, 255, 0.28);
   }
 
-  /* ── 2. Viên "đang chọn" + thấu kính (LiquidGroup) ───────────────────────── */
+  /* ── 1. Giọt kính đang chọn (LiquidGroup) ─────────────────────────────────── */
 
-  /* Nhóm chứa viên kính: khung định vị (viên kính `absolute` bên trong) và stacking context riêng
-     (viên kính `z-index: -1` nằm dưới chữ nhưng trên nền của nhóm). */
+  /* Nhóm chứa giọt: khung định vị (giọt `absolute` bên trong) và stacking context riêng (giọt
+     `z-index: -1` nằm dưới chữ nhưng trên nền của nhóm). */
   .liquid-group {
     position: relative;
     isolation: isolate;
   }
 
-  /* Vị trí/kích thước do JS ghi (`translate`, `width`, `height`, `transform: scale` khi thuôn) —
-     xem utils/liquidMotion.js. Nhấc lên/đáp xuống dùng thuộc tính `scale` riêng nên không đụng
-     `transform` của JS. */
+  /* Vị trí, cỡ, độ dãn/dẹt (`transform: scale`) và độ nhấc (`--lift`) đều do JS ghi mỗi khung hình
+     — không có transition nào ở đây ngoài lúc hiện ra, để không chen vào vật lý của cú nhảy. */
   .liquid-pill,
   .liquid-lens {
     position: absolute;
     left: 0;
     top: 0;
     pointer-events: none;
-    opacity: 0;
-    /* Đáp xuống: hơi lún quá rồi nảy về — một nhịp, như giọt nước chạm mặt kính. */
-    transition:
-      opacity 0.3s ease,
-      scale 0.5s cubic-bezier(0.3, 1.45, 0.5, 1);
   }
 
-  /* Viên "đang chọn": cùng chất liệu với `glass-active`, nằm dưới chữ. */
+  /* Giọt kính: nằm dưới chữ. Bóng đổ xa và đậm dần theo `--lift` — lúc bay nó cách mặt kính
+     xa hơn, lúc đáp bóng thu về sát chân. */
   .liquid-pill {
     z-index: -1;
-    background-color: var(--glass-active);
+    opacity: 0;
+    background: var(--drop-fill);
     box-shadow:
-      var(--glass-highlight),
-      0 0 0 1px var(--glass-hairline),
-      0 4px 12px -6px rgba(15, 23, 42, 0.18);
+      inset 0 1px 0 var(--drop-spec-top),
+      inset 0 -1px 0 var(--drop-spec-bottom),
+      inset 0 -8px 12px -10px var(--drop-caustic),
+      0 0 0 0.5px var(--drop-hairline),
+      0 calc(2px + 9px * var(--lift, 0)) calc(6px + 16px * var(--lift, 0)) calc(-3px - 6px * var(--lift, 0))
+        rgb(var(--drop-shadow-rgb) / calc(var(--drop-shadow-alpha) + 0.1 * var(--lift, 0)));
+    transition: opacity 0.2s ease;
   }
 
   .liquid-pill.is-visible {
     opacity: 1;
   }
 
-  /* Lớp kính trong: nằm TRÊN chữ, chỉ hiện trong lúc viên kính đang trượt — viền sáng + màu phía
-     sau đậm lên một chút, như nhìn qua một khối kính dày. Không làm mờ, không bẻ cong: chữ vẫn nét. */
+  /* Lớp kính trong: TRÊN chữ, chỉ hiện khi giọt đang bay (độ trong suốt theo `--lift`) — viền sáng
+     + màu phía sau đậm lên chút, như nhìn qua một khối kính dày. Không làm mờ, không bẻ cong. */
   .liquid-lens {
     z-index: 1;
+    opacity: calc(0.9 * var(--lift, 0));
     -webkit-backdrop-filter: saturate(1.5) brightness(1.03);
     backdrop-filter: saturate(1.5) brightness(1.03);
     box-shadow:
       inset 0 1px 0.5px var(--lens-rim-top),
       inset 0 -1px 1px var(--lens-rim-bottom),
-      inset 0 0 0 1px var(--lens-rim),
-      0 10px 24px -12px var(--lens-shadow);
-  }
-
-  /* Nhấc lên: phóng nhẹ, thấu kính hiện. */
-  .liquid-pill.is-lifted {
-    scale: 1.04;
-    transition-duration: 0.3s, 0.22s;
-    transition-timing-function: ease, cubic-bezier(0.2, 0.9, 0.3, 1.2);
-  }
-
-  .liquid-lens.is-lifted {
-    opacity: 1;
-    scale: 1.04;
-    transition-duration: 0.12s, 0.22s;
-    transition-timing-function: ease, cubic-bezier(0.2, 0.9, 0.3, 1.2);
-  }
-
-  /* ── 1. Khối kính hover toàn cục (utils/liquidHover.js) ──────────────────── */
-
-  .liquid-hover {
-    position: fixed;
-    left: 0;
-    top: 0;
-    width: 0;
-    height: 0;
-    z-index: 2147483000;
-    pointer-events: none;
-    contain: layout paint style;
-    opacity: 0;
-    scale: 0.96;
-    transition:
-      opacity 0.18s ease,
-      scale 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.15);
-  }
-
-  .liquid-hover.is-visible {
-    opacity: 1;
-    scale: 1;
-    transition-duration: 0.12s, 0.32s;
-  }
-
-  .liquid-hover.is-visible.is-pressed {
-    scale: 0.97;
-    transition-duration: 0.12s, 0.1s;
-  }
-
-  /* Lớp tô: tối nhẹ (Sáng) / sáng nhẹ (Tối), chỗ con trỏ được "chiếu" rõ hơn. */
-  .liquid-hover-tint {
-    mix-blend-mode: multiply;
-    background:
-      radial-gradient(circle 64px at var(--mx, 50%) var(--my, 50%), var(--hover-spot), transparent 80%),
-      var(--hover-tint);
-  }
-
-  .dark .liquid-hover-tint,
-  .liquid-hover-tint[data-surface='dark'] {
-    mix-blend-mode: screen;
-  }
-
-  /* Bề mặt luôn tối (trình xem tệp) — kiểu Tối ở cả hai giao diện, xem utils/liquidHover.js. */
-  .liquid-hover[data-surface='dark'] {
-    --hover-tint: rgba(255, 255, 255, 0.09);
-    --hover-spot: rgba(255, 255, 255, 0.18);
-    --hover-rim: linear-gradient(180deg, rgba(255, 255, 255, 0.36), rgba(255, 255, 255, 0.08) 45%, rgba(255, 255, 255, 0.05));
-    --hover-rim-spot: rgba(255, 255, 255, 0.65);
-  }
-
-  /* Viền kính 1px: sáng ở mép trên, hắt nhẹ mép dưới, sáng thêm đoạn gần con trỏ. */
-  .liquid-hover-rim {
-    padding: 1px;
-    background:
-      radial-gradient(circle 46px at var(--mx, 50%) var(--my, 50%), var(--hover-rim-spot), transparent),
-      var(--hover-rim);
-    -webkit-mask:
-      linear-gradient(#000 0 0) content-box,
-      linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-    mask:
-      linear-gradient(#000 0 0) content-box exclude,
-      linear-gradient(#000 0 0);
-  }
-
-  .liquid-hover[data-tone='danger'] {
-    --hover-tint: rgba(244, 63, 94, 0.13);
-    --hover-spot: rgba(255, 241, 242, 1);
-  }
-
-  .dark .liquid-hover[data-tone='danger'] {
-    --hover-tint: rgba(251, 113, 133, 0.14);
-    --hover-spot: rgba(251, 113, 133, 0.12);
+      inset 0 0 0 1px var(--lens-rim);
   }
 }
 
@@ -422,8 +336,7 @@
    hết lớp trang trí, để màu hệ thống lo phần nổi bật. */
 @media (hover: none), (forced-colors: active) {
   .glass-light-surface,
-  .glass-light-rim,
-  .liquid-hover {
+  .glass-light-rim {
     display: none;
   }
 }
@@ -433,14 +346,5 @@
   .liquid-lens,
   :is(.glass-strong, .glass-dark)::after {
     display: none;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .liquid-pill,
-  .liquid-lens,
-  .liquid-hover {
-    transition: opacity 0.15s ease;
-    scale: 1 !important;
   }
 }

@@ -7,7 +7,6 @@ import { registerServiceWorker } from './utils/serviceWorker'
 import { installChunkErrorRecovery } from './utils/chunkReload'
 import { preconnectRememberedCdn } from './utils/preconnect'
 import { installGlassSpotlight } from './utils/glassSpotlight'
-import { installLiquidHover } from './utils/liquidHover'
 import ErrorBoundary from './components/common/ErrorBoundary'
 
 const favicon = document.querySelector('link[rel="icon"]')
@@ -27,9 +26,6 @@ preconnectRememberedCdn()
 
 // Ánh sáng đi theo chuột trên các tấm kính — một listener cho cả ứng dụng.
 installGlassSpotlight()
-
-// Hover kính lỏng kiểu con trỏ iPadOS: một khối kính trượt giữa mọi nút (Liquid Glass 3).
-installLiquidHover()
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

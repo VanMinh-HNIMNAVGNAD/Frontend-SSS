@@ -66,9 +66,7 @@ const RENAME_SHORTCUT_KEYS =
 // mọi hàng, mọi menu đều chung một lưới: [icon 16px][gap 12px][nhãn co giãn][phần đuôi].
 //
 // Kính nổi (`glass-strong`, index.css): menu không chứa con `position: fixed` nên được blur.
-// Nền rê chuột của từng hàng là khối kính hover chung của ứng dụng (utils/liquidHover.js) trượt
-// giữa các hàng, nên hàng không có `hover:bg-*` riêng. Ánh sáng + viền kính của khung menu do
-// `glass-strong` tự lo (styles/liquid-glass.css).
+// Ánh sáng + viền kính của khung menu do `glass-strong` tự lo (styles/liquid-glass.css).
 const MENU_SHELL =
     'glass-strong fixed z-50 w-72 max-w-[calc(100vw-16px)] ' +
     'text-gray-900 dark:text-gray-100 rounded-[20px] px-1.5 py-1.5 ' +
@@ -87,9 +85,6 @@ const TONE = {
     // Chỉ chữ chuyển sang đỏ khi rê chuột (Chuyển vào thùng rác)
     dangerHover: 'text-gray-800 dark:text-gray-200 hover:text-rose-700 dark:hover:text-rose-300',
 };
-
-/** Hàng xoá/huỷ: khối kính hover ánh đỏ khi rê qua. */
-const DANGER_TONES = new Set(['danger', 'dangerHover']);
 
 /**
  * Một hàng lệnh. `icon` nhận sẵn node để chỗ gọi tự quyết màu/animation
@@ -112,7 +107,6 @@ function MenuRow({
     return (
         <button
             type="button"
-            data-liquid-tone={DANGER_TONES.has(tone) ? 'danger' : undefined}
             {...buttonProps}
             onClick={onClick}
             disabled={disabled}

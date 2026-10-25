@@ -244,7 +244,6 @@ export default function Sidebar() {
           {isSidebarCollapsed ? (
             <div
               onClick={() => setActiveTab('billing')}
-              data-liquid-hover
               className="flex flex-col items-center justify-center cursor-pointer p-2 rounded-2xl transition-colors"
               title={t('sidebar.storage.tooltip', {
                 used: storageInfo.usedGB,

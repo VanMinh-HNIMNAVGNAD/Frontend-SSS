@@ -1,7 +1,14 @@
 import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
-import { LiquidBody, SPRINGS } from '../../utils/liquidMotion';
+import { DROPLET, LiquidBody, SLIDE } from '../../utils/liquidMotion';
 
 const ITEM_SELECTOR = '[data-liquid-key]';
+/**
+ * Mục thấp hơn chừng này (px) thì viên kính chỉ TRƯỢT ÊM (SLIDE), không nhảy kiểu giọt nước: trên
+ * một nút 28px, cú vươn/dẹt không đủ chỗ để đọc ra hình dạng — chỉ thấy một cục rung rinh. Thanh
+ * bên (37px), chu kỳ thanh toán (41px) nhảy; nút List/Grid (28px), tab ngăn Thông tin (30px), tab
+ * Cài đặt (32px) trượt.
+ */
+const DROPLET_MIN_SIZE = 34;
 
 function findItem(group, key) {
     for (const item of group.querySelectorAll(ITEM_SELECTOR)) {
@@ -29,23 +36,36 @@ function measure(group, item) {
 }
 
 /**
+ * Vùng giọt được phép chiếm: nếu nhóm là khung cuộn (thanh bên `overflow-y-auto`, chu kỳ thanh
+ * toán `overflow-x-auto`) thì mọi thứ thò ra ngoài khung đệm bị cắt — kể cả góc bo của giọt đang
+ * phình. Toạ độ cùng hệ với `measure` (gốc ở khung đệm, tính cả phần nội dung đã cuộn).
+ */
+function measureBounds(group) {
+    const cs = getComputedStyle(group);
+    const clipX = cs.overflowX !== 'visible';
+    const clipY = cs.overflowY !== 'visible';
+    if (!clipX && !clipY) return null;
+    return {
+        l: clipX ? group.scrollLeft : -Infinity,
+        r: clipX ? group.scrollLeft + group.clientWidth : Infinity,
+        t: clipY ? 0 : -Infinity,
+        b: clipY ? group.scrollHeight : Infinity,
+    };
+}
+
+/**
  * Nhóm lựa chọn kiểu Liquid Glass (iOS 26): thanh bên, tab, nút phân đoạn.
  *
  * Mỗi mục là một phần tử con (sâu bao nhiêu cũng được) mang `data-liquid-key="…"`. Mục đang chọn
- * (`activeKey`) có một VIÊN KÍNH nằm dưới chữ — mục không tự tô nền "đang chọn" nữa, chỉ đổi màu
- * chữ/icon như cũ. Khi đổi lựa chọn, viên kính:
- *   1. NHẤC LÊN — phóng nhẹ, và một lớp kính trong (viền sáng, tăng độ bão hoà màu phía sau) hiện
- *      lên trên chữ;
- *   2. TRƯỢT sang mục mới bằng lò xo, hơi thuôn theo hướng đi (utils/liquidMotion.js);
- *   3. ĐÁP xuống — lớp kính trong tan, viên kính lún nhẹ rồi nảy về đúng cỡ.
+ * (`activeKey`) có một GIỌT KÍNH nằm dưới chữ — mục không tự tô nền "đang chọn" nữa, chỉ đổi màu
+ * chữ/icon như cũ (và nên có `aria-current` / `aria-pressed` cho trình đọc màn hình).
  *
- * Lớp kính trong KHÔNG bẻ cong chữ. Bản trước có khúc xạ (SVG feDisplacementMap) ở đây, nhưng
- * chữ của các mục mà nó trượt qua bị nén/kéo méo — trông như lỗi. Apple chỉ bẻ cong nội dung
- * khi người dùng NHẤN GIỮ rồi kéo viên chọn; chạm/bấm để đổi tab thì viên kính chỉ trượt và nảy.
+ * Khi đổi lựa chọn, giọt kính NHẢY sang mục mới như một giọt nước: vươn dài ra (mép sau còn dính),
+ * bứt đi, đáp xuống dẹt lại rồi nảy về — trong lúc bay nó được nhấc lên (to hơn chút, bóng đổ
+ * xa hơn) và một lớp kính trong hiện trên chữ. Nhóm NHỎ (mục thấp hơn `DROPLET_MIN_SIZE`) thì
+ * viên kính chỉ trượt êm. Toàn bộ chuyển động ở utils/liquidMotion.js.
  *
- * Hover KHÔNG nằm ở đây: một khối kính hover chung cho cả ứng dụng (utils/liquidHover.js) tự trượt
- * giữa các mục, và tự bỏ qua mục đang chọn (`aria-current` / `aria-pressed` / `aria-selected`) —
- * nên mục đang chọn nhớ đặt một trong ba thuộc tính đó.
+ * Lớp kính trong KHÔNG bẻ cong chữ (bản 2 có khúc xạ SVG — chữ các mục nó bay qua bị nén méo).
  *
  * Phần tử nhóm tự có `position: relative` + `isolation: isolate` (lớp `components`, nên
  * `fixed`/`absolute` truyền qua `className` vẫn thắng). Mọi prop khác (onClick, style, role, ref…)
@@ -72,15 +92,10 @@ export default function LiquidGroup({ as: Tag = 'div', activeKey = null, classNa
         [ref],
     );
 
-    /** Viên kính + thấu kính đi chung một hình dạng; tạo lần đầu cần tới (chỉ trong effect). */
+    /** Giọt kính + lớp kính trong đi chung một hình dạng; tạo lần đầu cần tới (chỉ trong effect). */
     const getBody = useCallback(() => {
         if (!bodyRef.current) {
-            const body = new LiquidBody([pillRef.current, lensRef.current], {
-                spring: SPRINGS.SELECT,
-                onStart: () => body.toggleClass('is-lifted', true),
-                onSettle: () => body.toggleClass('is-lifted', false),
-            });
-            bodyRef.current = body;
+            bodyRef.current = new LiquidBody([pillRef.current, lensRef.current]);
         }
         return bodyRef.current;
     }, []);
@@ -102,7 +117,9 @@ export default function LiquidGroup({ as: Tag = 'div', activeKey = null, classNa
         }
 
         const box = measure(group, item);
-        if (keyChanged && body.visible) body.glide(box);
+        body.setBounds(measureBounds(group));
+        body.setParams(box.b - box.t >= DROPLET_MIN_SIZE ? DROPLET : SLIDE);
+        if (keyChanged && body.visible) body.jump(box);
         else if (body.isMoving) body.retarget(box);
         else if (!body.isAt(box)) body.snap(box);
 
@@ -120,6 +137,7 @@ export default function LiquidGroup({ as: Tag = 'div', activeKey = null, classNa
             const item = key == null ? null : findItem(group, key);
             if (!item || !body.placed) return;
             const box = measure(group, item);
+            body.setBounds(measureBounds(group));
             if (body.isMoving) body.retarget(box);
             else if (!body.isAt(box)) body.snap(box);
         };

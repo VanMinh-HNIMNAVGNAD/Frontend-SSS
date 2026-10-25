@@ -152,7 +152,6 @@ export default function NewButton({ isCollapsed }) {
       </button>
 
       {/* Dropdown Menu */}
-      {/* Nền rê chuột từng hàng là khối kính hover chung (utils/liquidHover.js). */}
       {isOpen && (
         <div className="glass-strong absolute top-full mt-2 rounded-[20px] border p-1.5 w-64 z-50 left-0 animate-glass-in">
           {/* Thư mục người khác chia sẻ: nói lý do NGAY trong menu và khoá ba lệnh — không để

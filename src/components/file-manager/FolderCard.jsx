@@ -34,8 +34,6 @@ function FolderCard({ folder, onDoubleClick, onContextMenu, onStarToggle, isSele
             onDoubleClick={() => onDoubleClick && onDoubleClick(folder)}
             onContextMenu={(e) => onContextMenu && onContextMenu(e, folder)}
             style={colorVars}
-            // Đốm bóng đi theo chuột trên mặt thẻ (styles/liquid-glass.css, utils/glassSpotlight.js).
-            data-spotlight
             className={`group relative flex items-center justify-between gap-0 compact:gap-1 p-3.5 tablet:p-2.5 phone:p-2 compact:min-h-16 rounded-[18px] cursor-pointer transition-all duration-200 border shadow-[inset_0_1px_0_rgba(255,255,255,0.75),0_1px_2px_rgba(15,23,42,0.05)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_1px_2px_rgba(0,0,0,0.3)] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_10px_24px_-12px_rgba(15,23,42,0.28)] dark:hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_10px_24px_-12px_rgba(0,0,0,0.7)] hover:-translate-y-0.5
                 bg-[var(--fc-surface-l)] dark:bg-[var(--fc-surface-d)]
                 hover:bg-[var(--fc-hover-l)] dark:hover:bg-[var(--fc-hover-d)]

@@ -11,7 +11,7 @@ import AccountModal from './AccountModal';
 import ActivityLogDrawer from '../file-manager/ActivityLogDrawer';
 import NotificationBell from './NotificationBell';
 import { useAiPanel } from '../../context/AiPanelContext';
-import GlassLight from '../ui/GlassLight';
+import GlassEdge from '../ui/GlassEdge';
 import { 
     Menu, 
     Search, 
@@ -326,8 +326,8 @@ export default function Header({ toggleRightSidebar }) {
             // Thanh chọn nhiều: cùng tấm kính với header thường, chỉ ánh xanh nhạt + viền nhấn để
             // người dùng biết đang ở chế độ chọn (trước: nền xanh đặc #0b57d0 chữ trắng).
             <header className="relative h-14 sm:h-16 flex items-center justify-between px-2 sm:px-3 md:px-4 glass bg-blue-50/75! dark:bg-white/[0.09]! ring-1 ring-blue-500/25 dark:ring-blue-400/40 rounded-[20px] sm:rounded-full text-gray-900 dark:text-gray-100 shrink-0 gap-2 sm:gap-3 transition-colors duration-200 animate-fade-in">
-                {/* Ánh sáng theo chuột — xem chú thích ở header thường bên dưới. */}
-                <GlassLight className="z-auto" />
+                {/* Viền sáng của kính — xem chú thích ở header thường bên dưới. */}
+                <GlassEdge className="z-auto" />
 
                 {/* Left */}
                 <div className="relative flex items-center gap-2 sm:gap-4 min-w-0">
@@ -407,12 +407,12 @@ export default function Header({ toggleRightSidebar }) {
         // Tấm kính hình viên thuốc nổi trên nền ambient. `glass` KHÔNG blur: header chứa modal
         // Cài đặt + ngăn Lịch sử (`fixed inset-0`) — backdrop-filter sẽ nhốt chúng vào thanh này.
         <header className="relative h-14 sm:h-16 flex items-center justify-between px-1.5 sm:px-2.5 md:px-3 glass rounded-[20px] sm:rounded-full shrink-0 gap-1.5 sm:gap-3 transition-colors duration-200">
-            {/* Ánh sáng theo chuột. Header KHÔNG được là stacking context: popover tài khoản, bộ
+            {/* Viền sáng của kính. Header KHÔNG được là stacking context: popover tài khoản, bộ
                 lọc tìm kiếm… (`z-50` bên trong) đang so z-index trực tiếp với <main> (`z-0`) — nhốt
-                chúng vào header là chúng chui xuống dưới vùng nội dung. Vì vậy lớp sáng không
-                dùng được `z-index: -1` mà là `z-auto` + con ĐẦU TIÊN, và ba khối nội dung đều
+                chúng vào header là chúng chui xuống dưới vùng nội dung. Vì vậy viền không dùng
+                được `z-index: -1` mà là `z-auto` + con ĐẦU TIÊN, và ba khối nội dung đều
                 `relative` để được vẽ đè lên nó (cùng tầng, đứng sau trong cây DOM). */}
-            <GlassLight className="z-auto" />
+            <GlassEdge className="z-auto" />
 
             {/* LOGO & Web Title "cloudSSS" */}
             <div className="relative flex items-center gap-2 shrink-0">

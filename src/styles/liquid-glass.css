@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   LIQUID GLASS 4 (25/10/2026)
+   LIQUID GLASS 5 (25/10/2026)
 
    Hai thứ làm nên chất "kính lỏng" của giao diện:
 
@@ -8,32 +8,26 @@
         lại rồi nảy về; trong lúc bay nó được nhấc lên (bóng đổ xa hơn) và một lớp kính trong hiện
         trên chữ. Chuyển động: utils/liquidMotion.js — file này chỉ vẽ chất liệu, đọc độ nhấc qua
         biến `--lift` (0 → 1) mà JS ghi mỗi khung hình.
-     2. CHẤT LIỆU KÍNH — mọi tấm kính có VIỀN SÁNG CÓ HƯỚNG (sáng nhất ở mép trên-trái, hắt nhẹ ở
-        mép dưới-phải) và ánh sáng đi theo chuột:
-          • tấm lớn (thanh bên, header, vùng nội dung) — <GlassLight/>;
+     2. VIỀN SÁNG CÓ HƯỚNG trên mọi tấm kính — sáng nhất ở mép trên-trái, hắt nhẹ ở mép dưới-phải,
+        như kính bắt một nguồn sáng cố định:
+          • tấm lớn (thanh bên, header, vùng nội dung) — <GlassEdge/>;
           • bề mặt nổi `glass-strong` / `glass-dark` (menu, hộp thoại, ngăn kéo, trình xem tệp…)
-            — TỰ ĐỘNG bằng `::before` / `::after` bên dưới, không phải sửa từng component.
-        Khối kính lớn và thẻ tệp có đốm bóng dưới con trỏ.
+            — TỰ ĐỘNG bằng `::after` bên dưới, không phải sửa từng component.
+
+   KHÔNG có ánh sáng chạy theo chuột: bản 4 có quầng sáng trên mặt kính, đoạn viền bắt sáng gần con
+   trỏ và đốm bóng trên thẻ tệp, đi theo chuột khi rê qua lại — đã bỏ hết (cùng
+   utils/glassSpotlight.js). Viền sáng ở trên đứng yên, không phụ thuộc vị trí chuột.
 
    KHÔNG đặt hiệu ứng "giọt" lên component NHỎ (nút, ô chọn ☐, bong bóng chat AI, viên điều khiển
-   trong trình xem tệp): trên vài chục pixel, viền sáng + đốm sáng chạy theo chuột chỉ còn là một
-   cục bóng loáng như dán giọt nước lên nút. Cụ thể:
-     • đốm bóng / quầng sáng theo chuột: utils/glassSpotlight.js chỉ bật cho phần tử đủ lớn;
-     • viền sáng có hướng (luôn hiện): bề mặt nổi nhỏ thêm class `glass-plain` để tắt;
+   trong trình xem tệp): trên vài chục pixel, viền sáng chỉ còn là một cục bóng loáng như dán giọt
+   nước lên nút. Cụ thể:
+     • viền sáng có hướng: bề mặt nổi nhỏ thêm class `glass-plain` để tắt;
      • giọt kính đang chọn: nhóm có mục thấp hơn 34px chỉ trượt êm (LiquidGroup.jsx).
 
    KHÔNG có khối hover chạy theo nút nữa: bản 3 có một khối kính xám trượt giữa mọi nút (kiểu con
    trỏ iPadOS) nhưng trông phẳng — đã bỏ. Nút không đổi nền khi rê chuột, giống thanh công cụ và
    thanh bên của macOS.
    ═══════════════════════════════════════════════════════════════════════════ */
-
-/* Độ sáng của ánh-sáng-theo-chuột trên bề mặt `glass-strong`: 0 → 1 khi rê vào. Khai báo kiểu
-   số để chuyển được mượt (biến CSS thường thì nhảy cóc). */
-@property --glass-glow {
-  syntax: '<number>';
-  inherits: false;
-  initial-value: 0;
-}
 
 :root {
   /* Viền sáng có hướng: nguồn sáng ở trên-trái. */
@@ -46,18 +40,6 @@
     rgba(255, 255, 255, 0.45) 86%,
     rgba(255, 255, 255, 0.85) 100%
   );
-
-  /* Ánh sáng theo chuột trên tấm kính. Ở bản Sáng, ánh trắng trên kính trắng gần như không thấy,
-     nên quầng ngoài pha chút xanh lạnh — đọc ra là "phát sáng" mà không thành vệt màu. */
-  --glass-light-size: 520px;
-  --glass-light-core: rgba(255, 255, 255, 0.9);
-  --glass-light-halo: rgba(170, 202, 255, 0.3);
-  --glass-light-rim: rgba(255, 255, 255, 1);
-  --glass-light-rim-halo: rgba(96, 156, 255, 0.55);
-
-  /* Đốm bóng trên khối kính lớn / thẻ tệp. */
-  --spot-core: rgba(255, 255, 255, 0.95);
-  --spot-halo: rgba(170, 202, 255, 0.24);
 
   /* Giọt kính đang chọn: sáng dần từ trên xuống, ánh đỉnh rõ, ánh đáy hắt lại và một chút ánh xanh
      ở đáy như nước — đủ để đọc ra là một giọt nước nằm trên mặt kính mờ. */
@@ -86,14 +68,6 @@
     rgba(255, 255, 255, 0.22) 100%
   );
 
-  --glass-light-core: rgba(255, 255, 255, 0.11);
-  --glass-light-halo: rgba(150, 180, 255, 0.05);
-  --glass-light-rim: rgba(255, 255, 255, 0.75);
-  --glass-light-rim-halo: rgba(150, 190, 255, 0.28);
-
-  --spot-core: rgba(255, 255, 255, 0.12);
-  --spot-halo: rgba(150, 180, 255, 0.05);
-
   --drop-fill: linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.085));
   --drop-spec-top: rgba(255, 255, 255, 0.26);
   --drop-spec-bottom: rgba(255, 255, 255, 0.07);
@@ -107,30 +81,37 @@
   --lens-rim-bottom: rgba(255, 255, 255, 0.14);
 }
 
-/* Các vòng viền bên dưới đều cắt bằng cùng một mask: `padding` là bề dày vòng, phần giữa
-   (content-box) bị khoét — `exclude` (chuẩn) / `xor` (WebKit cũ).
-
-   Lớp `components`: tiện ích Tailwind (`z-auto`, `hidden`, `fixed`…) đặt trên cùng phần tử vẫn thắng. */
+/* Lớp `components`: tiện ích Tailwind (`z-auto`, `hidden`, `fixed`…) đặt trên cùng phần tử vẫn thắng. */
 @layer components {
-  /* ── 3a. Tấm kính lớn: <GlassLight/> ─────────────────────────────────────── */
+  /* ── 2a. Tấm kính lớn: <GlassEdge/> ─────────────────────────────────────── */
 
-  /* `z-index: -1`: ngay trên nền kính, DƯỚI nội dung — chữ không bị ánh sáng phủ nhạt. Muốn vậy
-     tấm kính phải là stacking context (thanh bên, <main> đều đã là). Header thì không được (xem
-     Header.jsx) nên dùng `z-auto` + đặt làm con ĐẦU TIÊN. */
-  .glass-light {
+  /* `z-index: -1`: ngay trên nền kính, DƯỚI nội dung. Muốn vậy tấm kính phải là stacking context
+     (thanh bên, <main> đều đã là). Header thì không được (xem Header.jsx) nên dùng `z-auto` + đặt
+     làm con ĐẦU TIÊN. */
+  .glass-edge {
     position: absolute;
     inset: 0;
     z-index: -1;
     border-radius: inherit;
     pointer-events: none;
-    contain: strict;
   }
 
-  /* Viền sáng có hướng — luôn hiện. */
-  .glass-light-edge {
+  /* ── 2b. Bề mặt nổi: `glass-strong` / `glass-dark` — tự có viền sáng ──────────────────────
+     `::before` đã là lớp blur (index.css) nên viền dùng `::after`. Bề mặt đã có <GlassEdge/>
+     riêng (thanh bên trên điện thoại) thì không vẽ thêm; bề mặt NHỎ (nút nổi, viên điều khiển)
+     mang `glass-plain` thì không vẽ — xem đầu file. */
+  :is(.glass-strong, .glass-dark):not(.glass-plain):not(:has(> .glass-edge))::after {
+    content: '';
     position: absolute;
     inset: 0;
+    z-index: -1;
     border-radius: inherit;
+    pointer-events: none;
+  }
+
+  /* Vòng viền: `padding` là bề dày, phần giữa (content-box) bị mask khoét đi. */
+  .glass-edge,
+  :is(.glass-strong, .glass-dark):not(.glass-plain):not(:has(> .glass-edge))::after {
     padding: 1px;
     background: var(--glass-edge);
     -webkit-mask:
@@ -140,110 +121,6 @@
     mask:
       linear-gradient(#000 0 0) content-box exclude,
       linear-gradient(#000 0 0);
-  }
-
-  /* Hai lớp sáng theo chuột (mặt kính + đoạn viền gần con trỏ) — chỉ hiện khi rê. */
-  .glass-light-surface,
-  .glass-light-rim {
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    overflow: hidden;
-    opacity: 0;
-    transition: opacity 0.5s ease;
-  }
-
-  .glass-light-rim {
-    overflow: visible;
-    padding: 1.5px;
-    -webkit-mask:
-      linear-gradient(#000 0 0) content-box,
-      linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-    mask:
-      linear-gradient(#000 0 0) content-box exclude,
-      linear-gradient(#000 0 0);
-  }
-
-  .glass-light-glow {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: var(--glass-light-size);
-    height: var(--glass-light-size);
-    margin: calc(var(--glass-light-size) / -2) 0 0 calc(var(--glass-light-size) / -2);
-    border-radius: 50%;
-    background: radial-gradient(closest-side, var(--glass-light-core), var(--glass-light-halo) 40%, transparent);
-    /* --lx/--ly: vị trí chuột trong tấm kính, do utils/glassSpotlight.js ghi. */
-    translate: var(--lx, -9999px) var(--ly, -9999px);
-  }
-
-  .glass-light-rim > .glass-light-glow {
-    --glass-light-size: 300px;
-    background: radial-gradient(closest-side, var(--glass-light-rim), var(--glass-light-rim-halo) 45%, transparent);
-  }
-
-  @media (hover: hover) {
-    :hover > .glass-light > :is(.glass-light-surface, .glass-light-rim) {
-      opacity: 1;
-      transition-duration: 0.25s;
-    }
-
-    /* Chỉ xin lớp GPU riêng lúc đang rê — ba tấm kính mà lúc nào cũng giữ sẵn lớp 520×520 là
-       vài chục MB bộ nhớ đồ hoạ cho thứ không ai nhìn thấy. */
-    :hover > .glass-light .glass-light-glow {
-      will-change: translate;
-    }
-  }
-
-  /* ── 3b. Bề mặt nổi: `glass-strong` / `glass-dark` — tự có viền sáng + ánh theo chuột ──────
-     `::before` (đã là lớp blur, xem index.css) nhận thêm quầng sáng trên mặt kính; `::after` là
-     vòng viền: viền có hướng (luôn hiện) + đoạn viền bắt sáng gần con trỏ (khi rê).
-     Toạ độ --lx/--ly do utils/glassSpotlight.js ghi lên chính bề mặt (chỉ bề mặt đủ lớn). Bề mặt
-     đã có <GlassLight/> riêng (thanh bên trên điện thoại) thì không vẽ thêm; bề mặt NHỎ (nút nổi,
-     viên điều khiển) mang `glass-plain` thì không vẽ gì — xem đầu file. */
-  :is(.glass-strong, .glass-dark):not(.glass-plain):not(:has(> .glass-light))::before {
-    background-image: radial-gradient(
-      circle calc(var(--glass-light-size) / 2) at var(--lx, -9999px) var(--ly, -9999px),
-      color-mix(in srgb, var(--glass-light-core) calc(var(--glass-glow) * 100%), transparent),
-      color-mix(in srgb, var(--glass-light-halo) calc(var(--glass-glow) * 100%), transparent) 40%,
-      transparent
-    );
-    transition: --glass-glow 0.45s ease;
-  }
-
-  :is(.glass-strong, .glass-dark):not(.glass-plain):not(:has(> .glass-light))::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    border-radius: inherit;
-    padding: 1px;
-    pointer-events: none;
-    background:
-      radial-gradient(
-        circle 150px at var(--lx, -9999px) var(--ly, -9999px),
-        color-mix(in srgb, var(--glass-light-rim) calc(var(--glass-glow) * 100%), transparent),
-        color-mix(in srgb, var(--glass-light-rim-halo) calc(var(--glass-glow) * 100%), transparent) 45%,
-        transparent
-      ),
-      var(--glass-edge);
-    -webkit-mask:
-      linear-gradient(#000 0 0) content-box,
-      linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-    mask:
-      linear-gradient(#000 0 0) content-box exclude,
-      linear-gradient(#000 0 0);
-    transition: --glass-glow 0.45s ease;
-  }
-
-  @media (hover: hover) {
-    :is(.glass-strong, .glass-dark):hover::before,
-    :is(.glass-strong, .glass-dark):hover::after {
-      --glass-glow: 1;
-      transition-duration: 0.2s;
-    }
   }
 
   /* `glass-dark` (trình xem tệp) luôn là kính tối, ở cả hai giao diện. */
@@ -256,10 +133,6 @@
       rgba(255, 255, 255, 0) 62%,
       rgba(255, 255, 255, 0.2) 100%
     );
-    --glass-light-core: rgba(255, 255, 255, 0.12);
-    --glass-light-halo: rgba(150, 180, 255, 0.05);
-    --glass-light-rim: rgba(255, 255, 255, 0.75);
-    --glass-light-rim-halo: rgba(150, 190, 255, 0.28);
   }
 
   /* ── 1. Giọt kính đang chọn (LiquidGroup) ─────────────────────────────────── */
@@ -315,34 +188,9 @@
   }
 }
 
-/* ── Đốm bóng dưới con trỏ ───────────────────────────────────────────────── */
-
-/* `--spot-x/--spot-y` và `data-spot` (chỉ phần tử đủ lớn) do utils/glassSpotlight.js ghi. Đang rê vào một nút con (ô chọn ☐, ngôi sao, ⋮ trên thẻ tệp) thì
-   thẻ không vẽ đốm — nếu không, đốm sáng tụ đúng quanh cái nút nhỏ đó. */
-@layer utilities {
-  @media (hover: hover) {
-    :is(.glass-soft, .glass-input, [data-spotlight])[data-spot]:hover:not(:has(:is(button, a[href], input, [role='button']):hover)) {
-      background-image: radial-gradient(
-        circle var(--spot-size, 120px) at var(--spot-x, 50%) var(--spot-y, 50%),
-        var(--spot-core),
-        var(--spot-halo) 45%,
-        transparent
-      );
-    }
-  }
-}
-
-/* Màn cảm ứng không có "rê chuột": bỏ mọi lớp sáng/hover. Chế độ tương phản cao của Windows: bỏ
-   hết lớp trang trí, để màu hệ thống lo phần nổi bật. */
-@media (hover: none), (forced-colors: active) {
-  .glass-light-surface,
-  .glass-light-rim {
-    display: none;
-  }
-}
-
+/* Chế độ tương phản cao của Windows: bỏ hết lớp trang trí, để màu hệ thống lo phần nổi bật. */
 @media (forced-colors: active) {
-  .glass-light-edge,
+  .glass-edge,
   .liquid-lens,
   :is(.glass-strong, .glass-dark)::after {
     display: none;

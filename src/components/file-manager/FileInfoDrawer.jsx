@@ -335,8 +335,8 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
             </div>
 
             {/* Tab Navigation */}
-            {/* Thanh phân đoạn kính (segmented control) thay cho tab gạch chân trên nền xám. Viên kính
-                "đang chọn" trượt giữa các tab, giọt nước theo chuột (LiquidGroup). */}
+            {/* Thanh phân đoạn kính (segmented control) thay cho tab gạch chân trên nền xám. Giọt kính
+                "đang chọn" nhảy giữa các tab (LiquidGroup). */}
             <LiquidGroup activeKey={currentTab} className="flex gap-1 mx-4 mt-3 mb-1 p-1 rounded-full glass-soft">
                 <button
                     data-liquid-key="details"

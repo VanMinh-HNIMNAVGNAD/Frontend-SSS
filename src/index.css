@@ -1,6 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
-/* Ánh sáng theo chuột + giọt kính trượt (Liquid Glass 2) — xem đầu file đó. */
+/* Viền sáng của kính + giọt kính đang chọn (Liquid Glass) — xem đầu file đó. */
 @import "./styles/liquid-glass.css";
 
 @theme {

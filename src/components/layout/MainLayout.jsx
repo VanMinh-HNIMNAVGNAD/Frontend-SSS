@@ -7,7 +7,7 @@ import useGlobalShortcuts from '../../hooks/useGlobalShortcuts';
 import Sidebar from './SideBar';
 import RightSidebar from './RightSideBar';
 import Header from './Header';
-import GlassLight from '../ui/GlassLight';
+import GlassEdge from '../ui/GlassEdge';
 import FileInfoDrawer from '../file-manager/FileInfoDrawer';
 import ShareModal from '../file-manager/ShareModal';
 import RenameModal from '../file-manager/RenameModal';
@@ -281,9 +281,9 @@ export default function MainLayout() {
                 {/* Body Content — `glass` KHÔNG blur: trang con render menu/modal `fixed` ngay
                     trong <main>, mà backdrop-filter sẽ nhốt chúng vào khung này (index.css). */}
                 <main className="glass flex-1 overflow-hidden rounded-[22px] sm:rounded-[26px] px-3 sm:px-4 lg:px-5 py-3 relative z-0">
-                    {/* Ánh sáng theo chuột (`z-0` ở trên là stacking context → lớp sáng nằm dưới
-                        danh sách tệp). Chỉ dời bằng `translate` nên không bắt vẽ lại danh sách. */}
-                    <GlassLight />
+                    {/* Viền sáng của kính (`z-0` ở trên là stacking context → viền nằm dưới
+                        danh sách tệp). */}
+                    <GlassEdge />
                     {/* Lỗi trong một trang chỉ thay phần nội dung — Sidebar/Header vẫn còn để
                         người dùng bấm sang trang khác. */}
                     <ErrorBoundary variant="inline" resetKey={location.pathname}>

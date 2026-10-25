@@ -6,7 +6,7 @@ import { useTags } from '../../context/TagsContext';
 import { DEFAULT_TAG_COLOR } from '../../constants/tags';
 import NewButton from './NewButton';
 import QuickCleanupModal from '../modals/QuickCleanupModal';
-import GlassLight from '../ui/GlassLight';
+import GlassEdge from '../ui/GlassEdge';
 import LiquidGroup from '../ui/LiquidGroup';
 import { formatBytes } from '../../utils/formatFileSize';
 import { getStorageStatus } from '../../utils/storageStatus';
@@ -29,9 +29,9 @@ import {
 const SIDEBAR_TAG_LIMIT = 8;
 
 /**
- * Một mục menu của thanh bên. Nền "đang chọn" và nền rê chuột KHÔNG còn nằm ở đây: viên kính
- * đang chọn và giọt nước theo chuột do <LiquidGroup> bọc ngoài vẽ, nối với mục qua
- * `data-liquid-key`. Mục chỉ còn đổi màu chữ/icon.
+ * Một mục menu của thanh bên. Nền "đang chọn" KHÔNG nằm ở đây: giọt kính đang chọn do
+ * <LiquidGroup> bọc ngoài vẽ, nối với mục qua `data-liquid-key`. Mục chỉ còn đổi màu chữ/icon
+ * (rê chuột cũng chỉ đổi màu, không có nền).
  *
  * Khai báo ở cấp module: trước đây NavItem nằm TRONG thân Sidebar, nên mỗi lần Sidebar render
  * (FileContext đổi là đổi) React thấy một kiểu component mới và gỡ/dựng lại toàn bộ nút menu.
@@ -136,9 +136,9 @@ export default function Sidebar() {
           ${isSidebarCollapsed ? '-translate-x-[110%] lg:translate-x-0 lg:w-20 px-2' : 'translate-x-0 w-76 max-w-[calc(100vw-1rem)] px-3'}
         `}
       >
-        {/* Ánh sáng theo chuột — `z-50`/`lg:z-0` ở trên đã cho thanh bên stacking context riêng
-            nên lớp sáng nằm được dưới chữ. */}
-        <GlassLight />
+        {/* Viền sáng của kính — `z-50`/`lg:z-0` ở trên đã cho thanh bên stacking context riêng
+            nên viền nằm được dưới chữ. */}
+        <GlassEdge />
 
         {/* Rộng 304px cả điện thoại lẫn desktop: nhãn dài nhất ("cloudSSS được chia sẻ với
             tôi") in đậm lúc đang chọn cần ~198px, bản 256px cũ chỉ cho 159px nên bị cắt
@@ -152,8 +152,8 @@ export default function Sidebar() {
             `short:` thu mật độ ở màn thấp (xem src/index.css) để cả menu nằm gọn ở
             zoom 100% trên laptop 768px/720px. `overflow-y-auto` chỉ còn là lưới an
             toàn cho màn thấp hơn nữa.
-            LiquidGroup: viên kính "đang chọn" trượt giữa các mục khi đổi trang, giọt nước trong
-            suốt lướt theo chuột (components/ui/LiquidGroup.jsx). */}
+            LiquidGroup: giọt kính "đang chọn" nhảy giữa các mục khi đổi trang
+            (components/ui/LiquidGroup.jsx). */}
         <LiquidGroup as="nav" activeKey={activeNavKey} className="flex-1 overflow-y-auto space-y-1 short:space-y-0.5 pr-1 custom-scrollbar">
           <NavItem {...navProps('home')} label={t('nav.home')} icon={Home} hoverColor="group-hover:text-blue-600" activeColor="text-blue-600 dark:text-blue-400" />
           <NavItem {...navProps('my-drive')} label={t('nav.myDrive')} icon={HardDrive} hoverColor="group-hover:text-emerald-600" activeColor="text-emerald-600 dark:text-emerald-400" />

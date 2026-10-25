@@ -66,13 +66,13 @@ const RENAME_SHORTCUT_KEYS =
 // mọi hàng, mọi menu đều chung một lưới: [icon 16px][gap 12px][nhãn co giãn][phần đuôi].
 //
 // Kính nổi (`glass-strong`, index.css): menu không chứa con `position: fixed` nên được blur.
-// Ánh sáng + viền kính của khung menu do `glass-strong` tự lo (styles/liquid-glass.css).
+// Viền sáng của khung menu do `glass-strong` tự lo (styles/liquid-glass.css).
 const MENU_SHELL =
     'glass-strong fixed z-50 w-72 max-w-[calc(100vw-16px)] ' +
     'text-gray-900 dark:text-gray-100 rounded-[20px] px-1.5 py-1.5 ' +
     'text-[13px] font-sans select-none animate-glass-in';
 
-// Ngón tay không có giọt nước theo chuột: giữ nền khi đang ấn để chạm vẫn có phản hồi.
+// Rê chuột không đổi nền hàng; riêng ngón tay thì giữ nền khi đang ấn để chạm vẫn có phản hồi.
 const ROW_BASE =
     'w-full px-2.5 py-2 rounded-[12px] flex items-center gap-3 text-left transition-colors ' +
     'pointer-coarse:active:bg-black/[0.06] dark:pointer-coarse:active:bg-white/[0.09]';

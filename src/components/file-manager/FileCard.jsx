@@ -84,8 +84,6 @@ function FileCard({ file, onDoubleClick, onContextMenu, isSelected, isCut = fals
             onDoubleClick={() => onDoubleClick && onDoubleClick(file)}
             onContextMenu={(e) => onContextMenu && onContextMenu(e, file)}
             style={colorVars}
-            // Đốm bóng đi theo chuột trên mặt thẻ (styles/liquid-glass.css, utils/glassSpotlight.js).
-            data-spotlight
             className={`group relative flex flex-col px-2.5 phone:px-2 pt-1.5 pb-1.5 rounded-[18px] cursor-pointer transition-all duration-200 border shadow-[inset_0_1px_0_rgba(255,255,255,0.75),0_1px_2px_rgba(15,23,42,0.05)] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_1px_2px_rgba(0,0,0,0.3)] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_10px_24px_-12px_rgba(15,23,42,0.28)] dark:hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_10px_24px_-12px_rgba(0,0,0,0.7)] hover:-translate-y-0.5 ${FILE_CARD_HEIGHT_CLASS}
                 bg-[var(--fc-surface-l)] dark:bg-[var(--fc-surface-d)]
                 hover:bg-[var(--fc-hover-l)] dark:hover:bg-[var(--fc-hover-d)]

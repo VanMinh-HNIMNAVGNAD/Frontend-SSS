@@ -159,6 +159,13 @@ const LIST_PERSIST_NS = 'file-list-v2';
  */
 const LIST_PERSIST_DEBOUNCE_MS = 800;
 
+/**
+ * Chờ bao lâu sau lượt xoá cuối rồi mới hỏi lại server trang đang xem để lấp chỗ
+ * trống bằng mục của trang sau — xem `removeItemsLocally`. Bấm Delete liên tục hay
+ * khôi phục từng mục một thì gom lại thành MỘT lượt gọi thay vì một lượt mỗi mục.
+ */
+const PAGE_REFILL_DEBOUNCE_MS = 300;
+
 const VIEW_MODE_KEY = 'driver.viewMode';
 const VIEW_MODES = ['list', 'grid'];
 const DEFAULT_VIEW_MODE = 'list';
@@ -506,6 +513,19 @@ export function FileProvider({ children }) {
   const [pageSize] = useState(50);
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+  // Bản mới nhất cho `removeItemsLocally` — nó chạy SAU một lượt await, lúc closure đã cũ.
+  // Ghi trong effect chứ không ngay lúc render: React Compiler cấm đụng `ref.current` khi render.
+  const pagingRef = useRef({ currentPage, totalItems, totalPages });
+  useEffect(() => {
+    pagingRef.current = { currentPage, totalItems, totalPages };
+  }, [currentPage, totalItems, totalPages]);
+
+  // Trang đang đứng không còn tồn tại — vừa xoá hết trang cuối, hoặc server báo ít trang hơn
+  // (người khác vừa xoá bớt) ⇒ lùi về trang cuối còn mục. Trước đây số trang đứng nguyên: màn
+  // hình "thư mục trống" hiện ra, mà màn hình trống KHÔNG có thanh phân trang — kẹt luôn ở đó.
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [currentPage, totalPages]);
   // Chặng gốc mang `nameKey` (khoá dịch) thay vì `name` đã chốt chuỗi: giá trị này
   // nằm trong useState nên chỉ chạy MỘT lần lúc mount, chuỗi cứng ở đây sẽ đứng
   // nguyên tiếng Việt suốt phiên. Nơi render dịch `nameKey` nếu có.
@@ -1672,6 +1692,8 @@ export function FileProvider({ children }) {
    */
   const analyticsTimerRef = useRef(null);
   const silentSyncTimerRef = useRef(null);
+  /** Hẹn giờ lấp trang sau khi xoá — xem `removeItemsLocally`. */
+  const pageRefillTimerRef = useRef(null);
 
   const scheduleAnalyticsRefresh = useCallback(() => {
     if (analyticsTimerRef.current) clearTimeout(analyticsTimerRef.current);
@@ -1705,6 +1727,7 @@ export function FileProvider({ children }) {
   useEffect(() => () => {
     if (analyticsTimerRef.current) clearTimeout(analyticsTimerRef.current);
     if (silentSyncTimerRef.current) clearTimeout(silentSyncTimerRef.current);
+    if (pageRefillTimerRef.current) clearTimeout(pageRefillTimerRef.current);
   }, []);
 
   // ── Mục mới tạo ở trang "Nhãn" (##92) ─────────────────────────────────────
@@ -2120,6 +2143,49 @@ export function FileProvider({ children }) {
   }, [flushListCache]);
 
   /**
+   * Gỡ các mục vừa rời khung nhìn (vào thùng rác, khôi phục, xoá vĩnh viễn, gỡ cờ rác) khỏi
+   * trang đang xem — và giữ phân trang khớp với nó.
+   *
+   * Trước đây các hàm bên dưới chỉ lọc `items`; tổng số và số trang đứng nguyên như lúc tải:
+   *  • Xoá ở trang 1 thì trang 1 cứ hụt dần — mục đầu trang 2 không được đẩy lên, phải F5.
+   *  • Xoá hết trang cuối thì số trang vẫn chỉ vào trang đã rỗng — xem effect kẹp trang.
+   *
+   * Nay trừ tổng số NGAY tại chỗ (số trang tính lại theo đó, effect kẹp trang lo phần lùi trang),
+   * rồi nếu SAU trang này còn trang thì hỏi lại server đúng trang này ở chế độ im lặng: mục của
+   * trang sau dồn lên lấp chỗ trống, không skeleton, không làm mờ.
+   */
+  const removeItemsLocally = useCallback((ids) => {
+    const gone = new Set(ids);
+    if (gone.size === 0) return;
+    setItems((prev) => prev.filter((item) => !gone.has(item.id)));
+
+    const removed = itemsRef.current.filter((item) => gone.has(item.id)).length;
+    if (removed === 0) return;
+
+    const { currentPage: page, totalItems: totalBefore, totalPages: pagesBefore } = pagingRef.current;
+    const nextTotal = Math.max(0, totalBefore - removed);
+    // Trang chủ luôn là MỘT trang với tổng riêng của nó (xem `fetchHomeItems`) — chỉ tính lại
+    // số trang khi danh sách thật sự được cắt trang.
+    const nextPages = pagesBefore > 1 ? Math.max(1, Math.ceil(nextTotal / pageSize)) : pagesBefore;
+    // Ghi ref ngay: hai lượt xoá về cùng một nhịp (chưa kịp render) phải trừ nối tiếp nhau.
+    pagingRef.current = { currentPage: Math.min(page, nextPages), totalItems: nextTotal, totalPages: nextPages };
+    setTotalItems(nextTotal);
+    setTotalPages(nextPages);
+    // Vừa xoá hết trang cuối ⇒ lùi trang NGAY, cùng lượt render với lượt gỡ mục. Để effect kẹp
+    // trang làm thì nó chạy sau khi vẽ: màn hình "thư mục trống" kịp nháy lên một khung.
+    if (page > nextPages) setCurrentPage(nextPages);
+
+    if (page < pagesBefore) {
+      clearTimeout(pageRefillTimerRef.current);
+      pageRefillTimerRef.current = setTimeout(() => {
+        pageRefillTimerRef.current = null;
+        // Qua ref: tới lúc hẹn giờ nổ, trang hay thư mục đang xem có thể đã đổi.
+        fetchFilesRef.current?.(0, { silent: true });
+      }, PAGE_REFILL_DEBOUNCE_MS);
+    }
+  }, [pageSize, setCurrentPage]);
+
+  /**
    * Ba hàm thùng rác dưới đây dùng chung một hợp đồng với `toggleStar`:
    * trả `{ ok, error }` và KHÔNG throw, kèm tuỳ chọn `silent`.
    *
@@ -2134,14 +2200,14 @@ export function FileProvider({ children }) {
   const moveToTrash = useCallback(async (id, { silent = false } = {}) => {
     try {
       await filesApi.moveToTrash(id);
-      setItems((prev) => prev.filter((item) => item.id !== id));
+      removeItemsLocally([id]);
       if (!silent) fetchAnalytics();
       return { ok: true };
     } catch (err) {
       if (!silent) toast.error(t('file.trash.failed', { reason: err.message }));
       return { ok: false, error: err };
     }
-  }, [fetchAnalytics, t]);
+  }, [fetchAnalytics, removeItemsLocally, t]);
 
   /**
    * Bản LÔ của `moveToTrash` — một request cho cả tập đang chọn.
@@ -2157,25 +2223,24 @@ export function FileProvider({ children }) {
   const moveToTrashBulk = useCallback(async (ids) => {
     try {
       const res = await filesApi.moveToTrashBulk(ids);
-      const succeeded = new Set(res?.succeeded ?? []);
-      setItems((prev) => prev.filter((item) => !succeeded.has(item.id)));
+      removeItemsLocally(res?.succeeded ?? []);
       return { ok: true, succeeded: res?.succeeded ?? [], failed: res?.failed ?? [] };
     } catch (err) {
       return { ok: false, error: err, succeeded: [], failed: [] };
     }
-  }, []);
+  }, [removeItemsLocally]);
 
   const restoreFromTrash = useCallback(async (id, { silent = false } = {}) => {
     try {
       await filesApi.restoreFromTrash(id);
-      setItems((prev) => prev.filter((item) => item.id !== id));
+      removeItemsLocally([id]);
       if (!silent) fetchAnalytics();
       return { ok: true };
     } catch (err) {
       if (!silent) toast.error(t('file.restore.failed', { reason: err.message }));
       return { ok: false, error: err };
     }
-  }, [fetchAnalytics, t]);
+  }, [fetchAnalytics, removeItemsLocally, t]);
 
   /**
    * Gỡ một mục khỏi Nội dung rác — nó quay lại đúng thư mục đã tải lên.
@@ -2188,37 +2253,36 @@ export function FileProvider({ children }) {
   const markNotSpam = useCallback(async (id, { silent = false } = {}) => {
     try {
       const res = await filesApi.markNotSpam(id);
-      setItems((prev) => prev.filter((item) => item.id !== id));
+      removeItemsLocally([id]);
       return { ok: true, parentName: res?.parentName ?? null, parentId: res?.parentId ?? null };
     } catch (err) {
       if (!silent) toast.error(t('file.notSpam.failed', { reason: err.message }));
       return { ok: false, error: err };
     }
-  }, [t]);
+  }, [removeItemsLocally, t]);
 
   const deletePermanently = useCallback(async (id, { silent = false } = {}) => {
     try {
       await filesApi.deletePermanently(id);
-      setItems((prev) => prev.filter((item) => item.id !== id));
+      removeItemsLocally([id]);
       if (!silent) fetchAnalytics();
       return { ok: true };
     } catch (err) {
       if (!silent) toast.error(t('file.deleteForever.failed', { reason: err.message }));
       return { ok: false, error: err };
     }
-  }, [fetchAnalytics, t]);
+  }, [fetchAnalytics, removeItemsLocally, t]);
 
   /** Bản LÔ của `deletePermanently`. Xem `moveToTrashBulk` về hợp đồng trả về. */
   const deletePermanentlyBulk = useCallback(async (ids) => {
     try {
       const res = await filesApi.deletePermanentlyBulk(ids);
-      const succeeded = new Set(res?.succeeded ?? []);
-      setItems((prev) => prev.filter((item) => !succeeded.has(item.id)));
+      removeItemsLocally(res?.succeeded ?? []);
       return { ok: true, succeeded: res?.succeeded ?? [], failed: res?.failed ?? [] };
     } catch (err) {
       return { ok: false, error: err, succeeded: [], failed: [] };
     }
-  }, []);
+  }, [removeItemsLocally]);
 
   /**
    * Dọn thùng rác. Trả `{ ok, deletedCount, skippedCount }` (không throw) để phía gọi biết kết
@@ -2239,6 +2303,9 @@ export function FileProvider({ children }) {
         toast(t('trash.empty.keptDriveItems', { count: skippedCount }), { icon: 'ℹ️', duration: 7000 });
       } else {
         setItems([]);
+        // Cả số trang: đang ở trang 2 của thùng rác thì effect kẹp trang đưa về trang 1.
+        setTotalItems(0);
+        setTotalPages(1);
       }
       fetchAnalytics();
       return { ok: true, deletedCount: Number(res?.deletedCount) || 0, skippedCount };

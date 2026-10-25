@@ -73,6 +73,18 @@ export const DROPLET = {
     volume: 0.4,
     /** Nhấc lên thì phóng thêm chừng này. */
     liftScale: 0.05,
+    droplet: true,
+};
+
+/**
+ * Trượt êm — cho nhóm NHỎ (nút List/Grid 28px, tab ngăn Thông tin, tab Cài đặt): một viên kính
+ * trượt sang như thanh phân đoạn của Apple, không vươn/dẹt/nhấc. Trên mục cao chưa tới 34px,
+ * cú nhảy giọt nước không đủ chỗ để đọc ra hình dạng — chỉ thấy một cục rung rinh.
+ */
+export const SLIDE = {
+    ...DROPLET,
+    lead: appleSpring(0.3, 0.9),
+    droplet: false,
 };
 
 /** Bước tích phân cố định — đủ nhỏ để lò xo cứng không mất ổn định khi máy chậm, khung dài. */
@@ -183,7 +195,12 @@ export class LiquidBody {
         this.render();
     }
 
-    /** Nhảy sang khung mới: vươn → bứt → đáp → lặng. */
+    /** Đổi bộ thông số (DROPLET / SLIDE) — LiquidGroup chọn theo cỡ mục. */
+    setParams(params) {
+        this.p = params;
+    }
+
+    /** Nhảy sang khung mới: vươn → bứt → đáp → lặng (hoặc trượt êm với SLIDE). */
     jump(box) {
         if (!this.placed || reducedMotion?.matches) {
             this.snap(box);
@@ -201,7 +218,7 @@ export class LiquidBody {
         // Trục nhảy chính: mép phía trước dẫn, mép phía sau dính lại rồi bứt ra.
         const vertical = Math.abs(dy) >= Math.abs(dx);
         const d = vertical ? dy : dx;
-        if (Math.abs(d) > 0.5) {
+        if (this.p.droplet && Math.abs(d) > 0.5) {
             const [lead, trail, target] = vertical
                 ? d > 0 ? [b, t, box.t] : [t, b, box.b]
                 : d > 0 ? [r, l, box.l] : [l, r, box.r];

@@ -13,7 +13,7 @@ import { formatBytes } from '../../utils/formatFileSize';
 export default function ImageStagePill({ stage, sizeBytes, onLoadOriginal }) {
   const { t } = useLanguage();
   const base =
-    'absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 px-3.5 py-1.5 rounded-full glass-dark text-xs text-white/90 whitespace-nowrap';
+    'absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 px-3.5 py-1.5 rounded-full glass-plain glass-dark text-xs text-white/90 whitespace-nowrap';
   const original = stage.original;
 
   if (stage.stage === 'placeholder' && stage.src) {

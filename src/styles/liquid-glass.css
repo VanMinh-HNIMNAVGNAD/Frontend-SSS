@@ -13,7 +13,14 @@
           • tấm lớn (thanh bên, header, vùng nội dung) — <GlassLight/>;
           • bề mặt nổi `glass-strong` / `glass-dark` (menu, hộp thoại, ngăn kéo, trình xem tệp…)
             — TỰ ĐỘNG bằng `::before` / `::after` bên dưới, không phải sửa từng component.
-        Nút/ô nhập kính và thẻ tệp có đốm bóng dưới con trỏ.
+        Khối kính lớn và thẻ tệp có đốm bóng dưới con trỏ.
+
+   KHÔNG đặt hiệu ứng "giọt" lên component NHỎ (nút, ô chọn ☐, bong bóng chat AI, viên điều khiển
+   trong trình xem tệp): trên vài chục pixel, viền sáng + đốm sáng chạy theo chuột chỉ còn là một
+   cục bóng loáng như dán giọt nước lên nút. Cụ thể:
+     • đốm bóng / quầng sáng theo chuột: utils/glassSpotlight.js chỉ bật cho phần tử đủ lớn;
+     • viền sáng có hướng (luôn hiện): bề mặt nổi nhỏ thêm class `glass-plain` để tắt;
+     • giọt kính đang chọn: nhóm có mục thấp hơn 34px chỉ trượt êm (LiquidGroup.jsx).
 
    KHÔNG có khối hover chạy theo nút nữa: bản 3 có một khối kính xám trượt giữa mọi nút (kiểu con
    trỏ iPadOS) nhưng trông phẳng — đã bỏ. Nút không đổi nền khi rê chuột, giống thanh công cụ và
@@ -48,10 +55,9 @@
   --glass-light-rim: rgba(255, 255, 255, 1);
   --glass-light-rim-halo: rgba(96, 156, 255, 0.55);
 
-  /* Đốm bóng trên nút/ô nhập/thẻ. */
+  /* Đốm bóng trên khối kính lớn / thẻ tệp. */
   --spot-core: rgba(255, 255, 255, 0.95);
   --spot-halo: rgba(170, 202, 255, 0.24);
-  --spot-accent: rgba(255, 255, 255, 0.42);
 
   /* Giọt kính đang chọn: sáng dần từ trên xuống, ánh đỉnh rõ, ánh đáy hắt lại và một chút ánh xanh
      ở đáy như nước — đủ để đọc ra là một giọt nước nằm trên mặt kính mờ. */
@@ -87,7 +93,6 @@
 
   --spot-core: rgba(255, 255, 255, 0.12);
   --spot-halo: rgba(150, 180, 255, 0.05);
-  --spot-accent: rgba(255, 255, 255, 0.3);
 
   --drop-fill: linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.085));
   --drop-spec-top: rgba(255, 255, 255, 0.26);
@@ -194,9 +199,10 @@
   /* ── 3b. Bề mặt nổi: `glass-strong` / `glass-dark` — tự có viền sáng + ánh theo chuột ──────
      `::before` (đã là lớp blur, xem index.css) nhận thêm quầng sáng trên mặt kính; `::after` là
      vòng viền: viền có hướng (luôn hiện) + đoạn viền bắt sáng gần con trỏ (khi rê).
-     Toạ độ --lx/--ly do utils/glassSpotlight.js ghi lên chính bề mặt. Bề mặt đã có <GlassLight/>
-     riêng (thanh bên trên điện thoại) thì không vẽ thêm. */
-  :is(.glass-strong, .glass-dark):not(:has(> .glass-light))::before {
+     Toạ độ --lx/--ly do utils/glassSpotlight.js ghi lên chính bề mặt (chỉ bề mặt đủ lớn). Bề mặt
+     đã có <GlassLight/> riêng (thanh bên trên điện thoại) thì không vẽ thêm; bề mặt NHỎ (nút nổi,
+     viên điều khiển) mang `glass-plain` thì không vẽ gì — xem đầu file. */
+  :is(.glass-strong, .glass-dark):not(.glass-plain):not(:has(> .glass-light))::before {
     background-image: radial-gradient(
       circle calc(var(--glass-light-size) / 2) at var(--lx, -9999px) var(--ly, -9999px),
       color-mix(in srgb, var(--glass-light-core) calc(var(--glass-glow) * 100%), transparent),
@@ -206,7 +212,7 @@
     transition: --glass-glow 0.45s ease;
   }
 
-  :is(.glass-strong, .glass-dark):not(:has(> .glass-light))::after {
+  :is(.glass-strong, .glass-dark):not(.glass-plain):not(:has(> .glass-light))::after {
     content: '';
     position: absolute;
     inset: 0;
@@ -311,23 +317,17 @@
 
 /* ── Đốm bóng dưới con trỏ ───────────────────────────────────────────────── */
 
-/* Lớp `utilities`: `btn-accent` là tiện ích có sẵn `background-image` (gradient xanh), đặt ở lớp
-   thấp hơn thì đốm bóng luôn thua. `--spot-x/--spot-y` do utils/glassSpotlight.js ghi. */
+/* `--spot-x/--spot-y` và `data-spot` (chỉ phần tử đủ lớn) do utils/glassSpotlight.js ghi. Đang rê vào một nút con (ô chọn ☐, ngôi sao, ⋮ trên thẻ tệp) thì
+   thẻ không vẽ đốm — nếu không, đốm sáng tụ đúng quanh cái nút nhỏ đó. */
 @layer utilities {
   @media (hover: hover) {
-    :is(.glass-soft, .glass-input, [data-spotlight]):hover {
+    :is(.glass-soft, .glass-input, [data-spotlight])[data-spot]:hover:not(:has(:is(button, a[href], input, [role='button']):hover)) {
       background-image: radial-gradient(
         circle var(--spot-size, 120px) at var(--spot-x, 50%) var(--spot-y, 50%),
         var(--spot-core),
         var(--spot-halo) 45%,
         transparent
       );
-    }
-
-    .btn-accent:not(:disabled):hover {
-      background-image:
-        radial-gradient(circle 90px at var(--spot-x, 50%) var(--spot-y, 50%), var(--spot-accent), transparent),
-        linear-gradient(180deg, #3b8cff 0%, #1f6fe5 100%);
     }
   }
 }

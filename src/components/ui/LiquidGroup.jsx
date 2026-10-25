@@ -1,7 +1,14 @@
 import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
-import { LiquidBody } from '../../utils/liquidMotion';
+import { DROPLET, LiquidBody, SLIDE } from '../../utils/liquidMotion';
 
 const ITEM_SELECTOR = '[data-liquid-key]';
+/**
+ * Mục thấp hơn chừng này (px) thì viên kính chỉ TRƯỢT ÊM (SLIDE), không nhảy kiểu giọt nước: trên
+ * một nút 28px, cú vươn/dẹt không đủ chỗ để đọc ra hình dạng — chỉ thấy một cục rung rinh. Thanh
+ * bên (37px), chu kỳ thanh toán (41px) nhảy; nút List/Grid (28px), tab ngăn Thông tin (30px), tab
+ * Cài đặt (32px) trượt.
+ */
+const DROPLET_MIN_SIZE = 34;
 
 function findItem(group, key) {
     for (const item of group.querySelectorAll(ITEM_SELECTOR)) {
@@ -55,7 +62,8 @@ function measureBounds(group) {
  *
  * Khi đổi lựa chọn, giọt kính NHẢY sang mục mới như một giọt nước: vươn dài ra (mép sau còn dính),
  * bứt đi, đáp xuống dẹt lại rồi nảy về — trong lúc bay nó được nhấc lên (to hơn chút, bóng đổ
- * xa hơn) và một lớp kính trong hiện trên chữ. Toàn bộ chuyển động ở utils/liquidMotion.js.
+ * xa hơn) và một lớp kính trong hiện trên chữ. Nhóm NHỎ (mục thấp hơn `DROPLET_MIN_SIZE`) thì
+ * viên kính chỉ trượt êm. Toàn bộ chuyển động ở utils/liquidMotion.js.
  *
  * Lớp kính trong KHÔNG bẻ cong chữ (bản 2 có khúc xạ SVG — chữ các mục nó bay qua bị nén méo).
  *
@@ -110,6 +118,7 @@ export default function LiquidGroup({ as: Tag = 'div', activeKey = null, classNa
 
         const box = measure(group, item);
         body.setBounds(measureBounds(group));
+        body.setParams(box.b - box.t >= DROPLET_MIN_SIZE ? DROPLET : SLIDE);
         if (keyChanged && body.visible) body.jump(box);
         else if (body.isMoving) body.retarget(box);
         else if (!body.isAt(box)) body.snap(box);

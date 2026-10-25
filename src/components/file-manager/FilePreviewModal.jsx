@@ -328,7 +328,7 @@ function PdfCanvasViewer({ url, sizeBytes, zoom = 1, rotation = 0, onWheelZoom }
 
       {/* Thanh chuyển trang */}
       {numPages > 1 && (
-        <div className="relative flex items-center gap-3 px-4 py-1.5 @lg:py-2 my-2 glass-dark rounded-full shrink-0 select-none">
+        <div className="relative flex items-center gap-3 px-4 py-1.5 @lg:py-2 my-2 glass-plain glass-dark rounded-full shrink-0 select-none">
           <button
             onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
             disabled={currentPage <= 1}
@@ -994,7 +994,7 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
               setCommentsOpen(false);
               openAi(item, 'chat');
             }}
-            className="relative flex items-center gap-2 px-2.5 @lg:px-4 py-2 rounded-full glass-dark text-white text-sm font-medium transition-colors cursor-pointer"
+            className="relative flex items-center gap-2 px-2.5 @lg:px-4 py-2 rounded-full glass-plain glass-dark text-white text-sm font-medium transition-colors cursor-pointer"
             title={t('preview.askAi')}
           >
             <Sparkles className="w-4 h-4 text-sky-300" />
@@ -1022,7 +1022,7 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
         {(zoomControls || comments.supported) && (
           <div className="hidden @2xl:flex absolute top-1 left-3 z-10 items-center gap-2">
             {zoomControls && (
-              <div className="relative flex items-center gap-0.5 px-1.5 py-1 rounded-full glass-dark">
+              <div className="relative flex items-center gap-0.5 px-1.5 py-1 rounded-full glass-plain glass-dark">
                 {zoomControls}
               </div>
             )}
@@ -1031,7 +1031,7 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
                 type="button"
                 onClick={toggleComments}
                 className={`relative flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors cursor-pointer ${
-                  commentsOpen ? 'bg-white text-gray-900 shadow-lg shadow-black/30' : 'glass-dark text-white/90'
+                  commentsOpen ? 'bg-white text-gray-900 shadow-lg shadow-black/30' : 'glass-plain glass-dark text-white/90'
                 }`}
               >
                 <MessageSquarePlus className="w-[18px] h-[18px]" />
@@ -1049,7 +1049,7 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
           <button
             type="button"
             onClick={goPrev}
-            className="absolute left-2 @2xl:left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 @2xl:w-11 @2xl:h-11 rounded-full flex items-center justify-center glass-dark text-white transition-colors cursor-pointer"
+            className="absolute left-2 @2xl:left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 @2xl:w-11 @2xl:h-11 rounded-full flex items-center justify-center glass-plain glass-dark text-white transition-colors cursor-pointer"
             title={t('preview.prevFile', { name: prevItem.name })}
             aria-label={t('preview.prevFile', { name: prevItem.name })}
           >
@@ -1060,7 +1060,7 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
           <button
             type="button"
             onClick={goNext}
-            className="absolute right-2 @2xl:right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 @2xl:w-11 @2xl:h-11 rounded-full flex items-center justify-center glass-dark text-white transition-colors cursor-pointer"
+            className="absolute right-2 @2xl:right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 @2xl:w-11 @2xl:h-11 rounded-full flex items-center justify-center glass-plain glass-dark text-white transition-colors cursor-pointer"
             title={t('preview.nextFile', { name: nextItem.name })}
             aria-label={t('preview.nextFile', { name: nextItem.name })}
           >
@@ -1447,7 +1447,7 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
         zoomControls ? 'flex @2xl:pointer-coarse:hidden' : 'hidden @2xl:flex @2xl:pointer-coarse:hidden'
       }`}>
         {zoomControls && (
-          <div className="relative flex @2xl:hidden items-center gap-0.5 px-1.5 py-1 rounded-full glass-dark">
+          <div className="relative flex @2xl:hidden items-center gap-0.5 px-1.5 py-1 rounded-full glass-plain glass-dark">
             {zoomControls}
           </div>
         )}

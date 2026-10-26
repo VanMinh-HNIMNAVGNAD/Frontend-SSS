@@ -1,108 +1,242 @@
-import { useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ChevronDown, Check } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
+import { localeTagOf } from '../../utils/locale';
 
 /**
- * Thanh "Mức suy luận" của khung Hỏi AI (20/10/2026) — Thấp / Vừa / Cao / Tối đa.
+ * Nút "Mức suy luận" của khung Hỏi AI — Thấp / Vừa / Cao / Tối đa.
  *
- * Bốn VẠCH cao dần, kiểu cột sóng điện thoại: số vạch sáng là mức đang chọn, bấm vạch nào là chọn
- * mức đó. Không phải một menu thả như nút chọn model: bốn lựa chọn có thứ tự thì nhìn một lần là
- * biết đang ở nấc nào và còn bao nhiêu nấc, còn menu thì phải mở ra mới thấy.
+ * 25/10/2026 đổi từ bốn vạch bấm trực tiếp sang một nút mở menu (cùng kiểu nút chọn model), vì bản
+ * vạch có ba chỗ khó dùng: vạch rộng 5px khó bấm trên điện thoại; mô tả từng mức chỉ hiện khi rê
+ * chuột, tức trên điện thoại không bao giờ thấy; và không nói mỗi mức chờ bao lâu — thứ duy nhất người
+ * dùng thật sự cần để chọn. Nút vẫn giữ bốn vạch nhỏ để nhìn một lần là biết đang ở nấc nào.
  *
- * Mức là của TỪNG MODEL (khung chat nhớ riêng cho mỗi model — xem `GeminiModal`), vì cùng một chữ
- * "Cao" quy ra tham số khác nhau ở mỗi model và tốn thời gian khác nhau hẳn: Gemini 4 Argon ở mức
- * Cao có thể nghĩ vài phút, 3.5 Flash chỉ vài giây. Backend quy đổi — giao diện chỉ gửi một chữ.
+ * Mỗi mức trong menu có thời gian chờ ƯỚC TÍNH của CHÍNH model đang chọn (`seconds` — backend đo,
+ * `effortSeconds` ở `backend/src/ai/ai-models.ts`): cùng chữ "Cao", Gemini 4 Argon chờ hơn một phút
+ * còn 3.5 Flash-Lite chỉ hơn chục giây, và ở vài model hai mức liền nhau gần như bằng nhau — số đo nói
+ * điều đó thẳng ra thay vì để người dùng đoán. Backend cũ không có số thì menu chỉ có mô tả.
  *
- * Bàn phím: là một `radiogroup` — Tab vào mức đang chọn, mũi tên trái/phải (lên/xuống) đổi mức,
- * đúng cách trình đọc màn hình đọc một nhóm lựa chọn loại trừ nhau.
+ * Mức là của TỪNG MODEL (khung chat nhớ riêng cho mỗi model — xem `GeminiModal`). Backend quy đổi ra
+ * tham số của từng model — giao diện chỉ gửi một chữ.
+ *
+ * Bàn phím: nút là `aria-haspopup="listbox"`; menu mở thì ↑/↓ chuyển giữa các mức, Enter chọn, Esc
+ * đóng. Trên nút đang đóng, ←/→ đổi mức luôn không cần mở menu.
  *
  * Props:
  *  - levels    các mức model này chỉnh được, thấp → cao (`status.models[].efforts`).
  *  - value     mức đang chọn.
  *  - onChange  (level) => void.
+ *  - seconds   { low, medium, high, max } giây chờ ước tính, hoặc không có.
  *  - disabled  đang có lượt trả lời chạy — lượt đó đã đi bằng mức cũ rồi.
  */
 const HEIGHTS = ['h-1.5', 'h-2.5', 'h-3.5', 'h-4.5'];
+const MENU_WIDTH_REM = 19;
 
-export default function AiEffortBar({ levels, value, onChange, disabled = false }) {
-    const { t } = useLanguage();
-    const buttonsRef = useRef([]);
+/** Bốn vạch cao dần, `lit` vạch đầu sáng — vẽ trên nút và ở đầu mỗi hàng của menu. */
+function Bars({ count, lit, max }) {
+    const tone = max ? 'bg-amber-500 dark:bg-amber-400' : 'bg-blue-600 dark:bg-blue-400';
+    return (
+        <span className="flex items-end gap-[2px] h-4.5 shrink-0" aria-hidden="true">
+            {Array.from({ length: count }, (_, i) => (
+                <span
+                    key={i}
+                    className={`block w-1 rounded-sm ${HEIGHTS[i] ?? 'h-4.5'} ${
+                        i < lit ? tone : 'bg-gray-300 dark:bg-gray-600'
+                    }`}
+                />
+            ))}
+        </span>
+    );
+}
+
+export default function AiEffortBar({ levels, value, onChange, seconds, disabled = false }) {
+    const { t, language } = useLanguage();
+    const [open, setOpen] = useState(false);
+    // Độ lệch (px) của menu so với mép trái nút — xem `toggle`.
+    const [menuLeft, setMenuLeft] = useState(0);
+    const rootRef = useRef(null);
+    const triggerRef = useRef(null);
+    const optionRefs = useRef([]);
     const index = Math.max(0, levels.indexOf(value));
     const current = levels[index];
+    const number = useMemo(
+        () => new Intl.NumberFormat(localeTagOf(language), { maximumFractionDigits: 1 }),
+        [language],
+    );
 
-    const select = (next) => {
-        const level = levels[next];
-        if (!level || disabled) return;
+    // "≈ 12 giây" / "≈ 1,5 phút". Làm tròn thô có chủ ý: số đo dao động vài chục phần trăm giữa các
+    // lượt, ghi "37 giây" là hứa một độ chính xác không có.
+    const waitText = (level) => {
+        const s = seconds?.[level];
+        if (!Number.isFinite(s) || s <= 0) return null;
+        if (s < 20) return t('ai.effort.waitSeconds', { n: number.format(Math.max(1, Math.round(s))) });
+        if (s < 60) return t('ai.effort.waitSeconds', { n: number.format(Math.round(s / 5) * 5) });
+        return t('ai.effort.waitMinutes', { n: number.format(Math.round(s / 30) / 2) });
+    };
+
+    const pick = (level) => {
+        if (disabled || !levels.includes(level)) return;
         onChange(level);
-        buttonsRef.current[next]?.focus();
+        setOpen(false);
+        triggerRef.current?.focus();
     };
 
-    const onKeyDown = (event) => {
-        const step = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1 }[event.key];
-        if (step) {
-            event.preventDefault();
-            select(Math.min(levels.length - 1, Math.max(0, index + step)));
-        } else if (event.key === 'Home' || event.key === 'End') {
-            event.preventDefault();
-            select(event.key === 'Home' ? 0 : levels.length - 1);
+    const toggle = () => {
+        if (disabled) return;
+        if (!open && triggerRef.current) {
+            // Menu thả lên, canh trái nút; nút nằm giữa hay sát mép phải (điện thoại, hàng công cụ
+            // xuống dòng) thì đẩy menu sang trái vừa đủ để nó nằm trọn trong màn hình, cách mép 16px.
+            // Canh phải theo nút thì không đủ: nút ở giữa màn 360px làm menu tràn mép TRÁI.
+            const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+            const { left } = triggerRef.current.getBoundingClientRect();
+            const width = Math.min(MENU_WIDTH_REM * rem, window.innerWidth - 2 * rem);
+            setMenuLeft(Math.max(16 - left, Math.min(0, window.innerWidth - 16 - width - left)));
         }
+        setOpen((v) => !v);
     };
 
-    // Mức Tối đa đổi màu cảnh báo: nó là mức duy nhất mà người dùng cần biết trước là sẽ chờ lâu
-    // và tốn hạn mức nhất — nói bằng màu ngay trên thanh, không bắt họ rê chuột đọc chú thích.
+    useEffect(() => {
+        if (!open) return undefined;
+        optionRefs.current[index]?.focus();
+        const onDown = (e) => {
+            if (rootRef.current && !rootRef.current.contains(e.target)) setOpen(false);
+        };
+        const onKey = (e) => {
+            if (e.key === 'Escape') {
+                e.stopPropagation();
+                setOpen(false);
+                triggerRef.current?.focus();
+            }
+        };
+        document.addEventListener('mousedown', onDown);
+        document.addEventListener('keydown', onKey, true);
+        return () => {
+            document.removeEventListener('mousedown', onDown);
+            document.removeEventListener('keydown', onKey, true);
+        };
+        // `index` cố ý không nằm trong danh sách: chỉ đặt tiêu điểm lúc vừa mở.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [open]);
+
+    const onTriggerKeyDown = (event) => {
+        const step = { ArrowRight: 1, ArrowLeft: -1 }[event.key];
+        if (!step || open) return;
+        event.preventDefault();
+        const next = levels[Math.min(levels.length - 1, Math.max(0, index + step))];
+        if (next && next !== current && !disabled) onChange(next);
+    };
+
+    const onListKeyDown = (event) => {
+        const focused = optionRefs.current.indexOf(document.activeElement);
+        let next = null;
+        if (event.key === 'ArrowDown') next = Math.min(levels.length - 1, focused + 1);
+        else if (event.key === 'ArrowUp') next = Math.max(0, focused - 1);
+        else if (event.key === 'Home') next = 0;
+        else if (event.key === 'End') next = levels.length - 1;
+        if (next === null) return;
+        event.preventDefault();
+        optionRefs.current[next]?.focus();
+    };
+
     const isMax = current === 'max';
-    const activeTone = isMax ? 'bg-amber-500 dark:bg-amber-400' : 'bg-blue-600 dark:bg-blue-400';
+    const currentWait = waitText(current);
 
     return (
-        <div
-            role="radiogroup"
-            aria-label={t('ai.effort.label')}
-            aria-disabled={disabled || undefined}
-            onKeyDown={onKeyDown}
-            title={`${t('ai.effort.label')}: ${t(`ai.effort.${current}`)} — ${t(`ai.effort.${current}.hint`)}`}
-            className={`shrink-0 flex items-center gap-1.5 px-2 py-1 rounded-lg bg-gray-100 dark:bg-white/[0.07] ${
-                disabled ? 'opacity-50' : ''
-            }`}
-        >
-            <span className="flex items-end h-4.5">
-                {levels.map((level, i) => {
-                    const lit = i <= index;
-                    return (
-                        <button
-                            key={level}
-                            ref={(el) => {
-                                buttonsRef.current[i] = el;
-                            }}
-                            type="button"
-                            role="radio"
-                            aria-checked={level === current}
-                            aria-label={`${t(`ai.effort.${level}`)} — ${t(`ai.effort.${level}.hint`)}`}
-                            title={`${t(`ai.effort.${level}`)} — ${t(`ai.effort.${level}.hint`)}`}
-                            // Chỉ mức đang chọn nằm trong thứ tự Tab (roving tabindex) — đúng mẫu radiogroup.
-                            tabIndex={level === current ? 0 : -1}
-                            disabled={disabled}
-                            onClick={() => select(i)}
-                            // Vùng bấm rộng hơn vạch vẽ (vạch 5px, vùng bấm 11px × cả chiều cao thanh),
-                            // không thì trên màn cảm ứng gần như không bấm trúng vạch thấp nhất.
-                            className="group flex items-end justify-center w-2.75 h-full cursor-pointer disabled:cursor-not-allowed focus:outline-none"
-                        >
-                            <span
-                                className={`block w-1.25 rounded-sm transition-colors ${HEIGHTS[i] ?? 'h-4.5'} ${
-                                    lit
-                                        ? activeTone
-                                        : 'bg-gray-300 dark:bg-gray-600 group-hover:bg-gray-400 dark:group-hover:bg-gray-500'
-                                } group-focus-visible:ring-2 group-focus-visible:ring-blue-500 group-focus-visible:ring-offset-1 dark:group-focus-visible:ring-offset-gray-800`}
-                            />
-                        </button>
-                    );
-                })}
-            </span>
-            <span
-                className={`text-[11px] font-medium whitespace-nowrap ${
-                    isMax ? 'text-amber-700 dark:text-amber-300' : 'text-gray-700 dark:text-gray-200'
-                }`}
+        <div ref={rootRef} className="relative shrink-0">
+            <button
+                ref={triggerRef}
+                type="button"
+                onClick={toggle}
+                onKeyDown={onTriggerKeyDown}
+                disabled={disabled}
+                aria-haspopup="listbox"
+                aria-expanded={open}
+                aria-label={`${t('ai.effort.label')}: ${t(`ai.effort.${current}`)}${currentWait ? `, ${currentWait}` : ''}`}
+                title={`${t('ai.effort.label')}: ${t(`ai.effort.${current}`)} — ${t(`ai.effort.${current}.hint`)}`}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/[0.05] dark:bg-white/[0.08] ring-1 ring-black/[0.04] dark:ring-white/10 font-medium transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
-                {t(`ai.effort.${current}`)}
-            </span>
+                <Bars count={levels.length} lit={index + 1} max={isMax} />
+                <span
+                    className={`whitespace-nowrap ${
+                        isMax ? 'text-amber-700 dark:text-amber-300' : 'text-gray-800 dark:text-gray-200'
+                    }`}
+                >
+                    {t(`ai.effort.${current}`)}
+                </span>
+                {currentWait && (
+                    <span className="hidden sm:inline whitespace-nowrap text-gray-500 dark:text-gray-400 font-normal">
+                        {currentWait}
+                    </span>
+                )}
+                <ChevronDown
+                    className={`w-3.5 h-3.5 shrink-0 text-gray-500 transition-transform ${open ? 'rotate-180' : ''}`}
+                />
+            </button>
+
+            {open && (
+                // Khung kính không cuộn — xem chú thích cùng chỗ ở AiModelPicker (lớp blur `::before`).
+                <div
+                    className="glass-strong absolute bottom-full mb-2 z-30 rounded-[20px] overflow-hidden animate-glass-in origin-bottom"
+                    style={{ left: menuLeft, width: `min(${MENU_WIDTH_REM}rem, calc(100vw - 2rem))` }}
+                >
+                    <div className="px-3 pt-2.5 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                        {t('ai.effort.label')}
+                    </div>
+                    <div role="listbox" aria-label={t('ai.effort.label')} onKeyDown={onListKeyDown} className="p-1.5 pt-0">
+                        {levels.map((level, i) => {
+                            const active = level === current;
+                            const wait = waitText(level);
+                            const max = level === 'max';
+                            return (
+                                <button
+                                    key={level}
+                                    ref={(el) => {
+                                        optionRefs.current[i] = el;
+                                    }}
+                                    type="button"
+                                    role="option"
+                                    aria-selected={active}
+                                    onClick={() => pick(level)}
+                                    className={`w-full flex items-start gap-2.5 px-2.5 py-2 rounded-[12px] text-left transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                                        active ? 'bg-blue-500/10 dark:bg-blue-400/15' : 'hover:bg-black/[0.04] dark:hover:bg-white/[0.06]'
+                                    }`}
+                                >
+                                    <span className="pt-0.5">
+                                        <Bars count={levels.length} lit={i + 1} max={max} />
+                                    </span>
+                                    <span className="min-w-0 flex-1">
+                                        <span className="flex items-baseline justify-between gap-2">
+                                            <span
+                                                className={`text-[13px] font-semibold ${
+                                                    max
+                                                        ? 'text-amber-700 dark:text-amber-300'
+                                                        : 'text-gray-900 dark:text-gray-100'
+                                                }`}
+                                            >
+                                                {t(`ai.effort.${level}`)}
+                                            </span>
+                                            {wait && (
+                                                <span className="shrink-0 text-[11px] font-medium tabular-nums text-gray-500 dark:text-gray-400">
+                                                    {wait}
+                                                </span>
+                                            )}
+                                        </span>
+                                        <span className="block text-[11px] leading-snug text-gray-500 dark:text-gray-400 mt-0.5">
+                                            {t(`ai.effort.${level}.hint`)}
+                                        </span>
+                                    </span>
+                                    <span className="w-3.5 shrink-0 pt-0.5">
+                                        {active && <Check className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />}
+                                    </span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                    <p className="px-3 pt-1.5 pb-2.5 text-[10px] leading-snug text-gray-500 dark:text-gray-400 border-t border-glass-divider">
+                        {t(seconds ? 'ai.effort.footnoteTimed' : 'ai.effort.footnote')}
+                    </p>
+                </div>
+            )}
         </div>
     );
 }

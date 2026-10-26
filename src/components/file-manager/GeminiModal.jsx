@@ -445,6 +445,8 @@ export default function GeminiModal({
 
     // Mức suy luận của model đang chọn (`null` = không hiện thanh, không gửi `effort`).
     const effortLevels = modelOptions?.find((m) => m.id === selectedModel)?.efforts ?? [];
+    // Giây chờ ước tính từng mức của model này — backend cũ không gửi thì menu chỉ có mô tả.
+    const effortSeconds = modelOptions?.find((m) => m.id === selectedModel)?.effortSeconds;
     const selectedEffort = resolveEffortChoice(status, selectedModel, effortByModel);
     const pickEffort = (level) => {
         const next = { ...effortByModel, [selectedModel]: level };
@@ -2168,6 +2170,7 @@ export default function GeminiModal({
                                 levels={effortLevels}
                                 value={selectedEffort}
                                 onChange={pickEffort}
+                                seconds={effortSeconds}
                                 disabled={isThinking}
                             />
                         )}

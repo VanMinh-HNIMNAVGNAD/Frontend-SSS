@@ -35,6 +35,7 @@ import SheetPreview from './SheetPreview';
 import ZoomableImage from './ZoomableImage';
 import ImageStagePill from './ImageStagePill';
 import CommentsPanel from './CommentsPanel';
+import LiquidGroup from '../ui/LiquidGroup';
 import { useFileComments } from '../../hooks/useFileComments';
 import { prefetchPreviewImage, usePreviewImage } from '../../hooks/usePreviewImage';
 import { useFileThumbnail } from '../../hooks/useFileThumbnail';
@@ -1275,24 +1276,28 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
                   </div>
                   <div className="flex items-center gap-2 @lg:gap-3 shrink-0">
                     {isMd && (
-                      <div className="flex items-center bg-zinc-100 dark:bg-white/[0.08] p-0.5 rounded-lg border border-zinc-200 dark:border-white/10">
-                        <button
-                          onClick={() => setMdViewMode('preview')}
-                          className={`px-2 py-1 rounded text-[11px] font-sans font-medium transition-colors cursor-pointer ${
-                            mdViewMode === 'preview' ? 'bg-white dark:bg-white/15 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
-                          }`}
-                        >
-                          {t('sharePage.previewLabel')}
-                        </button>
-                        <button
-                          onClick={() => setMdViewMode('source')}
-                          className={`px-2 py-1 rounded text-[11px] font-sans font-medium transition-colors cursor-pointer ${
-                            mdViewMode === 'source' ? 'bg-white dark:bg-white/15 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
-                          }`}
-                        >
-                          {t('sharePage.sourceLabel')}
-                        </button>
-                      </div>
+                      // Viên kính "đang chọn" trượt giữa Xem trước / Mã nguồn (LiquidGroup).
+                      <LiquidGroup
+                        activeKey={mdViewMode}
+                        className="flex items-center bg-zinc-100 dark:bg-white/[0.08] p-0.5 rounded-lg border border-zinc-200 dark:border-white/10"
+                      >
+                        {[
+                          { id: 'preview', labelKey: 'sharePage.previewLabel' },
+                          { id: 'source', labelKey: 'sharePage.sourceLabel' },
+                        ].map(({ id, labelKey }) => (
+                          <button
+                            key={id}
+                            data-liquid-key={id}
+                            onClick={() => setMdViewMode(id)}
+                            aria-pressed={mdViewMode === id}
+                            className={`px-2 py-1 rounded-md text-[11px] font-sans font-medium transition-colors cursor-pointer ${
+                              mdViewMode === id ? 'text-zinc-900 dark:text-white' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
+                            }`}
+                          >
+                            {t(labelKey)}
+                          </button>
+                        ))}
+                      </LiquidGroup>
                     )}
                     <button
                       onClick={handleCopyText}

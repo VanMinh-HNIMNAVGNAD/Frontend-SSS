@@ -2,6 +2,7 @@ import { useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Mail } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
+import LiquidGroup from '../components/ui/LiquidGroup';
 import legalVi from '../locales/legal.vi';
 import legalEn from '../locales/legal.en';
 import {
@@ -180,13 +181,16 @@ export default function LegalPage({ docId }) {
         <div className="max-w-3xl mx-auto px-5 py-3 flex items-center justify-between gap-4">
           <Link
             to="/login"
-            className="inline-flex items-center gap-2 text-sm font-semibold text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:text-white transition-colors"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>{t('legal.back')}</span>
           </Link>
 
-          <div
+          {/* Viên kính "đang chọn" trượt giữa VI / EN (LiquidGroup) — thay cho nút xanh đặc: chọn
+              ngôn ngữ không phải thao tác chính của trang nên không mang màu nhấn. */}
+          <LiquidGroup
+            activeKey={language}
             className="flex items-center rounded-full glass-soft p-0.5 text-xs font-bold"
             role="group"
             aria-label={t('legal.language')}
@@ -195,18 +199,19 @@ export default function LegalPage({ docId }) {
               <button
                 key={code}
                 type="button"
+                data-liquid-key={code}
                 onClick={() => changeLanguage(code)}
                 aria-pressed={language === code}
                 className={`px-2.5 py-1 rounded-full transition-colors cursor-pointer ${
                   language === code
-                    ? 'btn-accent'
-                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:text-white'
+                    ? 'text-gray-900 dark:text-white'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                 }`}
               >
                 {code.toUpperCase()}
               </button>
             ))}
-          </div>
+          </LiquidGroup>
         </div>
       </header>
 

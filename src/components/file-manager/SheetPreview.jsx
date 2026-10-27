@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { buildSheetGrid, MAX_ROWS, MAX_COLS } from '../../utils/sheetGrid';
+import LiquidGroup from '../ui/LiquidGroup';
 
 /**
  * Xem trước bảng tính (.xlsx / .xlsm / .xls / .ods).
@@ -167,21 +168,28 @@ export default function SheetPreview({ url, onDownload }) {
       </div>
 
       {book && book.SheetNames.length > 1 && (
-        <div className="flex items-center gap-1 px-3 py-2 overflow-x-auto border-t dark:border-white/10 bg-slate-100 dark:bg-black/20 shrink-0 border-glass-divider">
+        // Viên kính "đang chọn" trượt giữa các trang tính, cuộn theo hàng tab (LiquidGroup). Khoá
+        // là chỉ số, cùng kiểu với `active`.
+        <LiquidGroup
+          activeKey={String(active)}
+          className="flex items-center gap-1 px-3 py-2 overflow-x-auto border-t dark:border-white/10 bg-slate-100 dark:bg-black/20 shrink-0 border-glass-divider"
+        >
           {book.SheetNames.map((sheetName, index) => (
             <button
               key={sheetName}
+              data-liquid-key={String(index)}
               onClick={() => setActive(index)}
+              aria-pressed={index === active}
               className={`px-3 py-1 rounded-lg text-[11px] font-medium whitespace-nowrap transition-colors cursor-pointer ${
                 index === active
-                  ? 'bg-white dark:bg-white/15 text-zinc-900 dark:text-white shadow-sm'
-                  : 'text-slate-600 dark:text-slate-400'
+                  ? 'text-zinc-900 dark:text-white'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-zinc-900 dark:hover:text-white'
               }`}
             >
               {sheetName}
             </button>
           ))}
-        </div>
+        </LiquidGroup>
       )}
     </div>
   );

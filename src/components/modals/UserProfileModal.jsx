@@ -34,6 +34,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { userApi } from '../../services/api';
+import LiquidGroup from '../ui/LiquidGroup';
 
 /**
  * Helper phân tích User-Agent để hiển thị icon và tên thiết bị thân thiện
@@ -543,45 +544,39 @@ export default function UserProfileModal({ isOpen, onClose }) {
           </button>
         </div>
 
-        {/* Navigation Tabs */}
-        <div className="glass-soft flex border-b px-6 gap-2">
-          <button
-            onClick={() => setActiveTab('profile')}
-            className={`py-3.5 px-3 text-xs font-bold transition-all border-b-2 flex items-center gap-2 ${
-              activeTab === 'profile'
-                ? 'border-[var(--ink)] text-[var(--ink)]'
-                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100'
-            }`}
+        {/* Navigation Tabs — khay phân đoạn kính như ngăn Thông tin (thay cho tab gạch chân): giọt
+            kính "đang chọn" nhảy giữa các tab (LiquidGroup). Ba tab chia đều; điện thoại hẹp không
+            đủ chỗ thì mỗi tab giữ đúng bề ngang chữ và khay cuộn ngang. */}
+        <div className="px-4 sm:px-6 pt-3 pb-1 shrink-0">
+          <LiquidGroup
+            activeKey={activeTab}
+            className="flex gap-1 p-1 rounded-full glass-soft overflow-x-auto no-scrollbar"
           >
-            <UserIcon className="w-4 h-4" />
-            {t('profile.tab.info')}
-          </button>
-
-          {user.provider === 'local' && (
-            <button
-              onClick={() => setActiveTab('password')}
-              className={`py-3.5 px-3 text-xs font-bold transition-all border-b-2 flex items-center gap-2 ${
-                activeTab === 'password'
-                  ? 'border-[var(--ink)] text-[var(--ink)]'
-                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100'
-              }`}
-            >
-              <KeyRound className="w-4 h-4" />
-              {t('profile.tab.password')}
-            </button>
-          )}
-
-          <button
-            onClick={() => setActiveTab('sessions')}
-            className={`py-3.5 px-3 text-xs font-bold transition-all border-b-2 flex items-center gap-2 ${
-              activeTab === 'sessions'
-                ? 'border-[var(--ink)] text-[var(--ink)]'
-                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100'
-            }`}
-          >
-            <Laptop className="w-4 h-4" />
-            {t('profile.tab.sessions')}
-          </button>
+            {[
+              { id: 'profile', Icon: UserIcon, labelKey: 'profile.tab.info' },
+              ...(user.provider === 'local'
+                ? [{ id: 'password', Icon: KeyRound, labelKey: 'profile.tab.password' }]
+                : []),
+              { id: 'sessions', Icon: Laptop, labelKey: 'profile.tab.sessions' },
+            ].map(({ id, Icon, labelKey }) => (
+              <button
+                key={id}
+                type="button"
+                data-liquid-key={id}
+                onClick={() => setActiveTab(id)}
+                aria-pressed={activeTab === id}
+                className={`flex-1 py-2.5 px-2.5 sm:px-3 rounded-full text-xs font-bold whitespace-nowrap transition-colors flex items-center justify-center gap-2 cursor-pointer ${
+                  activeTab === id
+                    ? 'text-[var(--ink)]'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100'
+                }`}
+              >
+                {/* Điện thoại: bỏ icon để ba tab vừa một khay (390px), khỏi phải cuộn. */}
+                <Icon className="hidden sm:block w-4 h-4 shrink-0" />
+                {t(labelKey)}
+              </button>
+            ))}
+          </LiquidGroup>
         </div>
 
         {/* Modal Scrollable Body */}
@@ -798,17 +793,14 @@ export default function UserProfileModal({ isOpen, onClose }) {
                     aria-labelledby="discoverable-label"
                     onClick={() => setIsDiscoverable((prev) => !prev)}
                     disabled={isSavingProfile}
-                    className={`relative shrink-0 mt-0.5 w-11 h-6 rounded-full transition-colors duration-300 ease-out focus:outline-none focus:ring-2 focus:ring-[var(--accent-soft)] focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-[#1f2020] disabled:opacity-60 disabled:cursor-not-allowed ${
+                    // Núm giọt nước (`liquid-switch`, styles/liquid-glass.css): công tắc 24×44 → núm 20px.
+                    className={`liquid-switch [--knob:20px] [--knob-inset:2px] shrink-0 mt-0.5 w-11 h-6 rounded-full transition-colors duration-300 ease-out focus:outline-none focus:ring-2 focus:ring-[var(--accent-soft)] focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-[#1f2020] disabled:opacity-60 disabled:cursor-not-allowed ${
                       isDiscoverable
                         ? 'bg-[var(--accent)]'
                         : 'bg-gray-300 dark:bg-gray-600'
                     }`}
                   >
-                    <span
-                      className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-300 ease-out ${
-                        isDiscoverable ? 'translate-x-5' : 'translate-x-0'
-                      }`}
-                    />
+                    <span className="liquid-switch-knob" />
                   </button>
                 </div>
 

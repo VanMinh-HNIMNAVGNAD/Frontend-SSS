@@ -224,16 +224,14 @@ export default function SettingsModal({ isOpen, onClose }) {
   const selectClass =
     'glass-select w-full rounded-xl px-3 py-2 text-xs text-[var(--ink)] focus:ring-2 focus:ring-[var(--accent-soft)] outline-none transition-colors cursor-pointer';
 
-  // Dùng lại cho 2 công tắc (phím tắt + hiển thị thông tin cá nhân)
+  // Dùng lại cho 2 công tắc (phím tắt + hiển thị thông tin cá nhân). Núm là giọt nước dãn ra khi
+  // chạy sang (`liquid-switch`, styles/liquid-glass.css) — vị trí núm theo `aria-checked`.
   const switchClass = (on) =>
-    `relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#2a2a2e] ${
+    `liquid-switch inline-flex h-5 w-9 shrink-0 rounded-full transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#2a2a2e] ${
       on ? 'bg-[var(--accent)]' : 'bg-black/15 dark:bg-white/20'
     }`;
 
-  const switchKnobClass = (on) =>
-    `inline-block h-3.5 w-3.5 rounded-full bg-white shadow-2xs transition-transform ${
-      on ? 'translate-x-[19px]' : 'translate-x-[3px]'
-    }`;
+  const switchKnobClass = 'liquid-switch-knob';
 
   return (
     <div
@@ -298,27 +296,29 @@ export default function SettingsModal({ isOpen, onClose }) {
                   <h3 className="text-[11px] font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider mb-2">
                     {t('settings.theme.heading')}
                   </h3>
-                  <div className="grid grid-cols-3 gap-2">
+                  {/* Khay phân đoạn: giọt kính "đang chọn" nhảy giữa ba lựa chọn (LiquidGroup). */}
+                  <LiquidGroup activeKey={theme} className="grid grid-cols-3 gap-1 p-1 rounded-2xl glass-soft">
                     {THEME_OPTIONS.map(({ value, Icon, titleKey, labelKey }) => (
                       <button
                         key={value}
                         type="button"
+                        data-liquid-key={value}
                         // setMode() của useTheme lo hết: ghi khoá driveR_settings_theme,
                         // quy đổi 'system' và bật/tắt class `dark` trên <html>
                         onClick={() => handleChangeTheme(value)}
                         title={t(titleKey)}
                         aria-pressed={theme === value}
-                        className={`flex flex-col items-center justify-center py-2.5 px-1.5 rounded-xl gap-1 transition-all cursor-pointer ${
+                        className={`flex flex-col items-center justify-center py-2.5 px-1.5 rounded-xl gap-1 transition-colors cursor-pointer ${
                           theme === value
-                            ? 'glass-active text-[var(--ink)] font-semibold'
-                            : 'glass-soft text-[var(--ink-muted)] hover:text-[var(--ink)] font-medium'
+                            ? 'text-[var(--ink)] font-semibold'
+                            : 'text-[var(--ink-muted)] hover:text-[var(--ink)] font-medium'
                         }`}
                       >
                         <Icon className="w-4.5 h-4.5" />
                         <span className="text-[11px] leading-none">{t(labelKey)}</span>
                       </button>
                     ))}
-                  </div>
+                  </LiquidGroup>
                 </div>
 
                 {/* 2. Ngôn ngữ */}
@@ -391,7 +391,7 @@ export default function SettingsModal({ isOpen, onClose }) {
                     onClick={() => handleToggleDiscoverable(!discoverableByEmail)}
                     className={switchClass(discoverableByEmail)}
                   >
-                    <span className={switchKnobClass(discoverableByEmail)} />
+                    <span className={switchKnobClass} />
                   </button>
                 </div>
 
@@ -455,7 +455,7 @@ export default function SettingsModal({ isOpen, onClose }) {
                     onClick={() => handleToggleShortcuts(!shortcutsEnabled)}
                     className={switchClass(shortcutsEnabled)}
                   >
-                    <span className={switchKnobClass(shortcutsEnabled)} />
+                    <span className={switchKnobClass} />
                   </button>
                 </div>
 

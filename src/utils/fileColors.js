@@ -324,10 +324,11 @@ function buildScheme(rgb, baseHex, isDark) {
   const seen = (l) => blend(l.color, base, l.alpha);
   const surface = seen(surfaceL);
 
-  // Ngưỡng: 5.5 cho tên tệp (chữ nhỏ, đậm), 4.0 cho chữ phụ, 3.0 cho icon/đồ hoạ
+  // Ngưỡng: 5.5 cho tên tệp (chữ nhỏ, đậm), 4.0 cho chữ phụ (4.6 ở bản Sáng: đuôi tệp / dung lượng
+  // trên thẻ lưới chỉ 8–10px, đo trên trang thật mới ~3,7–4,4:1), 3.0 cho icon/đồ hoạ
   const toward = isDark ? 1 : 0;
   const ink   = readable(hsl, surface, 5.5, toward);
-  const muted = readable(hsl, surface, 4.0, toward);
+  const muted = readable(hsl, surface, isDark ? 4.0 : 4.6, toward);
   const icon  = readable(hsl, surface, 3.0, toward);
 
   // Badge đuôi tệp: nền màu đặc hơn hẳn nền thẻ để nổi lên như một con tem

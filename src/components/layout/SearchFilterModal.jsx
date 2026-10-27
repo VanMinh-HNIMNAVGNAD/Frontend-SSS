@@ -3,11 +3,14 @@ import { Check } from 'lucide-react';
 import { useFiles } from '../../context/FileContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { FILE_TYPE_FILTER_OPTIONS } from '../../constants/fileFilters';
+import LiquidGroup from '../ui/LiquidGroup';
 
 /**
  * Một nhóm lựa chọn dạng CHIP kính (26/10/2026) thay cho <select> gốc của trình duyệt: ô chọn của
  * hệ điều hành là khung xám viền đậm nằm giữa tấm kính, và phải bấm mở mới thấy có những lựa chọn
- * nào. Chip bày sẵn mọi lựa chọn, bấm một lần là chọn; chip đang chọn là viên kính sáng có dấu ✓.
+ * nào. Chip bày sẵn mọi lựa chọn, bấm một lần là chọn; chip đang chọn có dấu ✓ và nằm trên giọt
+ * kính "đang chọn" — giọt nhảy sang chip mới, kể cả sang dòng khác (LiquidGroup). Chip đang chọn
+ * không tự tô nền: nền của nó là giọt kính.
  * Ngón tay: chip cao 36px trên điện thoại.
  */
 function ChipGroup({ label, options, value, onChange }) {
@@ -15,7 +18,7 @@ function ChipGroup({ label, options, value, onChange }) {
     return (
         <div>
             <p id={labelId} className="mb-2 text-xs font-semibold text-[var(--ink-muted)]">{label}</p>
-            <div role="radiogroup" aria-labelledby={labelId} className="flex flex-wrap gap-1.5">
+            <LiquidGroup activeKey={value} role="radiogroup" aria-labelledby={labelId} className="flex flex-wrap gap-1.5">
                 {options.map((option) => {
                     const selected = option.value === value;
                     return (
@@ -24,10 +27,11 @@ function ChipGroup({ label, options, value, onChange }) {
                             type="button"
                             role="radio"
                             aria-checked={selected}
+                            data-liquid-key={option.value}
                             onClick={() => onChange(option.value)}
                             className={`flex items-center gap-1 h-9 sm:h-8 px-3 rounded-full text-[13px] sm:text-[12.5px] transition-colors cursor-pointer ${
                                 selected
-                                    ? 'glass-active font-semibold text-[var(--ink)]'
+                                    ? 'font-semibold text-[var(--ink)]'
                                     : 'glass-soft font-medium text-[var(--ink-muted)] hover:text-[var(--ink)]'
                             }`}
                         >
@@ -36,7 +40,7 @@ function ChipGroup({ label, options, value, onChange }) {
                         </button>
                     );
                 })}
-            </div>
+            </LiquidGroup>
         </div>
     );
 }

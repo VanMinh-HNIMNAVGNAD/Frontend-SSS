@@ -27,6 +27,15 @@
    KHÔNG có khối hover chạy theo nút nữa: bản 3 có một khối kính xám trượt giữa mọi nút (kiểu con
    trỏ iPadOS) nhưng trông phẳng — đã bỏ. Nút không đổi nền khi rê chuột, giống thanh công cụ và
    thanh bên của macOS.
+
+   BẢN 6 (27/10/2026) — người dùng: "hiệu ứng giọt nước chưa phổ biến ở nhiều chỗ" và "liquid
+   glass rất khó nhìn khi ở chế độ sáng":
+     • giọt kính phủ thêm mọi nhóm "chọn một": tab Hồ sơ, tab Bảng giá/Lịch sử, Sáng/Tối/Hệ
+       thống, chip của Bộ lọc tìm kiếm, bộ lọc Lịch sử hoạt động, Xem trước/Mã nguồn của Markdown,
+       tab trang tính, VI/EN trang pháp lý;
+     • núm công tắc bật/tắt cũng là một giọt nước (mục 3 bên dưới);
+     • bản Sáng: giọt là kính XÁM đậm hơn nền, viền sáng ở đỉnh (kính trắng trên kính trắng gần
+       như không thấy — xem token ở index.css).
    ═══════════════════════════════════════════════════════════════════════════ */
 
 :root {
@@ -41,15 +50,16 @@
     rgba(255, 255, 255, 0.85) 100%
   );
 
-  /* Giọt kính đang chọn: sáng dần từ trên xuống, ánh đỉnh rõ, ánh đáy hắt lại và một chút ánh xanh
-     ở đáy như nước — đủ để đọc ra là một giọt nước nằm trên mặt kính mờ. */
-  --drop-fill: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.84));
-  --drop-spec-top: rgba(255, 255, 255, 1);
-  --drop-spec-bottom: rgba(255, 255, 255, 0.7);
-  --drop-caustic: rgba(140, 180, 255, 0.24);
-  --drop-hairline: rgba(15, 23, 42, 0.08);
+  /* Giọt kính đang chọn, bản Sáng: kính XÁM trong (đậm dần xuống đáy) với ánh đỉnh trắng, ánh đáy
+     hắt lại và một chút ánh xanh ở đáy như nước. Bản 5 là kính trắng 98% — trên thanh bên / khay
+     tab vốn đã trắng, giọt chỉ còn là một vệt bóng mờ, không biết mục nào đang chọn. */
+  --drop-fill: linear-gradient(180deg, rgba(15, 23, 42, 0.065), rgba(15, 23, 42, 0.1));
+  --drop-spec-top: rgba(255, 255, 255, 0.9);
+  --drop-spec-bottom: rgba(255, 255, 255, 0.6);
+  --drop-caustic: rgba(120, 160, 235, 0.18);
+  --drop-hairline: rgba(15, 23, 42, 0.1);
   --drop-shadow-rgb: 15 23 42;
-  --drop-shadow-alpha: 0.15;
+  --drop-shadow-alpha: 0.06;
 
   /* Lớp kính trong hiện trên chữ khi giọt đang bay. */
   --lens-rim: rgba(255, 255, 255, 0.55);
@@ -67,7 +77,12 @@
     rgba(255, 255, 255, 0.07) 84%,
     rgba(255, 255, 255, 0.22) 100%
   );
+}
 
+/* Giọt kính tối: bản Tối, và nhóm nằm trên nền LUÔN tối ở cả hai giao diện — thêm class
+   `liquid-dark` vào <LiquidGroup> (khung mã nguồn của trang chia sẻ công khai). */
+.dark,
+.liquid-dark {
   --drop-fill: linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.085));
   --drop-spec-top: rgba(255, 255, 255, 0.26);
   --drop-spec-bottom: rgba(255, 255, 255, 0.07);
@@ -185,6 +200,55 @@
       inset 0 1px 0.5px var(--lens-rim-top),
       inset 0 -1px 1px var(--lens-rim-bottom),
       inset 0 0 0 1px var(--lens-rim);
+  }
+
+  /* ── 3. Công tắc bật/tắt: núm là một giọt nước ───────────────────────────
+     <button role="switch" aria-checked class="liquid-switch …"><span class="liquid-switch-knob"/>.
+     Hai mép của núm chạy LỆCH NHỊP: mép phía trước đi ngay, mép sau đi chậm 40ms — giữa đường
+     núm dãn dài ra như giọt nước bị kéo, tới nơi mép sau đuổi kịp nên núm co lại; đường cong có
+     chút vượt đích nên lúc đáp hơi dẹt rồi nảy về. Chỉ là transition `left` / `right`, không JS.
+     Cỡ núm: `--knob` (mặc định 14px cho công tắc 20×36), cách mép `--knob-inset`. */
+  .liquid-switch {
+    --knob: 14px;
+    --knob-inset: 3px;
+    --knob-ease: cubic-bezier(0.3, 1.35, 0.5, 1);
+    position: relative;
+  }
+
+  .liquid-switch-knob {
+    position: absolute;
+    top: var(--knob-inset);
+    bottom: var(--knob-inset);
+    left: var(--knob-inset);
+    right: calc(100% - var(--knob-inset) - var(--knob));
+    border-radius: 999px;
+    background: linear-gradient(180deg, #fff, #f4f5f7);
+    box-shadow:
+      0 0 0 0.5px rgba(15, 23, 42, 0.12),
+      0 1px 2px rgba(15, 23, 42, 0.18),
+      0 2px 6px -1px rgba(15, 23, 42, 0.16);
+    /* Đang về bên trái (tắt): mép trái dẫn, mép phải theo sau. */
+    transition:
+      left 0.34s var(--knob-ease),
+      right 0.34s var(--knob-ease) 0.04s;
+  }
+
+  .liquid-switch[aria-checked='true'] > .liquid-switch-knob {
+    left: calc(100% - var(--knob-inset) - var(--knob));
+    right: var(--knob-inset);
+    /* Đang sang phải (bật): mép phải dẫn, mép trái theo sau. */
+    transition:
+      left 0.34s var(--knob-ease) 0.04s,
+      right 0.34s var(--knob-ease);
+  }
+}
+
+/* Giảm chuyển động: núm công tắc chỉ trượt, không dãn (LiquidGroup tự kiểm tra trong JS). */
+@media (prefers-reduced-motion: reduce) {
+  .liquid-switch-knob,
+  .liquid-switch[aria-checked='true'] > .liquid-switch-knob {
+    transition-delay: 0s;
+    transition-timing-function: ease;
   }
 }
 

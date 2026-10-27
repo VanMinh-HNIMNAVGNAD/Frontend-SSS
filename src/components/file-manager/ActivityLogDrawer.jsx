@@ -32,6 +32,7 @@ import {
     Shield,
     Check
 } from 'lucide-react';
+import LiquidGroup from '../ui/LiquidGroup';
 
 const ACTION_GROUPS = {
     all: {
@@ -563,8 +564,12 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                         </div>
                     </div>
 
-                    {/* Filter Pills */}
-                    <div className="flex items-center gap-2 overflow-x-auto pt-4 pb-1 no-scrollbar">
+                    {/* Filter Pills — giọt kính "đang chọn" trượt giữa các bộ lọc (LiquidGroup); hàng
+                        cuộn ngang thì giọt cuộn theo. Chip đang chọn không tự tô nền. */}
+                    <LiquidGroup
+                        activeKey={selectedGroup}
+                        className="flex items-center gap-2 overflow-x-auto pt-4 pb-1 no-scrollbar"
+                    >
                         {Object.values(ACTION_GROUPS).map((group) => {
                             const count = groupCounts[group.id] || 0;
                             const isSelected = selectedGroup === group.id;
@@ -572,10 +577,12 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                             return (
                                 <button
                                     key={group.id}
+                                    data-liquid-key={group.id}
                                     onClick={() => setSelectedGroup(group.id)}
-                                    className={`h-8 px-3 rounded-full text-xs transition-all whitespace-nowrap flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                                    aria-pressed={isSelected}
+                                    className={`h-8 px-3 rounded-full text-xs transition-colors whitespace-nowrap flex items-center gap-1.5 shrink-0 cursor-pointer ${
                                         isSelected
-                                            ? 'glass-active font-semibold text-[var(--ink)]'
+                                            ? 'font-semibold text-[var(--ink)]'
                                             : 'glass-soft font-medium text-[var(--ink-muted)] hover:text-[var(--ink)]'
                                     }`}
                                 >
@@ -590,7 +597,7 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                                 </button>
                             );
                         })}
-                    </div>
+                    </LiquidGroup>
                 </div>
 
                 {/* Timeline Content */}

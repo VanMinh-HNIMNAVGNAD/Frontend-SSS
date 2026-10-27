@@ -523,24 +523,31 @@ export default function BillingAndQuota() {
               `min-w-max` giữ cho cột không bị ép hẹp hơn chữ trên điện thoại — hẹp quá
               thì cả khung cuộn ngang (overflow-x-auto), không để chữ tràn đè lên nhau. */}
           <div className="glass-soft flex items-center p-1.5 rounded-2xl border shrink-0 w-full sm:w-auto overflow-x-auto">
-            <div className="flex-1 sm:flex-none grid grid-cols-2 gap-1 min-w-max">
+            {/* Giọt kính "đang chọn" nhảy giữa hai tab (LiquidGroup) — trước đây ô đang chọn là một
+                khối xám đặc `bg-gray-700` ở bản Tối, lạc tông với các nhóm chọn khác. */}
+            <LiquidGroup
+              activeKey={activeSection}
+              className="flex-1 sm:flex-none grid grid-cols-2 gap-1 min-w-max"
+            >
               {[
                 { id: 'pricing', labelKey: 'billing.tab.pricing' },
                 { id: 'history', labelKey: 'billing.tab.history' },
               ].map((tab) => (
                 <button
                   key={tab.id}
+                  data-liquid-key={tab.id}
                   onClick={() => setActiveSection(tab.id)}
-                  className={`px-4 sm:px-5 py-2.5 sm:py-2 text-[15px] font-bold rounded-xl transition-all cursor-pointer text-center whitespace-nowrap ${
+                  aria-pressed={activeSection === tab.id}
+                  className={`px-4 sm:px-5 py-2.5 sm:py-2 text-[15px] font-bold rounded-xl transition-colors cursor-pointer text-center whitespace-nowrap ${
                     activeSection === tab.id
-                      ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-gray-900/5 dark:ring-white/10'
+                      ? 'text-gray-900 dark:text-gray-100'
                       : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
                   }`}
                 >
                   {t(tab.labelKey)}
                 </button>
               ))}
-            </div>
+            </LiquidGroup>
 
             <div className="w-px h-5 bg-gray-200 dark:bg-gray-700 mx-1.5 shrink-0" />
 

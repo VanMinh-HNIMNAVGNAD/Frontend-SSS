@@ -328,9 +328,9 @@ export default function Header({ toggleRightSidebar }) {
 
     if (selectedCount > 0) {
         return (
-            // Thanh chọn nhiều: cùng tấm kính với header thường, sáng hơn một bậc (kính đang chọn) để
+            // Thanh chọn nhiều: cùng tấm kính với header thường, sáng hơn một bậc (`--glass-bright`) để
             // người dùng biết đang ở chế độ chọn — không còn ánh xanh (trước nữa: nền xanh đặc #0b57d0).
-            <header className="relative h-14 sm:h-16 flex items-center justify-between px-2 sm:px-3 md:px-4 glass bg-[var(--glass-active)]! rounded-[20px] sm:rounded-full text-[var(--ink)] shrink-0 gap-2 sm:gap-3 transition-colors duration-200 animate-fade-in">
+            <header className="relative h-14 sm:h-16 flex items-center justify-between px-2 sm:px-3 md:px-4 glass bg-[var(--glass-bright)]! rounded-[20px] sm:rounded-full text-[var(--ink)] shrink-0 gap-2 sm:gap-3 transition-colors duration-200 animate-fade-in">
                 {/* Viền sáng của kính — xem chú thích ở header thường bên dưới. */}
                 <GlassEdge className="z-auto" />
 

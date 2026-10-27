@@ -11,11 +11,15 @@ import {
 	Layers,
 	File,
 } from 'lucide-react';
-import { getEffectiveColor } from './fileColors';
+import { getIconColors } from './fileColors';
 
 /**
  * Trả về icon React cho một file/folder, màu sắc theo ngôn ngữ lập trình
  * hoặc customColor nếu người dùng đã tùy chỉnh.
+ *
+ * Đơn sắc (26/10/2026): màu theo loại tệp đã dịu bớt, thư mục chưa đổi màu là xám — xem
+ * `getIconColors` ở fileColors.js. Màu đi qua hai biến CSS (`--fi-l` / `--fi-d`) để biến thể `dark:`
+ * chọn đúng bản theo theme, như thẻ lưới.
  *
  * @param {object} item       - { type, name, mimeType, customColor }
  * @param {string} sizeClass  - Tailwind class kích thước (mặc định 'w-5 h-5')
@@ -25,9 +29,10 @@ export function getFileIcon(item, sizeClass = 'w-5 h-5') {
 		return <File className={`${sizeClass} text-gray-500 shrink-0`} />;
 	}
 
-	// Tính màu hiệu lực (customColor ưu tiên, còn lại dùng màu mặc định theo loại)
-	const color = getEffectiveColor(item);
-	const style = { color };
+	// Màu icon (customColor ưu tiên, còn lại màu loại tệp đã dịu) cho cả hai theme
+	const { light, dark } = getIconColors(item);
+	const style = { '--fi-l': light, '--fi-d': dark };
+	sizeClass = `${sizeClass} text-[var(--fi-l)] dark:text-[var(--fi-d)]`;
 
 	const name = (item.name || '').toLowerCase();
 	const mime = (item.mimeType || '').toLowerCase();

@@ -23,6 +23,11 @@ function TagGlyph({ color, className = '' }) {
  *
  * Hiện tối đa `max` chip rồi "+N": một tệp gắn chục nhãn không được đẩy cột tên ra khỏi màn hình.
  * Không có nhãn thì không vẽ gì — kể cả khoảng trống.
+ *
+ * Đơn sắc (26/10/2026): chip là viên kính xám chữ mực nhạt, màu của nhãn chỉ còn ở icon thẻ treo —
+ * bản cũ tô cả chữ, viền lẫn nền theo màu nhãn nên một hàng có hai ba mảng đỏ/xanh/lục. Chip đứng
+ * CÙNG DÒNG với tên tệp và không bao giờ xuống dòng (`flex-nowrap`): trước đây chip nằm dưới tên nên
+ * hàng có nhãn cao hơn hàng không nhãn, cả bảng lởm chởm.
  */
 function TagChips({ tags, max = 3, className = '' }) {
     const navigate = useNavigate();
@@ -33,7 +38,7 @@ function TagChips({ tags, max = 3, className = '' }) {
     const rest = tags.length - shown.length;
 
     return (
-        <span className={`flex flex-wrap items-center gap-1 min-w-0 ${className}`}>
+        <span className={`flex flex-nowrap items-center gap-1 min-w-0 overflow-hidden ${className}`}>
             {shown.map((tag) => {
                 const color = tag.colorHex || DEFAULT_TAG_COLOR;
                 return (
@@ -46,12 +51,7 @@ function TagChips({ tags, max = 3, className = '' }) {
                         }}
                         onDoubleClick={(e) => e.stopPropagation()}
                         title={t('tags.openTag', { name: tag.name })}
-                        className="inline-flex items-center gap-0.5 max-w-[120px] px-1.5 py-[1px] rounded-full text-[10px] font-semibold leading-4 border cursor-pointer hover:brightness-95 dark:hover:brightness-125"
-                        style={{
-                            color,
-                            borderColor: `${color}55`,
-                            backgroundColor: `${color}14`,
-                        }}
+                        className="chip shrink-0 max-w-[120px] h-[18px] pl-1 pr-1.5 text-[10.5px] leading-none hover:text-[var(--ink)] cursor-pointer"
                     >
                         {/* 10px + khe 2px: chỉ rộng hơn chấm 6px + khe 4px cũ 2px, ba chip vẫn vừa một dòng */}
                         <TagGlyph color={color} className="w-2.5 h-2.5" />
@@ -61,7 +61,7 @@ function TagChips({ tags, max = 3, className = '' }) {
             })}
             {rest > 0 && (
                 <span
-                    className="text-[10px] font-semibold text-gray-500 dark:text-gray-400"
+                    className="shrink-0 text-[10.5px] font-semibold text-[var(--ink-subtle)]"
                     title={tags.slice(max).map((tag) => tag.name).join(', ')}
                 >
                     +{rest}
@@ -94,7 +94,7 @@ export const TagIcons = memo(function TagIcons({ tags, max = 3, stacked = false,
                 <TagGlyph key={tag.id} color={tag.colorHex || DEFAULT_TAG_COLOR} className="w-3.5 h-3.5" />
             ))}
             {tags.length > max && (
-                <span className="text-[9px] font-bold leading-none text-gray-500 dark:text-gray-400 pl-1">+{tags.length - max}</span>
+                <span className="text-[9px] font-bold leading-none text-[var(--ink-subtle)] pl-1">+{tags.length - max}</span>
             )}
         </span>
     );

@@ -23,7 +23,7 @@ function Avatar({ author }) {
     );
   }
   return (
-    <span className="w-8 h-8 rounded-full shrink-0 flex items-center justify-center bg-sky-600 text-white text-sm font-semibold uppercase">
+    <span className="w-8 h-8 rounded-full shrink-0 flex items-center justify-center bg-gradient-to-br from-zinc-400 to-zinc-600 text-white text-sm font-semibold uppercase">
       {name.trim().charAt(0)}
     </span>
   );
@@ -183,7 +183,7 @@ export default function CommentsPanel({ comments, onClose, className = '' }) {
                     onKeyDown={(e) => sendOnShortcut(e, saveEdit)}
                     rows={3}
                     autoFocus
-                    className="w-full resize-none rounded-lg bg-white/10 border border-white/20 focus:border-sky-400 outline-none px-3 py-2 text-sm"
+                    className="w-full resize-none rounded-lg bg-white/10 border border-white/20 focus:border-white/40 outline-none px-3 py-2 text-sm"
                   />
                   <div className="flex justify-end gap-2">
                     <button
@@ -222,7 +222,7 @@ export default function CommentsPanel({ comments, onClose, className = '' }) {
                     <button
                       type="button"
                       onClick={() => remove(c.id)}
-                      className={`cursor-pointer ${confirmDelete === c.id ? 'text-rose-400 font-medium' : 'hover:text-white'}`}
+                      className={`cursor-pointer ${confirmDelete === c.id ? 'text-[#f08a8a] font-medium' : 'hover:text-white'}`}
                     >
                       {confirmDelete === c.id ? t('preview.comments.confirmDelete') : t('preview.comments.delete')}
                     </button>
@@ -243,7 +243,7 @@ export default function CommentsPanel({ comments, onClose, className = '' }) {
           rows={2}
           disabled={Boolean(comments.error)}
           placeholder={t('preview.comments.placeholder')}
-          className="w-full resize-none rounded-xl bg-white/10 border border-white/15 focus:border-sky-400 outline-none px-3 py-2 text-sm placeholder:text-white/40 disabled:opacity-50"
+          className="w-full resize-none rounded-xl bg-white/10 border border-white/15 focus:border-white/40 outline-none px-3 py-2 text-sm placeholder:text-white/40 disabled:opacity-50"
         />
         <div className="flex items-center justify-between gap-2">
           <span className="text-[11px] text-white/40">

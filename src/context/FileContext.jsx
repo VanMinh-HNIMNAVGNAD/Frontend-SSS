@@ -256,6 +256,8 @@ const formatApiItem = (item, isSharedWithMe = false, locale = 'vi-VN') => {
       sharedAt: item.sharedAt
         ? new Date(item.sharedAt).toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' })
         : '',
+      // Mốc số cho cột ngày gọn của danh sách (`formatListDate`) — chuỗi trên chỉ để hiển thị.
+      sharedAtMs: Date.parse(item.sharedAt) || 0,
     };
   }
 

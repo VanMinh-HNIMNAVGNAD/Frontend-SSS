@@ -51,7 +51,7 @@ function ItemLocation({ item, onOpen, compact = false, className = '' }) {
                 e.preventDefault();
             }}
             title={t('search.location.open', { name: label })}
-            className={`flex items-center gap-1 min-w-0 max-w-full font-medium text-gray-500 dark:text-gray-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline cursor-pointer ${
+            className={`flex items-center gap-1 min-w-0 max-w-full font-medium text-[var(--ink-subtle)] hover:text-[var(--ink)] hover:underline cursor-pointer ${
                 compact ? 'text-[9.5px] leading-3' : 'text-[11px] leading-4'
             } ${className}`}
         >

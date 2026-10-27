@@ -109,6 +109,9 @@ const en = {
   'common.deselectAll': 'Deselect all',
   'common.login': 'Sign in',
   'common.unknownError': 'unknown error',
+  // Glass dialogs replacing the browser's alert/confirm/prompt (utils/dialog.js)
+  'dialog.ok': 'OK',
+  'dialog.confirm': 'Confirm',
 
   // ── 11. Header bar ──────────────────────────────────────────────────────
   'header.selected': '{count} selected',
@@ -273,6 +276,7 @@ const en = {
   'filter.date.label': 'Date modified',
   'filter.reset': 'Clear filters',
   'filter.resetTitle': 'Clear all filters',
+  'filter.clearOne': 'Clear this filter',
   'filter.type.all': 'All file types',
   'filter.type.folder': 'Folders',
   'filter.type.file': 'Files',

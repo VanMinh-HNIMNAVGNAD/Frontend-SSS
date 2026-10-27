@@ -188,7 +188,7 @@ export const PLAN_UI_CONFIG = [
     // lượng, có thêm model AI bậc Plus — gói chủ hệ thống muốn khách chọn.
     badge: {
       labelKey: 'billing.badge.popular',
-      tone: 'bg-blue-600 text-white shadow-sm',
+      tone: 'btn-accent',
     },
     highlight: true,
     featureKeys: ['billing.feature.plus.ai', 'billing.feature.paid.pooled', 'billing.feature.paid.fallback'],
@@ -268,15 +268,18 @@ export const resolvePlanGridCols = (count) => PLAN_GRID_COLS[count] || PLAN_GRID
 //
 // Bảy trạng thái bám nguyên PaymentLinkStatus của payOS (và CHECK constraint của
 // cột `payment_transactions.status`).
+//
+// Đơn sắc (26/10/2026): chỉ trạng thái cần người dùng để ý mới có màu — đang chờ / thiếu tiền (hổ
+// phách dịu), thất bại (đỏ dịu). "Đã thanh toán" là chip xám chữ đậm có dấu ✓, không còn xanh lục.
 
 export const TX_STATUS = {
-  PAID: { labelKey: 'billing.tx.paid', Icon: Check, tone: 'bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-100 dark:border-emerald-500/30' },
-  PENDING: { labelKey: 'billing.tx.pending', Icon: Clock, tone: 'bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-100 dark:border-amber-500/30' },
-  PROCESSING: { labelKey: 'billing.tx.processing', Icon: Clock, tone: 'bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-100 dark:border-amber-500/30' },
-  UNDERPAID: { labelKey: 'billing.tx.underpaid', Icon: AlertTriangle, tone: 'bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-100 dark:border-amber-500/30' },
-  CANCELLED: { labelKey: 'billing.tx.cancelled', Icon: XCircle, tone: 'bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700' },
-  EXPIRED: { labelKey: 'billing.tx.expired', Icon: XCircle, tone: 'bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700' },
-  FAILED: { labelKey: 'billing.tx.failed', Icon: XCircle, tone: 'bg-rose-50 dark:bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-100 dark:border-rose-500/30' },
+  PAID: { labelKey: 'billing.tx.paid', Icon: Check, tone: 'bg-[var(--chip-fill)] text-[var(--ink)] border-transparent' },
+  PENDING: { labelKey: 'billing.tx.pending', Icon: Clock, tone: 'bg-[var(--tone-warn-soft)] text-[var(--tone-warn)] border-transparent' },
+  PROCESSING: { labelKey: 'billing.tx.processing', Icon: Clock, tone: 'bg-[var(--tone-warn-soft)] text-[var(--tone-warn)] border-transparent' },
+  UNDERPAID: { labelKey: 'billing.tx.underpaid', Icon: AlertTriangle, tone: 'bg-[var(--tone-warn-soft)] text-[var(--tone-warn)] border-transparent' },
+  CANCELLED: { labelKey: 'billing.tx.cancelled', Icon: XCircle, tone: 'bg-[var(--chip-fill)] text-[var(--ink-muted)] border-transparent' },
+  EXPIRED: { labelKey: 'billing.tx.expired', Icon: XCircle, tone: 'bg-[var(--chip-fill)] text-[var(--ink-muted)] border-transparent' },
+  FAILED: { labelKey: 'billing.tx.failed', Icon: XCircle, tone: 'bg-[var(--tone-danger-soft)] text-[var(--tone-danger)] border-transparent' },
 };
 
 /** Trạng thái chưa chốt: còn kiểm tra lại được với payOS. */
@@ -290,7 +293,7 @@ export const resolveTxStatus = (status) =>
     label: status || null,
     labelKey: status ? null : 'billing.tx.unknown',
     Icon: AlertTriangle,
-    tone: 'bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700',
+    tone: 'bg-[var(--chip-fill)] text-[var(--ink-muted)] border-transparent',
   };
 
 export const PAYMENT_METHOD_LABEL = { PAYOS: 'payOS (VietQR)' };

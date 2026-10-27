@@ -15,6 +15,7 @@ import { Folder, FileText, ChevronLeft, ChevronRight, SearchX } from 'lucide-rea
 import { collectInputEntries } from '../../utils/uploadTree';
 import { downloadSingleItem } from '../../utils/downloadItems';
 import tRich from '../../utils/tRich';
+import { alertDialog, promptDialog } from '../../utils/dialog';
 import { FOLDER_GRID_CLASS, FILE_GRID_CLASS } from './gridLayout';
 
 export default function FileGridView() {
@@ -132,14 +133,17 @@ export default function FileGridView() {
         setContextMenu({ isOpen: false, x: 0, y: 0, item: null });
     }, []);
 
-    const handleCreateFolderPrompt = useCallback(() => {
+    const handleCreateFolderPrompt = useCallback(async () => {
         if (activeTab === 'shared-drives' && !currentSharedDriveId && !currentFolderId) {
-            alert(t('newBtn.needDrive.folder'));
+            await alertDialog(t('newBtn.needDrive.folder'));
             return;
         }
-        const name = prompt(t('newBtn.prompt.folderName'), t('newBtn.defaultFolderName'));
-        if (name) {
-            createFolder(name);
+        const name = await promptDialog({
+            message: t('newBtn.prompt.folderName'),
+            defaultValue: t('newBtn.defaultFolderName'),
+        });
+        if (name && name.trim()) {
+            createFolder(name.trim());
         }
     }, [activeTab, currentSharedDriveId, currentFolderId, createFolder, t]);
 
@@ -148,7 +152,7 @@ export default function FileGridView() {
         e.target.value = '';
         if (selectedFiles.length === 0) return;
         if (activeTab === 'shared-drives' && !currentSharedDriveId && !currentFolderId) {
-            alert(t('newBtn.needDrive.file'));
+            alertDialog(t('newBtn.needDrive.file'));
             return;
         }
         selectedFiles.forEach((file) => enqueueUpload(file));
@@ -165,7 +169,7 @@ export default function FileGridView() {
         if (tree.entries.length === 0) return;
 
         if (activeTab === 'shared-drives' && !currentSharedDriveId && !currentFolderId) {
-            alert(t('newBtn.needDrive.uploadFolder'));
+            alertDialog(t('newBtn.needDrive.uploadFolder'));
             return;
         }
 
@@ -237,15 +241,15 @@ export default function FileGridView() {
         return (
             <div
                 onContextMenu={openBlankContextMenu}
-                className="flex flex-col items-center justify-center h-full py-20 text-gray-400 dark:text-gray-500"
+                className="flex flex-col items-center justify-center h-full py-20"
             >
-                <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-3 text-gray-300">
-                    {isQuerying ? <SearchX className="w-8 h-8" /> : <Folder className="w-8 h-8" />}
+                <div className="glass-soft w-16 h-16 rounded-[20px] flex items-center justify-center mb-3 text-[var(--ink-subtle)]">
+                    {isQuerying ? <SearchX className="w-7 h-7" /> : <Folder className="w-7 h-7" />}
                 </div>
-                <p className="text-base font-medium text-gray-600 dark:text-gray-300">
+                <p className="text-sm font-medium text-[var(--ink)]">
                     {isQuerying ? t('list.empty.noResults') : t('list.empty.gridTitle')}
                 </p>
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 text-center px-4">
+                <p className="text-xs text-[var(--ink-muted)] mt-1 text-center px-4">
                     {isQuerying ? t('list.empty.noResultsHint') : t('list.empty.gridHint')}
                 </p>
 
@@ -290,8 +294,8 @@ export default function FileGridView() {
                 {/* Section 1: Thư mục (Folders) */}
                 {folders && folders.length > 0 && (
                     <div>
-                        <div className="flex items-center gap-2 mb-3 phone:mb-2 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                            <Folder className="w-4 h-4 text-amber-500" />
+                        <div className="flex items-center gap-2 mb-3 phone:mb-2 text-[11px] font-semibold text-[var(--ink-muted)] uppercase tracking-wider">
+                            <Folder className="w-3.5 h-3.5" />
                             <span>{t('list.group.folders', { count: folders.length })}</span>
                         </div>
                         <div className={FOLDER_GRID_CLASS}>
@@ -316,8 +320,8 @@ export default function FileGridView() {
                 {/* Section 2: Tệp (Files) */}
                 {files && files.length > 0 && (
                     <div>
-                        <div className="flex items-center gap-2 mb-3 phone:mb-2 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                            <FileText className="w-4 h-4 text-blue-500" />
+                        <div className="flex items-center gap-2 mb-3 phone:mb-2 text-[11px] font-semibold text-[var(--ink-muted)] uppercase tracking-wider">
+                            <FileText className="w-3.5 h-3.5" />
                             <span>{t('list.group.files', { count: files.length })}</span>
                         </div>
                         <div className={FILE_GRID_CLASS}>
@@ -341,29 +345,29 @@ export default function FileGridView() {
 
             {/* Pagination Controls */}
             {totalPages > 1 && (
-                <div className="flex items-center justify-between pt-4 border-t text-xs text-gray-500 dark:text-gray-400 border-glass-divider">
+                <div className="flex items-center justify-between pt-4 border-t text-xs text-[var(--ink-muted)] border-glass-divider">
                     <div>
                         {tRich(t('list.pagination.showing'), {
-                            from: <span className="font-semibold text-gray-700 dark:text-gray-300">{((currentPage - 1) * pageSize) + 1}</span>,
-                            to: <span className="font-semibold text-gray-700 dark:text-gray-300">{Math.min(currentPage * pageSize, totalItems)}</span>,
-                            total: <span className="font-semibold text-gray-700 dark:text-gray-300">{totalItems}</span>,
+                            from: <span className="font-semibold text-[var(--ink)]">{((currentPage - 1) * pageSize) + 1}</span>,
+                            to: <span className="font-semibold text-[var(--ink)]">{Math.min(currentPage * pageSize, totalItems)}</span>,
+                            total: <span className="font-semibold text-[var(--ink)]">{totalItems}</span>,
                         })}
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1.5">
                         <button
                             disabled={currentPage === 1}
                             onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                            className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-40 disabled:hover:bg-transparent transition-colors"
+                            className="glass-soft p-1.5 rounded-full disabled:opacity-40 transition-colors text-[var(--ink)] cursor-pointer disabled:cursor-not-allowed"
                         >
                             <ChevronLeft className="w-4 h-4" />
                         </button>
-                        <span className="px-2 font-medium">
+                        <span className="px-2 font-semibold text-[var(--ink)] tabular-nums">
                             {t('list.pagination.page', { page: currentPage, total: totalPages })}
                         </span>
                         <button
                             disabled={currentPage === totalPages}
                             onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                            className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-40 disabled:hover:bg-transparent transition-colors"
+                            className="glass-soft p-1.5 rounded-full disabled:opacity-40 transition-colors text-[var(--ink)] cursor-pointer disabled:cursor-not-allowed"
                         >
                             <ChevronRight className="w-4 h-4" />
                         </button>

@@ -92,30 +92,6 @@ function pointToPos(x, y, vw, vh) {
     return { edge, ratio: clamp(ratio, 0, 1) };
 }
 
-/**
- * Icon của bong bóng, chia làm BỐN GÓC PHẦN TƯ đổi màu lệch pha nhau.
- *
- * Bốn bản sao chồng lên nhau, mỗi bản bị `clip-path` cắt còn một phần tư và vào vòng
- * cầu vồng ở một pha khác (xem `.ai-bubble-quad*` trong src/index.css). Dựng bằng bốn
- * bản sao thay vì tô bốn màu vào một icon vì `color` là MỘT giá trị cho cả phần tử —
- * muốn bốn màu cùng lúc thì phải có bốn phần tử.
- *
- * CHỈ dùng cho icon đứng yên. Trước đây vòng xoay lúc đang nghĩ cũng đi qua đây: bốn
- * bản sao quay riêng, mỗi bản được khử răng cưa riêng rồi cắt ở mép lệch nửa pixel,
- * nên nét cung chạy qua đường ghép cứ chớp lệch — nhìn như bong bóng đang rung.
- */
-function RainbowIcon({ Icon }) {
-    return (
-        <span className="relative block w-7 h-7">
-            {['tl', 'tr', 'br', 'bl'].map((quadrant) => (
-                <span key={quadrant} className={`ai-bubble-quad ai-bubble-quad-${quadrant}`}>
-                    <Icon className="w-7 h-7" />
-                </span>
-            ))}
-        </span>
-    );
-}
-
 export default function AiBubble({ isThinking, unseenReply, label, onRestore }) {
     const [pos, setPos] = useState(readStoredPos);
     const [viewport, setViewport] = useState(() => ({
@@ -225,22 +201,22 @@ export default function AiBubble({ isThinking, unseenReply, label, onRestore }) 
                 // kéo thì bong bóng chạy sau con trỏ một nhịp, cảm giác như bị trễ.
                 transition: drag ? 'none' : 'left 0.22s ease-out, top 0.22s ease-out',
             }}
-            className={`glass-plain glass-strong fixed z-[60] w-14 h-14 rounded-full border flex items-center justify-center text-blue-600 dark:text-blue-400 hover:border-blue-400 dark:hover:border-blue-500 animate-fade-in select-none ${
+            className={`glass-plain glass-strong fixed z-[60] w-14 h-14 rounded-full flex items-center justify-center text-[var(--ink)] animate-fade-in select-none ${
                 drag ? 'cursor-grabbing scale-105' : 'cursor-grab hover:scale-105'
             }`}
         >
             {/* Ba trạng thái, đọc được mà không cần mở ra: đang trả lời (vòng xoay),
-                đã có câu trả lời chưa xem (chấm xanh), và bình thường.
+                đã có câu trả lời chưa xem (chấm), và bình thường.
 
-                Vòng xoay là MỘT icon liền, một màu — một vòng tải bình thường, không
-                đi qua `RainbowIcon` (xem chú thích ở đó vì sao). */}
+                Đơn sắc (26/10/2026): icon màu mực, một màu — bản trước chia icon thành bốn góc
+                đổi màu cầu vồng lệch pha nhau, nhấp nháy suốt phiên ở góc màn hình. */}
             {isThinking ? (
                 <Loader2 className="w-7 h-7 animate-spin" />
             ) : (
-                <RainbowIcon Icon={Sparkles} />
+                <Sparkles className="w-7 h-7" />
             )}
             {!isThinking && unseenReply && (
-                <span className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-blue-600 dark:bg-blue-400 ring-2 ring-white dark:ring-[#2a2a2e]" />
+                <span className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-[var(--accent)] ring-2 ring-white dark:ring-[#2a2a2e]" />
             )}
         </button>
     );

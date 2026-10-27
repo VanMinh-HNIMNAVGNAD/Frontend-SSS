@@ -527,7 +527,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
         {/* Modal Header */}
         <div className="px-6 py-4 border-b flex items-center justify-between bg-gray-50/80 dark:bg-white/5 border-glass-divider">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-blue-600/10 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold">
+            <div className="w-9 h-9 rounded-xl bg-[var(--chip-fill)] text-[var(--ink-muted)] flex items-center justify-center font-bold">
               <UserIcon className="w-5 h-5" />
             </div>
             <div>
@@ -549,7 +549,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
             onClick={() => setActiveTab('profile')}
             className={`py-3.5 px-3 text-xs font-bold transition-all border-b-2 flex items-center gap-2 ${
               activeTab === 'profile'
-                ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+                ? 'border-[var(--ink)] text-[var(--ink)]'
                 : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100'
             }`}
           >
@@ -562,7 +562,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
               onClick={() => setActiveTab('password')}
               className={`py-3.5 px-3 text-xs font-bold transition-all border-b-2 flex items-center gap-2 ${
                 activeTab === 'password'
-                  ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+                  ? 'border-[var(--ink)] text-[var(--ink)]'
                   : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100'
               }`}
             >
@@ -575,7 +575,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
             onClick={() => setActiveTab('sessions')}
             className={`py-3.5 px-3 text-xs font-bold transition-all border-b-2 flex items-center gap-2 ${
               activeTab === 'sessions'
-                ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+                ? 'border-[var(--ink)] text-[var(--ink)]'
                 : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100'
             }`}
           >
@@ -590,7 +590,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
           {activeTab === 'profile' && (
             <div className="space-y-6">
               {/* Profile Card & Avatar */}
-              <div className="flex items-center gap-5 p-4 rounded-2xl bg-gradient-to-r from-blue-50/60 to-indigo-50/40 dark:from-blue-400/10 dark:to-indigo-400/[0.06] border border-blue-100/80 dark:border-white/10">
+              <div className="glass-soft flex items-center gap-5 p-4 rounded-2xl">
                 <input
                   type="file"
                   ref={fileInputRef}
@@ -603,7 +603,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                   onClick={() => !isUploadingAvatar && fileInputRef.current?.click()}
                   title={t('profile.avatar.clickToChange')}
                 >
-                  <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold flex items-center justify-center text-3xl shadow-md border-2 border-white overflow-hidden relative">
+                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-zinc-400 to-zinc-600 dark:from-zinc-500 dark:to-zinc-700 text-white font-semibold flex items-center justify-center text-3xl shadow-md border-2 border-white dark:border-white/20 overflow-hidden relative">
                     {user.avatarUrl ? (
                       <img src={user.avatarUrl} alt="Avatar" className="w-full h-full rounded-full object-cover" />
                     ) : (
@@ -634,14 +634,14 @@ export default function UserProfileModal({ isOpen, onClose }) {
                     <h4 className="text-base font-bold text-gray-900 dark:text-gray-100 truncate">
                       {user.fullName || t('profile.defaultName')}
                     </h4>
-                    <span className="inline-flex items-center px-2 py-0.5 bg-blue-100 text-blue-700 dark:text-blue-300 rounded-full text-[10px] font-bold">
+                    <span className="chip px-2 py-0.5 text-[10px]">
                       {user.provider === 'local' ? 'cloudSSS' : user.provider}
                     </span>
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">{user.email}</p>
                   {/* Gói đang dùng ngay dưới email — chỗ đầu tiên mắt nhìn khi mở hồ sơ. */}
                   {hasPlan && (
-                    <span className="mt-1.5 inline-flex max-w-full items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
+                    <span className="chip mt-1.5 max-w-full px-2 py-0.5 text-[11px]">
                       <CreditCard className="w-3 h-3 shrink-0" />
                       <span className="truncate">
                         {planDisplayName}
@@ -661,7 +661,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                     "Gói Cá Nh…" và dòng hạn vỡ thành ba dòng (đã chụp ở 375px). */}
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1 sm:gap-3">
                   <div className="flex items-start gap-3 min-w-0">
-                    <div className="shrink-0 w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                    <div className="shrink-0 w-9 h-9 rounded-xl bg-[var(--chip-fill)] text-[var(--ink-muted)] flex items-center justify-center">
                       <CreditCard className="w-5 h-5" />
                     </div>
                     <div className="min-w-0">
@@ -680,7 +680,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                         <p
                           className={`text-xs mt-0.5 ${
                             subscription.cancelAtPeriodEnd
-                              ? 'text-amber-700 dark:text-amber-400'
+                              ? 'text-[var(--tone-warn)]'
                               : 'text-gray-500 dark:text-gray-400'
                           }`}
                         >
@@ -692,7 +692,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                   <button
                     type="button"
                     onClick={openBilling}
-                    className="self-start shrink-0 ml-9 sm:ml-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/15 transition-colors"
+                    className="glass-soft self-start shrink-0 ml-9 sm:ml-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold text-[var(--ink)] transition-colors cursor-pointer"
                   >
                     {/* "Nâng cấp" chỉ khi server ĐÃ trả lời là không có gói (`null`) — lúc đang tải hay
                         lỗi mà hiện "Nâng cấp" là mời người đang có gói Pro mua lại từ đầu. */}
@@ -704,12 +704,12 @@ export default function UserProfileModal({ isOpen, onClose }) {
                 <div className="space-y-1.5 pt-3 border-t border-glass-divider">
                   <div className="flex items-center justify-between gap-2 text-xs font-bold">
                     <span className="flex items-center gap-1.5 text-gray-800 dark:text-gray-200">
-                      <HardDrive className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                      <HardDrive className="w-4 h-4 text-[var(--ink-muted)]" />
                       {t('profile.storage.title')}
                     </span>
                     <span
                       className={
-                        storageStatus.isFull ? 'text-rose-600 dark:text-rose-400' : 'text-gray-600 dark:text-gray-300'
+                        storageStatus.isFull ? 'text-[var(--tone-danger)]' : 'text-gray-600 dark:text-gray-300'
                       }
                     >
                       {formatBytes(storageUsedBytes)} / {formatStorage(storageLimitBytes)} ({storageStatus.percent}%)
@@ -719,12 +719,12 @@ export default function UserProfileModal({ isOpen, onClose }) {
                     <div
                       className={`h-full rounded-full transition-all duration-500 ${
                         storageStatus.isFull
-                          ? 'bg-rose-600'
+                          ? 'bg-[var(--tone-danger)]'
                           : storageStatus.level === 'almostFull'
-                          ? 'bg-rose-500'
+                          ? 'bg-[var(--tone-danger)]'
                           : storageStatus.level === 'warning'
-                          ? 'bg-amber-500'
-                          : 'bg-gradient-to-r from-blue-500 to-indigo-600'
+                          ? 'bg-[var(--tone-warn)]'
+                          : 'bg-[var(--ink-muted)]'
                       }`}
                       style={{ width: `${Math.max(2, storageStatus.barPercent)}%` }}
                     />
@@ -734,7 +734,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                   <p
                     className={`text-[11px] ${
                       storageStatus.isFull
-                        ? 'font-semibold text-rose-600 dark:text-rose-400'
+                        ? 'font-semibold text-[var(--tone-danger)]'
                         : 'text-gray-500 dark:text-gray-400'
                     }`}
                   >
@@ -772,7 +772,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                       autoComplete="off"
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
-                      className="glass-input w-full pl-10 pr-4 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-gray-800 dark:text-gray-200"
+                      className="glass-input w-full pl-10 pr-4 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-soft)] transition-all font-medium text-gray-800 dark:text-gray-200"
                       placeholder={t('profile.name.placeholder')}
                     />
                   </div>
@@ -798,9 +798,9 @@ export default function UserProfileModal({ isOpen, onClose }) {
                     aria-labelledby="discoverable-label"
                     onClick={() => setIsDiscoverable((prev) => !prev)}
                     disabled={isSavingProfile}
-                    className={`relative shrink-0 mt-0.5 w-11 h-6 rounded-full transition-colors duration-300 ease-out focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-[#1f2020] disabled:opacity-60 disabled:cursor-not-allowed ${
+                    className={`relative shrink-0 mt-0.5 w-11 h-6 rounded-full transition-colors duration-300 ease-out focus:outline-none focus:ring-2 focus:ring-[var(--accent-soft)] focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-[#1f2020] disabled:opacity-60 disabled:cursor-not-allowed ${
                       isDiscoverable
-                        ? 'bg-blue-600'
+                        ? 'bg-[var(--accent)]'
                         : 'bg-gray-300 dark:bg-gray-600'
                     }`}
                   >
@@ -831,7 +831,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                   <button
                     type="submit"
                     disabled={isSavingProfile}
-                    className="px-5 py-2.5 btn-accent hover:brightness-105 rounded-xl font-bold text-xs transition-all shadow-md shadow-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
+                    className="px-5 py-2.5 btn-accent hover:brightness-105 rounded-full font-semibold text-xs transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
                   >
                     {isSavingProfile ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -848,7 +848,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
           {/* TAB 2: ĐỔI MẬT KHẨU (Chỉ hiển thị cho local user) */}
           {activeTab === 'password' && user.provider === 'local' && (
             <form onSubmit={handleUpdatePassword} className="space-y-4">
-              <div className="p-3 bg-amber-50 dark:bg-amber-500/15 rounded-xl border border-amber-200/80 dark:border-amber-800/60 text-amber-800 dark:text-amber-200 text-xs">
+              <div className="p-3 bg-[var(--tone-warn-soft)] rounded-xl text-[var(--ink)] text-xs">
                 <span>
                   {t('profile.password.securityHint')}
                 </span>
@@ -865,7 +865,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                     required
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
-                    className="glass-input w-full pl-10 pr-4 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-gray-800 dark:text-gray-200"
+                    className="glass-input w-full pl-10 pr-4 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-soft)] transition-all font-medium text-gray-800 dark:text-gray-200"
                     placeholder="••••••••"
                   />
                 </div>
@@ -883,7 +883,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                     minLength={6}
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    className="glass-input w-full pl-10 pr-4 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-gray-800 dark:text-gray-200"
+                    className="glass-input w-full pl-10 pr-4 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-soft)] transition-all font-medium text-gray-800 dark:text-gray-200"
                     placeholder={t('profile.password.minHint')}
                   />
                 </div>
@@ -901,7 +901,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                     minLength={6}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="glass-input w-full pl-10 pr-4 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium text-gray-800 dark:text-gray-200"
+                    className="glass-input w-full pl-10 pr-4 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-soft)] transition-all font-medium text-gray-800 dark:text-gray-200"
                     placeholder={t('profile.password.confirmPlaceholder')}
                   />
                 </div>
@@ -911,7 +911,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                 <button
                   type="submit"
                   disabled={isChangingPassword}
-                  className="px-5 py-2.5 btn-accent hover:brightness-105 rounded-xl font-bold text-xs transition-all shadow-md shadow-blue-500/20 disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="px-5 py-2.5 btn-accent hover:brightness-105 rounded-full font-semibold text-xs transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                   {isChangingPassword ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -950,7 +950,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                     <button
                       onClick={handleRevokeAllOtherSessions}
                       disabled={isRevokingAll}
-                      className="px-3 py-1.5 bg-rose-50 dark:bg-rose-500/15 hover:bg-rose-100 dark:hover:bg-rose-500/25 text-rose-600 dark:text-rose-300 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 disabled:opacity-50"
+                      className="btn-danger px-3 py-1.5 text-xs font-semibold rounded-full transition-all flex items-center gap-1.5 disabled:cursor-not-allowed cursor-pointer"
                     >
                       {isRevokingAll ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -1002,7 +1002,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                         key={sess.id}
                         className={`p-3.5 rounded-2xl border transition-all flex items-center justify-between gap-3 ${
                           sess.isCurrent
-                            ? 'bg-blue-50/40 dark:bg-blue-500/15 border-blue-200 dark:border-blue-800/60 shadow-xs'
+                            ? 'glass-active border-transparent'
                             : sess.isRevoked
                             ? 'bg-gray-50/50 dark:bg-white/5 border-gray-200 dark:border-gray-700 opacity-60'
                             : 'glass-soft'
@@ -1012,8 +1012,8 @@ export default function UserProfileModal({ isOpen, onClose }) {
                           <div
                             className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
                               sess.isCurrent
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+                                ? 'bg-[var(--ink)] text-white dark:text-[#161618]'
+                                : 'bg-[var(--chip-fill)] text-[var(--ink-muted)]'
                             }`}
                           >
                             <Icon className="w-5 h-5" />
@@ -1024,7 +1024,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                                 {deviceString}
                               </span>
                               {sess.isCurrent && (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-100 text-emerald-700 dark:text-emerald-300 rounded-full text-[10px] font-bold">
+                                <span className="chip px-2 py-0.5 text-[10px] text-[var(--ink)]">
                                   <CheckCircle2 className="w-3 h-3" /> {t('profile.session.thisDevice')}
                                 </span>
                               )}
@@ -1061,7 +1061,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                           <button
                             onClick={() => handleRevokeSession(sess.id)}
                             disabled={revokingSessionId === sess.id}
-                            className="px-3 py-1.5 text-xs font-semibold text-rose-600 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-500/15 rounded-xl transition-colors shrink-0 disabled:opacity-50 flex items-center gap-1"
+                            className="px-3 py-1.5 text-xs font-semibold text-[var(--tone-danger)] rounded-full transition-colors shrink-0 disabled:opacity-50 flex items-center gap-1 cursor-pointer"
                           >
                             {revokingSessionId === sess.id ? (
                               <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -1088,22 +1088,22 @@ export default function UserProfileModal({ isOpen, onClose }) {
              */}
           {activeTab === 'profile' && (
           <div className="pt-4 border-t border-glass-divider">
-            <div className="p-4 rounded-2xl border border-rose-200 dark:border-rose-900/50 bg-rose-50/50 dark:bg-rose-400/15 space-y-3">
+            <div className="p-4 rounded-2xl bg-[var(--tone-danger-soft)] space-y-3">
               <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-xl bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-300 flex items-center justify-center shrink-0 mt-0.5">
+                <div className="w-8 h-8 rounded-xl bg-white/70 dark:bg-white/10 text-[var(--tone-danger)] flex items-center justify-center shrink-0 mt-0.5">
                   <ShieldAlert className="w-4 h-4" />
                 </div>
                 <div className="flex-1">
-                  <h5 className="text-xs font-bold text-rose-900 dark:text-rose-200 uppercase tracking-wider">
+                  <h5 className="text-xs font-semibold text-[var(--tone-danger)] uppercase tracking-wider">
                     {t('profile.danger.title')}
                   </h5>
-                  <p className="text-[11px] text-rose-700 dark:text-rose-300 mt-0.5 leading-relaxed">
+                  <p className="text-[11px] text-[var(--ink-muted)] mt-0.5 leading-relaxed">
                     {t('profile.danger.desc')}
                   </p>
                 </div>
                 <button
                   onClick={() => setShowDeleteModal(true)}
-                  className="px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 shrink-0 cursor-pointer"
+                  className="btn-danger px-3.5 py-2 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                   {t('profile.danger.button')}
@@ -1123,24 +1123,24 @@ export default function UserProfileModal({ isOpen, onClose }) {
             onClick={() => !isDeletingAccount && setShowDeleteModal(false)}
           />
           <div
-            className="glass-strong relative rounded-[28px] w-full max-w-md overflow-hidden p-6 space-y-5 border border-rose-100 dark:border-rose-900/50 animate-glass-in"
+            className="glass-strong relative rounded-[28px] w-full max-w-md overflow-hidden p-6 space-y-5 animate-glass-in"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header Warning */}
-            <div className="flex items-center gap-3 text-rose-600 dark:text-rose-400">
-              <div className="w-10 h-10 rounded-2xl bg-rose-100 dark:bg-rose-900/40 flex items-center justify-center shrink-0">
-                <AlertTriangle className="w-6 h-6 text-rose-600 dark:text-rose-400" />
+            <div className="flex items-center gap-3 text-[var(--tone-danger)]">
+              <div className="w-10 h-10 rounded-2xl bg-[var(--tone-danger-soft)] flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5" />
               </div>
               <div>
                 <h4 className="text-base font-bold text-gray-900 dark:text-gray-100">{t('profile.delete.title')}</h4>
-                <p className="text-xs text-rose-600 dark:text-rose-400 font-medium">{t('profile.delete.subtitle')}</p>
+                <p className="text-xs text-[var(--ink-muted)] font-medium">{t('profile.delete.subtitle')}</p>
               </div>
             </div>
 
             {/* Warning Description */}
-            <div className="p-3.5 bg-rose-50 dark:bg-rose-500/15 rounded-2xl border border-rose-200/80 dark:border-rose-900/50 text-rose-900 dark:text-rose-200 text-xs space-y-1.5 leading-relaxed">
+            <div className="p-3.5 bg-[var(--tone-danger-soft)] rounded-2xl text-[var(--ink)] text-xs space-y-1.5 leading-relaxed">
               <p className="font-bold">{t('profile.delete.warnTitle')}</p>
-              <ul className="list-disc list-inside space-y-1 text-rose-800 dark:text-rose-300 text-[11px]">
+              <ul className="list-disc list-inside space-y-1 text-[var(--ink-muted)] text-[11px]">
                 <li>{t('profile.delete.warn1')}</li>
                 <li>{t('profile.delete.warn2')}</li>
                 <li>{t('profile.delete.warn3')}</li>
@@ -1159,7 +1159,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                     value={deletePassword}
                     onChange={(e) => setDeletePassword(e.target.value)}
                     placeholder={t('profile.delete.passwordPlaceholder')}
-                    className="glass-input w-full px-3.5 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all"
+                    className="glass-input w-full px-3.5 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[var(--tone-danger-soft)] transition-all"
                   />
                 </div>
               ) : (
@@ -1168,7 +1168,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                     type="checkbox"
                     checked={deleteConfirmedCheckbox}
                     onChange={(e) => setDeleteConfirmedCheckbox(e.target.checked)}
-                    className="mt-0.5 w-4 h-4 text-rose-600 rounded-sm"
+                    className="mt-0.5 w-4 h-4 rounded-sm accent-[var(--tone-danger)]"
                   />
                   <span>
                     {t('profile.delete.oauthConfirm', { provider: user.provider })}
@@ -1190,13 +1190,13 @@ export default function UserProfileModal({ isOpen, onClose }) {
                       value={deleteCode}
                       onChange={(e) => setDeleteCode(e.target.value.replace(/\D/g, ''))}
                       placeholder={t('profile.delete.codePlaceholder')}
-                      className="glass-input flex-1 min-w-0 px-3.5 py-2.5 border rounded-xl text-sm font-mono tracking-[0.3em] focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all"
+                      className="glass-input flex-1 min-w-0 px-3.5 py-2.5 border rounded-xl text-sm font-mono tracking-[0.3em] focus:outline-none focus:ring-2 focus:ring-[var(--tone-danger-soft)] transition-all"
                     />
                     <button
                       type="button"
                       onClick={handleSendDeleteCode}
                       disabled={isSendingDeleteCode || isDeletingAccount}
-                      className="shrink-0 px-3 py-2.5 rounded-xl text-xs font-bold text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
+                      className="glass-soft shrink-0 px-3 py-2.5 rounded-full text-xs font-semibold text-[var(--ink)] transition-colors disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
                     >
                       {isSendingDeleteCode && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                       {deleteCodeSent ? t('profile.delete.resendCode') : t('profile.delete.sendCode')}
@@ -1210,7 +1210,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                   {needsPassword ? '2. ' : ''}
                   {tRich(t('profile.delete.typeKeyword'), {
                     keyword: (
-                      <span className="text-rose-600 dark:text-rose-400 font-mono font-black">DELETE</span>
+                      <span className="text-[var(--tone-danger)] font-mono font-black">DELETE</span>
                     ),
                   })}
                 </label>
@@ -1219,7 +1219,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                   value={deleteConfirmText}
                   onChange={(e) => setDeleteConfirmText(e.target.value)}
                   placeholder={t('profile.delete.keywordPlaceholder')}
-                  className="glass-input w-full px-3.5 py-2.5 border rounded-xl text-sm font-mono tracking-wider focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all"
+                  className="glass-input w-full px-3.5 py-2.5 border rounded-xl text-sm font-mono tracking-wider focus:outline-none focus:ring-2 focus:ring-[var(--tone-danger-soft)] transition-all"
                 />
               </div>
             </div>
@@ -1238,7 +1238,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                 type="button"
                 disabled={!isDeleteButtonEnabled || isDeletingAccount}
                 onClick={handleDeleteAccount}
-                className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-rose-600/20 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer"
+                className="btn-danger px-5 py-2.5 rounded-full text-xs font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer"
               >
                 {isDeletingAccount ? (
                   <Loader2 className="w-4 h-4 animate-spin" />

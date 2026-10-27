@@ -60,7 +60,7 @@ export function ErrorFallback({ error, onRetry, onClose, variant = 'page' }) {
 
   const box = (
     <div className="glass-strong relative w-full max-w-md rounded-[28px] p-6 text-center text-gray-900 dark:text-gray-100">
-      <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400">
+      <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--tone-warn-soft)] text-[var(--tone-warn)]">
         {chunk ? <RefreshCw className="h-7 w-7" /> : <AlertTriangle className="h-7 w-7" />}
       </div>
       <h2 className="mb-2 text-lg font-extrabold">{t(chunk ? 'crash.newVersionTitle' : 'crash.title')}</h2>

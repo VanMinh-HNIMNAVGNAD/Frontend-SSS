@@ -40,7 +40,7 @@ export default function BillingCancel() {
   return (
     <div className="min-h-screen flex items-center justify-center p-6">
       <div className="glass-strong relative w-full max-w-md rounded-[28px] border p-8 text-center">
-        <div className="w-16 h-16 mx-auto mb-6 rounded-2xl flex items-center justify-center bg-amber-50 dark:bg-amber-500/10 text-amber-500 ring-1 ring-amber-200 dark:ring-amber-500/30">
+        <div className="w-16 h-16 mx-auto mb-6 rounded-2xl flex items-center justify-center bg-[var(--tone-warn-soft)] text-[var(--tone-warn)]">
           <XCircle className="w-8 h-8" />
         </div>
 

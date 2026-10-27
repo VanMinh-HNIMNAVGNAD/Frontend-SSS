@@ -33,3 +33,26 @@ export function formatRelativeTime(dateInput, t, locale) {
         minute: '2-digit',
     });
 }
+
+/**
+ * Ngày gọn cho cột "Sửa đổi" của danh sách (26/10/2026) — kiểu Google Drive / Finder: hôm nay chỉ
+ * ghi giờ ("18:35"), trong năm nay ghi ngày + tháng ("23 thg 10"), năm khác thêm năm. Bản cũ in
+ * nguyên `toLocaleString()` bằng font mono ("18:35:22 23/10/2026") — dài, có cả giây, và là cột ồn
+ * nhất của bảng. Thời điểm đầy đủ vẫn có trong tooltip (`item.updatedAt`).
+ *
+ * @param {number} ms Mốc thời gian (ms) — `updatedAtMs` / `sharedAtMs` của FileContext
+ * @param {string} locale Thẻ BCP-47 (utils/locale.js)
+ */
+export function formatListDate(ms, locale) {
+    if (!ms) return '';
+    const date = new Date(ms);
+    if (isNaN(date.getTime())) return '';
+    const now = new Date();
+    if (date.toDateString() === now.toDateString()) {
+        return date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+    }
+    if (date.getFullYear() === now.getFullYear()) {
+        return date.toLocaleDateString(locale, { day: 'numeric', month: 'short' });
+    }
+    return date.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' });
+}

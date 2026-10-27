@@ -16,9 +16,9 @@ import tRich from '../../utils/tRich';
  * bảng nào — nên ở đây KHÔNG có link công khai / mật khẩu / hạn dùng.
  */
 const ROLE_OPTIONS = [
-    { value: 'ADMIN', labelKey: 'driveShare.role.admin', hintKey: 'driveShare.role.admin.hint', icon: ShieldCheck, badge: 'bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-200' },
-    { value: 'MEMBER', labelKey: 'driveShare.role.member', hintKey: 'driveShare.role.member.hint', icon: Pencil, badge: 'bg-blue-50 dark:bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-200' },
-    { value: 'VIEWER', labelKey: 'driveShare.role.viewer', hintKey: 'driveShare.role.viewer.hint', icon: Eye, badge: 'bg-slate-100 dark:bg-gray-700 text-slate-600 dark:text-gray-300 border-slate-200 dark:border-gray-700' },
+    { value: 'ADMIN', labelKey: 'driveShare.role.admin', hintKey: 'driveShare.role.admin.hint', icon: ShieldCheck },
+    { value: 'MEMBER', labelKey: 'driveShare.role.member', hintKey: 'driveShare.role.member.hint', icon: Pencil },
+    { value: 'VIEWER', labelKey: 'driveShare.role.viewer', hintKey: 'driveShare.role.viewer.hint', icon: Eye },
 ];
 
 const ROLE_MAP = Object.fromEntries(ROLE_OPTIONS.map((r) => [r.value, r]));
@@ -26,7 +26,7 @@ const ROLE_MAP = Object.fromEntries(ROLE_OPTIONS.map((r) => [r.value, r]));
 function Avatar({ name }) {
     const initials = name?.charAt(0)?.toUpperCase() || '?';
     return (
-        <div className="w-9 h-9 shrink-0 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold text-sm">
+        <div className="w-9 h-9 shrink-0 rounded-full bg-gradient-to-br from-zinc-400 to-zinc-600 dark:from-zinc-500 dark:to-zinc-700 flex items-center justify-center text-white font-semibold text-sm">
             {initials}
         </div>
     );
@@ -114,8 +114,8 @@ export default function ShareDriveModal({ isOpen, drive, onClose, onChanged }) {
                 render inline nên nằm trong đó — chặn event tại đây để còn Dán được vào ô email */}
             <div className="space-y-5" onContextMenu={(e) => e.stopPropagation()}>
                 {/* Giải thích bản chất share của Bộ nhớ dùng chung */}
-                <div className="flex gap-2.5 p-3 rounded-2xl bg-indigo-50/70 dark:bg-indigo-400/15 border border-indigo-100 dark:border-indigo-400/25 text-[12px] text-indigo-900 dark:text-indigo-200 leading-relaxed">
-                    <Users className="w-4 h-4 shrink-0 mt-0.5 text-indigo-600 dark:text-indigo-400" />
+                <div className="glass-soft flex gap-2.5 p-3 rounded-2xl text-[12px] text-[var(--ink-muted)] leading-relaxed">
+                    <Users className="w-4 h-4 shrink-0 mt-0.5 text-[var(--ink-muted)]" />
                     <p>
                         {tRich(t('driveShare.explain'), {
                             all: <strong>{t('driveShare.explain.all')}</strong>,
@@ -124,10 +124,10 @@ export default function ShareDriveModal({ isOpen, drive, onClose, onChanged }) {
                 </div>
 
                 {errorMsg && (
-                    <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-rose-50 dark:bg-rose-500/15 border border-rose-200 dark:border-rose-900/50 text-rose-700 dark:text-rose-300 text-xs">
+                    <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[var(--tone-danger-soft)] text-[var(--tone-danger)] text-xs">
                         <AlertCircle className="w-4 h-4 shrink-0" />
                         <span className="flex-1">{errorMsg}</span>
-                        <button onClick={() => setErrorMsg('')} className="text-rose-400 hover:text-rose-600 dark:hover:text-rose-300 cursor-pointer">
+                        <button onClick={() => setErrorMsg('')} className="text-[var(--tone-danger)] opacity-70 hover:opacity-100 cursor-pointer">
                             <X className="w-3.5 h-3.5" />
                         </button>
                     </div>
@@ -145,12 +145,12 @@ export default function ShareDriveModal({ isOpen, drive, onClose, onChanged }) {
                                 value={email}
                                 onChange={(e) => { setEmail(e.target.value); setErrorMsg(''); }}
                                 placeholder={t('driveShare.email.placeholder')}
-                                className="glass-input flex-1 min-w-0 px-3.5 py-2.5 rounded-2xl border text-sm text-slate-800 dark:text-gray-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                                className="glass-input flex-1 min-w-0 px-3.5 py-2.5 rounded-2xl text-sm text-[var(--ink)] placeholder:text-[var(--ink-subtle)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-soft)] transition-all"
                             />
                             <select
                                 value={role}
                                 onChange={(e) => setRole(e.target.value)}
-                                className="glass-input px-3 py-2.5 rounded-2xl border text-sm font-medium text-slate-700 dark:text-gray-300 outline-none focus:ring-2 focus:ring-indigo-500/20 cursor-pointer"
+                                className="glass-select pl-3 py-2.5 rounded-2xl text-sm font-medium text-[var(--ink)] outline-none focus:ring-2 focus:ring-[var(--accent-soft)] cursor-pointer"
                             >
                                 {ROLE_OPTIONS.map((r) => (
                                     <option key={r.value} value={r.value}>{t(r.labelKey)}</option>
@@ -159,7 +159,7 @@ export default function ShareDriveModal({ isOpen, drive, onClose, onChanged }) {
                             <button
                                 type="submit"
                                 disabled={!email.trim() || isSubmitting}
-                                className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-2xl shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                                className="px-4 py-2.5 btn-accent hover:brightness-105 text-sm font-semibold rounded-full disabled:cursor-not-allowed transition-all cursor-pointer flex items-center justify-center gap-1.5"
                             >
                                 {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>{t('driveShare.add')}</span>}
                             </button>
@@ -195,7 +195,7 @@ export default function ShareDriveModal({ isOpen, drive, onClose, onChanged }) {
                             return (
                                 <div
                                     key={member.id}
-                                    className="flex items-center justify-between gap-2 p-2.5 rounded-2xl hover:bg-slate-50 dark:hover:bg-white/5 transition-colors group"
+                                    className="flex items-center justify-between gap-2 p-2.5 rounded-2xl row-hover transition-colors group"
                                 >
                                     <div className="flex items-center gap-3 min-w-0">
                                         <Avatar name={member.user?.fullName || member.user?.email} />
@@ -204,7 +204,7 @@ export default function ShareDriveModal({ isOpen, drive, onClose, onChanged }) {
                                                 {member.user?.fullName || member.user?.email}
                                                 {isCreator && (
                                                     <span title={t('driveShare.creatorTitle')}>
-                                                        <Crown className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                                                        <Crown className="w-3.5 h-3.5 text-[var(--ink-muted)] shrink-0" />
                                                     </span>
                                                 )}
                                                 {isSelf && <span className="text-[10px] font-bold text-slate-400">{t('driveShare.you')}</span>}
@@ -214,7 +214,7 @@ export default function ShareDriveModal({ isOpen, drive, onClose, onChanged }) {
                                     </div>
 
                                     <div className="flex items-center gap-2 shrink-0">
-                                        <span className={`flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-lg border ${roleInfo.badge}`}>
+                                        <span className="chip px-2 py-1 text-[11px]">
                                             <RoleIcon className="w-3 h-3" />
                                             {t(roleInfo.labelKey)}
                                         </span>
@@ -225,7 +225,7 @@ export default function ShareDriveModal({ isOpen, drive, onClose, onChanged }) {
                                                 onClick={() => handleRemoveMember(memberUserId)}
                                                 disabled={removingUserId === memberUserId}
                                                 title={t('driveShare.remove')}
-                                                className="p-1.5 rounded-lg text-slate-300 dark:text-gray-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/15 transition-colors disabled:opacity-50 opacity-0 group-hover:opacity-100 focus:opacity-100 cursor-pointer"
+                                                className="p-1.5 rounded-full text-[var(--ink-subtle)] hover:text-[var(--tone-danger)] transition-colors disabled:opacity-50 opacity-0 group-hover:opacity-100 focus:opacity-100 cursor-pointer"
                                             >
                                                 {removingUserId === memberUserId
                                                     ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -249,7 +249,7 @@ export default function ShareDriveModal({ isOpen, drive, onClose, onChanged }) {
                 <div className="flex justify-end pt-3 border-t border-glass-divider">
                     <button
                         onClick={onClose}
-                        className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl shadow-sm transition-all cursor-pointer"
+                        className="px-5 py-2 btn-accent hover:brightness-105 text-sm font-semibold rounded-full transition-all cursor-pointer"
                     >
                         {t('common.done')}
                     </button>

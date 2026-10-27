@@ -22,6 +22,7 @@ import { notificationsApi } from '../../services/api';
 import { useLanguage } from '../../context/LanguageContext';
 import { formatRelativeTime } from '../../utils/relativeTime';
 import { localeTagOf } from '../../utils/locale';
+import { confirmDialog } from '../../utils/dialog';
 
 /**
  * Cái chuông thông báo trên thanh trên cùng (##91).
@@ -39,25 +40,34 @@ const PAGE_SIZE = 20;
 /** Thông báo tự xoá sau ngần này ngày — khớp `RETENTION_DAYS` ở backend/src/notifications/notifications.service.ts. */
 const NOTIFICATION_RETENTION_DAYS = 30;
 
-/** Biểu tượng + màu theo loại — loại lạ (bản backend mới hơn) về biểu tượng "thông tin". */
+/**
+ * Biểu tượng theo loại — loại lạ (bản backend mới hơn) về biểu tượng "thông tin".
+ *
+ * Đơn sắc (26/10/2026): HÌNH icon đã nói loại thông báo; màu chỉ dành cho thứ cần người dùng làm gì
+ * đó — gói sắp hết / đã hết hạn, bộ nhớ sắp đầy. Bản cũ mỗi loại một màu (xanh, chàm, lam, lục,
+ * hổ phách, hồng, tím) nên danh sách thông báo là một dải cầu vồng.
+ */
+const NEUTRAL_TONE = 'bg-[var(--chip-fill)] text-[var(--ink-muted)]';
+const WARN_TONE = 'bg-[var(--tone-warn-soft)] text-[var(--tone-warn)]';
+const DANGER_TONE = 'bg-[var(--tone-danger-soft)] text-[var(--tone-danger)]';
 const TYPE_STYLE = {
-    FILE_SHARED: { Icon: UserPlus, tone: 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300' },
-    DRIVE_MEMBER_ADDED: { Icon: Users, tone: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300' },
-    COMMENT: { Icon: MessageSquare, tone: 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300' },
-    PAYMENT_SUCCESS: { Icon: CreditCard, tone: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' },
-    PLAN_EXPIRING: { Icon: CalendarClock, tone: 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300' },
-    PLAN_EXPIRED: { Icon: TriangleAlert, tone: 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300' },
-    STORAGE_WARNING: { Icon: HardDrive, tone: 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300' },
-    AI_QUOTA_WARNING: { Icon: Sparkles, tone: 'bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300' },
+    FILE_SHARED: { Icon: UserPlus, tone: NEUTRAL_TONE },
+    DRIVE_MEMBER_ADDED: { Icon: Users, tone: NEUTRAL_TONE },
+    COMMENT: { Icon: MessageSquare, tone: NEUTRAL_TONE },
+    PAYMENT_SUCCESS: { Icon: CreditCard, tone: NEUTRAL_TONE },
+    PLAN_EXPIRING: { Icon: CalendarClock, tone: WARN_TONE },
+    PLAN_EXPIRED: { Icon: TriangleAlert, tone: DANGER_TONE },
+    STORAGE_WARNING: { Icon: HardDrive, tone: WARN_TONE },
+    AI_QUOTA_WARNING: { Icon: Sparkles, tone: WARN_TONE },
 };
-const DEFAULT_STYLE = { Icon: Info, tone: 'bg-gray-100 text-gray-700 dark:bg-white/10 dark:text-gray-300' };
+const DEFAULT_STYLE = { Icon: Info, tone: NEUTRAL_TONE };
 
 /** Chỉ điều hướng trong app — `linkUrl` lạ (http://…, //…) bị bỏ qua chứ không mở ra ngoài. */
 const isInternalLink = (url) => typeof url === 'string' && url.startsWith('/') && !url.startsWith('//');
 
 /** Nút biểu tượng nhỏ trên một hàng thông báo — luôn hiện, không chỉ khi rê chuột (##92). */
 const ROW_ACTION_CLASS =
-    'p-1.5 rounded-full text-gray-400 dark:text-gray-500 hover:text-gray-800 dark:hover:text-gray-100 transition-colors cursor-pointer';
+    'p-1.5 rounded-full text-[var(--ink-subtle)] hover:text-[var(--ink)] transition-colors cursor-pointer';
 
 export default function NotificationBell() {
     const { t, language } = useLanguage();
@@ -266,8 +276,8 @@ export default function NotificationBell() {
         runEdit(() => notificationsApi.clearRead());
     };
 
-    const clearAll = () => {
-        if (!window.confirm(t('notifications.confirmClearAll'))) return;
+    const clearAll = async () => {
+        if (!(await confirmDialog({ message: t('notifications.confirmClearAll'), confirmLabel: t('notifications.clearAll'), danger: true }))) return;
         setItems([]);
         setHasMore(false);
         setUnread(0);
@@ -297,8 +307,10 @@ export default function NotificationBell() {
                 className="relative p-2 sm:p-2.5 text-gray-700 dark:text-gray-300 rounded-full transition-colors cursor-pointer"
             >
                 <Bell className="w-5 h-5" />
+                {/* Số chưa đọc: viên màu MỰC (đen ở bản Sáng, trắng ở bản Tối) thay cho chấm đỏ — vẫn nổi
+                    bật trên nền kính xám mà không phải mảng đỏ duy nhất của header. */}
                 {unread > 0 && (
-                    <span className="absolute top-1 right-1 sm:top-1.5 sm:right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-600 text-white text-[10px] font-bold leading-[18px] text-center ring-2 ring-[var(--app-surface)]">
+                    <span className="absolute top-1 right-1 sm:top-1.5 sm:right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-[var(--ink)] text-white dark:text-[#161618] text-[10px] font-bold leading-[18px] text-center tabular-nums ring-2 ring-white/80 dark:ring-[#2a2a2e]">
                         {badge}
                     </span>
                 )}
@@ -314,13 +326,13 @@ export default function NotificationBell() {
                         className="fixed sm:absolute inset-x-2 sm:inset-x-auto top-16 sm:top-full sm:right-0 sm:mt-2 sm:w-[24rem] z-50 flex flex-col max-h-[min(70vh,560px)] glass-strong rounded-[22px] animate-glass-in origin-top-right overflow-hidden"
                     >
                         <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-glass-divider">
-                            <h2 className="text-sm font-bold text-gray-900 dark:text-gray-100">{t('notifications.title')}</h2>
+                            <h2 className="text-sm font-semibold text-[var(--ink)]">{t('notifications.title')}</h2>
                             <div className="flex items-center gap-1">
                                 {unread > 0 && (
                                     <button
                                         type="button"
                                         onClick={markAllRead}
-                                        className="px-2 py-1 rounded-lg text-xs font-medium text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-500/10 cursor-pointer"
+                                        className="px-2 py-1 rounded-full text-xs font-medium text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer"
                                     >
                                         {t('notifications.markAllRead')}
                                     </button>
@@ -330,7 +342,7 @@ export default function NotificationBell() {
                                     onClick={() => setOpen(false)}
                                     title={t('common.close')}
                                     aria-label={t('common.close')}
-                                    className="p-1 rounded-full text-gray-500 cursor-pointer"
+                                    className="p-1 rounded-full text-[var(--ink-subtle)] hover:text-[var(--ink)] cursor-pointer"
                                 >
                                     <X className="w-4 h-4" />
                                 </button>
@@ -339,17 +351,17 @@ export default function NotificationBell() {
 
                         <div className="flex-1 overflow-y-auto">
                             {loading && items.length === 0 ? (
-                                <div className="flex items-center justify-center py-10 text-gray-500">
+                                <div className="flex items-center justify-center py-10 text-[var(--ink-subtle)]">
                                     <Loader2 className="w-5 h-5 animate-spin" />
                                 </div>
                             ) : error && items.length === 0 ? (
-                                <p className="px-4 py-8 text-center text-sm text-rose-600 dark:text-rose-300">{error}</p>
+                                <p className="px-4 py-8 text-center text-sm text-[var(--tone-danger)]">{error}</p>
                             ) : items.length === 0 ? (
-                                <div className="flex flex-col items-center gap-2 px-6 py-10 text-center text-gray-500 dark:text-gray-400">
+                                <div className="flex flex-col items-center gap-2 px-6 py-10 text-center text-[var(--ink-muted)]">
                                     <BellOff className="w-8 h-8" />
                                     <p className="text-sm font-medium">{t('notifications.empty')}</p>
                                     <p className="text-xs">{t('notifications.emptyHint')}</p>
-                                    <p className="text-[11px] text-gray-400 dark:text-gray-500">{retentionNote}</p>
+                                    <p className="text-[11px] text-[var(--ink-subtle)]">{retentionNote}</p>
                                 </div>
                             ) : (
                                 <ul className="divide-y divide-[var(--app-border)]">
@@ -361,12 +373,12 @@ export default function NotificationBell() {
                                                     type="button"
                                                     onClick={() => openNotification(n)}
                                                     className={`w-full flex items-start gap-3 pl-5 pr-[4.5rem] py-3 text-left transition-colors cursor-pointer ${
-                                                        n.isRead ? '' : 'bg-blue-50/60 dark:bg-blue-500/5'
+                                                        n.isRead ? '' : 'bg-white/55 dark:bg-white/[0.04]'
                                                     }`}
                                                 >
                                                     {!n.isRead && (
                                                         <span
-                                                            className="absolute left-2 top-[1.6rem] w-1.5 h-1.5 rounded-full bg-blue-600"
+                                                            className="absolute left-2 top-[1.6rem] w-1.5 h-1.5 rounded-full bg-[var(--ink)]"
                                                             aria-label={t('notifications.unread')}
                                                         />
                                                     )}
@@ -374,13 +386,13 @@ export default function NotificationBell() {
                                                         <Icon className="w-4 h-4" />
                                                     </span>
                                                     <span className="min-w-0 flex-1">
-                                                        <span className={`block text-[13px] leading-snug ${n.isRead ? 'font-medium text-gray-800 dark:text-gray-200' : 'font-bold text-gray-900 dark:text-gray-100'}`}>
+                                                        <span className={`block text-[13px] leading-snug ${n.isRead ? 'font-medium text-[var(--ink)]/85' : 'font-semibold text-[var(--ink)]'}`}>
                                                             {n.title}
                                                         </span>
-                                                        <span className="block mt-0.5 text-xs text-gray-600 dark:text-gray-400 line-clamp-3 break-words">
+                                                        <span className="block mt-0.5 text-xs text-[var(--ink-muted)] line-clamp-3 break-words">
                                                             {n.message}
                                                         </span>
-                                                        <span className="block mt-1 text-[11px] text-gray-500 dark:text-gray-500">
+                                                        <span className="block mt-1 text-[11px] text-[var(--ink-subtle)]">
                                                             {formatRelativeTime(n.createdAt, t, locale)}
                                                         </span>
                                                     </span>
@@ -404,7 +416,7 @@ export default function NotificationBell() {
                                                         onClick={() => removeOne(n)}
                                                         title={t('notifications.delete')}
                                                         aria-label={t('notifications.delete')}
-                                                        className={`${ROW_ACTION_CLASS} hover:text-rose-600 dark:hover:text-rose-400`}
+                                                        className={`${ROW_ACTION_CLASS} hover:text-[var(--tone-danger)]`}
                                                     >
                                                         <Trash2 className="w-4 h-4" />
                                                     </button>
@@ -424,7 +436,7 @@ export default function NotificationBell() {
                                             type="button"
                                             onClick={loadMore}
                                             disabled={loadingMore}
-                                            className="flex items-center gap-1 font-medium text-blue-700 dark:text-blue-300 hover:underline disabled:opacity-50 cursor-pointer"
+                                            className="flex items-center gap-1 font-medium text-[var(--ink)] hover:underline disabled:opacity-50 cursor-pointer"
                                         >
                                             {loadingMore && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                                             {t('notifications.loadMore')}
@@ -437,7 +449,7 @@ export default function NotificationBell() {
                                             <button
                                                 type="button"
                                                 onClick={clearRead}
-                                                className="font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:underline cursor-pointer"
+                                                className="font-medium text-[var(--ink-muted)] hover:text-[var(--ink)] hover:underline cursor-pointer"
                                             >
                                                 {t('notifications.clearRead')}
                                             </button>
@@ -445,13 +457,13 @@ export default function NotificationBell() {
                                         <button
                                             type="button"
                                             onClick={clearAll}
-                                            className="font-medium text-rose-700 dark:text-rose-300 hover:underline cursor-pointer"
+                                            className="font-medium text-[var(--tone-danger)] hover:underline cursor-pointer"
                                         >
                                             {t('notifications.clearAll')}
                                         </button>
                                     </div>
                                 </div>
-                                <p className="mt-1 text-[11px] text-gray-400 dark:text-gray-500">{retentionNote}</p>
+                                <p className="mt-1 text-[11px] text-[var(--ink-subtle)]">{retentionNote}</p>
                             </div>
                         )}
                     </div>

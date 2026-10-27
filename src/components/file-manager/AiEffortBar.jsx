@@ -34,7 +34,8 @@ const MENU_WIDTH_REM = 19;
 
 /** Bốn vạch cao dần, `lit` vạch đầu sáng — vẽ trên nút và ở đầu mỗi hàng của menu. */
 function Bars({ count, lit, max }) {
-    const tone = max ? 'bg-amber-500 dark:bg-amber-400' : 'bg-blue-600 dark:bg-blue-400';
+    // Vạch sáng màu mực; mức tối đa đậm hơn một chút chứ không đổi sang hổ phách.
+    const tone = max ? 'bg-[var(--ink)]' : 'bg-[var(--ink-muted)]';
     return (
         <span className="flex items-end gap-[2px] h-4.5 shrink-0" aria-hidden="true">
             {Array.from({ length: count }, (_, i) => (
@@ -158,7 +159,7 @@ export default function AiEffortBar({ levels, value, onChange, seconds, disabled
                 <Bars count={levels.length} lit={index + 1} max={isMax} />
                 <span
                     className={`whitespace-nowrap ${
-                        isMax ? 'text-amber-700 dark:text-amber-300' : 'text-gray-800 dark:text-gray-200'
+                        isMax ? 'text-[var(--ink)]' : 'text-gray-800 dark:text-gray-200'
                     }`}
                 >
                     {t(`ai.effort.${current}`)}
@@ -197,8 +198,8 @@ export default function AiEffortBar({ levels, value, onChange, seconds, disabled
                                     role="option"
                                     aria-selected={active}
                                     onClick={() => pick(level)}
-                                    className={`w-full flex items-start gap-2.5 px-2.5 py-2 rounded-[12px] text-left transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
-                                        active ? 'bg-blue-500/10 dark:bg-blue-400/15' : 'hover:bg-black/[0.04] dark:hover:bg-white/[0.06]'
+                                    className={`w-full flex items-start gap-2.5 px-2.5 py-2 rounded-[12px] text-left transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-soft)] ${
+                                        active ? 'glass-active' : 'hover:bg-black/[0.04] dark:hover:bg-white/[0.06]'
                                     }`}
                                 >
                                     <span className="pt-0.5">
@@ -209,7 +210,7 @@ export default function AiEffortBar({ levels, value, onChange, seconds, disabled
                                             <span
                                                 className={`text-[13px] font-semibold ${
                                                     max
-                                                        ? 'text-amber-700 dark:text-amber-300'
+                                                        ? 'text-[var(--ink)]'
                                                         : 'text-gray-900 dark:text-gray-100'
                                                 }`}
                                             >
@@ -226,7 +227,7 @@ export default function AiEffortBar({ levels, value, onChange, seconds, disabled
                                         </span>
                                     </span>
                                     <span className="w-3.5 shrink-0 pt-0.5">
-                                        {active && <Check className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />}
+                                        {active && <Check className="w-3.5 h-3.5 text-[var(--ink)]" strokeWidth={2.5} />}
                                     </span>
                                 </button>
                             );

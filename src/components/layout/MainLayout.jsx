@@ -8,6 +8,7 @@ import Sidebar from './SideBar';
 import RightSidebar from './RightSideBar';
 import Header from './Header';
 import GlassEdge from '../ui/GlassEdge';
+import { confirmDialog, promptDialog } from '../../utils/dialog';
 import FileInfoDrawer from '../file-manager/FileInfoDrawer';
 import ShareModal from '../file-manager/ShareModal';
 import RenameModal from '../file-manager/RenameModal';
@@ -120,9 +121,12 @@ export default function MainLayout() {
 
     // ── Handlers cho từng phím tắt ──────────────────────────────────────────
 
-    const handleNewFolder = useCallback(() => {
+    const handleNewFolder = useCallback(async () => {
         if (blockedBySharedDrive()) return;
-        const name = prompt(t('newBtn.prompt.folderName'), t('newBtn.defaultFolderName'));
+        const name = await promptDialog({
+            message: t('newBtn.prompt.folderName'),
+            defaultValue: t('newBtn.defaultFolderName'),
+        });
         if (name && name.trim()) {
             createFolder(name.trim());
         }
@@ -191,7 +195,7 @@ export default function MainLayout() {
         const label = selected.length === 1
             ? `"${selected[0].name}"`
             : t('shortcutToast.selectionCount', { count: selected.length });
-        if (!window.confirm(t('shortcutToast.confirmTrash', { label }))) return;
+        if (!(await confirmDialog({ message: t('shortcutToast.confirmTrash', { label }), confirmLabel: t('common.delete') }))) return;
 
         // MỘT request cho cả tập, không phải N request song song. `Promise.all` trước
         // đây đã bỏ được phần chờ nối tiếp, nhưng vẫn bắt server chạy 4 câu truy vấn cho

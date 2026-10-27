@@ -16,6 +16,7 @@ import ZoomableImage from '../components/file-manager/ZoomableImage';
 import ImageStagePill from '../components/file-manager/ImageStagePill';
 import { usePreviewImage } from '../hooks/usePreviewImage';
 import { useZoomPan, ZOOM_MIN, ZOOM_MAX } from '../hooks/useZoomPan';
+import { alertDialog } from '../utils/dialog';
 
 // pdf.js (`loadPdfjs`) và bộ tô màu mã nguồn chỉ tải khi người nhận link mở đúng loại tệp đó —
 // trước ##85 chúng là import tĩnh, nên link chia sẻ một tấm ảnh cũng kéo theo ~1MB JS.
@@ -89,15 +90,18 @@ async function readTextHead(res, limit) {
 }
 
 // ─── Helper: icon MIME ────────────────────────────────────────────────────────
+// Đơn sắc (26/10/2026): cùng sắc DỊU với icon trong app (utils/fileColors.js `getIconColors`, bản
+// Tối) thay cho bảng màu tươi riêng của trang này (thư mục vàng đặc, ảnh lục, PDF hồng…). Viết
+// thành chuỗi tĩnh để Tailwind sinh được class.
 function mimeColor(mimeType, type, name) {
-  if (type === 'folder') return 'text-amber-400';
-  if (PREVIEW_IMAGE(mimeType, name)) return 'text-emerald-400';
-  if (PREVIEW_VIDEO(mimeType, name)) return 'text-violet-400';
-  if (PREVIEW_AUDIO(mimeType, name)) return 'text-pink-400';
-  if (PREVIEW_PDF(mimeType, name)) return 'text-rose-400';
-  if (PREVIEW_DOCX(mimeType, name)) return 'text-blue-400';
-  if (PREVIEW_SHEET(mimeType, name)) return 'text-green-500';
-  if (PREVIEW_TEXT(mimeType, name)) return 'text-emerald-400';
+  if (type === 'folder') return 'text-zinc-300';
+  if (PREVIEW_IMAGE(mimeType, name)) return 'text-[#9E8CC6]';
+  if (PREVIEW_VIDEO(mimeType, name)) return 'text-[#9A82C4]';
+  if (PREVIEW_AUDIO(mimeType, name)) return 'text-[#B97B9A]';
+  if (PREVIEW_PDF(mimeType, name)) return 'text-[#C08585]';
+  if (PREVIEW_DOCX(mimeType, name)) return 'text-[#7C93C4]';
+  if (PREVIEW_SHEET(mimeType, name)) return 'text-[#6A9F7E]';
+  if (PREVIEW_TEXT(mimeType, name)) return 'text-[#6A9DB5]';
   return 'text-zinc-400';
 }
 
@@ -250,7 +254,7 @@ function PdfCanvasViewer({ url, sizeBytes, zoom: externalZoom, rotation: externa
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center gap-3 h-64 text-white/40">
-        <svg className="w-8 h-8 animate-spin text-blue-400" fill="none" viewBox="0 0 24 24">
+        <svg className="w-8 h-8 animate-spin text-white/60" fill="none" viewBox="0 0 24 24">
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4Z" />
         </svg>
@@ -392,7 +396,7 @@ function CodeTextPreview({ url, name }) {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center gap-3 h-64 text-white/40">
-        <svg className="w-8 h-8 animate-spin text-blue-400" fill="none" viewBox="0 0 24 24">
+        <svg className="w-8 h-8 animate-spin text-white/60" fill="none" viewBox="0 0 24 24">
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4Z" />
         </svg>
@@ -426,7 +430,7 @@ function CodeTextPreview({ url, name }) {
         <div className="flex items-center gap-2 min-w-0">
           <span className="font-mono text-white/80 truncate">{name}</span>
           {isMd && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 font-mono hidden sm:inline-block">
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-white/70 font-mono hidden sm:inline-block">
               Markdown
             </span>
           )}
@@ -516,7 +520,7 @@ function SharedInlineImage({ file, previewUrl, token, authToken }) {
   if (!image.src) {
     return (
       <div className="flex items-center justify-center h-64">
-        <svg className="w-8 h-8 animate-spin text-blue-400" fill="none" viewBox="0 0 24 24">
+        <svg className="w-8 h-8 animate-spin text-white/60" fill="none" viewBox="0 0 24 24">
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4Z" />
         </svg>
@@ -533,7 +537,7 @@ function PreviewArea({ file, previewUrl, loadingPreview, previewBlocked, token, 
   if (loadingPreview) {
     return (
       <div className="flex flex-col items-center justify-center gap-3 h-64 text-white/40">
-        <svg className="w-8 h-8 animate-spin text-blue-400" fill="none" viewBox="0 0 24 24">
+        <svg className="w-8 h-8 animate-spin text-white/60" fill="none" viewBox="0 0 24 24">
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4Z" />
         </svg>
@@ -567,7 +571,7 @@ function PreviewArea({ file, previewUrl, loadingPreview, previewBlocked, token, 
   if (PREVIEW_AUDIO(mimeType, name)) {
     return (
       <div className="flex flex-col items-center gap-6 py-10">
-        <svg className="w-14 h-14 text-pink-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.2}>
+        <svg className="w-14 h-14 text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="m9 9 10.5-3m0 6.553v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 1 1-.99-3.467l2.31-.66a2.25 2.25 0 0 0 1.632-2.163Zm0 0V2.25L9 5.25v10.303m0 0v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 1 1-.99-3.467l2.31-.66A2.25 2.25 0 0 0 9 15.553Z" />
         </svg>
         <audio controls className="w-full max-w-md" src={previewUrl} />
@@ -694,7 +698,7 @@ function ChildFilePreviewModal({
       {/* Top Header & Controls */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-white/[0.05] backdrop-blur-md">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center border border-blue-500/30 shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-white/10 text-white/80 flex items-center justify-center border border-white/15 shrink-0">
             <span className={`shrink-0 ${mimeColor(file.mimeType, file.type, file.name)}`}>
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
@@ -779,7 +783,7 @@ function ChildFilePreviewModal({
 
           <button
             onClick={onClose}
-            className="p-2 rounded-xl bg-white/10 hover:bg-rose-500/80 text-white transition-all ml-2 cursor-pointer"
+            className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all ml-2 cursor-pointer"
             title={t('preview.close')}
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -793,7 +797,7 @@ function ChildFilePreviewModal({
       <div className="flex-1 flex items-center justify-center overflow-hidden p-6 relative">
         {loading && (
           <div className="flex flex-col items-center gap-3 text-zinc-400">
-            <svg className="w-10 h-10 animate-spin text-blue-500" fill="none" viewBox="0 0 24 24">
+            <svg className="w-10 h-10 animate-spin text-white/60" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4Z" />
             </svg>
@@ -849,7 +853,7 @@ function ChildFilePreviewModal({
 
             {isAud && (
               <div className="p-8 bg-white/[0.06] border border-white/10 rounded-3xl shadow-2xl flex flex-col items-center gap-6 text-center max-w-md w-full">
-                <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-pink-500/30 to-purple-500/20 text-pink-400 flex items-center justify-center border border-pink-500/30 shadow-inner">
+                <div className="w-20 h-20 rounded-2xl bg-white/10 text-white/80 flex items-center justify-center border border-white/15 shadow-inner">
                   <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="m9 9 10.5-3m0 6.553v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 1 1-.99-3.467l2.31-.66a2.25 2.25 0 0 0 1.632-2.163Zm0 0V2.25L9 5.25v10.303m0 0v3.75a2.25 2.25 0 0 1-1.632 2.163l-1.32.377a1.803 1.803 0 1 1-.99-3.467l2.31-.66A2.25 2.25 0 0 0 9 15.553Z" />
                   </svg>
@@ -892,7 +896,7 @@ function ChildFilePreviewModal({
 
             {!isImg && !isVid && !isAud && !isPdf && !isDoc && !isSheet && !isTxt && (
               <div className="p-8 bg-white/[0.06] border border-white/10 rounded-3xl shadow-2xl flex flex-col items-center gap-4 text-center max-w-sm">
-                <svg className="w-16 h-16 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                <svg className="w-16 h-16 text-white/50" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25M9 16.5v.75m3-3v3M15 12v5.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
                 </svg>
                 <h4 className="font-bold text-white text-sm">{file.name}</h4>
@@ -1027,7 +1031,7 @@ function FolderBrowser({ token, rootFolderName, isDownloadAllowed, onOpenFile, s
         } catch {
           // response không phải JSON hợp lệ — dùng message mặc định
         }
-        alert(message);
+        await alertDialog(message);
         return;
       }
 
@@ -1042,7 +1046,7 @@ function FolderBrowser({ token, rootFolderName, isDownloadAllowed, onOpenFile, s
         } catch {
           // response không phải JSON hợp lệ — dùng message mặc định
         }
-        alert(message);
+        await alertDialog(message);
         return;
       }
 
@@ -1056,7 +1060,7 @@ function FolderBrowser({ token, rootFolderName, isDownloadAllowed, onOpenFile, s
       document.body.removeChild(a);
       window.URL.revokeObjectURL(blobUrl);
     } catch (err) {
-      alert(err?.message || t('sharePage.folder.zipFailed'));
+      await alertDialog(err?.message || t('sharePage.folder.zipFailed'));
     } finally {
       setZipLoading(false);
     }
@@ -1087,7 +1091,7 @@ function FolderBrowser({ token, rootFolderName, isDownloadAllowed, onOpenFile, s
           <button
             onClick={handleDownloadZip}
             disabled={zipLoading}
-            className="shrink-0 flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 disabled:opacity-50 transition-colors whitespace-nowrap cursor-pointer"
+            className="shrink-0 flex items-center gap-1.5 text-xs font-medium text-white/80 hover:text-white disabled:opacity-50 transition-colors whitespace-nowrap cursor-pointer"
           >
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
@@ -1298,7 +1302,7 @@ export default function SharePage() {
         document.body.removeChild(a);
       }
     } catch (err) {
-      alert(err?.message || t('sharePage.file.downloadFailed'));
+      await alertDialog(err?.message || t('sharePage.file.downloadFailed'));
     } finally {
       setDownloadLoading(false);
     }
@@ -1349,7 +1353,7 @@ export default function SharePage() {
         document.body.removeChild(a);
       }
     } catch (err) {
-      alert(err?.message || t('sharePage.file.downloadFailed'));
+      await alertDialog(err?.message || t('sharePage.file.downloadFailed'));
     }
   }, [token, shareAuthToken, t]);
 
@@ -1395,7 +1399,7 @@ export default function SharePage() {
     return (
       <div className="dark min-h-screen bg-[#161618] bg-[image:var(--app-ambient)] bg-fixed text-white flex items-center justify-center px-4">
         <div className="w-full max-w-md rounded-2xl border border-white/10 bg-white/[0.03] p-6 shadow-2xl">
-          <div className="mb-6 flex items-center justify-center text-blue-400">
+          <div className="mb-6 flex items-center justify-center text-white/70">
             <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
             </svg>
@@ -1412,7 +1416,7 @@ export default function SharePage() {
                 value={passwordInput}
                 onChange={(e) => setPasswordInput(e.target.value)}
                 placeholder={t('sharePage.password.placeholder')}
-                className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none ring-0 placeholder:text-white/25 focus:border-blue-500"
+                className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2.5 text-sm text-white outline-none ring-0 placeholder:text-white/25 focus:border-white/35"
                 autoFocus
               />
             </div>
@@ -1506,7 +1510,7 @@ export default function SharePage() {
                 </span>
               )}
               {expiresAt && (
-                <span className="flex items-center gap-1 text-amber-400/70">
+                <span className="flex items-center gap-1 text-white/55">
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                   </svg>
@@ -1545,7 +1549,7 @@ export default function SharePage() {
                 <button
                   onClick={handleDownload}
                   disabled={downloadLoading}
-                  className="flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 disabled:opacity-50 transition-colors cursor-pointer"
+                  className="flex items-center gap-1.5 text-xs font-medium text-white/80 hover:text-white disabled:opacity-50 transition-colors cursor-pointer"
                 >
                   <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
@@ -1592,7 +1596,7 @@ export default function SharePage() {
         <div className="mt-12 text-center">
           <p className="text-white/25 text-sm">
             {t('sharePage.cta.question')}{' '}
-            <a href="/register" className="text-blue-400 hover:text-blue-300 underline underline-offset-2 transition-colors">
+            <a href="/register" className="text-white/85 hover:text-white underline underline-offset-2 transition-colors">
               {t('sharePage.cta.register')}
             </a>
           </p>

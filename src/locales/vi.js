@@ -113,6 +113,9 @@ const vi = {
   'common.deselectAll': 'Bỏ chọn tất cả',
   'common.login': 'Đăng nhập',
   'common.unknownError': 'lỗi không xác định',
+  // Hộp thoại kính thay cho alert/confirm/prompt của trình duyệt (utils/dialog.js)
+  'dialog.ok': 'OK',
+  'dialog.confirm': 'Đồng ý',
 
   // ── 11. Thanh Header ────────────────────────────────────────────────────
   'header.selected': '{count} đã chọn',
@@ -277,6 +280,7 @@ const vi = {
   'filter.date.label': 'Ngày sửa đổi',
   'filter.reset': 'Xóa bộ lọc',
   'filter.resetTitle': 'Xóa tất cả bộ lọc',
+  'filter.clearOne': 'Bỏ bộ lọc này',
   'filter.type.all': 'Tất cả loại tệp',
   'filter.type.folder': 'Thư mục',
   'filter.type.file': 'Tệp tin',

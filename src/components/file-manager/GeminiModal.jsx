@@ -1280,7 +1280,7 @@ export default function GeminiModal({
             metadata: {
                 icon: Info,
                 text: context.reason || t('ai.context.metadata'),
-                tone: 'text-amber-600 dark:text-amber-400',
+                tone: 'text-[var(--tone-warn)]',
             },
         };
         const entry = map[context.mode];
@@ -1381,7 +1381,7 @@ export default function GeminiModal({
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     title={src.uri}
-                                    className="text-blue-600 dark:text-blue-400 hover:underline truncate"
+                                    className="text-[var(--accent)] hover:underline truncate"
                                 >
                                     {src.title}
                                 </a>
@@ -1506,7 +1506,7 @@ export default function GeminiModal({
                     nhau, trong khi chúng chỉ là ba việc bình thường. */}
                 <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-glass-divider">
                     <div className="flex items-center gap-2.5 min-w-0">
-                        <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                        <Sparkles className="w-4 h-4 text-[var(--ink-muted)] shrink-0" />
                         <div className="min-w-0">
                             <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 leading-tight">
                                 {t('ai.title')}
@@ -1577,7 +1577,7 @@ export default function GeminiModal({
                                             title={confirmClear ? t('ai.clear.confirmHint') : undefined}
                                             className={`w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-left transition-colors cursor-pointer ${
                                                 confirmClear
-                                                    ? 'font-medium text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-900/30'
+                                                    ? 'font-medium text-[var(--tone-danger)] bg-[var(--tone-danger-soft)]'
                                                     : 'text-gray-700 dark:text-gray-200'
                                             }`}
                                         >
@@ -1602,8 +1602,8 @@ export default function GeminiModal({
                                         title={confirmWipe ? t('ai.history.wipe.confirmHint') : undefined}
                                         className={`w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-left transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
                                             confirmWipe
-                                                ? 'font-medium text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-900/30'
-                                                : 'text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20'
+                                                ? 'font-medium text-[var(--tone-danger)] bg-[var(--tone-danger-soft)]'
+                                                : 'text-[var(--tone-danger)]'
                                         }`}
                                     >
                                         {wiping ? (
@@ -1698,10 +1698,10 @@ export default function GeminiModal({
                             <div
                                 className={`h-full rounded-full transition-all ${
                                     usedPercent >= 100
-                                        ? 'bg-rose-500'
+                                        ? 'bg-[var(--tone-danger)]'
                                         : usedPercent >= 80
-                                          ? 'bg-amber-500'
-                                          : 'bg-gray-400 dark:bg-gray-500'
+                                          ? 'bg-[var(--tone-warn)]'
+                                          : 'bg-[var(--ink-subtle)]'
                                 }`}
                                 style={{ width: usedTiny ? '1%' : `${usedPercent}%` }}
                             />
@@ -1713,13 +1713,13 @@ export default function GeminiModal({
                 <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
                     {aiDisabled ? (
                         <div className="h-full flex flex-col items-center justify-center text-center px-8 gap-2">
-                            <AlertTriangle className="w-8 h-8 text-amber-500" />
+                            <AlertTriangle className="w-8 h-8 text-[var(--tone-warn)]" />
                             <p className="font-semibold text-gray-800 dark:text-gray-200">{t('ai.disabled.title')}</p>
                             <p className="text-xs text-gray-500 dark:text-gray-400 max-w-sm">{t('ai.disabled.desc')}</p>
                         </div>
                     ) : quotaBlocked && messages.length === 0 ? (
                         <div className="h-full flex flex-col items-center justify-center text-center px-8 gap-3">
-                            <Gauge className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+                            <Gauge className="w-6 h-6 text-[var(--tone-warn)]" />
                             <p className="font-semibold text-gray-800 dark:text-gray-200">
                                 {t(planTerm ? 'ai.quota.blockedTitlePlan' : 'ai.quota.blockedTitle')}
                             </p>
@@ -1757,8 +1757,8 @@ export default function GeminiModal({
                                                 msg.moderation
                                                     ? `prose-ai rounded-lg border px-3 py-2.5 ${
                                                           msg.moderation.banned
-                                                              ? 'border-rose-300 dark:border-rose-900/70 bg-rose-50 dark:bg-rose-400/15 text-rose-900 dark:text-rose-100'
-                                                              : 'border-amber-300 dark:border-amber-900/70 bg-amber-50 dark:bg-amber-400/15 text-amber-900 dark:text-amber-100'
+                                                              ? 'border-transparent bg-[var(--tone-danger-soft)] text-[var(--ink)]'
+                                                              : 'border-transparent bg-[var(--tone-warn-soft)] text-[var(--ink)]'
                                                       }`
                                                     : 'prose-ai'
                                             }
@@ -1769,7 +1769,7 @@ export default function GeminiModal({
                                             chỗ nó đứt. Không nói thì người đọc tưởng AI kết
                                             luận như vậy, trong khi nó mới đang nói dở. */}
                                         {msg.truncated && (
-                                            <p className="mt-2 flex items-start gap-1.5 text-[11px] text-amber-700 dark:text-amber-400">
+                                            <p className="mt-2 flex items-start gap-1.5 text-[11px] text-[var(--tone-warn)]">
                                                 <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-px" />
                                                 <span>{t('ai.truncated')}</span>
                                             </p>
@@ -1797,7 +1797,7 @@ export default function GeminiModal({
                                             onClick={() => handleCopy(msg.text, idx)}
                                             className={`mt-2 inline-flex items-center gap-1 text-[11px] transition-colors cursor-pointer ${
                                                 copiedIndex === `failed:${idx}`
-                                                    ? 'text-rose-600 dark:text-rose-400'
+                                                    ? 'text-[var(--tone-danger)]'
                                                     : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
                                             }`}
                                         >
@@ -1816,7 +1816,7 @@ export default function GeminiModal({
                                         </button>
                                     </div>
                                 ) : (
-                                    <div className="max-w-[85%] px-3.5 py-2 rounded-[18px] rounded-br-md btn-accent text-[13px] leading-relaxed">
+                                    <div className="max-w-[85%] px-3.5 py-2 rounded-[18px] rounded-br-md glass-active text-[var(--ink)] text-[13px] leading-relaxed">
                                         <span className="whitespace-pre-wrap">{msg.text}</span>
                                     </div>
                                 )}
@@ -1855,7 +1855,7 @@ export default function GeminiModal({
                     )}
 
                     {error && (
-                        <div className="flex items-start gap-2 text-xs text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-900/60 rounded-lg px-3 py-2.5">
+                        <div className="flex items-start gap-2 text-xs text-[var(--ink)] bg-[var(--tone-danger-soft)] rounded-xl px-3 py-2.5">
                             <AlertTriangle className="w-4 h-4 shrink-0 mt-px" />
                             <div className="min-w-0">
                                 <p className="break-words">{error}</p>
@@ -1863,7 +1863,7 @@ export default function GeminiModal({
                                     <button
                                         onClick={retryLast}
                                         disabled={isThinking}
-                                        className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-medium transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="btn-danger inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-medium transition-colors cursor-pointer disabled:cursor-not-allowed"
                                     >
                                         <RefreshCw className="w-3 h-3" /> {t('ai.retry')}
                                     </button>
@@ -1887,10 +1887,10 @@ export default function GeminiModal({
                     Không chặn ô nhập như khối hết hạn mức: gói vẫn còn model của nó, nên ngoài nút
                     nâng cấp còn một nút đổi luôn sang model mặc định của gói để hỏi tiếp. */}
                 {modelLock && !aiDisabled && (
-                    <div className="mx-3 mb-2 px-3.5 py-3 rounded-[18px] bg-gradient-to-br from-amber-50/90 to-rose-50/80 dark:from-amber-400/10 dark:to-rose-400/10 ring-1 ring-amber-500/25 animate-glass-in">
+                    <div className="glass-soft mx-3 mb-2 px-3.5 py-3 rounded-[18px] animate-glass-in">
                         <div className="flex items-start gap-2.5">
-                            <span className="mt-0.5 w-7 h-7 rounded-full bg-white/80 dark:bg-white/10 ring-1 ring-amber-500/30 flex items-center justify-center shrink-0">
-                                <Lock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                            <span className="mt-0.5 w-7 h-7 rounded-full bg-[var(--tone-warn-soft)] flex items-center justify-center shrink-0">
+                                <Lock className="w-3.5 h-3.5 text-[var(--tone-warn)]" />
                             </span>
                             <div className="min-w-0 flex-1">
                                 <p className="text-[13px] font-semibold text-gray-900 dark:text-gray-100">
@@ -1976,7 +1976,7 @@ export default function GeminiModal({
                                             }
                                             className={`group relative inline-flex items-center gap-1.5 max-w-[14rem] pl-2 pr-1.5 py-1 rounded-lg border text-[11px] overflow-hidden ${
                                                 failed
-                                                    ? 'border-rose-200 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300'
+                                                    ? 'border-transparent bg-[var(--tone-danger-soft)] text-[var(--tone-danger)]'
                                                     : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-white/[0.06] text-gray-700 dark:text-gray-300'
                                             }`}
                                         >
@@ -1987,14 +1987,14 @@ export default function GeminiModal({
                                                 biết thanh nào của tệp nào. */}
                                             {busy && (
                                                 <span
-                                                    className="absolute inset-y-0 left-0 bg-blue-500/15 transition-all"
+                                                    className="absolute inset-y-0 left-0 bg-black/[0.06] dark:bg-white/[0.1] transition-all"
                                                     style={{ width: `${src.progress ?? 0}%` }}
                                                     aria-hidden="true"
                                                 />
                                             )}
                                             <span className="relative flex items-center gap-1.5 min-w-0">
                                                 {busy ? (
-                                                    <Loader2 className="w-3 h-3 shrink-0 animate-spin text-blue-600 dark:text-blue-400" />
+                                                    <Loader2 className="w-3 h-3 shrink-0 animate-spin text-[var(--ink-muted)]" />
                                                 ) : failed ? (
                                                     <AlertTriangle className="w-3 h-3 shrink-0" />
                                                 ) : (
@@ -2013,7 +2013,7 @@ export default function GeminiModal({
                                                     onClick={() => removeAttachment(src.key)}
                                                     title={t('ai.attach.remove')}
                                                     aria-label={t('ai.attach.remove', { name: src.name })}
-                                                    className="relative shrink-0 p-0.5 rounded text-gray-400 hover:text-rose-600 dark:hover:text-rose-300 transition-colors cursor-pointer"
+                                                    className="relative shrink-0 p-0.5 rounded text-gray-400 hover:text-[var(--tone-danger)] transition-colors cursor-pointer"
                                                 >
                                                     <X className="w-3 h-3" />
                                                 </button>
@@ -2025,7 +2025,7 @@ export default function GeminiModal({
                         )}
 
                         {attachError && (
-                            <p className="mt-1.5 flex items-start gap-1.5 text-[11px] text-rose-600 dark:text-rose-400">
+                            <p className="mt-1.5 flex items-start gap-1.5 text-[11px] text-[var(--tone-danger)]">
                                 <AlertTriangle className="w-3 h-3 shrink-0 mt-0.5" />
                                 <span className="min-w-0 break-words">{attachError}</span>
                             </p>
@@ -2097,7 +2097,7 @@ export default function GeminiModal({
                                       ? t('ai.placeholder.folder')
                                       : t('ai.placeholder.file')
                             }
-                            className="flex-1 min-w-0 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-white/[0.06] text-gray-900 dark:text-gray-100 placeholder:text-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none text-[13px] disabled:opacity-50"
+                            className="glass-input flex-1 min-w-0 px-3 py-2 rounded-xl text-[var(--ink)] placeholder:text-gray-400 focus:ring-2 focus:ring-[var(--accent-soft)] outline-none text-[13px] disabled:opacity-50"
                         />
 
                         {/* MỘT nút ở vị trí này, hai vai trò loại trừ nhau: đang rảnh thì
@@ -2114,7 +2114,7 @@ export default function GeminiModal({
                                 onClick={stopRun}
                                 title={t('ai.stop')}
                                 aria-label={t('ai.stop')}
-                                className="shrink-0 px-3 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg transition-colors flex items-center gap-1.5 text-[13px] font-medium cursor-pointer"
+                                className="btn-danger shrink-0 px-3 py-2 rounded-full transition-colors flex items-center gap-1.5 text-[13px] font-medium cursor-pointer"
                             >
                                 <Square className="w-3.5 h-3.5" />
                                 {t('ai.stop')}
@@ -2195,7 +2195,7 @@ export default function GeminiModal({
                                 disabled={isThinking}
                                 className={`shrink-0 flex items-center gap-1 px-2 py-1 rounded-lg font-medium transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
                                     webSearchOn
-                                        ? 'bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-500/15 dark:text-blue-300 dark:hover:bg-blue-500/25'
+                                        ? 'glass-active text-[var(--ink)]'
                                         : 'bg-gray-100 text-gray-400 dark:bg-white/[0.07] dark:text-gray-500'
                                 }`}
                             >
@@ -2257,7 +2257,7 @@ export default function GeminiModal({
 
                         <div className="flex-1 overflow-y-auto px-3 py-3">
                             {historyError && (
-                                <div className="mb-3 flex items-start gap-2 p-3 rounded-xl bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300 text-xs">
+                                <div className="mb-3 flex items-start gap-2 p-3 rounded-xl bg-[var(--tone-danger-soft)] text-[var(--ink)] text-xs">
                                     <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
                                     <p className="break-words min-w-0">{historyError}</p>
                                 </div>
@@ -2280,7 +2280,7 @@ export default function GeminiModal({
                                             <div
                                                 className={`max-w-[85%] px-3.5 py-2.5 rounded-2xl text-[13px] ${
                                                     m.role === 'user'
-                                                        ? 'bg-blue-600 text-white'
+                                                        ? 'glass-active text-[var(--ink)]'
                                                         : 'bg-gray-100 dark:bg-white/[0.06] text-gray-800 dark:text-gray-200'
                                                 }`}
                                             >
@@ -2354,8 +2354,8 @@ export default function GeminiModal({
                                                 }
                                                 className={`mr-2 rounded-full transition-colors cursor-pointer shrink-0 flex items-center gap-1 ${
                                                     confirmDeleteId === c.id
-                                                        ? 'px-2 py-1 text-[11px] font-medium text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-900/30 border border-rose-200 dark:border-rose-900/60'
-                                                        : 'p-1.5 text-gray-400 hover:text-rose-600 dark:hover:text-rose-300'
+                                                        ? 'px-2 py-1 text-[11px] font-medium text-[var(--tone-danger)] bg-[var(--tone-danger-soft)]'
+                                                        : 'p-1.5 text-gray-400 hover:text-[var(--tone-danger)]'
                                                 }`}
                                             >
                                                 <Trash2 className="w-3.5 h-3.5 shrink-0" />

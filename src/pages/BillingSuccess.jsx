@@ -159,9 +159,9 @@ export default function BillingSuccess() {
 
 function Shell({ tone, icon, title, children }) {
   const tones = {
-    success: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 ring-emerald-200 dark:ring-emerald-500/30',
-    warning: 'bg-amber-50 dark:bg-amber-500/10 text-amber-500 ring-amber-200 dark:ring-amber-500/30',
-    danger: 'bg-rose-50 dark:bg-rose-500/10 text-rose-500 ring-rose-200 dark:ring-rose-500/30',
+    success: 'bg-[var(--chip-fill)] text-[var(--ink)] ring-black/5 dark:ring-white/10',
+    warning: 'bg-[var(--tone-warn-soft)] text-[var(--tone-warn)] ring-transparent',
+    danger: 'bg-[var(--tone-danger-soft)] text-[var(--tone-danger)] ring-transparent',
     neutral: 'bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400 ring-gray-200 dark:ring-gray-700',
   };
 

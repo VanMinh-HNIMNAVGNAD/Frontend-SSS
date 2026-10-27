@@ -1,8 +1,8 @@
 import SelectDropdown from '../ui/SelectDropdown';
-import { 
+import ViewModeToggle from './ViewModeToggle';
+import {
     FileType,
     Calendar,
-    XCircle,
     Folder,
     File,
     FileText,
@@ -52,6 +52,13 @@ const SORT_FIELD_LABEL_KEYS = {
  * mà KHÔNG hiện thanh này thì có bộ lọc vô hình: chọn "Hình ảnh" ở cloudSSS của tôi rồi sang
  * Gần đây, trang Gần đây chỉ còn ảnh mà không có gì cho biết vì sao, cũng không có nút xoá (##83).
  *
+ * Bố cục (26/10/2026): MỘT hàng, MỘT đường kẻ dưới —
+ *   [Loại tệp ▾] [Ngày sửa đổi ▾] [Người sở hữu ▾] (Xoá bộ lọc)          [⇅ Sắp xếp ▾] [≡ | ⊞]
+ * Bên trái là bộ lọc (thu hẹp danh sách), bên phải là cách TRÌNH BÀY (thứ tự, Danh sách/Lưới) —
+ * trước đây "Sắp xếp" đứng lẫn đầu hàng bộ lọc, nút Danh sách/Lưới nằm tít trên tiêu đề trang, và
+ * tiêu đề + thanh lọc mỗi thứ một đường kẻ riêng chồng lên nhau. Bộ lọc đang bật hiện giá trị của
+ * nó kèm nút ✕ bỏ riêng; "Xoá bộ lọc" chỉ hiện khi có từ hai bộ lọc trở lên.
+ *
  * `showSort={false}` cho trang giữ thứ tự của server (Gần đây = mở gần nhất trước).
  * "Người sở hữu" chỉ hiện ở Bộ nhớ chung — nơi duy nhất backend lọc được theo chủ
  * (`ownerFilterApplies` ở FileContext); trước ##83 chỉ chọn được nó trong bộ lọc của thanh tìm
@@ -66,8 +73,17 @@ export default function FileFilterBar({
     setFilterOwner,
     onReset,
     showSort = true,
+    showViewToggle = true,
 }) {
-    const { sortField, setSortField, sortDirection, setSortDirection, ownerFilterApplies } = useFiles();
+    const {
+        sortField,
+        setSortField,
+        sortDirection,
+        setSortDirection,
+        ownerFilterApplies,
+        viewMode,
+        setViewMode,
+    } = useFiles();
     const { t } = useLanguage();
 
     // Cùng một danh sách với bộ lọc nâng cao trên thanh tìm kiếm — xem constants/fileFilters.js.
@@ -80,7 +96,6 @@ export default function FileFilterBar({
         })),
     ];
 
-    // Date Modified Options
     // Năm lấy từ đồng hồ máy, không ghi cứng: nhãn cũ là 'Năm nay (2026)' nên
     // sang 2027 nó vẫn khoe 2026 trong khi bộ lọc thật đã tính theo năm mới
     // (backend dùng `new Date().getFullYear()` — xem FilesService, nhánh 'this-year').
@@ -92,7 +107,9 @@ export default function FileFilterBar({
         { value: 'this-year', label: t('filter.date.thisYear', { year: new Date().getFullYear() }) },
     ];
 
-    const hasActiveFilters = filterType !== 'all' || filterDate !== 'all' || filterOwner !== 'all';
+    const showOwner = ownerFilterApplies && setFilterOwner;
+    const activeCount =
+        (filterType !== 'all' ? 1 : 0) + (filterDate !== 'all' ? 1 : 0) + (showOwner && filterOwner !== 'all' ? 1 : 0);
 
     const sortOptions = [
         { value: 'name-asc', label: t('filter.sort.nameAsc') },
@@ -118,7 +135,7 @@ export default function FileFilterBar({
         { value: 'me', label: t('search.filter.owner.me'), icon: User },
         { value: 'others', label: t('search.filter.owner.others'), icon: Users },
     ];
-    
+
     const handleSortChange = (val) => {
         const [field, dir] = val.split('-');
         setSortField(field);
@@ -126,23 +143,10 @@ export default function FileFilterBar({
     };
 
     return (
-        <div className="flex flex-wrap items-center gap-2 py-2 mb-3 border-b border-glass-divider select-none">
-            {showSort && (
-                <>
-                    <SelectDropdown
-                        label={t('filter.sort.label')}
-                        icon={ArrowUpDown}
-                        options={sortOptions}
-                        value={currentSort}
-                        onChange={handleSortChange}
-                        active={sortField !== 'name' || sortDirection !== 'asc'}
-                    />
-
-                    <div className="w-px h-6 bg-black/10 dark:bg-white/12 mx-1"></div>
-                </>
-            )}
-
-            {/* Filter by File Type */}
+        // Mọi viên là con TRỰC TIẾP của một hàng flex-wrap (không bọc nhóm bộ lọc riêng): trên điện
+        // thoại "Xoá bộ lọc" và cụm Sắp xếp/Chế độ xem dùng chung dòng thứ hai thay vì mỗi thứ một dòng.
+        <div className="flex flex-wrap items-center gap-2 pb-3 border-b border-glass-divider select-none">
+            {/* Bộ lọc — thu hẹp danh sách */}
             <SelectDropdown
                 label={t('filter.type.label')}
                 icon={FileType}
@@ -150,9 +154,10 @@ export default function FileFilterBar({
                 value={filterType}
                 onChange={setFilterType}
                 active={filterType !== 'all'}
+                onClear={() => setFilterType('all')}
+                clearLabel={t('filter.clearOne')}
             />
 
-            {/* Filter by Date */}
             <SelectDropdown
                 label={t('filter.date.label')}
                 icon={Calendar}
@@ -160,10 +165,12 @@ export default function FileFilterBar({
                 value={filterDate}
                 onChange={setFilterDate}
                 active={filterDate !== 'all'}
+                onClear={() => setFilterDate('all')}
+                clearLabel={t('filter.clearOne')}
             />
 
             {/* Người sở hữu — chỉ ở Bộ nhớ chung */}
-            {ownerFilterApplies && setFilterOwner && (
+            {showOwner && (
                 <SelectDropdown
                     label={t('search.filter.owner.label')}
                     icon={UserRound}
@@ -171,20 +178,38 @@ export default function FileFilterBar({
                     value={filterOwner}
                     onChange={setFilterOwner}
                     active={filterOwner !== 'all'}
+                    onClear={() => setFilterOwner('all')}
+                    clearLabel={t('filter.clearOne')}
                 />
             )}
 
-            {/* Quick Reset Filters Button */}
-            {hasActiveFilters && (
+            {activeCount >= 2 && (
                 <button
                     type="button"
                     onClick={onReset}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-500/15 border border-rose-200 dark:border-rose-800 hover:bg-rose-100 dark:hover:bg-rose-500/25 transition-colors shadow-2xs cursor-pointer"
+                    className="h-8 px-2 text-[12.5px] font-medium text-[var(--ink-muted)] hover:text-[var(--ink)] hover:underline underline-offset-2 cursor-pointer"
                     title={t('filter.resetTitle')}
                 >
-                    <XCircle className="w-3.5 h-3.5" />
-                    <span>{t('filter.reset')}</span>
+                    {t('filter.reset')}
                 </button>
+            )}
+
+            {/* Trình bày — thứ tự và chế độ xem, dồn sang phải */}
+            {(showSort || showViewToggle) && (
+                <div className="ml-auto flex items-center gap-2">
+                    {showSort && (
+                        <SelectDropdown
+                            label={t('filter.sort.label')}
+                            icon={ArrowUpDown}
+                            options={sortOptions}
+                            value={currentSort}
+                            onChange={handleSortChange}
+                            active={sortField !== 'name' || sortDirection !== 'asc'}
+                            align="right"
+                        />
+                    )}
+                    {showViewToggle && <ViewModeToggle viewMode={viewMode} setViewMode={setViewMode} />}
+                </div>
             )}
         </div>
     );

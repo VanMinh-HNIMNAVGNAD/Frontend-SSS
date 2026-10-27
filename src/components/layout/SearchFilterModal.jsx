@@ -1,12 +1,45 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
+import { Check } from 'lucide-react';
 import { useFiles } from '../../context/FileContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { FILE_TYPE_FILTER_OPTIONS } from '../../constants/fileFilters';
 
-// 16px và cao hơn trên điện thoại: Safari iOS phóng to cả trang khi chạm vào ô chọn
-// có chữ dưới 16px, và ngón tay cần vùng chạm lớn hơn con trỏ chuột.
-const SELECT_CLASS =
-    'w-full bg-gray-50 dark:bg-white/5 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2.5 sm:py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';
+/**
+ * Một nhóm lựa chọn dạng CHIP kính (26/10/2026) thay cho <select> gốc của trình duyệt: ô chọn của
+ * hệ điều hành là khung xám viền đậm nằm giữa tấm kính, và phải bấm mở mới thấy có những lựa chọn
+ * nào. Chip bày sẵn mọi lựa chọn, bấm một lần là chọn; chip đang chọn là viên kính sáng có dấu ✓.
+ * Ngón tay: chip cao 36px trên điện thoại.
+ */
+function ChipGroup({ label, options, value, onChange }) {
+    const labelId = useId();
+    return (
+        <div>
+            <p id={labelId} className="mb-2 text-xs font-semibold text-[var(--ink-muted)]">{label}</p>
+            <div role="radiogroup" aria-labelledby={labelId} className="flex flex-wrap gap-1.5">
+                {options.map((option) => {
+                    const selected = option.value === value;
+                    return (
+                        <button
+                            key={option.value}
+                            type="button"
+                            role="radio"
+                            aria-checked={selected}
+                            onClick={() => onChange(option.value)}
+                            className={`flex items-center gap-1 h-9 sm:h-8 px-3 rounded-full text-[13px] sm:text-[12.5px] transition-colors cursor-pointer ${
+                                selected
+                                    ? 'glass-active font-semibold text-[var(--ink)]'
+                                    : 'glass-soft font-medium text-[var(--ink-muted)] hover:text-[var(--ink)]'
+                            }`}
+                        >
+                            {selected && <Check className="w-3.5 h-3.5 -ml-0.5" strokeWidth={2.5} />}
+                            {option.label}
+                        </button>
+                    );
+                })}
+            </div>
+        </div>
+    );
+}
 
 /**
  * Nơi có danh sách tệp để lọc — nhãn lấy đúng khoá của Sidebar để cùng một chỗ không
@@ -131,86 +164,56 @@ function FilterPanel({ onClose, toggleRef }) {
         { value: 'this-year', label: t('filter.date.thisYear', { year: new Date().getFullYear() }) },
     ];
 
+    const typeOptions = [
+        { value: 'all', label: t('filter.type.all') },
+        ...FILE_TYPE_FILTER_OPTIONS.map(({ value, labelKey }) => ({ value, label: t(labelKey) })),
+    ];
+    const ownerOptions = [
+        { value: 'all', label: t('search.filter.owner.anyone') },
+        { value: 'me', label: t('search.filter.owner.me') },
+        { value: 'others', label: t('search.filter.owner.others') },
+    ];
+
     return (
         <div
             ref={modalRef}
-            className="glass-strong fixed inset-x-2 top-[4.25rem] max-h-[calc(100dvh-5rem)] overflow-y-auto sm:absolute sm:inset-x-0 sm:top-full sm:mt-2 sm:max-h-none sm:overflow-visible rounded-[20px] border p-4 sm:p-6 z-50 text-gray-800 dark:text-gray-200 animate-fade-in cursor-default text-left"
+            className="glass-strong fixed inset-x-2 top-[4.25rem] max-h-[calc(100dvh-5rem)] overflow-y-auto sm:absolute sm:inset-x-0 sm:top-full sm:mt-2 sm:max-h-none sm:overflow-visible rounded-[22px] p-4 sm:p-5 z-50 text-[var(--ink)] animate-glass-in origin-top cursor-default text-left"
         >
-            <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3 sm:mb-4">{t('search.filter.title')}</h3>
+            <h3 className="text-[11px] font-semibold text-[var(--ink-subtle)] uppercase tracking-wider mb-4">{t('search.filter.title')}</h3>
 
-            <div className={`grid grid-cols-1 gap-3 sm:gap-4 mb-4 sm:mb-6 ${ownerApplies ? 'md:grid-cols-2' : 'md:grid-cols-3'}`}>
+            <div className="space-y-4 mb-5">
                 {/* Loại tệp — cùng danh sách với thanh lọc */}
-                <div>
-                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">{t('filter.type.label')}</label>
-                    <select
-                        value={draftType}
-                        onChange={(e) => setDraftType(e.target.value)}
-                        className={SELECT_CLASS}
-                    >
-                        <option value="all">{t('filter.type.all')}</option>
-                        {FILE_TYPE_FILTER_OPTIONS.map(({ value, labelKey }) => (
-                            <option key={value} value={value}>{t(labelKey)}</option>
-                        ))}
-                    </select>
-                </div>
+                <ChipGroup label={t('filter.type.label')} options={typeOptions} value={draftType} onChange={setDraftType} />
 
                 {/* Ngày sửa đổi */}
-                <div>
-                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">{t('filter.date.label')}</label>
-                    <select
-                        value={draftDate}
-                        onChange={(e) => setDraftDate(e.target.value)}
-                        className={SELECT_CLASS}
-                    >
-                        {dateOptions.map(({ value, label }) => (
-                            <option key={value} value={value}>{label}</option>
-                        ))}
-                    </select>
-                </div>
+                <ChipGroup label={t('filter.date.label')} options={dateOptions} value={draftDate} onChange={setDraftDate} />
 
                 {/* Người sở hữu — chỉ ở Bộ nhớ dùng chung */}
                 {ownerApplies && (
-                    <div>
-                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">{t('search.filter.owner.label')}</label>
-                        <select
-                            value={draftOwner}
-                            onChange={(e) => setDraftOwner(e.target.value)}
-                            className={SELECT_CLASS}
-                        >
-                            <option value="all">{t('search.filter.owner.anyone')}</option>
-                            <option value="me">{t('search.filter.owner.me')}</option>
-                            <option value="others">{t('search.filter.owner.others')}</option>
-                        </select>
-                    </div>
+                    <ChipGroup label={t('search.filter.owner.label')} options={ownerOptions} value={draftOwner} onChange={setDraftOwner} />
                 )}
 
                 {/* Vị trí */}
-                <div>
-                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">{t('search.filter.location.label')}</label>
-                    <select
-                        value={draftLocation}
-                        onChange={(e) => setDraftLocation(e.target.value)}
-                        className={SELECT_CLASS}
-                    >
-                        {locationOptions.map(({ value, labelKey }) => (
-                            <option key={value} value={value}>{t(labelKey)}</option>
-                        ))}
-                    </select>
-                </div>
+                <ChipGroup
+                    label={t('search.filter.location.label')}
+                    options={locationOptions.map(({ value, labelKey }) => ({ value, label: t(labelKey) }))}
+                    value={draftLocation}
+                    onChange={setDraftLocation}
+                />
             </div>
 
-            <div className="flex items-center justify-end gap-2 sm:gap-3 pt-3 border-t border-glass-divider">
+            <div className="flex items-center justify-end gap-2 pt-4 border-t border-glass-divider">
                 <button
                     type="button"
                     onClick={handleReset}
-                    className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 rounded-full transition-colors cursor-pointer"
+                    className="px-4 py-2 text-sm font-medium text-[var(--ink-muted)] hover:text-[var(--ink)] rounded-full transition-colors cursor-pointer"
                 >
                     {t('filter.reset')}
                 </button>
                 <button
                     type="button"
                     onClick={handleApply}
-                    className="px-5 py-2 text-sm font-medium btn-accent hover:brightness-105 rounded-full shadow-sm transition-colors cursor-pointer"
+                    className="px-5 py-2 text-sm font-semibold btn-accent hover:brightness-105 rounded-full transition cursor-pointer"
                 >
                     {t('search.filter.apply')}
                 </button>

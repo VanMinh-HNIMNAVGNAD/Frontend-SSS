@@ -12,6 +12,7 @@ import LiquidGroup from '../ui/LiquidGroup';
 import { useLanguage } from '../../context/LanguageContext';
 import { userApi } from '../../services/api';
 import { STARTUP_PAGE_KEY, STARTUP_PAGES, readStartupPage } from '../../constants/routes';
+import { alertDialog } from '../../utils/dialog';
 import {
   PRIVACY_DISCOVERABLE_KEY,
   SHARE_ROLES,
@@ -56,9 +57,9 @@ function safeSetItem(key, value) {
  * được chứa giá trị nào ngoài 'light' | 'dark' | 'system'.
  */
 const THEME_OPTIONS = [
-  { value: 'light', Icon: Sun, iconClass: 'text-amber-500', titleKey: 'settings.theme.light', labelKey: 'settings.theme.lightShort' },
-  { value: 'dark', Icon: Moon, iconClass: 'text-indigo-500', titleKey: 'settings.theme.dark', labelKey: 'settings.theme.darkShort' },
-  { value: 'system', Icon: Laptop, iconClass: 'text-slate-500', titleKey: 'settings.theme.system', labelKey: 'settings.theme.systemShort' },
+  { value: 'light', Icon: Sun, titleKey: 'settings.theme.light', labelKey: 'settings.theme.lightShort' },
+  { value: 'dark', Icon: Moon, titleKey: 'settings.theme.dark', labelKey: 'settings.theme.darkShort' },
+  { value: 'system', Icon: Laptop, titleKey: 'settings.theme.system', labelKey: 'settings.theme.systemShort' },
 ];
 
 /**
@@ -154,7 +155,7 @@ export default function SettingsModal({ isOpen, onClose }) {
       // Ghép CẢ HAI câu, không chỉ err.message: câu của backend giải thích LÝ DO
       // nhưng không nói rằng công tắc vừa bị trả về trạng thái cũ — mà đó mới là
       // điều người dùng phải biết để không tưởng mình đã tắt xong.
-      alert(`${t('settings.privacy.discoverable.saveError')}${err.message ? `\n\n${err.message}` : ''}`);
+      alertDialog(`${t('settings.privacy.discoverable.saveError')}${err.message ? `\n\n${err.message}` : ''}`);
     }
   };
 
@@ -221,12 +222,12 @@ export default function SettingsModal({ isOpen, onClose }) {
 
   // Dùng lại cho cả 3 <select> — cùng một kiểu ô nhập thì phải cùng một bộ màu
   const selectClass =
-    'glass-input w-full border rounded-xl px-3 py-2 text-xs text-gray-800 dark:text-gray-100 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 outline-none transition-colors';
+    'glass-select w-full rounded-xl px-3 py-2 text-xs text-[var(--ink)] focus:ring-2 focus:ring-[var(--accent-soft)] outline-none transition-colors cursor-pointer';
 
   // Dùng lại cho 2 công tắc (phím tắt + hiển thị thông tin cá nhân)
   const switchClass = (on) =>
-    `relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#2a2a2e] ${
-      on ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
+    `relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#2a2a2e] ${
+      on ? 'bg-[var(--accent)]' : 'bg-black/15 dark:bg-white/20'
     }`;
 
   const switchKnobClass = (on) =>
@@ -240,17 +241,17 @@ export default function SettingsModal({ isOpen, onClose }) {
       onClick={onClose}
     >
       <div
-        className="glass-strong relative rounded-[28px] w-full max-w-[614px] overflow-hidden flex flex-col max-h-[88vh] border text-left animate-glass-in"
+        className="glass-strong relative rounded-[28px] w-full max-w-[614px] overflow-hidden flex flex-col max-h-[88vh] text-left animate-glass-in"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-b bg-gray-50/80 dark:bg-white/5 border-glass-divider">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-glass-divider">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-blue-600/10 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+            <div className="w-8 h-8 rounded-xl bg-[var(--chip-fill)] text-[var(--ink-muted)] flex items-center justify-center shrink-0">
               <Settings className="w-4.5 h-4.5" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-gray-900 dark:text-gray-100">{t('settings.title')}</h2>
+              <h2 className="text-base font-semibold text-[var(--ink)]">{t('settings.title')}</h2>
             </div>
           </div>
           <button
@@ -266,7 +267,7 @@ export default function SettingsModal({ isOpen, onClose }) {
           {/* Sidebar Left Tabs — viên kính "đang chọn" trượt giữa các tab (LiquidGroup). */}
           <LiquidGroup
             activeKey={activeTab}
-            className="w-44 bg-gray-50/70 dark:bg-white/5 border-r p-2.5 flex flex-col gap-1 shrink-0 border-glass-divider"
+            className="w-44 border-r p-2.5 flex flex-col gap-1 shrink-0 border-glass-divider"
           >
             {TABS.map(({ id, Icon, labelKey }) => (
               <button
@@ -277,8 +278,8 @@ export default function SettingsModal({ isOpen, onClose }) {
                 aria-pressed={activeTab === id}
                 className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-left transition-colors cursor-pointer ${
                   activeTab === id
-                    ? 'text-blue-700 dark:text-blue-300'
-                    : 'text-gray-700 dark:text-gray-300'
+                    ? 'text-[var(--ink)]'
+                    : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
                 }`}
               >
                 <Icon className="w-3.5 h-3.5 shrink-0" />
@@ -298,7 +299,7 @@ export default function SettingsModal({ isOpen, onClose }) {
                     {t('settings.theme.heading')}
                   </h3>
                   <div className="grid grid-cols-3 gap-2">
-                    {THEME_OPTIONS.map(({ value, Icon, iconClass, titleKey, labelKey }) => (
+                    {THEME_OPTIONS.map(({ value, Icon, titleKey, labelKey }) => (
                       <button
                         key={value}
                         type="button"
@@ -307,13 +308,13 @@ export default function SettingsModal({ isOpen, onClose }) {
                         onClick={() => handleChangeTheme(value)}
                         title={t(titleKey)}
                         aria-pressed={theme === value}
-                        className={`flex flex-col items-center justify-center py-2.5 px-1.5 rounded-xl border gap-1 transition-all cursor-pointer ${
+                        className={`flex flex-col items-center justify-center py-2.5 px-1.5 rounded-xl gap-1 transition-all cursor-pointer ${
                           theme === value
-                            ? 'border-blue-600 bg-blue-50 dark:bg-blue-500/15 text-blue-800 dark:text-blue-300 font-bold shadow-2xs'
-                            : 'border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-300 font-medium'
+                            ? 'glass-active text-[var(--ink)] font-semibold'
+                            : 'glass-soft text-[var(--ink-muted)] hover:text-[var(--ink)] font-medium'
                         }`}
                       >
-                        <Icon className={`w-4.5 h-4.5 ${iconClass}`} />
+                        <Icon className="w-4.5 h-4.5" />
                         <span className="text-[11px] leading-none">{t(labelKey)}</span>
                       </button>
                     ))}

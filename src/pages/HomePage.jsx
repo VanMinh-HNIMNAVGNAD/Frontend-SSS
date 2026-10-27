@@ -21,6 +21,9 @@ import FileGridView from '../components/file-manager/FileGridView';
 import FileFilterBar from '../components/common/FileFilterBar';
 import { getFileIcon } from '../utils/getFileIcon';
 import { downloadSingleItem } from '../utils/downloadItems';
+import { formatListDate } from '../utils/relativeTime';
+import { localeTagOf } from '../utils/locale';
+import PageHeader from '../components/common/PageHeader';
 import {
     HardDrive,
     Clock,
@@ -35,53 +38,77 @@ import {
 } from 'lucide-react';
 import ViewModeToggle from '../components/common/ViewModeToggle';
 
+/** Tiêu đề một mục của Trang chủ: icon màu mực + tên + chữ phụ, "Xem tất cả" bên phải. */
+function SectionHeader({ icon: Icon, title, meta, onViewAll }) {
+    const { t } = useLanguage();
+    return (
+        <div className="flex items-center justify-between pb-1.5 border-b border-glass-divider">
+            <div className="flex items-baseline gap-2 min-w-0">
+                <Icon className="w-[18px] h-[18px] shrink-0 self-center text-[var(--ink-muted)]" />
+                <h2 className="text-base font-semibold text-[var(--ink)]">{title}</h2>
+                <span className="text-xs text-[var(--ink-subtle)] truncate">{meta}</span>
+            </div>
+            <button
+                onClick={onViewAll}
+                className="shrink-0 text-xs font-semibold text-[var(--ink-muted)] hover:text-[var(--ink)] flex items-center gap-1 transition-colors cursor-pointer"
+            >
+                {t('home.viewAll')} <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+        </div>
+    );
+}
+
 // getFileIcon() có thể ném lỗi với item thiếu `name`/`mimeType` (dữ liệu cũ) —
 // Trang chủ trộn item từ nhiều nguồn nên bọc lại một lần ở đây.
 const safeFileIcon = (item) => {
     try {
         return getFileIcon(item);
     } catch {
-        return <File className="w-4 h-4 text-gray-400 dark:text-gray-500 shrink-0" />;
+        return <File className="w-4 h-4 text-[var(--ink-subtle)] shrink-0" />;
     }
 };
 
 // Compact Section Table Component (List Mode)
 const SectionTable = ({ itemList, emptyMessage, onItemOpen, onToggleStar, onContextMenu }) => {
-    const { t } = useLanguage();
+    const { t, language } = useLanguage();
+    const locale = localeTagOf(language);
     if (itemList.length === 0) {
-        return <p className="text-xs text-gray-500 dark:text-gray-400 py-3 italic">{emptyMessage ?? t('home.empty')}</p>;
+        return <p className="text-xs text-[var(--ink-subtle)] py-3">{emptyMessage ?? t('home.empty')}</p>;
     }
 
     return (
-        <div className="w-full divide-y divide-gray-200 dark:divide-gray-700 text-sm">
+        <div className="w-full divide-y divide-[var(--glass-divider)] text-sm">
             {itemList.map((item) => (
                 <div
                     key={item.id}
                     onDoubleClick={() => onItemOpen && onItemOpen(item, itemList)}
                     onContextMenu={(e) => onContextMenu && onContextMenu(e, item)}
                     title={t('home.doubleClickToOpen')}
-                    className="flex items-center justify-between py-2.5 px-3 hover:bg-gray-100/70 dark:hover:bg-white/5 transition-colors cursor-pointer rounded-lg select-none"
+                    className="flex items-center justify-between py-2 px-2.5 row-hover transition-colors cursor-pointer rounded-xl select-none"
                 >
                     {/* Name & mini thumbnail (ảnh / video / trang đầu PDF, còn lại là icon) */}
                     <div className="flex items-center gap-3 flex-1 min-w-0 pr-4">
                         <FileThumbnail
                             file={item}
-                            className="w-9 h-9 rounded-lg bg-white dark:bg-white/5 border border-gray-200 dark:border-gray-700/60 shadow-2xs"
+                            className="w-8 h-8 rounded-lg glass-soft"
                             fallback={safeFileIcon(item)}
                         />
-                        <span className="font-semibold text-gray-900 dark:text-gray-100 truncate hover:text-blue-700 dark:hover:text-blue-400">
+                        <span className="font-medium text-[var(--ink)] truncate">
                             {item.name}
                         </span>
                     </div>
 
                     {/* Owner */}
-                    <div className="text-xs text-gray-700 dark:text-gray-300 font-medium w-32 hidden sm:block truncate">
+                    <div className="text-xs text-[var(--ink-muted)] w-32 hidden sm:block truncate">
                         {item.owner || t('list.owner.me')}
                     </div>
 
-                    {/* Updated Date */}
-                    <div className="text-xs text-gray-600 dark:text-gray-400 font-medium font-mono w-36 hidden md:block text-right pr-4">
-                        {item.updatedAt}
+                    {/* Updated Date — dạng gọn, đầy đủ trong tooltip */}
+                    <div
+                        className="text-xs text-[var(--ink-muted)] tabular-nums w-28 hidden md:block text-right pr-3"
+                        title={item.updatedAt}
+                    >
+                        {formatListDate(item.updatedAtMs, locale) || item.updatedAt}
                     </div>
 
                     {/* Action */}
@@ -99,7 +126,7 @@ const SectionTable = ({ itemList, emptyMessage, onItemOpen, onToggleStar, onCont
                                 onContextMenu && onContextMenu(e, item);
                             }}
                             onDoubleClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
-                            className="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 p-1 rounded-full"
+                            className="text-[var(--ink-subtle)] hover:text-[var(--ink)] p-1 rounded-full cursor-pointer"
                             title={t('home.moreActions')}
                         >
                             <MoreVertical className="w-4 h-4" />
@@ -113,9 +140,10 @@ const SectionTable = ({ itemList, emptyMessage, onItemOpen, onToggleStar, onCont
 
 // Compact Section Grid Component (Grid Mode)
 const SectionGrid = ({ itemList, emptyMessage, onItemOpen, onToggleStar, onContextMenu }) => {
-    const { t } = useLanguage();
+    const { t, language } = useLanguage();
+    const locale = localeTagOf(language);
     if (itemList.length === 0) {
-        return <p className="text-xs text-gray-500 dark:text-gray-400 py-3 italic">{emptyMessage ?? t('home.empty')}</p>;
+        return <p className="text-xs text-[var(--ink-subtle)] py-3">{emptyMessage ?? t('home.empty')}</p>;
     }
 
     return (
@@ -126,13 +154,13 @@ const SectionGrid = ({ itemList, emptyMessage, onItemOpen, onToggleStar, onConte
                     onDoubleClick={() => onItemOpen && onItemOpen(item, itemList)}
                     onContextMenu={(e) => onContextMenu && onContextMenu(e, item)}
                     title={t('home.doubleClickToOpen')}
-                    className="glass-soft border rounded-xl p-2 hover:shadow-md hover:border-blue-400 transition-all cursor-pointer flex flex-col group h-44 select-none"
+                    className="glass-soft rounded-[18px] p-2 hover:-translate-y-0.5 hover:shadow-md transition-all cursor-pointer flex flex-col group h-44 select-none"
                 >
                     {/* Hàng đầu: icon loại tệp và tên tệp nâng cao, nút sao đã bỏ vì có trong context menu */}
                     <div className="flex items-center justify-between gap-1 mb-1 h-4.5">
                         <div className="flex items-center gap-1.5 min-w-0">
                             {safeFileIcon(item)}
-                            <p className="text-[11px] font-semibold text-gray-900 dark:text-gray-100 truncate group-hover:text-blue-700" title={item.name}>
+                            <p className="text-[11px] font-semibold text-[var(--ink)] truncate" title={item.name}>
                                 {item.name}
                             </p>
                         </div>
@@ -143,7 +171,7 @@ const SectionGrid = ({ itemList, emptyMessage, onItemOpen, onToggleStar, onConte
                                 onContextMenu && onContextMenu(e, item);
                             }}
                             onDoubleClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
-                            className="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 p-0.5 rounded-full opacity-0 group-hover:opacity-100 pointer-coarse:opacity-100 transition-opacity shrink-0"
+                            className="text-[var(--ink-subtle)] hover:text-[var(--ink)] p-0.5 rounded-full opacity-0 group-hover:opacity-100 pointer-coarse:opacity-100 transition-opacity shrink-0 cursor-pointer"
                             title={t('home.moreActions')}
                         >
                             <MoreVertical className="w-3.5 h-3.5" />
@@ -153,13 +181,13 @@ const SectionGrid = ({ itemList, emptyMessage, onItemOpen, onToggleStar, onConte
                     {/* Mini thumbnail: ảnh / video / trang đầu PDF; loại khác về icon mờ — phóng to tối đa */}
                     <FileThumbnail
                         file={item}
-                        className="flex-1 w-full rounded-lg bg-slate-50/50 dark:bg-white/5 border border-gray-200 dark:border-gray-700/60 my-1 group-hover:border-blue-300 transition-colors"
+                        className="flex-1 w-full rounded-xl bg-white/45 dark:bg-white/[0.04] border border-[var(--glass-divider)] my-1 transition-colors"
                         fallback={<div className="opacity-30 scale-[1.75]">{safeFileIcon(item)}</div>}
                     />
 
                     <div className="h-3.5 mt-0.5 leading-none">
-                        <p className="text-[9.5px] text-gray-500 dark:text-gray-400 font-medium truncate">
-                            {item.owner || t('list.owner.me')} • {item.updatedAt ? item.updatedAt.split(',')[0] : ''}
+                        <p className="text-[10px] text-[var(--ink-muted)] font-medium truncate" title={item.updatedAt}>
+                            {item.owner || t('list.owner.me')} · {formatListDate(item.updatedAtMs, locale)}
                         </p>
                     </div>
                 </div>
@@ -335,30 +363,27 @@ export default function HomePage() {
         const shown = items.length;
         return (
             <div className="flex flex-col h-full">
-                <div className="flex items-center justify-between gap-3 mb-2 pb-2 border-b border-glass-divider">
-                    <div className="flex items-center gap-3 min-w-0">
-                        <button
-                            onClick={() => setSearchQuery('')}
-                            title={t('home.search.back')}
-                            aria-label={t('home.search.back')}
-                            className="p-1.5 rounded-lg text-gray-500 dark:text-gray-400 transition-colors shrink-0 cursor-pointer"
-                        >
-                            <ArrowLeft className="w-5 h-5" />
-                        </button>
-                        <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
-                            <Search className="w-5 h-5" />
+                <PageHeader
+                    title={
+                        <div className="flex items-center gap-2 min-w-0">
+                            <button
+                                onClick={() => setSearchQuery('')}
+                                title={t('home.search.back')}
+                                aria-label={t('home.search.back')}
+                                className="p-1.5 -ml-1.5 rounded-full text-[var(--ink-muted)] hover:text-[var(--ink)] transition-colors shrink-0 cursor-pointer"
+                            >
+                                <ArrowLeft className="w-5 h-5" />
+                            </button>
+                            <Search className="w-[22px] h-[22px] shrink-0 text-[var(--ink-muted)]" />
+                            <h1 className="text-xl font-bold tracking-tight text-[var(--ink)] truncate">{t('home.search.title')}</h1>
                         </div>
-                        <div className="min-w-0">
-                            <h1 className="text-xl font-bold text-gray-800 dark:text-gray-200 truncate">
-                                {t('home.search.title')}
-                            </h1>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">
-                                {t('home.search.hint', { count: Math.max(totalItems, shown), query: searchQuery.trim() })}
-                            </p>
-                        </div>
-                    </div>
-                    {viewSwitcher}
-                </div>
+                    }
+                    subtitle={
+                        <span className="pl-16 block">
+                            {t('home.search.hint', { count: Math.max(totalItems, shown), query: searchQuery.trim() })}
+                        </span>
+                    }
+                />
 
                 <FileFilterBar
                     filterType={filterType}
@@ -371,12 +396,12 @@ export default function HomePage() {
                 />
 
                 {totalItems > shown && (
-                    <p className="mb-2 text-xs font-medium text-amber-700 dark:text-amber-300">
+                    <p className="mt-2 text-xs font-medium text-[var(--ink-muted)]">
                         {t('home.search.truncated', { shown, total: totalItems })}
                     </p>
                 )}
 
-                <div className="flex-1 overflow-y-auto">
+                <div className="flex-1 overflow-y-auto pt-2">
                     {viewMode === 'grid' ? <FileGridView /> : <FileListView />}
                 </div>
             </div>
@@ -387,11 +412,11 @@ export default function HomePage() {
         return (
             <div className="space-y-6">
                 <div>
-                    <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-48 mb-3 animate-pulse" />
+                    <div className="h-6 bg-black/[0.06] dark:bg-white/[0.08] rounded-lg w-48 mb-3 animate-pulse" />
                     <FileSkeleton type="home-section" />
                 </div>
                 <div>
-                    <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-48 mb-3 animate-pulse" />
+                    <div className="h-6 bg-black/[0.06] dark:bg-white/[0.08] rounded-lg w-48 mb-3 animate-pulse" />
                     <FileSkeleton type="home-section" />
                 </div>
             </div>
@@ -407,48 +432,41 @@ export default function HomePage() {
             }`}
             aria-busy={isRefreshing}
         >
-            {/* Header Toolbar */}
-            <div className="flex items-center justify-between pb-2 border-b border-glass-divider">
-                <div className="flex items-center gap-2">
-                    <Home className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                    <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">{t('home.title')}</h1>
-                </div>
+            {/* Header Toolbar — Trang chủ không có thanh lọc nên nút Danh sách/Lưới ở lại đây */}
+            <PageHeader
+                icon={Home}
+                title={t('home.title')}
+                className="mb-5!"
+                actions={
+                    <>
+                        {/* Lối ra cho danh sách ẩn. Chỉ hiện khi thật sự có gì đang bị ẩn —
+                            một nút "hiện lại" đứng thường trực trong khi không có gì để hiện
+                            lại chỉ làm người dùng đi tìm thứ không tồn tại. Đặt ở đây chứ
+                            không nhét vào modal Cài đặt: nó nói về đúng trang đang mở. */}
+                        {dismissed.size > 0 && (
+                            <button
+                                onClick={handleRestoreDismissed}
+                                title={t('home.restoreDismissed.hint')}
+                                className="glass-soft flex items-center gap-1.5 text-xs font-medium text-[var(--ink)] h-8 px-3 rounded-full transition-colors cursor-pointer"
+                            >
+                                <EyeOff className="w-3.5 h-3.5 text-[var(--ink-muted)]" />
+                                {t('home.restoreDismissed', { count: dismissed.size })}
+                            </button>
+                        )}
 
-                <div className="flex items-center gap-2">
-                    {/* Lối ra cho danh sách ẩn. Chỉ hiện khi thật sự có gì đang bị ẩn —
-                        một nút "hiện lại" đứng thường trực trong khi không có gì để hiện
-                        lại chỉ làm người dùng đi tìm thứ không tồn tại. Đặt ở đây chứ
-                        không nhét vào modal Cài đặt: nó nói về đúng trang đang mở. */}
-                    {dismissed.size > 0 && (
-                        <button
-                            onClick={handleRestoreDismissed}
-                            title={t('home.restoreDismissed.hint')}
-                            className="flex items-center gap-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 px-2.5 py-1.5 rounded-full border border-gray-300 dark:border-gray-700 transition-colors cursor-pointer"
-                        >
-                            <EyeOff className="w-3.5 h-3.5" />
-                            {t('home.restoreDismissed', { count: dismissed.size })}
-                        </button>
-                    )}
-
-                    {viewSwitcher}
-                </div>
-            </div>
+                        {viewSwitcher}
+                    </>
+                }
+            />
 
             {/* SECTION 1: MY DRIVE */}
             <section className="space-y-2">
-                <div className="flex items-center justify-between pb-1 border-b border-glass-divider">
-                    <div className="flex items-center gap-2">
-                        <HardDrive className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                        <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{t('home.myDrive')}</h2>
-                        <span className="text-xs text-gray-400 dark:text-gray-500 font-normal">{t('home.myDrive.count', { count: myDriveItems.length })}</span>
-                    </div>
-                    <button
-                        onClick={() => setActiveTab('my-drive')}
-                        className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 flex items-center gap-1 hover:underline transition-all"
-                    >
-                        {t('home.viewAll')} <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
-                </div>
+                <SectionHeader
+                    icon={HardDrive}
+                    title={t('home.myDrive')}
+                    meta={t('home.myDrive.count', { count: myDriveItems.length })}
+                    onViewAll={() => setActiveTab('my-drive')}
+                />
                 {viewMode === 'grid' ? (
                     <SectionGrid
                         itemList={myDriveItems}
@@ -470,19 +488,12 @@ export default function HomePage() {
 
             {/* SECTION 2: RECENT */}
             <section className="space-y-2">
-                <div className="flex items-center justify-between pb-1 border-b border-glass-divider">
-                    <div className="flex items-center gap-2">
-                        <Clock className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                        <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{t('page.recent.title')}</h2>
-                        <span className="text-xs text-gray-400 dark:text-gray-500 font-normal">{t('home.recent.subtitle')}</span>
-                    </div>
-                    <button
-                        onClick={() => setActiveTab('recent')}
-                        className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 flex items-center gap-1 hover:underline transition-all"
-                    >
-                        {t('home.viewAll')} <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
-                </div>
+                <SectionHeader
+                    icon={Clock}
+                    title={t('page.recent.title')}
+                    meta={t('home.recent.subtitle')}
+                    onViewAll={() => setActiveTab('recent')}
+                />
                 {viewMode === 'grid' ? (
                     <SectionGrid
                         itemList={recentItems}
@@ -504,21 +515,12 @@ export default function HomePage() {
 
             {/* SECTION 3: SHARED WITH ME */}
             <section className="space-y-2">
-                <div className="flex items-center justify-between pb-1 border-b border-glass-divider">
-                    <div className="flex items-center gap-2">
-                        <Users className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-                        <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{t('page.sharedWithMe.title')}</h2>
-                        <span className="text-xs text-gray-400 dark:text-gray-500 font-normal">
-                            {t('home.itemCount', { count: sharedItems.length })}
-                        </span>
-                    </div>
-                    <button
-                        onClick={() => setActiveTab('shared-with-me')}
-                        className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 flex items-center gap-1 hover:underline transition-all"
-                    >
-                        {t('home.viewAll')} <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
-                </div>
+                <SectionHeader
+                    icon={Users}
+                    title={t('page.sharedWithMe.title')}
+                    meta={t('home.itemCount', { count: sharedItems.length })}
+                    onViewAll={() => setActiveTab('shared-with-me')}
+                />
                 {viewMode === 'grid' ? (
                     <SectionGrid
                         itemList={sharedItems}

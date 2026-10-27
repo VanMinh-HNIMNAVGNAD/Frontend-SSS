@@ -71,7 +71,7 @@ export default function TermsAcceptanceGate() {
       to={LEGAL_PATHS[docId]}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-bold underline decoration-blue-600/40 dark:decoration-blue-400/40 underline-offset-2"
+      className="inline-flex items-center gap-1.5 text-[var(--accent)] font-semibold underline decoration-current/40 underline-offset-2"
     >
       <ScrollText className="w-3.5 h-3.5 shrink-0" />
       {label}
@@ -129,7 +129,7 @@ export default function TermsAcceptanceGate() {
             type="button"
             onClick={handleAccept}
             disabled={isSubmitting}
-            className="flex-1 h-12 rounded-xl btn-accent hover:brightness-105 font-bold text-sm tracking-wide transition shadow-lg shadow-blue-600/25 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 h-12 rounded-full btn-accent hover:brightness-105 font-semibold text-sm tracking-wide transition cursor-pointer disabled:cursor-not-allowed"
           >
             {isSubmitting ? t('legal.gate.submitting') : t('legal.gate.accept')}
           </button>

@@ -5,6 +5,7 @@ import Modal from '../common/Modal';
 import { useTags } from '../../context/TagsContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { DEFAULT_TAG_COLOR, TAG_COLORS, TAG_NAME_MAX } from '../../constants/tags';
+import { confirmDialog } from '../../utils/dialog';
 
 /** Một ô chọn màu — vòng tròn, đánh dấu màu đang chọn. */
 function ColorDots({ value, onChange, disabled }) {
@@ -55,7 +56,12 @@ function TagRow({ tag }) {
     };
 
     const remove = async () => {
-        if (!confirm(t('tags.confirmDelete', { name: tag.name, count: tag.fileCount || 0 }))) return;
+        const ok = await confirmDialog({
+            message: t('tags.confirmDelete', { name: tag.name, count: tag.fileCount || 0 }),
+            confirmLabel: t('tags.delete'),
+            danger: true,
+        });
+        if (!ok) return;
         setBusy(true);
         await deleteTag(tag.id);
         setBusy(false);
@@ -63,7 +69,7 @@ function TagRow({ tag }) {
 
     if (editing) {
         return (
-            <li className="px-3 py-2.5 space-y-2 bg-gray-50 dark:bg-white/5 rounded-xl">
+            <li className="glass-soft px-3 py-2.5 space-y-2 rounded-xl">
                 <input
                     autoFocus
                     value={name}
@@ -77,7 +83,7 @@ function TagRow({ tag }) {
                         }
                     }}
                     aria-label={t('tags.name')}
-                    className="w-full px-3 py-1.5 rounded-lg glass-input text-sm text-gray-900 dark:text-gray-100 outline-none focus:border-blue-500"
+                    className="w-full px-3 py-1.5 rounded-lg glass-input text-sm text-[var(--ink)] outline-none focus:ring-2 focus:ring-[var(--accent-soft)]"
                 />
                 <div className="flex items-center justify-between gap-2">
                     <ColorDots value={color} onChange={setColor} disabled={busy} />
@@ -138,7 +144,7 @@ function TagRow({ tag }) {
                 disabled={busy}
                 title={t('tags.delete')}
                 aria-label={t('tags.delete')}
-                className="p-1.5 rounded-full text-gray-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 disabled:opacity-50 cursor-pointer"
+                className="p-1.5 rounded-full text-[var(--ink-subtle)] hover:text-[var(--tone-danger)] disabled:opacity-50 cursor-pointer"
             >
                 {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
             </button>
@@ -177,7 +183,7 @@ export default function TagManagerModal() {
             <div className="p-5 space-y-4">
                 <form onSubmit={submit} className="space-y-2.5">
                     <div className="flex items-center gap-2">
-                        <div className="flex-1 flex items-center gap-2 px-3 py-2 rounded-xl glass-input focus-within:border-blue-500">
+                        <div className="flex-1 flex items-center gap-2 px-3 py-2 rounded-xl glass-input focus-within:ring-2 focus-within:ring-[var(--accent-soft)]">
                             <Tag className="w-4 h-4 shrink-0" style={{ color }} />
                             <input
                                 value={name}
@@ -191,7 +197,7 @@ export default function TagManagerModal() {
                         <button
                             type="submit"
                             disabled={!name.trim() || creating}
-                            className="shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-xl btn-accent hover:brightness-105 text-sm font-semibold disabled:opacity-50 cursor-pointer"
+                            className="shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-full btn-accent hover:brightness-105 text-sm font-semibold disabled:cursor-not-allowed cursor-pointer"
                         >
                             {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
                             {t('tags.create')}

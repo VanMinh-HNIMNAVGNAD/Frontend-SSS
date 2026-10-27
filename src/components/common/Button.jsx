@@ -16,7 +16,7 @@ export default function Button({
         primary: 'btn-accent hover:brightness-105 shadow-sm hover:shadow-md active:scale-[0.98]',
         secondary: 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 active:scale-[0.98]',
         outline: 'glass-soft border hover:border-gray-400 dark:hover:border-gray-500 text-gray-800 dark:text-gray-200 font-semibold',
-        danger: 'bg-rose-600 hover:bg-rose-700 text-white shadow-sm active:scale-[0.98]',
+        danger: 'btn-danger active:scale-[0.98]',
         ghost: 'bg-transparent text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100',
     };
 

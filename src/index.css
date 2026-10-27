@@ -140,6 +140,22 @@ body {
   --glass-input: rgba(255, 255, 255, 0.6);
   --scrollbar-thumb: rgba(15, 23, 42, 0.18);
   --scrollbar-thumb-hover: rgba(15, 23, 42, 0.32);
+
+  /* Đơn sắc (26/10/2026): giao diện chỉ còn MỘT màu nhấn (xanh hệ thống — nút chính, liên kết,
+     viền focus) và hai sắc báo trạng thái THẬT (lỗi / cảnh báo), đều đã dịu bớt. Icon, badge, tiêu
+     đề trang… dùng mực/xám bên dưới chứ không tự chọn một màu cầu vồng riêng. */
+  --ink: #1c1f26;
+  --ink-muted: #5d6370;
+  --ink-subtle: #8b909a;
+  --accent: #1f6fe5;
+  --accent-soft: rgba(31, 111, 229, 0.12);
+  --tone-danger: #c43d3d;
+  --tone-danger-soft: rgba(196, 61, 61, 0.1);
+  --tone-warn: #a76a12;
+  --tone-warn-soft: rgba(196, 132, 28, 0.12);
+  --chip-fill: rgba(15, 23, 42, 0.05);
+  --row-hover: rgba(255, 255, 255, 0.5);
+  --row-selected: rgba(255, 255, 255, 0.92);
 }
 
 .dark {
@@ -180,6 +196,19 @@ body {
   --glass-input: rgba(255, 255, 255, 0.06);
   --scrollbar-thumb: rgba(255, 255, 255, 0.16);
   --scrollbar-thumb-hover: rgba(255, 255, 255, 0.3);
+
+  --ink: #f2f2f4;
+  --ink-muted: #a7aab1;
+  --ink-subtle: #7c7f87;
+  --accent: #5b9dff;
+  --accent-soft: rgba(91, 157, 255, 0.16);
+  --tone-danger: #f08a8a;
+  --tone-danger-soft: rgba(240, 138, 138, 0.13);
+  --tone-warn: #e2b768;
+  --tone-warn-soft: rgba(226, 183, 104, 0.14);
+  --chip-fill: rgba(255, 255, 255, 0.07);
+  --row-hover: rgba(255, 255, 255, 0.04);
+  --row-selected: rgba(255, 255, 255, 0.1);
 }
 
 /* Trình duyệt không có backdrop-filter, hoặc người dùng bật "Giảm độ trong suốt": kính
@@ -366,6 +395,62 @@ body {
   }
 }
 
+/* Nút cho thao tác KHÔNG hoàn tác được (xoá vĩnh viễn, dọn thùng rác…): viên kính với chữ đỏ dịu,
+   không phải khối đỏ đặc — màu đỏ chỉ để báo "cẩn thận", không để hút mắt. */
+@utility btn-danger {
+  background-color: var(--tone-danger-soft);
+  color: var(--tone-danger);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tone-danger) 28%, transparent);
+
+  &:hover {
+    background-color: color-mix(in srgb, var(--tone-danger) 16%, transparent);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+  }
+}
+
+/* Chip / badge trung tính — MỘT kiểu cho mọi nhãn nhỏ (vai trò, số đếm, loại, trạng thái): viên kính
+   xám, chữ mực nhạt. Trước đây mỗi chỗ một màu (hổ phách cho "Thư mục", xanh cho "Mã nguồn", lục
+   cho "Sửa", lam cho "Xem"…) nên một hàng có ba bốn mảng màu không mang thêm thông tin nào. */
+@utility chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: 999px;
+  background-color: var(--chip-fill);
+  box-shadow: inset 0 0 0 1px var(--glass-hairline);
+  color: var(--ink-muted);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Hàng danh sách trên kính: rê chuột sáng lên, đang chọn là viên kính sáng hẳn — thay cho nền ánh
+   màu theo loại tệp của từng hàng. */
+@utility row-hover {
+  &:hover {
+    background-color: var(--row-hover);
+  }
+}
+
+@utility row-selected {
+  background-color: var(--row-selected);
+  box-shadow: inset 0 0 0 1px var(--glass-hairline);
+}
+
+/* Ô chọn gốc (<select>) khoác kính: bỏ giao diện của hệ điều hành, tự vẽ mũi tên. */
+@utility glass-select {
+  appearance: none;
+  background-color: var(--glass-input);
+  border: 1px solid var(--glass-rim);
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.05), 0 0 0 1px var(--glass-hairline);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b909a' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  padding-right: 2rem;
+}
+
 /* Chỗ nào còn sót màu hex cũ của bản tối (`#282a2c`, `#1e1e1e`) thì vẫn ra kính graphite
    chứ không ra một mảng đặc lệch tông. */
 .dark [class~="dark:bg-[#282a2c]"],
@@ -376,6 +461,17 @@ body {
 
 body {
   margin: 0;
+}
+
+/* Vòng focus bàn phím cùng tông với giao diện (màu nhấn, mờ một nửa) thay cho vòng mặc định của
+   trình duyệt — đen trên Chrome máy tính, CAM trên Chrome Android, lạc hẳn giữa các viên kính xám.
+   Chỉ `:focus-visible` (Tab / phím mũi tên), bấm chuột hay chạm thì không hiện. Chỗ nào đã tự vẽ
+   vòng riêng bằng `focus:ring-*` + `outline-none` vẫn giữ nguyên của nó. */
+@layer base {
+  :focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--accent) 55%, transparent);
+    outline-offset: 2px;
+  }
 }
 
 @layer utilities {
@@ -417,10 +513,31 @@ body {
     transform-origin: top center;
   }
 
+  /* Toast (components/ui/GlassToaster.jsx): trượt xuống từ mép trên rồi thu lại khi đóng. */
+  @keyframes driverToastIn {
+    from { opacity: 0; transform: translateY(-10px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  @keyframes driverToastOut {
+    from { opacity: 1; transform: translateY(0) scale(1); }
+    to   { opacity: 0; transform: translateY(-6px) scale(0.96); }
+  }
+
+  .animate-toast-in {
+    animation: driverToastIn 0.26s cubic-bezier(0.2, 0.9, 0.3, 1.1) forwards;
+  }
+
+  .animate-toast-out {
+    animation: driverToastOut 0.18s ease-in forwards;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .animate-fade-in,
     .animate-slide-left,
-    .animate-glass-in {
+    .animate-glass-in,
+    .animate-toast-in,
+    .animate-toast-out {
       animation: none;
     }
   }
@@ -926,60 +1043,6 @@ html {
 
 .dark .prose-ai a { color: #93c5fd; }
 .dark .prose-ai code { background: rgba(255, 255, 255, 0.12); }
-
-/* ── Icon cầu vồng của bong bóng trợ lý AI (components/file-manager/AiBubble.jsx) ──
-   Đổi `color` chứ không đổi `background`: icon lucide vẽ bằng `currentColor`, nên một
-   khai báo này phủ cả icon Sparkles lẫn vòng xoay Loader2 mà không cần lớp thứ hai.
-
-   Bảy chặng đúng bằng bảy sắc; `linear` để trình duyệt nội suy liên tục giữa hai chặng,
-   nhờ vậy màu TRÔI chứ không nhảy nấc. 7s là nhịp đủ chậm để không cướp sự chú ý khỏi
-   nội dung — bong bóng này nằm đè lên màn hình làm việc suốt phiên. */
-@keyframes aiBubbleRainbow {
-  0%   { color: #ef4444; } /* đỏ */
-  14%  { color: #f97316; } /* cam */
-  28%  { color: #eab308; } /* vàng */
-  43%  { color: #22c55e; } /* lục */
-  57%  { color: #3b82f6; } /* lam */
-  71%  { color: #6366f1; } /* chàm */
-  86%  { color: #a855f7; } /* tím */
-  100% { color: #ef4444; } /* khép vòng về đỏ, không giật ở mối nối */
-}
-
-/* BỐN GÓC PHẦN TƯ, mỗi góc một màu khác nhau tại mọi thời điểm.
-
-   Cách làm: xếp chồng BỐN BẢN SAO của cùng một icon, mỗi bản bị `clip-path` cắt còn một
-   phần tư. Không cắt icon thành bốn hình riêng vì icon lucide là một (hoặc vài) `path`
-   liền — chẻ path ra là phải sửa lại mỗi khi đổi icon, còn cắt bằng clip thì icon nào
-   cũng dùng được y nguyên.
-
-   Lệch màu nhau nhờ `animation-delay` ÂM: mỗi bản vào giữa vòng chạy ngay từ khung hình
-   đầu tiên, cách nhau đúng 1/4 chu kỳ (7s / 4 = 1.75s). Delay dương thì ba bản kia sẽ
-   đứng im ở màu đầu tiên tới tận 5.25s rồi mới nhúc nhích.
-
-   Mỗi mảnh chờm ra 0.5px (`calc(50% - 0.5px)`) thay vì cắt đúng 50%: cắt khít thì tại
-   đường ranh, nét vẽ bị khử răng cưa ở cả hai phía đều chỉ còn nửa độ đậm, thành một
-   khe sáng hình chữ thập vắt ngang icon. Chờm lên nhau thì chỗ đó do một màu đè lên màu
-   kia — không có khe. */
-.ai-bubble-quad {
-  position: absolute;
-  inset: 0;
-  animation: aiBubbleRainbow 7s linear infinite;
-}
-
-.ai-bubble-quad-tl { clip-path: inset(0 calc(50% - 0.5px) calc(50% - 0.5px) 0); animation-delay: 0s; }
-.ai-bubble-quad-tr { clip-path: inset(0 0 calc(50% - 0.5px) calc(50% - 0.5px)); animation-delay: -1.75s; }
-.ai-bubble-quad-br { clip-path: inset(calc(50% - 0.5px) 0 0 calc(50% - 0.5px)); animation-delay: -3.5s; }
-.ai-bubble-quad-bl { clip-path: inset(calc(50% - 0.5px) calc(50% - 0.5px) 0 0); animation-delay: -5.25s; }
-
-/* Tắt cho người bật "giảm chuyển động": bốn mảng màu nhấp nháy lệch pha ở rìa tầm nhìn
-   là đúng loại kích thích gây khó chịu. Bỏ animation thì cả bốn mảnh về màu xanh của
-   `text-blue-600` trên nút và ghép lại thành đúng một icon liền — trạng thái không mất
-   chút nào vì nó vốn được báo bằng icon và chấm, không phải bằng màu. */
-@media (prefers-reduced-motion: reduce) {
-  .ai-bubble-quad {
-    animation: none;
-  }
-}
 
 /* ── DOCX preview ─────────────────────────────────────────────────────────────
  *

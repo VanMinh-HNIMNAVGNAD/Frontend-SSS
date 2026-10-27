@@ -169,7 +169,7 @@ export default function TransactionDetailModal({ transaction, onClose, onCancell
 
         {/* Tiêu đề + trạng thái */}
         <div className="mb-6 pr-12">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400 mb-4 ring-1 ring-blue-500/20 shadow-sm">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-[var(--chip-fill)] text-[var(--ink-muted)] mb-4">
             <Receipt className="w-6 h-6" />
           </div>
           <h3 className="text-2xl font-black text-gray-900 dark:text-gray-100 mb-3 tracking-tight">
@@ -216,19 +216,19 @@ export default function TransactionDetailModal({ transaction, onClose, onCancell
 
             {/* PROCESSING: nói rõ vì sao KHÔNG có nút huỷ, thay vì im lặng giấu nút đi. */}
             {!canCancel && (
-              <div className="flex items-start gap-2.5 rounded-2xl border border-amber-200 dark:border-amber-500/30 bg-amber-50/60 dark:bg-amber-400/15 p-4">
-                <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-                <p className="text-[13.5px] text-amber-800 dark:text-amber-200 leading-snug">
+              <div className="flex items-start gap-2.5 rounded-2xl bg-[var(--tone-warn-soft)] p-4">
+                <AlertTriangle className="w-4 h-4 text-[var(--tone-warn)] shrink-0 mt-0.5" />
+                <p className="text-[13.5px] text-[var(--ink)] leading-snug">
                   {t('tx.processingNote')}
                 </p>
               </div>
             )}
 
             {!canCancel ? null : confirmingCancel ? (
-              <div className="rounded-2xl border border-rose-200 dark:border-rose-500/30 bg-rose-50/60 dark:bg-rose-400/15 p-4 space-y-3">
+              <div className="rounded-2xl bg-[var(--tone-danger-soft)] p-4 space-y-3">
                 <div className="flex items-start gap-2.5">
-                  <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
-                  <p className="text-[13.5px] text-rose-800 dark:text-rose-200 leading-snug">
+                  <AlertTriangle className="w-4 h-4 text-[var(--tone-danger)] shrink-0 mt-0.5" />
+                  <p className="text-[13.5px] text-[var(--ink)] leading-snug">
                     {t('tx.cancelWarn')}
                   </p>
                 </div>
@@ -243,7 +243,7 @@ export default function TransactionDetailModal({ transaction, onClose, onCancell
                   <button
                     onClick={handleCancelInvoice}
                     disabled={isCancelling}
-                    className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-[14px] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="btn-danger flex-1 py-2.5 rounded-full font-semibold text-[14px] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
                   >
                     {isCancelling ? (
                       <>
@@ -258,7 +258,7 @@ export default function TransactionDetailModal({ transaction, onClose, onCancell
             ) : (
               <button
                 onClick={() => setConfirmingCancel(true)}
-                className="glass-soft w-full py-3 rounded-xl border border-rose-200 dark:border-rose-500/30 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 font-bold text-[14px] transition-all flex items-center justify-center gap-2 cursor-pointer"
+                className="glass-soft w-full py-3 rounded-full text-[var(--tone-danger)] font-semibold text-[14px] transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Ban className="w-4 h-4" /> {t('tx.cancelInvoice')}
               </button>

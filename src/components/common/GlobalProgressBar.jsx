@@ -162,7 +162,7 @@ export default function GlobalProgressBar() {
       aria-valuenow={Math.round(percent)}
     >
       <div
-        className="h-full bg-linear-to-r from-blue-500 via-indigo-500 to-blue-600 shadow-[0_0_10px_rgba(59,130,246,0.7)] transition-[width] duration-200 ease-out"
+        className="h-full bg-[var(--accent)] shadow-[0_0_8px_var(--accent-soft)] transition-[width] duration-200 ease-out"
         style={{ width: `${percent}%` }}
       />
       <span className="sr-only">{t('progress.busy')}</span>

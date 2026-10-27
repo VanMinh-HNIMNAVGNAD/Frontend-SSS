@@ -496,10 +496,9 @@ export default function BillingAndQuota() {
   };
 
   const getProgressColor = (level) => {
-    if (level === 'over' || level === 'full') return 'bg-rose-600';
-    if (level === 'almostFull') return 'bg-rose-500';
-    if (level === 'warning') return 'bg-amber-500';
-    return 'bg-blue-600 dark:bg-blue-500';
+    if (level === 'over' || level === 'full') return 'bg-[var(--tone-danger)]';
+    if (level === 'almostFull' || level === 'warning') return 'bg-[var(--tone-warn)]';
+    return 'bg-[var(--ink-muted)]';
   };
 
   return (
@@ -583,12 +582,12 @@ export default function BillingAndQuota() {
               </span>
             </div>
             <div className="flex items-center gap-2 text-sm font-semibold text-gray-500 dark:text-gray-400">
-              <span className={storageStatus.isFull ? 'text-rose-600 dark:text-rose-400' : undefined}>
+              <span className={storageStatus.isFull ? 'text-[var(--tone-danger)]' : undefined}>
                 {t('billing.quota.usedPercent', { percent: usedPercent })}
               </span>
               <span>•</span>
               {storageStatus.level === 'over' ? (
-                <span className="text-rose-600 dark:text-rose-400">
+                <span className="text-[var(--tone-danger)]">
                   {t('billing.quota.overBy', { size: formatBytes(storageStatus.overBytes) })}
                 </span>
               ) : (
@@ -600,9 +599,9 @@ export default function BillingAndQuota() {
           {/* Đầy / vượt hạn mức: nói rõ hậu quả (tải lên bị chặn) và hai lối ra. Ca hay gặp nhất
               là gói vừa hết hạn — hạn mức về mức Miễn phí trong khi dữ liệu vẫn còn nguyên. */}
           {storageStatus.isFull && (
-            <div className="flex items-start gap-2.5 rounded-2xl border border-rose-200 dark:border-rose-500/30 bg-rose-50/70 dark:bg-rose-400/15 px-4 py-3">
-              <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-rose-600 dark:text-rose-400" />
-              <p className="text-[14px] text-rose-800 dark:text-rose-200 leading-snug">
+            <div className="flex items-start gap-2.5 rounded-2xl bg-[var(--tone-danger-soft)] px-4 py-3">
+              <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-[var(--tone-danger)]" />
+              <p className="text-[14px] text-[var(--ink)] leading-snug">
                 {storageStatus.level === 'over'
                   ? t('billing.quota.overNotice', {
                       used: formatBytes(usedBytes),
@@ -623,7 +622,7 @@ export default function BillingAndQuota() {
           <div
             className={`rounded-2xl border p-5 sm:p-6 shadow-sm flex flex-col gap-4 ${
               subscription.cancelAtPeriodEnd
-                ? 'bg-amber-50 dark:bg-amber-400/15 border-amber-200 dark:border-amber-500/30'
+                ? 'bg-[var(--tone-warn-soft)] border-transparent'
                 : 'glass-soft'
             }`}
           >
@@ -632,8 +631,8 @@ export default function BillingAndQuota() {
                 <div
                   className={`shrink-0 w-10 h-10 rounded-xl flex items-center justify-center ${
                     subscription.cancelAtPeriodEnd
-                      ? 'bg-amber-100 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400'
-                      : 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                      ? 'bg-white/70 dark:bg-white/10 text-[var(--tone-warn)]'
+                      : 'bg-[var(--chip-fill)] text-[var(--ink-muted)]'
                   }`}
                 >
                   {subscription.cancelAtPeriodEnd ? (
@@ -697,14 +696,14 @@ export default function BillingAndQuota() {
               {!subscription.cancelAtPeriodEnd && !confirmCancelRenewal && (
                 <button
                   onClick={() => setConfirmCancelRenewal(true)}
-                  className="shrink-0 self-start sm:self-auto px-4 py-2.5 rounded-xl text-[14px] font-bold text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700 hover:text-rose-600 dark:hover:text-rose-400 hover:border-rose-200 dark:hover:border-rose-500/40 transition-all cursor-pointer"
+                  className="glass-soft shrink-0 self-start sm:self-auto px-4 py-2.5 rounded-full text-[14px] font-semibold text-[var(--ink)] hover:text-[var(--tone-danger)] transition-all cursor-pointer"
                 >
                   {t('billing.current.cancelRenewal')}
                 </button>
               )}
 
               {subscription.cancelAtPeriodEnd && (
-                <p className="shrink-0 text-[13px] font-semibold text-amber-700 dark:text-amber-400 sm:text-right max-w-xs">
+                <p className="shrink-0 text-[13px] font-semibold text-[var(--tone-warn)] sm:text-right max-w-xs">
                   {t('billing.current.stackingNote')}
                 </p>
               )}
@@ -715,7 +714,7 @@ export default function BillingAndQuota() {
             {confirmCancelRenewal && !subscription.cancelAtPeriodEnd && (
               <div className="border-t pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-glass-divider">
                 <p className="text-[14px] text-gray-600 dark:text-gray-400 flex items-start gap-2 min-w-0">
-                  <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-amber-500" />
+                  <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-[var(--tone-warn)]" />
                   <span>
                     {tRich(t('billing.renewal.warn'), {
                       date: (
@@ -738,7 +737,7 @@ export default function BillingAndQuota() {
                   <button
                     onClick={handleCancelRenewal}
                     disabled={isCancellingRenewal}
-                    className="px-4 py-2.5 rounded-xl text-[14px] font-bold text-white bg-rose-600 hover:bg-rose-700 transition-all inline-flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="btn-danger px-4 py-2.5 rounded-full text-[14px] font-semibold transition-all inline-flex items-center gap-2 cursor-pointer disabled:cursor-not-allowed"
                   >
                     {isCancellingRenewal ? (
                       <>
@@ -788,15 +787,11 @@ export default function BillingAndQuota() {
                       }`}
                     >
                       <span>{t(cycle.labelKey)}</span>
-                      {/* Đang chọn: chip xanh đặc. Bản cũ là chữ trắng trên `bg-white/20` — trên viên
-                          kính trắng của bản Sáng thì gần như không đọc được. */}
+                      {/* Chip giảm giá: chip kính xám (đang chọn thì chữ đậm hơn) — không còn mảng
+                          xanh lục cạnh mỗi chu kỳ. */}
                       {cycle.badge && (
                         <span
-                          className={`px-1.5 py-0.5 text-[11px] rounded-md font-extrabold ${
-                            isSelected
-                              ? 'bg-emerald-600 text-white dark:bg-emerald-500'
-                              : 'bg-emerald-100 dark:bg-emerald-400/15 text-emerald-700 dark:text-emerald-300'
-                          }`}
+                          className={`chip px-1.5 py-0.5 text-[11px] ${isSelected ? 'text-[var(--ink)]' : ''}`}
                         >
                           {cycle.badge}
                         </span>
@@ -813,8 +808,8 @@ export default function BillingAndQuota() {
                 <span className="text-[15px] font-semibold">{t('billing.plans.loading')}</span>
               </div>
             ) : plansError ? (
-              <div className="glass-soft border border-rose-100 dark:border-rose-500/30 rounded-2xl p-8 text-center">
-                <XCircle className="w-8 h-8 mx-auto mb-3 text-rose-500" />
+              <div className="glass-soft rounded-2xl p-8 text-center">
+                <XCircle className="w-8 h-8 mx-auto mb-3 text-[var(--tone-danger)]" />
                 <p className="text-[15px] font-semibold text-gray-900 dark:text-gray-100 mb-1">{t('billing.plans.loadFailed')}</p>
                 <p className="text-[14px] text-gray-500 dark:text-gray-400 mb-5">{plansError}</p>
                 <button
@@ -846,7 +841,7 @@ export default function BillingAndQuota() {
                       key={plan.id}
                       className={`glass-soft flex flex-col rounded-[28px] p-5 sm:p-6 transition-all duration-300 h-full relative hover:-translate-y-1 ${
                         plan.isPopular
-                          ? 'bg-white/75! dark:bg-white/[0.08]! ring-2 ring-blue-500/45 shadow-[0_24px_48px_-24px_rgba(37,99,235,0.45)]'
+                          ? 'bg-white/80! dark:bg-white/[0.09]! ring-2 ring-black/15 dark:ring-white/25 shadow-[0_24px_48px_-24px_rgba(15,23,42,0.35)]'
                           : 'hover:bg-white/65! dark:hover:bg-white/[0.07]! hover:shadow-[0_20px_40px_-24px_rgba(15,23,42,0.3)]'
                       }`}
                     >
@@ -884,13 +879,13 @@ export default function BillingAndQuota() {
                         {/* Chi tiết tương đương & tiết kiệm */}
                         {!plan.isFree && billingCycle !== 'monthly' ? (
                           <div className="mt-2 flex items-center gap-2 flex-wrap">
-                            <span className="text-[12px] font-bold text-blue-600 dark:text-blue-400">
+                            <span className="text-[12px] font-semibold text-[var(--ink-muted)]">
                               {t('billing.plan.perMonthEq', {
                                 amount: formatVnd(plan.priceInfo.monthlyEquivalent, locale),
                               })}
                             </span>
                             {plan.priceInfo.savings > 0 && (
-                              <span className="inline-flex items-center text-[10.5px] font-extrabold text-emerald-700 dark:text-emerald-300 bg-emerald-500/12 dark:bg-emerald-400/15 px-1.5 py-0.5 rounded">
+                              <span className="chip text-[10.5px] px-1.5 py-0.5">
                                 {t('billing.plan.savings', {
                                   amount: formatVnd(plan.priceInfo.savings, locale),
                                 })}
@@ -910,7 +905,7 @@ export default function BillingAndQuota() {
                         <ul className="space-y-2.5">
                           {plan.features.map((feat) => (
                             <li key={feat} className="min-h-[42px] flex items-start gap-2.5">
-                              <Check className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                              <Check className="w-4 h-4 text-[var(--ink-muted)] shrink-0 mt-0.5" />
                               <span className="text-[13.5px] text-gray-600 dark:text-gray-300 leading-snug break-words">
                                 {feat}
                               </span>
@@ -939,7 +934,7 @@ export default function BillingAndQuota() {
                           (plan.isCurrent && !plan.isResumable) || plan.isFree || plan.isDowngrade
                             ? 'bg-black/[0.04] dark:bg-white/[0.06] text-gray-400 dark:text-gray-500 cursor-not-allowed'
                             : plan.isResumable
-                            ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-md hover:shadow-lg cursor-pointer'
+                            ? 'btn-accent hover:brightness-105 cursor-pointer'
                             : plan.isPopular
                             ? 'btn-accent hover:brightness-105 cursor-pointer'
                             : 'glass-soft text-gray-900 dark:text-gray-100 cursor-pointer'
@@ -993,7 +988,7 @@ export default function BillingAndQuota() {
                 </div>
               ) : txError ? (
                 <div className="py-16 px-8 text-center">
-                  <XCircle className="w-8 h-8 mx-auto mb-3 text-rose-500" />
+                  <XCircle className="w-8 h-8 mx-auto mb-3 text-[var(--tone-danger)]" />
                   <p className="text-[15px] font-semibold text-gray-900 dark:text-gray-100 mb-1">{t('billing.tx.loadFailed')}</p>
                   <p className="text-[14px] text-gray-500 dark:text-gray-400 mb-5">{txError}</p>
                   <button
@@ -1044,7 +1039,7 @@ export default function BillingAndQuota() {
                               }
                             }}
                             aria-label={t('billing.tx.viewDetails', { code: row.orderCode })}
-                            className="transition-colors group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500"
+                            className="transition-colors group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent)]"
                           >
                             <td className="py-4 px-6">
                               <div className="font-mono font-bold text-gray-900 dark:text-gray-100">{row.orderCode}</div>
@@ -1060,8 +1055,7 @@ export default function BillingAndQuota() {
                             </td>
                             <td className="py-4 px-6 font-bold text-gray-900 dark:text-gray-100 whitespace-nowrap">{formatVnd(row.amount, locale)}</td>
                             <td className="py-4 px-6">
-                              <span className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-[13px] font-semibold whitespace-nowrap">
-                                <span className="w-2 h-2 rounded-full bg-blue-500" />
+                              <span className="chip px-2.5 py-1 text-[12.5px]">
                                 {PAYMENT_METHOD_LABEL[row.paymentMethod] || row.paymentMethod || '—'}
                               </span>
                             </td>
@@ -1076,7 +1070,7 @@ export default function BillingAndQuota() {
                                     // Không có stopPropagation thì một cú bấm vừa điều hướng
                                     // sang trang đối soát vừa bật modal chi tiết.
                                     onClick={(event) => event.stopPropagation()}
-                                    className="text-[13px] font-bold text-blue-600 dark:text-blue-400 hover:underline"
+                                    className="text-[13px] font-semibold text-[var(--ink)] underline-offset-2 hover:underline"
                                   >
                                     {t('billing.tx.recheck')}
                                   </Link>
@@ -1120,7 +1114,7 @@ export default function BillingAndQuota() {
               </button>
 
               <div className="mb-6">
-                <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400 mb-4 ring-1 ring-blue-500/20 shadow-sm">
+                <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-[var(--chip-fill)] text-[var(--ink-muted)] mb-4">
                   <CreditCard className="w-6 h-6" />
                 </div>
                 <h3 className="text-2xl font-black text-gray-900 dark:text-gray-100 mb-2 tracking-tight">
@@ -1143,8 +1137,8 @@ export default function BillingAndQuota() {
                     cùng ngày với gói. `endsAt` do backend tính bằng đúng phép cộng lúc kích hoạt —
                     backend cũ không trả trường này thì không nói gì, vì khi đó AI vẫn chia 30 ngày. */}
                 {quote?.endsAt && !selectedPlan.isFree && (
-                  <div className="mt-4 rounded-xl bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 px-4 py-3">
-                    <p className="text-[13.5px] text-blue-900 dark:text-blue-200 leading-snug">
+                  <div className="glass-soft mt-4 rounded-xl px-4 py-3">
+                    <p className="text-[13.5px] text-[var(--ink)] leading-snug">
                       {t(quote.isRenewal ? 'billing.confirm.aiTermRenew' : 'billing.confirm.aiTerm', {
                         term: t(monthsTermKey(CYCLE_MONTHS[billingCycle] || 1), {
                           count: CYCLE_MONTHS[billingCycle] || 1,
@@ -1160,9 +1154,9 @@ export default function BillingAndQuota() {
                     nói trước ở đây: im lặng thì khách vừa bấm huỷ gia hạn xong lại thấy nó bật
                     lại và không hiểu vì đâu. */}
                 {quote?.resumesAutoRenew && (
-                  <div className="mt-4 flex items-start gap-2.5 rounded-xl bg-amber-50 dark:bg-amber-400/15 border border-amber-200 dark:border-amber-500/30 px-4 py-3">
-                    <RotateCcw className="w-4 h-4 mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />
-                    <p className="text-[13.5px] text-amber-800 dark:text-amber-200 leading-snug">
+                  <div className="mt-4 flex items-start gap-2.5 rounded-xl bg-[var(--tone-warn-soft)] px-4 py-3">
+                    <RotateCcw className="w-4 h-4 mt-0.5 shrink-0 text-[var(--tone-warn)]" />
+                    <p className="text-[13.5px] text-[var(--ink)] leading-snug">
                       {tRich(t('billing.confirm.reenableNote'), {
                         bold: <strong>{t('billing.confirm.reenableBold')}</strong>,
                       })}
@@ -1174,9 +1168,9 @@ export default function BillingAndQuota() {
                 {/* Thanh toán sẽ HUỶ hoá đơn đang chờ (backend `closeOpenLinks`, ##78) — nói trước
                     để khách không chuyển khoản theo mã QR cũ còn mở ở tab khác. */}
                 {quote?.openInvoiceCount > 0 && (
-                  <div className="mt-4 flex items-start gap-2.5 rounded-xl bg-amber-50 dark:bg-amber-400/15 border border-amber-200 dark:border-amber-500/30 px-4 py-3">
-                    <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" />
-                    <p className="text-[13.5px] text-amber-800 dark:text-amber-200 leading-snug">
+                  <div className="mt-4 flex items-start gap-2.5 rounded-xl bg-[var(--tone-warn-soft)] px-4 py-3">
+                    <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-[var(--tone-warn)]" />
+                    <p className="text-[13.5px] text-[var(--ink)] leading-snug">
                       {t('billing.confirm.closesOpenInvoice')}
                     </p>
                   </div>
@@ -1193,7 +1187,7 @@ export default function BillingAndQuota() {
                         <span className="font-semibold text-gray-500 dark:text-gray-400">{t('billing.confirm.planPrice', { cycle: t(CYCLE_LABEL_KEY[billingCycle]) })}</span>
                         <span className="font-bold text-gray-700 dark:text-gray-300">{formatVnd(listAmount, locale)}</span>
                       </div>
-                      <div className="flex items-baseline justify-between gap-4 text-[14px] text-emerald-600 dark:text-emerald-400">
+                      <div className="flex items-baseline justify-between gap-4 text-[14px] text-[var(--ink)]">
                         <span className="font-semibold min-w-0">
                           {quote?.previousPlanName
                             ? t('billing.confirm.creditNamed', { name: quote.previousPlanName })
@@ -1219,14 +1213,14 @@ export default function BillingAndQuota() {
                   </div>
 
                   {selectedPriceInfo.savings > 0 && (
-                    <div className="flex items-center justify-between text-xs text-emerald-600 dark:text-emerald-400 font-semibold pt-1">
+                    <div className="flex items-center justify-between text-xs text-[var(--ink-muted)] font-semibold pt-1">
                       <span>{t('billing.confirm.discountApplied', { percent: selectedPriceInfo.discountPercent })}</span>
                       <span>{t('billing.plan.savings', { amount: formatVnd(selectedPriceInfo.savings, locale) })}</span>
                     </div>
                   )}
 
                   {quote?.flooredToMinimum && (
-                    <p className="text-[12.5px] text-amber-600 dark:text-amber-400 font-semibold pt-1 leading-snug">
+                    <p className="text-[12.5px] text-[var(--tone-warn)] font-semibold pt-1 leading-snug">
                       {t('billing.confirm.flooredNote', {
                         amount: formatVnd(quote.minimumAmount, locale),
                       })}
@@ -1251,9 +1245,9 @@ export default function BillingAndQuota() {
               </div>
 
               {!canPurchase && quote?.blockedReason && (
-                <div className="flex items-start gap-2.5 rounded-2xl border border-rose-200 dark:border-rose-500/30 bg-rose-50/60 dark:bg-rose-400/15 p-4 mb-4">
-                  <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
-                  <p className="text-[13.5px] text-rose-800 dark:text-rose-200 leading-snug">{quote.blockedReason}</p>
+                <div className="flex items-start gap-2.5 rounded-2xl bg-[var(--tone-danger-soft)] p-4 mb-4">
+                  <AlertTriangle className="w-4 h-4 text-[var(--tone-danger)] shrink-0 mt-0.5" />
+                  <p className="text-[13.5px] text-[var(--ink)] leading-snug">{quote.blockedReason}</p>
                 </div>
               )}
 

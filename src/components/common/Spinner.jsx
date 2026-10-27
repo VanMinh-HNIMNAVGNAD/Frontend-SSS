@@ -14,7 +14,7 @@ export default function Spinner({ size = 'md', className = '', label }) {
 
     return (
         <div className={`flex items-center justify-center gap-2 ${className}`}>
-            <Loader2 className={`${sizes[size] || sizes.md} animate-spin text-blue-600 dark:text-blue-400`} />
+            <Loader2 className={`${sizes[size] || sizes.md} animate-spin text-[var(--ink-muted)]`} />
             {/* `label ?? t(...)`, không phải `label ||`: chuỗi rỗng vẫn là ý muốn ẩn nhãn.
                 Mặc định cũ là chuỗi tiếng Việt ghi trong tham số, không dịch được. */}
             {(label ?? t('common.loading')) && (

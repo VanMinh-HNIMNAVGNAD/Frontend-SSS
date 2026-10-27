@@ -309,14 +309,14 @@ export default memo(function UploadProgress({ queue, onDismissError, onRetry }) 
             {/* Header */}
             <div className="flex items-center justify-between gap-2 px-4 py-3 text-gray-900 dark:text-gray-100">
                 <div className="flex items-center gap-2 text-xs font-semibold min-w-0">
-                    <UploadCloud className={`w-4 h-4 shrink-0 text-blue-600 dark:text-blue-400 ${activeCount > 0 ? 'animate-pulse' : ''}`} />
+                    <UploadCloud className={`w-4 h-4 shrink-0 text-[var(--ink-muted)] ${activeCount > 0 ? 'animate-pulse' : ''}`} />
                     <span className="truncate">{headerLabel}</span>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                     {cancellableCount > 0 && (
                         <button
                             onClick={() => setCancelTarget({ kind: 'all', count: cancellableCount })}
-                            className="px-2 py-1 mr-1 rounded-full text-[11px] font-semibold bg-black/[0.05] dark:bg-white/10 hover:bg-rose-500/90 text-gray-700 dark:text-gray-200 hover:text-white transition-colors cursor-pointer"
+                            className="px-2 py-1 mr-1 rounded-full text-[11px] font-semibold bg-black/[0.05] dark:bg-white/10 text-[var(--ink)] hover:text-[var(--tone-danger)] transition-colors cursor-pointer"
                             title={t('upload.cancelN', { count: cancellableCount })}
                         >
                             {t('upload.cancelAll')}
@@ -350,7 +350,7 @@ export default memo(function UploadProgress({ queue, onDismissError, onRetry }) 
                     <span className="text-[11px] text-gray-700 dark:text-gray-200 font-semibold truncate" aria-live="polite">
                         {timeLabel}
                     </span>
-                    <span className="text-[11px] font-mono font-bold text-blue-600 dark:text-blue-300 tabular-nums shrink-0">{percent}%</span>
+                    <span className="text-[11px] font-semibold text-[var(--ink)] tabular-nums shrink-0">{percent}%</span>
                 </div>
                 <div
                     className="w-full bg-black/[0.08] dark:bg-white/10 rounded-full h-1.5 overflow-hidden"
@@ -488,17 +488,17 @@ const FileJobRow = memo(function FileJobRow({ job, jobId, etaSeconds, onDismissE
     const statusIcon = () => {
         switch (status) {
             case 'done':
-                return <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />;
+                return <CheckCircle2 className="w-4 h-4 text-[var(--ink-muted)] shrink-0" />;
             case 'error':
-                return <XCircle className="w-4 h-4 text-rose-500 shrink-0" />;
+                return <XCircle className="w-4 h-4 text-[var(--tone-danger)] shrink-0" />;
             case 'canceled':
                 return <Ban className="w-4 h-4 text-gray-400 dark:text-gray-500 shrink-0" />;
             case 'paused':
-                return <Pause className="w-4 h-4 text-amber-500 shrink-0" />;
+                return <Pause className="w-4 h-4 text-[var(--ink-muted)] shrink-0" />;
             case 'confirming':
-                return <Loader2 className="w-4 h-4 text-indigo-400 shrink-0 animate-spin" />;
+                return <Loader2 className="w-4 h-4 text-[var(--ink-subtle)] shrink-0 animate-spin" />;
             case 'uploading':
-                return <Loader2 className="w-4 h-4 text-blue-400 shrink-0 animate-spin" />;
+                return <Loader2 className="w-4 h-4 text-[var(--ink-muted)] shrink-0 animate-spin" />;
             case 'pending':
             default:
                 return <Clock className="w-4 h-4 text-gray-400 dark:text-gray-500 shrink-0" />;
@@ -521,17 +521,18 @@ const FileJobRow = memo(function FileJobRow({ job, jobId, etaSeconds, onDismissE
     }
 
     const showBar = status === 'uploading' || status === 'confirming' || status === 'paused';
-    const barColor = status === 'paused' ? 'bg-amber-400' : 'bg-linear-to-r from-blue-500 to-indigo-500';
+    // Thanh tiến trình màu mực (đang tải) / xám nhạt (tạm dừng) — không còn dải xanh → chàm.
+    const barColor = status === 'paused' ? 'bg-[var(--ink-subtle)]' : 'bg-[var(--ink-muted)]';
 
     // Ghi chú ở dòng thứ hai khi không có thanh tiến độ
     let note = null;
     let noteClass = 'text-gray-400 dark:text-gray-500';
     if (status === 'error') {
         note = error || t('upload.itemFailed');
-        noteClass = 'text-rose-500';
+        noteClass = 'text-[var(--tone-danger)]';
     } else if (status === 'done' && job.renamedFrom) {
         note = t('upload.renamedFrom', { name: job.renamedFrom });
-        noteClass = 'text-amber-600 dark:text-amber-400';
+        noteClass = 'text-[var(--tone-warn)]';
     } else if (status === 'done') {
         note = t('upload.state.done');
     } else if (size) {
@@ -580,22 +581,22 @@ const FileJobRow = memo(function FileJobRow({ job, jobId, etaSeconds, onDismissE
             {canPause && (
                 <button
                     onClick={handlePause}
-                    className="p-1 shrink-0 rounded hover:bg-amber-50 dark:hover:bg-amber-500/15 transition-colors cursor-pointer"
+                    className="p-1 shrink-0 rounded-full transition-colors cursor-pointer"
                     title={t('upload.pause')}
                     aria-label={t('upload.pauseAria', { name: fileName })}
                 >
-                    <Pause className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500 hover:text-amber-500" />
+                    <Pause className="w-3.5 h-3.5 text-[var(--ink-subtle)] hover:text-[var(--ink)]" />
                 </button>
             )}
 
             {status === 'paused' && (
                 <button
                     onClick={handleResume}
-                    className="p-1 shrink-0 rounded hover:bg-emerald-50 dark:hover:bg-emerald-500/15 transition-colors cursor-pointer"
+                    className="p-1 shrink-0 rounded-full transition-colors cursor-pointer"
                     title={t('upload.resume')}
                     aria-label={t('upload.resumeAria', { name: fileName })}
                 >
-                    <Play className="w-3.5 h-3.5 text-emerald-500" />
+                    <Play className="w-3.5 h-3.5 text-[var(--ink)]" />
                 </button>
             )}
 
@@ -603,11 +604,11 @@ const FileJobRow = memo(function FileJobRow({ job, jobId, etaSeconds, onDismissE
             {CANCELLABLE.has(status) && (
                 <button
                     onClick={handleCancel}
-                    className="p-1 shrink-0 rounded hover:bg-rose-50 dark:hover:bg-rose-500/15 transition-colors cursor-pointer"
+                    className="p-1 shrink-0 rounded-full transition-colors cursor-pointer"
                     title={t('upload.cancelOne')}
                     aria-label={t('upload.cancelOneAria', { name: fileName })}
                 >
-                    <X className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500 hover:text-rose-500" />
+                    <X className="w-3.5 h-3.5 text-[var(--ink-subtle)] hover:text-[var(--tone-danger)]" />
                 </button>
             )}
 
@@ -616,17 +617,17 @@ const FileJobRow = memo(function FileJobRow({ job, jobId, etaSeconds, onDismissE
                 <div className="flex items-center gap-0.5 shrink-0">
                     <button
                         onClick={handleRetry}
-                        className="p-1 hover:bg-blue-50 dark:hover:bg-blue-500/15 rounded transition-colors cursor-pointer"
+                        className="p-1 rounded-full transition-colors cursor-pointer"
                         title={status === 'canceled' ? t('upload.restart') : t('upload.retry')}
                     >
-                        <RefreshCw className="w-3.5 h-3.5 text-blue-400" />
+                        <RefreshCw className="w-3.5 h-3.5 text-[var(--ink-muted)] hover:text-[var(--ink)]" />
                     </button>
                     <button
                         onClick={handleDismiss}
                         className="p-1 rounded transition-colors cursor-pointer"
                         title={status === 'canceled' ? t('upload.dismissRow') : t('upload.clearError')}
                     >
-                        <X className={`w-3.5 h-3.5 ${status === 'error' ? 'text-rose-400' : 'text-gray-400 dark:text-gray-500'}`} />
+                        <X className="w-3.5 h-3.5 text-[var(--ink-subtle)] hover:text-[var(--ink)]" />
                     </button>
                 </div>
             )}

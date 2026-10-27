@@ -8,8 +8,12 @@ const MODES = [
 ];
 
 /**
- * Nút chuyển Danh sách ⇄ Lưới ở đầu mọi trang tệp. Trước đây chín trang mỗi trang chép một bản
- * y hệt nhau; gom về đây để viên kính "đang chọn" trượt qua lại giữa hai nút ở mọi trang.
+ * Nút chuyển Danh sách ⇄ Lưới. Trước đây chín trang mỗi trang chép một bản y hệt nhau; gom về đây
+ * để viên kính "đang chọn" trượt qua lại giữa hai nút ở mọi trang. Từ 26/10/2026 nó nằm ở cuối
+ * thanh lọc (FileFilterBar) — cùng cụm "cách trình bày" với Sắp xếp — chứ không trên tiêu đề trang.
+ *
+ * Rãnh là kính nhạt (`glass-soft`, cao 32px như các viên lọc bên cạnh) thay cho rãnh xám đặc cũ;
+ * nút đang chọn chỉ đậm chữ, nền sáng do giọt kính của LiquidGroup vẽ.
  *
  * @param {'list'|'grid'} viewMode
  * @param {(mode: 'list'|'grid') => void} setViewMode
@@ -19,10 +23,7 @@ export default function ViewModeToggle({ viewMode, setViewMode, className = '' }
     const { t } = useLanguage();
 
     return (
-        <LiquidGroup
-            activeKey={viewMode}
-            className={`flex items-center bg-gray-200/90 dark:bg-gray-700 rounded-full p-0.5 border border-gray-300 dark:border-gray-700 ${className}`}
-        >
+        <LiquidGroup activeKey={viewMode} className={`flex items-center glass-soft rounded-full p-0.5 shrink-0 ${className}`}>
             {MODES.map(({ id, Icon, labelKey }) => (
                 <button
                     key={id}
@@ -33,9 +34,7 @@ export default function ViewModeToggle({ viewMode, setViewMode, className = '' }
                     aria-label={t(labelKey)}
                     aria-pressed={viewMode === id}
                     className={`p-1.5 rounded-full transition-colors cursor-pointer ${
-                        viewMode === id
-                            ? 'text-blue-700 dark:text-blue-300'
-                            : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+                        viewMode === id ? 'text-[var(--ink)]' : 'text-[var(--ink-subtle)] hover:text-[var(--ink)]'
                     }`}
                 >
                     <Icon className="w-4 h-4" />

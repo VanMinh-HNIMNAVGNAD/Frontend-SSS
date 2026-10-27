@@ -91,7 +91,7 @@ export default function ResumeUploads() {
   if (dismissed || sessions.length === 0) return null;
 
   return (
-    <div className="glass-strong fixed bottom-6 left-6 z-40 w-[360px] max-w-[calc(100vw-3rem)] rounded-[20px] border border-amber-200 dark:border-amber-500/30 overflow-hidden">
+    <div className="glass-strong fixed bottom-6 left-6 z-40 w-[360px] max-w-[calc(100vw-3rem)] rounded-[20px] overflow-hidden">
       <input
         type="file"
         ref={fileInputRef}
@@ -100,7 +100,7 @@ export default function ResumeUploads() {
         aria-label={t('resume.pickAgainAria')}
       />
 
-      <div className="flex items-center justify-between px-4 py-3 bg-amber-500/95 text-white">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-glass-divider text-[var(--ink)]">
         <div className="flex items-center gap-2 text-xs font-semibold">
           <RotateCcw className="w-4 h-4" />
           <span>{t('resume.pending', { count: sessions.length })}</span>
@@ -119,7 +119,7 @@ export default function ResumeUploads() {
       </p>
 
       {error && (
-        <div className="mx-4 mt-2 flex items-start gap-2 rounded-xl bg-rose-50 dark:bg-rose-500/10 px-3 py-2 text-[11px] text-rose-600 dark:text-rose-300">
+        <div className="mx-4 mt-2 flex items-start gap-2 rounded-xl bg-[var(--tone-danger-soft)] px-3 py-2 text-[11px] text-[var(--tone-danger)]">
           <AlertTriangle className="w-3.5 h-3.5 mt-px shrink-0" />
           <span>{error}</span>
         </div>
@@ -141,7 +141,7 @@ export default function ResumeUploads() {
             </div>
 
             <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-1 overflow-hidden">
-              <div className="h-full rounded-full bg-amber-500" style={{ width: `${session.percent}%` }} />
+              <div className="h-full rounded-full bg-[var(--ink-muted)]" style={{ width: `${session.percent}%` }} />
             </div>
 
             <div className="flex items-center justify-between gap-2 mt-2">
@@ -151,7 +151,7 @@ export default function ResumeUploads() {
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => openPicker(session)}
-                  className="flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-semibold bg-blue-50 dark:bg-blue-500/15 text-blue-600 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-500/25 transition-colors cursor-pointer"
+                  className="glass-soft flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold text-[var(--ink)] transition-colors cursor-pointer"
                 >
                   <FileUp className="w-3 h-3" />
                   {t('resume.pickAgain')}

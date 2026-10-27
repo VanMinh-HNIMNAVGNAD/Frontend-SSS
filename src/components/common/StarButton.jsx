@@ -19,6 +19,9 @@ import { useLanguage } from '../../context/LanguageContext';
  * @param {boolean}  readOnly   Chỉ hiển thị trạng thái, không cho bấm
  *                              (tệp người khác chia sẻ: cột is_starred thuộc chủ sở hữu)
  * @param {'sm'|'md'} size      Cỡ vùng bấm
+ *
+ * Đơn sắc (26/10/2026): sao đã gắn là ngôi sao TÔ ĐẶC màu mực (như Google Drive bản mới), chưa gắn
+ * là nét xám nhạt — không còn vàng hổ phách giữa giao diện xám/trắng.
  */
 const SIZES = {
     sm: { pad: 'p-1', icon: 'w-4 h-4' },
@@ -41,7 +44,7 @@ function StarButton({
     const icon = (
         <Star
             className={`${s.icon} transition-all duration-200 ${
-                isStarred ? 'fill-amber-400 text-amber-500 scale-110' : ''
+                isStarred ? 'fill-current' : ''
             }`}
         />
     );
@@ -49,7 +52,7 @@ function StarButton({
     if (readOnly) {
         return (
             <span
-                className={`inline-flex ${s.pad} text-gray-300 dark:text-gray-600 ${className}`}
+                className={`inline-flex ${s.pad} text-[var(--ink-subtle)] opacity-50 ${className}`}
                 title={readOnlyTitle ?? t('star.readOnly')}
             >
                 {icon}
@@ -73,10 +76,10 @@ function StarButton({
             title={isStarred ? t('menu.star.remove') : t('menu.star.add')}
             aria-label={isStarred ? t('menu.star.remove') : t('menu.star.add')}
             aria-pressed={isStarred}
-            className={`inline-flex items-center justify-center ${s.pad} rounded-full transition-colors active:scale-90 ${
+            className={`inline-flex items-center justify-center ${s.pad} rounded-full transition-colors active:scale-90 cursor-pointer ${
                 isStarred
-                    ? 'text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/15'
-                    : 'text-gray-400 dark:text-gray-500 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/15'
+                    ? 'text-[var(--ink)]'
+                    : 'text-[var(--ink-subtle)] opacity-70 hover:opacity-100 hover:text-[var(--ink)]'
             } ${className}`}
         >
             {icon}

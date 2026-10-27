@@ -258,7 +258,7 @@ function MovePanel({ items, onClose, onMoved }) {
                 {/* Header */}
                 <div className="flex items-center justify-between gap-3 px-6 py-4 border-b border-glass-divider">
                     <div className="flex items-center gap-2.5 min-w-0 font-semibold text-lg text-gray-800 dark:text-gray-100">
-                        <FolderSymlink className="w-5 h-5 shrink-0 text-blue-600 dark:text-blue-400" />
+                        <FolderSymlink className="w-5 h-5 shrink-0 text-[var(--ink-muted)]" />
                         <span id="move-modal-title" className="truncate" title={title}>{title}</span>
                     </div>
                     <button
@@ -291,7 +291,7 @@ function MovePanel({ items, onClose, onMoved }) {
                                         type="button"
                                         onClick={() => openCrumb(index)}
                                         disabled={isMoving}
-                                        className="px-1.5 py-0.5 rounded-md truncate max-w-[10rem] text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-500/10 cursor-pointer"
+                                        className="px-1.5 py-0.5 rounded-md truncate max-w-[10rem] text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer"
                                     >
                                         {crumbLabel(crumb)}
                                     </button>
@@ -307,7 +307,7 @@ function MovePanel({ items, onClose, onMoved }) {
                         <ul className="space-y-0.5">
                             <li>
                                 <button type="button" className={`${rowClass} cursor-pointer`} onClick={() => enterArea(rootCrumb('my-drive'))}>
-                                    <HardDrive className="w-4 h-4 shrink-0 text-blue-600 dark:text-blue-400" />
+                                    <HardDrive className="w-4 h-4 shrink-0 text-[var(--ink-muted)]" />
                                     <span className="flex-1 min-w-0 truncate font-medium">{t('nav.myDrive')}</span>
                                     <ChevronRight className="w-4 h-4 shrink-0 text-gray-400" />
                                 </button>
@@ -324,7 +324,7 @@ function MovePanel({ items, onClose, onMoved }) {
                                             className={`${rowClass} cursor-pointer`}
                                             onClick={() => enterArea(rootCrumb('drive', { driveId: drive.id, name: drive.name }))}
                                         >
-                                            <FolderGit2 className="w-4 h-4 shrink-0 text-indigo-600 dark:text-indigo-400" />
+                                            <FolderGit2 className="w-4 h-4 shrink-0 text-[var(--ink-muted)]" />
                                             <span className="flex-1 min-w-0 truncate font-medium">{drive.name}</span>
                                             <ChevronRight className="w-4 h-4 shrink-0 text-gray-400" />
                                         </button>
@@ -372,7 +372,7 @@ function MovePanel({ items, onClose, onMoved }) {
                                             <Folder className="w-4 h-4 shrink-0 fill-current text-[var(--fc-icon-l)] dark:text-[var(--fc-icon-d)]" />
                                             <span className="flex-1 min-w-0 truncate">{folder.name}</span>
                                             {location.area === 'shared' && folder.sharedRole === 'VIEWER' && (
-                                                <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded-md font-bold bg-sky-100 text-sky-800 dark:bg-sky-500/20 dark:text-sky-300">
+                                                <span className="chip shrink-0 text-[10px] px-1.5 py-0.5">
                                                     {t('list.role.viewer')}
                                                 </span>
                                             )}

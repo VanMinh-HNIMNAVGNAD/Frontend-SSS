@@ -3,6 +3,7 @@ import { useFiles } from '../../context/FileContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { filesApi } from '../../services/api';
 import { Trash2, HardDrive, X, Check, AlertTriangle, FileText } from 'lucide-react';
+import { alertDialog } from '../../utils/dialog';
 
 export default function QuickCleanupModal({ isOpen, onClose }) {
   const { emptyTrash, moveToTrash, storageInfo } = useFiles();
@@ -58,7 +59,7 @@ export default function QuickCleanupModal({ isOpen, onClose }) {
     try {
       // `emptyTrash` không throw: lỗi đã có toast riêng. Chỉ báo "xong" khi server nói xong.
       const res = await emptyTrash();
-      if (res?.ok) alert(t('cleanup.done'));
+      if (res?.ok) await alertDialog(t('cleanup.done'));
     } finally {
       setIsCleaningTrash(false);
       setTrashReloadToken((n) => n + 1);
@@ -94,10 +95,10 @@ export default function QuickCleanupModal({ isOpen, onClose }) {
         </div>
 
         {/* Suggestion 1: Empty Trash */}
-        <div className="p-4 rounded-2xl border border-amber-200 dark:border-amber-900/50 bg-amber-50/50 dark:bg-amber-400/15 space-y-3">
+        <div className="glass-soft p-4 rounded-2xl space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <Trash2 className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+              <Trash2 className="w-5 h-5 text-[var(--ink-muted)]" />
               <div>
                 <div className="text-xs font-bold text-gray-900 dark:text-gray-100">
                   {t('cleanup.emptyTrash', { count: trashCount ?? '…' })}
@@ -110,7 +111,7 @@ export default function QuickCleanupModal({ isOpen, onClose }) {
             <button
               onClick={handleEmptyTrashNow}
               disabled={isCleaningTrash || !trashCount}
-              className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl transition-colors disabled:opacity-50"
+              className="btn-danger px-3.5 py-1.5 text-xs font-semibold rounded-full transition-colors disabled:cursor-not-allowed cursor-pointer"
             >
               {isCleaningTrash ? t('cleanup.trashing') : t('cleanup.trashNow')}
             </button>
@@ -125,11 +126,11 @@ export default function QuickCleanupModal({ isOpen, onClose }) {
           </h4>
 
           {largeFiles === null ? (
-            <div className="p-4 text-center border border-dashed border-gray-200 dark:border-gray-700 rounded-2xl text-xs text-gray-500 dark:text-gray-400">
+            <div className="p-4 text-center border border-dashed border-[var(--glass-divider)] rounded-2xl text-xs text-[var(--ink-muted)]">
               {t('cleanup.scanning')}
             </div>
           ) : largeFiles.length === 0 ? (
-            <div className="p-4 text-center border border-dashed border-gray-200 dark:border-gray-700 rounded-2xl text-xs text-gray-500 dark:text-gray-400">
+            <div className="p-4 text-center border border-dashed border-[var(--glass-divider)] rounded-2xl text-xs text-[var(--ink-muted)]">
               {t('cleanup.noLargeFiles')}
             </div>
           ) : (
@@ -139,17 +140,17 @@ export default function QuickCleanupModal({ isOpen, onClose }) {
                 return (
                   <div
                     key={file.id}
-                    className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-xl text-xs hover:bg-black/[0.04] dark:hover:bg-white/[0.07] transition-colors"
+                    className="glass-soft flex items-center justify-between p-3 rounded-xl text-xs transition-colors"
                   >
                     <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-2">
-                      <FileText className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                      <FileText className="w-4 h-4 text-[var(--ink-muted)] shrink-0" />
                       <span className="truncate font-semibold text-gray-900 dark:text-gray-100">{file.name}</span>
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
-                      <span className="font-bold text-amber-600 dark:text-amber-300 font-mono">{mb} MB</span>
+                      <span className="font-semibold text-[var(--ink)] tabular-nums">{mb} MB</span>
                       <button
                         onClick={() => handleDeleteLargeFile(file.id)}
-                        className="text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 p-1 rounded-md transition-colors"
+                        className="text-[var(--ink-subtle)] hover:text-[var(--tone-danger)] p-1 rounded-full transition-colors cursor-pointer"
                         title={t('cleanup.moveToTrash')}
                       >
                         <Trash2 className="w-4 h-4" />

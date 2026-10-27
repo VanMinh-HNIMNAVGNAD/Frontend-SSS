@@ -4,6 +4,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useTags } from '../../context/TagsContext';
 import { Plus, FolderPlus, FileUp, FolderUp, Loader2 } from 'lucide-react';
 import { collectInputEntries } from '../../utils/uploadTree';
+import { alertDialog, promptDialog } from '../../utils/dialog';
 
 export default function NewButton({ isCollapsed }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -58,15 +59,18 @@ export default function NewButton({ isCollapsed }) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleCreateFolderPrompt = () => {
+  const handleCreateFolderPrompt = async () => {
     setIsOpen(false);
     if (activeTab === 'shared-drives' && !currentSharedDriveId && !currentFolderId) {
-      alert(t('newBtn.needDrive.folder'));
+      await alertDialog(t('newBtn.needDrive.folder'));
       return;
     }
-    const name = prompt(t('newBtn.prompt.folderName'), t('newBtn.defaultFolderName'));
-    if (name) {
-      createFolder(name);
+    const name = await promptDialog({
+      message: t('newBtn.prompt.folderName'),
+      defaultValue: t('newBtn.defaultFolderName'),
+    });
+    if (name && name.trim()) {
+      createFolder(name.trim());
     }
   };
 
@@ -75,7 +79,7 @@ export default function NewButton({ isCollapsed }) {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
     if (activeTab === 'shared-drives' && !currentSharedDriveId && !currentFolderId) {
-      alert(t('newBtn.needDrive.file'));
+      alertDialog(t('newBtn.needDrive.file'));
       e.target.value = '';
       setIsOpen(false);
       return;
@@ -103,7 +107,7 @@ export default function NewButton({ isCollapsed }) {
     if (tree.entries.length === 0) return;
 
     if (activeTab === 'shared-drives' && !currentSharedDriveId && !currentFolderId) {
-      alert(t('newBtn.needDrive.uploadFolder'));
+      alertDialog(t('newBtn.needDrive.uploadFolder'));
       setIsOpen(false);
       return;
     }
@@ -142,28 +146,28 @@ export default function NewButton({ isCollapsed }) {
       {/* Nút + Mới */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`glass-soft flex items-center justify-center gap-3 text-gray-800 dark:text-gray-200 border rounded-2xl hover:shadow-md active:bg-gray-100 font-medium text-sm transition-all duration-200 ${
+        className={`glass-soft flex items-center justify-center gap-3 text-[var(--ink)] rounded-2xl hover:shadow-md active:scale-[0.98] font-medium text-sm transition-all duration-200 cursor-pointer ${
           isCollapsed ? 'w-12 h-12 p-0 rounded-full' : 'px-5 py-3'
         }`}
         title={t('newBtn.title')}
       >
-        <Plus className="w-6 h-6 text-blue-600 dark:text-blue-400 shrink-0 stroke-[2.5]" />
+        <Plus className="w-6 h-6 text-[var(--ink)] shrink-0 stroke-[2.5]" />
         {!isCollapsed && <span className="font-semibold tracking-wide text-[15px]">{t('newBtn.label')}</span>}
       </button>
 
       {/* Dropdown Menu */}
       {isOpen && (
-        <div className="glass-strong absolute top-full mt-2 rounded-[20px] border p-1.5 w-64 z-50 left-0 animate-glass-in">
+        <div className="glass-strong absolute top-full mt-2 rounded-[20px] p-1.5 w-64 z-50 left-0 animate-glass-in origin-top-left">
           {/* Thư mục người khác chia sẻ: nói lý do NGAY trong menu và khoá ba lệnh — không để
               người dùng chọn tệp, tải lên rồi mới bị từ chối (##78). */}
           {isWriteLocked && (
-            <div role="note" className="mx-0.5 mb-1 rounded-xl bg-amber-50 dark:bg-amber-400/15 border border-amber-200 dark:border-amber-500/30 px-3 py-2">
-              <p className="text-[12.5px] leading-snug text-amber-800 dark:text-amber-200">{t(writeLockKey)}</p>
+            <div role="note" className="mx-0.5 mb-1 rounded-xl bg-[var(--tone-warn-soft)] px-3 py-2">
+              <p className="text-[12.5px] leading-snug text-[var(--ink)]">{t(writeLockKey)}</p>
             </div>
           )}
           {viewTag && (
-            <div role="note" className="mx-0.5 mb-1 rounded-xl bg-blue-50 dark:bg-blue-400/15 border border-blue-200 dark:border-blue-500/30 px-3 py-2">
-              <p className="text-[12.5px] leading-snug text-blue-800 dark:text-blue-200">{t('newBtn.tagView', { name: viewTag.name })}</p>
+            <div role="note" className="mx-0.5 mb-1 rounded-xl bg-[var(--chip-fill)] px-3 py-2">
+              <p className="text-[12.5px] leading-snug text-[var(--ink-muted)]">{t('newBtn.tagView', { name: viewTag.name })}</p>
             </div>
           )}
 
@@ -171,9 +175,9 @@ export default function NewButton({ isCollapsed }) {
           <button
             onClick={handleCreateFolderPrompt}
             disabled={isWriteLocked}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-[14px] text-sm text-gray-700 dark:text-gray-300 pointer-coarse:active:bg-black/[0.05] dark:pointer-coarse:active:bg-white/[0.08] transition-colors text-left disabled:opacity-40 disabled:cursor-not-allowed"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-[14px] text-sm text-[var(--ink)] cursor-pointer pointer-coarse:active:bg-black/[0.05] dark:pointer-coarse:active:bg-white/[0.08] transition-colors text-left disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            <FolderPlus className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+            <FolderPlus className="w-5 h-5 text-[var(--ink-muted)]" />
             <span>{t('newBtn.newFolder')}</span>
           </button>
 
@@ -186,9 +190,9 @@ export default function NewButton({ isCollapsed }) {
               fileInputRef.current?.click();
             }}
             disabled={isWriteLocked}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-[14px] text-sm text-gray-700 dark:text-gray-300 pointer-coarse:active:bg-black/[0.05] dark:pointer-coarse:active:bg-white/[0.08] transition-colors text-left disabled:opacity-40 disabled:cursor-not-allowed"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-[14px] text-sm text-[var(--ink)] cursor-pointer pointer-coarse:active:bg-black/[0.05] dark:pointer-coarse:active:bg-white/[0.08] transition-colors text-left disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            <FileUp className="w-5 h-5 text-blue-500" />
+            <FileUp className="w-5 h-5 text-[var(--ink-muted)]" />
             <div className="flex flex-col items-start">
               <span className="font-medium">{t('newBtn.uploadFile')}</span>
             </div>
@@ -201,15 +205,15 @@ export default function NewButton({ isCollapsed }) {
               folderInputRef.current?.click();
             }}
             disabled={isBuildingTree || isWriteLocked}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-[14px] text-sm text-gray-700 dark:text-gray-300 pointer-coarse:active:bg-black/[0.05] dark:pointer-coarse:active:bg-white/[0.08] transition-colors text-left ${
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-[14px] text-sm text-[var(--ink)] cursor-pointer pointer-coarse:active:bg-black/[0.05] dark:pointer-coarse:active:bg-white/[0.08] transition-colors text-left ${
               isWriteLocked
                 ? 'disabled:opacity-40 disabled:cursor-not-allowed'
                 : 'disabled:opacity-60 disabled:cursor-wait'
             }`}
           >
             {isBuildingTree
-              ? <Loader2 className="w-5 h-5 text-amber-500 animate-spin" />
-              : <FolderUp className="w-5 h-5 text-amber-500" />
+              ? <Loader2 className="w-5 h-5 text-[var(--ink-muted)] animate-spin" />
+              : <FolderUp className="w-5 h-5 text-[var(--ink-muted)]" />
             }
             <div className="flex flex-col items-start">
               <span className="font-medium">

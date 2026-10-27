@@ -34,7 +34,7 @@ export default function ImageStagePill({ stage, sizeBytes, onLoadOriginal }) {
         </span>
         {pct != null && (
           <span className="block w-40 h-1 rounded-full bg-white/15 overflow-hidden">
-            <span className="block h-full bg-blue-400 transition-[width] duration-150" style={{ width: `${pct}%` }} />
+            <span className="block h-full bg-white/70 transition-[width] duration-150" style={{ width: `${pct}%` }} />
           </span>
         )}
       </div>

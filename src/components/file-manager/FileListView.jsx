@@ -19,6 +19,9 @@ import TagChips from '../common/TagChips';
 import { collectInputEntries } from '../../utils/uploadTree';
 import tRich from '../../utils/tRich';
 import { downloadSingleItem } from '../../utils/downloadItems';
+import { formatListDate } from '../../utils/relativeTime';
+import { localeTagOf } from '../../utils/locale';
+import { alertDialog, promptDialog } from '../../utils/dialog';
 import {
     Folder,
     MoreVertical,
@@ -95,6 +98,101 @@ const getFileTypeKey = (item) => {
 const getFileIcon = (file) => getSharedFileIcon(file, 'w-4 h-4');
 
 
+/**
+ * Hàng của bảng trên kính (26/10/2026): không còn tô nền theo màu loại tệp — hàng trong suốt, rê
+ * chuột sáng lên, đang chọn là viên kính sáng hẳn (`row-hover` / `row-selected`, index.css). Màu
+ * của tệp chỉ còn ở icon/ô icon.
+ */
+const rowClass = (isSelected, isCut) =>
+    `transition-colors group cursor-pointer ${isCut ? 'opacity-50' : ''} ${isSelected ? 'row-selected' : 'row-hover'}`;
+
+/** Ô chọn đầu hàng — chỉ ô này bật/tắt chọn (Shift = chọn dải). */
+function SelectCell({ id, isSelected, onToggleSelect, onSelectRange }) {
+    return (
+        <td
+            className="py-2.5 pl-3 pr-1 text-center"
+            onClick={(e) => {
+                e.stopPropagation();
+                if (e.shiftKey) {
+                    e.preventDefault();
+                    onSelectRange(id);
+                } else {
+                    onToggleSelect(id);
+                }
+            }}
+            onDoubleClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
+        >
+            <button
+                className={`flex items-center justify-center transition-colors cursor-pointer ${
+                    isSelected ? 'text-[var(--ink)]' : 'text-[var(--ink-subtle)] opacity-70 group-hover:opacity-100 hover:text-[var(--ink)]'
+                }`}
+            >
+                {isSelected ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
+            </button>
+        </td>
+    );
+}
+
+/** Cột "Chủ sở hữu": ở tab Được chia sẻ là avatar + tên + quyền của mình (chip xám). */
+function OwnerCell({ item, activeTab }) {
+    const { t } = useLanguage();
+    return (
+        <td className="py-2.5 px-3 text-[var(--ink-muted)] truncate max-w-[180px] hidden lg:table-cell">
+            {activeTab === 'shared-with-me' && item.sharedOwner ? (
+                <div className="flex items-center gap-2 min-w-0">
+                    {item.sharedOwner.avatarUrl ? (
+                        <img src={item.sharedOwner.avatarUrl} alt="" className="w-5 h-5 rounded-full object-cover shrink-0" />
+                    ) : (
+                        <div className="w-5 h-5 rounded-full bg-gradient-to-br from-zinc-400 to-zinc-600 flex items-center justify-center text-white text-[9px] font-bold shrink-0">
+                            {item.sharedOwner.fullName?.charAt(0)?.toUpperCase() || '?'}
+                        </div>
+                    )}
+                    <span className="truncate">{item.sharedOwner.fullName || item.owner}</span>
+                    <span className="chip shrink-0 px-1.5 py-px text-[10px]">
+                        {item.sharedRole === 'EDITOR' ? t('list.role.editor') : t('list.role.viewer')}
+                    </span>
+                </div>
+            ) : (
+                item.owner || t('list.owner.me')
+            )}
+        </td>
+    );
+}
+
+/** Cột "Sửa đổi" (tab Được chia sẻ: ngày được chia sẻ) — dạng gọn, đầy đủ trong tooltip. */
+function DateCell({ item, activeTab }) {
+    const { language } = useLanguage();
+    const locale = localeTagOf(language);
+    const shared = activeTab === 'shared-with-me' && item.sharedAt;
+    const label = shared
+        ? formatListDate(item.sharedAtMs, locale) || item.sharedAt
+        : formatListDate(item.updatedAtMs, locale) || item.updatedAt;
+    return (
+        <td
+            className="py-2.5 px-3 text-[var(--ink-muted)] tabular-nums whitespace-nowrap hidden sm:table-cell"
+            title={shared ? item.sharedAt : item.updatedAt}
+        >
+            {label}
+        </td>
+    );
+}
+
+/** Nút ⋮ cuối hàng. */
+function MoreCell({ item, onContextMenu }) {
+    const { t } = useLanguage();
+    return (
+        <td className="py-2.5 px-2 text-center">
+            <button
+                onClick={(e) => onContextMenu(e, item)}
+                title={t('card.fileOptions')}
+                className="p-1 rounded-full text-[var(--ink-subtle)] hover:text-[var(--ink)] transition-colors cursor-pointer"
+            >
+                <MoreVertical className="w-4 h-4" />
+            </button>
+        </td>
+    );
+}
+
 const FolderTableRow = memo(function FolderTableRow({
     folder,
     isSelected,
@@ -116,35 +214,13 @@ const FolderTableRow = memo(function FolderTableRow({
             onDoubleClick={() => onDoubleClick(folder)}
             onContextMenu={(e) => onContextMenu(e, folder)}
             style={getCardColorVars(folder)}
-            className={`transition-colors group cursor-pointer ${isCut ? 'opacity-50 border-dashed' : ''} ${
-                isSelected
-                    ? 'ring-1 ring-inset ring-blue-400 bg-[var(--fc-hover-l)] dark:bg-[var(--fc-hover-d)]'
-                    : 'bg-[var(--fc-panel-l)] dark:bg-[var(--fc-panel-d)] hover:bg-[var(--fc-surface-l)] dark:hover:bg-[var(--fc-surface-d)]'
-            }`}
+            className={rowClass(isSelected, isCut)}
         >
-            {/* Checkbox Column – only this triggers selection */}
-            <td
-                className="py-3.5 px-3 text-center"
-                onClick={(e) => {
-                    e.stopPropagation();
-                    if (e.shiftKey) {
-                        e.preventDefault();
-                        onSelectRange(folder.id);
-                    } else {
-                        onToggleSelect(folder.id);
-                    }
-                }}
-                onDoubleClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
-            >
-                <button className="flex items-center justify-center text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                    {isSelected ? <CheckSquare className="w-4 h-4 text-blue-600 dark:text-blue-400" /> : <Square className="w-4 h-4" />}
-                </button>
-            </td>
+            <SelectCell id={folder.id} isSelected={isSelected} onToggleSelect={onToggleSelect} onSelectRange={onSelectRange} />
 
-            {/* Star Column – moved after checkbox */}
             {/* Tệp người khác chia sẻ: cột is_starred thuộc chủ sở hữu nên chỉ hiển
                 thị trạng thái, không cho bấm (backend chặn non-owner) */}
-            <td className="py-3.5 px-3 text-center">
+            <td className="py-2.5 px-1 text-center">
                 <StarButton
                     size="sm"
                     isStarred={folder.isStarred}
@@ -153,75 +229,35 @@ const FolderTableRow = memo(function FolderTableRow({
                 />
             </td>
 
-            {/* Name Column */}
-            <td className="py-3.5 px-3">
-                <div className="flex items-center gap-2.5">
-                    <div className="p-1.5 rounded-lg shrink-0 bg-[var(--fc-surface-l)] dark:bg-[var(--fc-surface-d)] border border-[var(--fc-border-l)] dark:border-[var(--fc-border-d)]">
+            {/* Tên — chip nhãn cùng dòng với tên; dòng "nơi chứa" chỉ có ở kết quả tìm kiếm */}
+            <td className="py-2.5 px-3">
+                <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center bg-[var(--fc-surface-l)] dark:bg-[var(--fc-surface-d)] border border-[var(--fc-border-l)] dark:border-[var(--fc-border-d)]">
                         <Folder className="w-4 h-4 fill-current text-[var(--fc-icon-l)] dark:text-[var(--fc-icon-d)]" />
                     </div>
                     <div className="min-w-0 flex flex-col">
-                        <span className="font-semibold truncate max-w-[200px] text-[var(--fc-ink-l)] dark:text-[var(--fc-ink-d)]" title={folder.name}>
-                            {folder.name}
-                        </span>
+                        <div className="flex items-center gap-2 min-w-0">
+                            <span className="font-medium truncate max-w-[280px] text-[var(--ink)]" title={folder.name}>
+                                {folder.name}
+                            </span>
+                            {/* Nhãn riêng của người xem (##91) */}
+                            <TagChips tags={folder.tags} max={2} className="shrink-0" />
+                        </div>
                         {/* Kết quả tìm kiếm: thư mục này nằm ở đâu (##90) */}
-                        <ItemLocation item={folder} onOpen={onOpenLocation} className="max-w-[200px]" />
-                        {/* Nhãn riêng của người xem (##91) */}
-                        <TagChips tags={folder.tags} className="mt-0.5 max-w-[220px]" />
+                        <ItemLocation item={folder} onOpen={onOpenLocation} className="max-w-[280px]" />
                     </div>
                 </div>
             </td>
 
-            {/* Size Column */}
-            <td className="py-3.5 px-3 text-gray-600 dark:text-gray-400 font-mono text-[11px] font-medium">--</td>
+            <td className="py-2.5 px-3 text-[var(--ink-subtle)]">—</td>
 
-            {/* Type Column */}
-            <td className="py-3.5 px-3 hidden lg:table-cell">
-                <span className="px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-500/15 text-amber-800 dark:text-amber-300 font-semibold text-[11px] border border-amber-200 dark:border-amber-800/60">
-                    {t('fileType.folder')}
-                </span>
+            <td className="py-2.5 px-3 text-[var(--ink-muted)] whitespace-nowrap hidden lg:table-cell">
+                {t('fileType.folder')}
             </td>
 
-            {/* Owner Column */}
-            <td className="py-3.5 px-3 text-gray-700 dark:text-gray-300 font-medium truncate max-w-[140px] hidden lg:table-cell">
-                {activeTab === 'shared-with-me' && folder.sharedOwner ? (
-                    <div className="flex items-center gap-2">
-                        {folder.sharedOwner.avatarUrl ? (
-                            <img src={folder.sharedOwner.avatarUrl} alt="" className="w-5 h-5 rounded-full object-cover shrink-0" />
-                        ) : (
-                            <div className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-[9px] font-bold shrink-0">
-                                {folder.sharedOwner.fullName?.charAt(0)?.toUpperCase() || '?'}
-                            </div>
-                        )}
-                        <span className="truncate text-[11px]">{folder.sharedOwner.fullName || folder.owner}</span>
-                        <span className={`shrink-0 text-[9px] px-1.5 py-0.5 rounded-md font-bold ${
-                            folder.sharedRole === 'EDITOR' 
-                                ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-400' 
-                                : 'bg-sky-100 text-sky-800 dark:bg-sky-500/20 dark:text-sky-400'
-                        }`}>
-                            {folder.sharedRole === 'EDITOR' ? t('list.role.editor') : t('list.role.viewer')}
-                        </span>
-                    </div>
-                ) : (
-                    folder.owner || t('list.owner.me')
-                )}
-            </td>
-
-            {/* Modified Column */}
-            <td className="py-3.5 px-3 text-gray-600 dark:text-gray-400 font-mono text-[11px] font-medium whitespace-nowrap hidden sm:table-cell">
-                {activeTab === 'shared-with-me' && folder.sharedAt 
-                    ? folder.sharedAt 
-                    : folder.updatedAt}
-            </td>
-
-            {/* Action Options */}
-            <td className="py-3.5 px-3 text-center">
-                <button
-                    onClick={(e) => onContextMenu(e, folder)}
-                    className="p-1 rounded-full text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
-                >
-                    <MoreVertical className="w-4 h-4" />
-                </button>
-            </td>
+            <OwnerCell item={folder} activeTab={activeTab} />
+            <DateCell item={folder} activeTab={activeTab} />
+            <MoreCell item={folder} onContextMenu={onContextMenu} />
         </tr>
     );
 });
@@ -246,34 +282,12 @@ const FileTableRow = memo(function FileTableRow({
             onKeyDown={(e) => onKeyDown(e, file)}
             onDoubleClick={() => onDoubleClick(file)}
             onContextMenu={(e) => onContextMenu(e, file)}
-            style={getCardColorVars(file)}
-            className={`transition-colors group cursor-pointer ${isCut ? 'opacity-50 border-dashed' : ''} ${
-                isSelected
-                    ? 'ring-1 ring-inset ring-blue-400 bg-[var(--fc-hover-l)] dark:bg-[var(--fc-hover-d)]'
-                    : 'bg-[var(--fc-panel-l)] dark:bg-[var(--fc-panel-d)] hover:bg-[var(--fc-surface-l)] dark:hover:bg-[var(--fc-surface-d)]'
-            }`}
+            className={rowClass(isSelected, isCut)}
         >
-            {/* Checkbox Column – only this triggers selection */}
-            <td
-                className="py-3.5 px-3 text-center"
-                onClick={(e) => {
-                    e.stopPropagation();
-                    if (e.shiftKey) {
-                        e.preventDefault();
-                        onSelectRange(file.id);
-                    } else {
-                        onToggleSelect(file.id);
-                    }
-                }}
-                onDoubleClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
-            >
-                <button className="flex items-center justify-center text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                    {isSelected ? <CheckSquare className="w-4 h-4 text-blue-600 dark:text-blue-400" /> : <Square className="w-4 h-4" />}
-                </button>
-            </td>
+            <SelectCell id={file.id} isSelected={isSelected} onToggleSelect={onToggleSelect} onSelectRange={onSelectRange} />
 
             {/* Star Column — xem ghi chú ở hàng thư mục */}
-            <td className="py-3.5 px-3 text-center">
+            <td className="py-2.5 px-1 text-center">
                 <StarButton
                     size="sm"
                     isStarred={file.isStarred}
@@ -282,91 +296,51 @@ const FileTableRow = memo(function FileTableRow({
                 />
             </td>
 
-            {/* Name Column */}
-            <td className="py-3.5 px-3">
-                <div className="flex items-center gap-2.5">
+            {/* Tên */}
+            <td className="py-2.5 px-3">
+                <div className="flex items-center gap-2.5 min-w-0">
                     {/* Mini thumbnail (ảnh / video / trang đầu PDF), loại còn lại rơi về
-                        icon theo đuôi tệp — giống hàng ở Trang chủ. Hàng THƯ MỤC không
-                        dùng: xem FolderTableRow, vẫn là icon thư mục màu hổ phách. */}
+                        icon theo đuôi tệp — giống hàng ở Trang chủ. */}
                     <FileThumbnail
                         file={file}
-                        className="w-8 h-8 rounded-md bg-white dark:bg-white/5 border border-gray-200 dark:border-gray-700/60 shadow-2xs"
+                        className="w-8 h-8 rounded-lg glass-soft"
                         fallback={getFileIcon(file)}
                     />
                     <div className="min-w-0 flex flex-col">
-                        <span className="font-semibold truncate max-w-[180px] text-[var(--fc-ink-l)] dark:text-[var(--fc-ink-d)]" title={file.name}>
-                            {file.name}
-                        </span>
+                        <div className="flex items-center gap-2 min-w-0">
+                            <span className="font-medium truncate max-w-[280px] text-[var(--ink)]" title={file.name}>
+                                {file.name}
+                            </span>
+                            {/* Lý do bị gắn cờ do Spam Guard — chỉ tệp trong mục Nội dung rác mới có */}
+                            {file.isSpam && (
+                                <span
+                                    className="shrink-0 text-[var(--ink-muted)]"
+                                    title={file.suspiciousReason || t('list.suspicious')}
+                                >
+                                    <ShieldAlert className="w-3.5 h-3.5" />
+                                </span>
+                            )}
+                            {/* Nhãn riêng của người xem (##91) */}
+                            <TagChips tags={file.tags} max={2} className="shrink-0" />
+                        </div>
                         {/* Kết quả tìm kiếm: tệp này nằm ở đâu (##90) */}
-                        <ItemLocation item={file} onOpen={onOpenLocation} className="max-w-[180px]" />
-                        {/* Nhãn riêng của người xem (##91) */}
-                        <TagChips tags={file.tags} className="mt-0.5 max-w-[220px]" />
+                        <ItemLocation item={file} onOpen={onOpenLocation} className="max-w-[280px]" />
                     </div>
-                    {/* Lý do bị gắn cờ do Spam Guard — chỉ tệp trong mục Nội dung rác mới có */}
-                    {file.isSpam && (
-                        <span
-                            className="shrink-0 text-amber-600 dark:text-amber-400"
-                            title={file.suspiciousReason || t('list.suspicious')}
-                        >
-                            <ShieldAlert className="w-4 h-4" />
-                        </span>
-                    )}
                 </div>
             </td>
 
-            {/* Size Column */}
-            <td className="py-3.5 px-3 text-gray-800 dark:text-gray-300 font-mono font-semibold text-[11px]">
+            <td className="py-2.5 px-3 text-[var(--ink-muted)] tabular-nums whitespace-nowrap">
                 {formatBytes(file.size)}
             </td>
 
-            {/* Type Column */}
-            <td className="py-3.5 px-3 hidden lg:table-cell">
-                <span className="px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-500/15 text-blue-800 dark:text-blue-300 font-semibold text-[11px] border border-blue-200 dark:border-blue-800/60 whitespace-nowrap">
-                    {t(getFileTypeKey(file))}
-                </span>
+            {/* Loại — chữ xám thường, không còn badge xanh/hổ phách */}
+            <td className="py-2.5 px-3 text-[var(--ink-muted)] whitespace-nowrap hidden lg:table-cell">
+                {t(getFileTypeKey(file))}
             </td>
 
-            {/* Owner Column */}
-            <td className="py-3.5 px-3 text-gray-700 dark:text-gray-300 font-medium truncate max-w-[140px] hidden lg:table-cell">
-                {activeTab === 'shared-with-me' && file.sharedOwner ? (
-                    <div className="flex items-center gap-2">
-                        {file.sharedOwner.avatarUrl ? (
-                            <img src={file.sharedOwner.avatarUrl} alt="" className="w-5 h-5 rounded-full object-cover shrink-0" />
-                        ) : (
-                            <div className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-[9px] font-bold shrink-0">
-                                {file.sharedOwner.fullName?.charAt(0)?.toUpperCase() || '?'}
-                            </div>
-                        )}
-                        <span className="truncate text-[11px]">{file.sharedOwner.fullName || file.owner}</span>
-                        <span className={`shrink-0 text-[9px] px-1.5 py-0.5 rounded-md font-bold ${
-                            file.sharedRole === 'EDITOR' 
-                                ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-400' 
-                                : 'bg-sky-100 text-sky-800 dark:bg-sky-500/20 dark:text-sky-400'
-                        }`}>
-                            {file.sharedRole === 'EDITOR' ? t('list.role.editor') : t('list.role.viewer')}
-                        </span>
-                    </div>
-                ) : (
-                    file.owner || t('list.owner.me')
-                )}
-            </td>
-
-            {/* Modified Column */}
-            <td className="py-3.5 px-3 text-gray-600 dark:text-gray-400 font-mono text-[11px] font-medium whitespace-nowrap hidden sm:table-cell">
-                {activeTab === 'shared-with-me' && file.sharedAt 
-                    ? file.sharedAt 
-                    : file.updatedAt}
-            </td>
-
-            {/* Action Options */}
-            <td className="py-3.5 px-3 text-center">
-                <button
-                    onClick={(e) => onContextMenu(e, file)}
-                    className="p-1 rounded-full text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
-                >
-                    <MoreVertical className="w-4 h-4" />
-                </button>
-            </td>
+            <OwnerCell item={file} activeTab={activeTab} />
+            <DateCell item={file} activeTab={activeTab} />
+            <MoreCell item={file} onContextMenu={onContextMenu} />
         </tr>
     );
 });
@@ -381,16 +355,16 @@ function SortHeader({ field, label, className = '', onSort, sortField, sortDirec
     return (
         <th
             onClick={onSort ? () => onSort(field) : undefined}
-            className={`py-3 px-3 font-bold transition-colors ${
-                onSort ? 'hover:text-blue-700 dark:hover:text-blue-400 cursor-pointer' : ''
-            } ${className}`}
+            className={`py-2.5 px-3 font-semibold transition-colors ${
+                onSort ? 'hover:text-[var(--ink)] cursor-pointer' : ''
+            } ${active ? 'text-[var(--ink)]' : ''} ${className}`}
         >
             <div className="flex items-center gap-1">
                 <span>{label}</span>
                 {active && (
                     sortDirection === 'asc'
-                        ? <ArrowUp className="w-3 h-3 text-blue-600 dark:text-blue-400" />
-                        : <ArrowDown className="w-3 h-3 text-blue-600 dark:text-blue-400" />
+                        ? <ArrowUp className="w-3 h-3" />
+                        : <ArrowDown className="w-3 h-3" />
                 )}
             </div>
         </th>
@@ -502,14 +476,17 @@ export default function FileListView() {
         }
     }, []);
 
-    const handleCreateFolderPrompt = useCallback(() => {
+    const handleCreateFolderPrompt = useCallback(async () => {
         if (activeTab === 'shared-drives' && !currentSharedDriveId && !currentFolderId) {
-            alert(t('newBtn.needDrive.folder'));
+            await alertDialog(t('newBtn.needDrive.folder'));
             return;
         }
-        const name = prompt(t('newBtn.prompt.folderName'), t('newBtn.defaultFolderName'));
-        if (name) {
-            createFolder(name);
+        const name = await promptDialog({
+            message: t('newBtn.prompt.folderName'),
+            defaultValue: t('newBtn.defaultFolderName'),
+        });
+        if (name && name.trim()) {
+            createFolder(name.trim());
         }
     }, [activeTab, currentSharedDriveId, currentFolderId, createFolder, t]);
 
@@ -518,7 +495,7 @@ export default function FileListView() {
         e.target.value = '';
         if (selectedFiles.length === 0) return;
         if (activeTab === 'shared-drives' && !currentSharedDriveId && !currentFolderId) {
-            alert(t('newBtn.needDrive.file'));
+            alertDialog(t('newBtn.needDrive.file'));
             return;
         }
         selectedFiles.forEach((file) => enqueueUpload(file));
@@ -535,7 +512,7 @@ export default function FileListView() {
         if (tree.entries.length === 0) return;
 
         if (activeTab === 'shared-drives' && !currentSharedDriveId && !currentFolderId) {
-            alert(t('newBtn.needDrive.uploadFolder'));
+            alertDialog(t('newBtn.needDrive.uploadFolder'));
             return;
         }
 
@@ -662,16 +639,16 @@ export default function FileListView() {
         return (
             <div
                 onContextMenu={openBlankContextMenu}
-                className="flex flex-col items-center justify-center h-full py-20 text-gray-400 dark:text-gray-500 select-none"
+                className="flex flex-col items-center justify-center h-full py-20 select-none"
             >
-                {isQuerying
-                    ? <SearchX className="w-16 h-16 stroke-1 text-gray-300 mb-3" />
-                    : <FolderOpen className="w-16 h-16 stroke-1 text-gray-300 mb-3" />}
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                <div className="glass-soft w-16 h-16 rounded-[20px] flex items-center justify-center mb-3 text-[var(--ink-subtle)]">
+                    {isQuerying ? <SearchX className="w-7 h-7" /> : <FolderOpen className="w-7 h-7" />}
+                </div>
+                <p className="text-sm font-medium text-[var(--ink)]">
                     {isQuerying ? t('list.empty.noResults') : t('list.empty.title')}
                 </p>
                 {isQuerying && (
-                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 text-center px-4">{t('list.empty.noResultsHint')}</p>
+                    <p className="text-xs text-[var(--ink-muted)] mt-1 text-center px-4">{t('list.empty.noResultsHint')}</p>
                 )}
 
                 <input type="file" ref={fileInputRef} onChange={handleFileInputChange} multiple className="hidden" aria-label={t('newBtn.aria.pickFiles')} />
@@ -720,18 +697,20 @@ export default function FileListView() {
             >
                 <table className="w-full text-left border-collapse min-w-[560px] lg:min-w-[850px]">
                     <thead>
-                        <tr className="border-b text-[11px] font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider bg-gray-100/90 dark:bg-white/5 select-none border-glass-divider">
+                        <tr className="border-b text-[11px] font-semibold text-[var(--ink-muted)] uppercase tracking-wider select-none border-glass-divider">
                             {/* Checkbox Header */}
-                            <th className="py-3 px-3 w-8 text-center">
+                            <th className="py-2.5 pl-3 pr-1 w-8 text-center">
                                 <button
                                     onClick={() => allSelected ? deselectAll() : selectAll(folders, files)}
-                                    className="flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                                    className={`flex items-center justify-center transition-colors cursor-pointer ${
+                                        allSelected || someSelected ? 'text-[var(--ink)]' : 'text-[var(--ink-subtle)] hover:text-[var(--ink)]'
+                                    }`}
                                     title={allSelected ? t('common.deselectAll') : t('common.selectAll')}
                                 >
                                     {allSelected ? (
-                                        <CheckSquare className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                                        <CheckSquare className="w-4 h-4" />
                                     ) : someSelected ? (
-                                        <Minus className="w-4 h-4 text-blue-500" />
+                                        <Minus className="w-4 h-4" />
                                     ) : (
                                         <Square className="w-4 h-4" />
                                     )}
@@ -739,7 +718,7 @@ export default function FileListView() {
                             </th>
 
                             {/* Star Header */}
-                            <th className="py-3 px-3 w-8 text-center"></th>
+                            <th className="py-2.5 px-1 w-8 text-center"></th>
 
                             {/* Tiêu đề cột bấm để sắp xếp — xem `SortHeader`. */}
                             <SortHeader field="name" label={t('list.col.name')} {...sortProps} />
@@ -749,11 +728,11 @@ export default function FileListView() {
                             <SortHeader field="updatedAt" label={t('list.col.modified')} className="hidden sm:table-cell" {...sortProps} />
 
                             {/* Actions Header */}
-                            <th className="py-3 px-3 w-10 text-center"></th>
+                            <th className="py-2.5 px-2 w-10 text-center"></th>
                         </tr>
                     </thead>
 
-                    <tbody className="divide-y divide-gray-200 dark:divide-gray-700 text-xs">
+                    <tbody className="divide-y divide-[var(--glass-divider)] text-[13px]">
                         {/* Render Folders */}
                         {sortedFolders.map((folder) => (
                             <FolderTableRow
@@ -803,29 +782,29 @@ export default function FileListView() {
 
             {/* Pagination Controls */}
             {totalPages > 1 && (
-                <div className="flex items-center justify-between pt-4 text-xs text-gray-600 dark:text-gray-400">
+                <div className="flex items-center justify-between pt-4 text-xs text-[var(--ink-muted)]">
                     <div>
                         {tRich(t('list.pagination.showing'), {
-                            from: <span className="font-bold text-gray-900 dark:text-gray-100">{((currentPage - 1) * pageSize) + 1}</span>,
-                            to: <span className="font-bold text-gray-900 dark:text-gray-100">{Math.min(currentPage * pageSize, totalItems)}</span>,
-                            total: <span className="font-bold text-gray-900 dark:text-gray-100">{totalItems}</span>,
+                            from: <span className="font-semibold text-[var(--ink)]">{((currentPage - 1) * pageSize) + 1}</span>,
+                            to: <span className="font-semibold text-[var(--ink)]">{Math.min(currentPage * pageSize, totalItems)}</span>,
+                            total: <span className="font-semibold text-[var(--ink)]">{totalItems}</span>,
                         })}
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1.5">
                         <button
                             disabled={currentPage === 1}
                             onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                            className="p-1.5 rounded-lg border border-gray-300 dark:border-gray-700 disabled:opacity-40 disabled:hover:bg-transparent transition-colors text-gray-700 dark:text-gray-300"
+                            className="glass-soft p-1.5 rounded-full disabled:opacity-40 transition-colors text-[var(--ink)] cursor-pointer disabled:cursor-not-allowed"
                         >
                             <ChevronLeft className="w-4 h-4" />
                         </button>
-                        <span className="px-2 font-semibold text-gray-800 dark:text-gray-200">
+                        <span className="px-2 font-semibold text-[var(--ink)] tabular-nums">
                             {t('list.pagination.page', { page: currentPage, total: totalPages })}
                         </span>
                         <button
                             disabled={currentPage === totalPages}
                             onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                            className="p-1.5 rounded-lg border border-gray-300 dark:border-gray-700 disabled:opacity-40 disabled:hover:bg-transparent transition-colors text-gray-700 dark:text-gray-300"
+                            className="glass-soft p-1.5 rounded-full disabled:opacity-40 transition-colors text-[var(--ink)] cursor-pointer disabled:cursor-not-allowed"
                         >
                             <ChevronRight className="w-4 h-4" />
                         </button>

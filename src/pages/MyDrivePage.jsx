@@ -5,18 +5,14 @@ import FileListView from '../components/file-manager/FileListView';
 import FileGridView from '../components/file-manager/FileGridView';
 import FileFilterBar from '../components/common/FileFilterBar';
 import Breadcrumb from '../components/file-manager/Breadcrumb';
+import PageHeader from '../components/common/PageHeader';
 import { UploadCloud, FolderInput, Loader2 } from 'lucide-react';
 import { collectDropEntries } from '../utils/uploadTree';
-import ViewModeToggle from '../components/common/ViewModeToggle';
 
 export default function MyDrivePage() {
     const { t } = useLanguage();
   const {
     viewMode,
-    setViewMode,
-    currentFolderId,
-    setCurrentFolderId,
-    items,
     filterType,
     setFilterType,
     filterDate,
@@ -36,8 +32,6 @@ export default function MyDrivePage() {
 
   const [isDragging, setIsDragging] = useState(false);
   const [isReadingDrop, setIsReadingDrop] = useState(false);
-
-  const currentFolder = items.find((i) => i.id === currentFolderId);
 
   const handleDragOver = (e) => {
     e.preventDefault();
@@ -87,58 +81,51 @@ export default function MyDrivePage() {
       className="flex flex-col h-full relative"
       onContextMenu={(e) => e.preventDefault()}
     >
-      {/* Drag & Drop Visual Overlay */}
+      {/* Kéo thả: tấm kính phủ lên vùng danh sách, viền đứt nét màu mực — không còn mảng xanh nhấp nháy */}
       {isDragging && (
-        <div className="absolute inset-0 bg-blue-600/10 border-4 border-dashed border-blue-500 rounded-3xl z-40 backdrop-blur-xs flex flex-col items-center justify-center p-6 text-center pointer-events-none animate-pulse">
-          <div className="w-16 h-16 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-xl mb-4">
-            <UploadCloud className="w-8 h-8" />
+        <div className="absolute inset-0 z-40 rounded-3xl glass-overlay border-2 border-dashed border-[var(--ink-subtle)] flex flex-col items-center justify-center p-6 text-center pointer-events-none animate-fade-in">
+          <div className="glass-strong relative w-16 h-16 rounded-full flex items-center justify-center mb-4 text-[var(--ink)]">
+            <UploadCloud className="w-7 h-7" />
           </div>
-          <h3 className="text-xl font-bold text-blue-600 dark:text-blue-400">{t('myDrive.drop.title')}</h3>
-          <p className="text-xs text-blue-500 mt-1">{t('myDrive.drop.hint')}</p>
+          <h3 className="text-lg font-semibold text-[var(--ink)]">{t('myDrive.drop.title')}</h3>
+          <p className="text-xs text-[var(--ink-muted)] mt-1">{t('myDrive.drop.hint')}</p>
         </div>
       )}
 
       {/* Đang đọc cây thư mục vừa thả — với thư mục lớn bước này mất vài giây */}
       {isReadingDrop && (
-        <div className="absolute top-3 right-3 z-40 flex items-center gap-2 rounded-full bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow-lg">
-          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+        <div className="glass-strong glass-plain absolute top-3 right-3 z-40 flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold text-[var(--ink)]">
+          <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--ink-muted)]" />
           <span>{t('myDrive.drop.reading')}</span>
         </div>
       )}
 
-      {/* Header Toolbar */}
-      <div className="flex items-center justify-between gap-3 mb-2 pb-2 border-b border-glass-divider">
-        <div className="flex-1 min-w-0">
-          {/* Bỏ chặng gốc (`id: null`) mà backend luôn trả về: `Breadcrumb` tự vẽ nút gốc
-              "cloudSSS của tôi" rồi, truyền nguyên thì gốc hiện HAI lần ("cloudSSS của tôi ›
-              cloudSSS của tôi › …") — cùng cách SharedWithMePage vẫn làm (##77). */}
+      {/* Bỏ chặng gốc (`id: null`) mà backend luôn trả về: `Breadcrumb` tự vẽ nút gốc
+          "cloudSSS của tôi" rồi, truyền nguyên thì gốc hiện HAI lần ("cloudSSS của tôi ›
+          cloudSSS của tôi › …") — cùng cách SharedWithMePage vẫn làm (##77). */}
+      <PageHeader
+        title={
           <Breadcrumb
             path={breadcrumb.filter((crumb) => crumb.id !== null)}
             onNavigate={(id) => openFolder({ id })}
           />
-        </div>
-
-        {/* Action Buttons & View Switcher */}
-        <div className="flex items-center gap-2 shrink-0">
-          {clipboard?.items?.length > 0 && (
-            <button
-              disabled={isPasting}
-              onClick={() => pasteItems()}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 dark:bg-blue-500/15 hover:bg-blue-100 dark:hover:bg-blue-500/25 border border-blue-300 dark:border-blue-800/60 text-blue-800 dark:text-blue-300 disabled:opacity-50 disabled:cursor-not-allowed rounded-full text-xs font-bold shadow-xs transition-colors cursor-pointer"
-              title={t('myDrive.pasteTitle', { count: clipboard.items.length })}
-            >
-              {isPasting ? (
-                <Loader2 className="w-4 h-4 text-blue-600 dark:text-blue-400 animate-spin" />
-              ) : (
-                <FolderInput className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              )}
-              <span>{t('myDrive.paste', { count: clipboard.items.length })}</span>
-            </button>
-          )}
-
-          <ViewModeToggle viewMode={viewMode} setViewMode={setViewMode} />
-        </div>
-      </div>
+        }
+        actions={clipboard?.items?.length > 0 && (
+          <button
+            disabled={isPasting}
+            onClick={() => pasteItems()}
+            className="glass-soft flex items-center gap-1.5 h-8 px-3 text-[var(--ink)] disabled:opacity-50 disabled:cursor-not-allowed rounded-full text-xs font-semibold transition-colors cursor-pointer"
+            title={t('myDrive.pasteTitle', { count: clipboard.items.length })}
+          >
+            {isPasting ? (
+              <Loader2 className="w-4 h-4 text-[var(--ink-muted)] animate-spin" />
+            ) : (
+              <FolderInput className="w-4 h-4 text-[var(--ink-muted)]" />
+            )}
+            <span>{t('myDrive.paste', { count: clipboard.items.length })}</span>
+          </button>
+        )}
+      />
 
       {/* Quick Filters Bar */}
       <FileFilterBar
@@ -152,7 +139,7 @@ export default function MyDrivePage() {
       />
 
       {/* View Container (List or Grid) */}
-      <div className="flex-1 overflow-y-auto mt-2">
+      <div className="flex-1 overflow-y-auto pt-2">
         {viewMode === 'grid' ? <FileGridView /> : <FileListView />}
       </div>
     </div>

@@ -107,7 +107,7 @@ export default function RenameModal({ isOpen, item, onClose, onRename }) {
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-glass-divider">
                     <div className="flex items-center gap-2.5 font-semibold text-lg text-gray-800 dark:text-gray-100">
-                        <Pencil className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                        <Pencil className="w-5 h-5 text-[var(--ink-muted)]" />
                         <span>{item.type === 'folder' ? t('rename.titleFolder') : t('rename.titleFile')}</span>
                     </div>
                     <button 
@@ -126,10 +126,10 @@ export default function RenameModal({ isOpen, item, onClose, onRename }) {
                             {t('rename.newNameLabel')}
                         </label>
                         {/* Ô nhập chỉ nhận PHẦN TÊN; phần mở rộng nằm ngoài ô, không sửa được */}
-                        <div className={`glass-soft flex items-center w-full rounded-xl border text-sm transition-all focus-within:ring-2 ${
+                        <div className={`glass-input flex items-center w-full rounded-xl text-sm transition-all focus-within:ring-2 ${
                             extError
-                                ? 'border-red-400 dark:border-red-500 focus-within:ring-red-500 focus-within:border-red-500'
-                                : 'border-gray-300 dark:border-gray-600 focus-within:ring-blue-500 focus-within:border-blue-500'
+                                ? 'ring-2 ring-[var(--tone-danger-soft)] focus-within:ring-[var(--tone-danger-soft)]'
+                                : 'focus-within:ring-[var(--accent-soft)]'
                         }`}>
                             <input
                                 type="text"
@@ -155,7 +155,7 @@ export default function RenameModal({ isOpen, item, onClose, onRename }) {
                             </p>
                         )}
                         {extError && (
-                            <p className="mt-2 text-xs text-red-600 dark:text-red-400">
+                            <p className="mt-2 text-xs text-[var(--tone-danger)]">
                                 {t('rename.extAddBlocked', { ext: fileExtension(name.trim()) })}
                             </p>
                         )}

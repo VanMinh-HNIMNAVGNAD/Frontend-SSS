@@ -39,7 +39,7 @@ function FolderCard({ folder, onDoubleClick, onContextMenu, onStarToggle, isSele
                 hover:bg-[var(--fc-hover-l)] dark:hover:bg-[var(--fc-hover-d)]
                 border-[var(--fc-border-l)] dark:border-[var(--fc-border-d)] ${
                 isCut ? 'opacity-50 border-dashed' : ''
-            } ${isSelected ? 'ring-2 ring-blue-500/80 ring-offset-2 ring-offset-transparent' : ''}`}
+            } ${isSelected ? 'ring-2 ring-black/55 dark:ring-white/60' : ''}`}
         >
             {/* Checkbox top-left – only this triggers selection */}
             <button
@@ -47,8 +47,8 @@ function FolderCard({ folder, onDoubleClick, onContextMenu, onStarToggle, isSele
                 onDoubleClick={stopDoubleClick}
                 className={`absolute top-2 left-2 z-20 p-0.5 rounded transition-all compact:hidden ${
                     isSelected
-                        ? 'opacity-100 text-blue-600 dark:text-blue-400'
-                        : 'opacity-0 group-hover:opacity-100 text-[var(--fc-muted-l)] dark:text-[var(--fc-muted-d)] hover:text-blue-600 dark:hover:text-blue-400'
+                        ? 'opacity-100 text-[var(--ink)]'
+                        : 'opacity-0 group-hover:opacity-100 text-[var(--fc-muted-l)] dark:text-[var(--fc-muted-d)] hover:text-[var(--ink)]'
                 }`}
                 title={isSelected ? t('card.deselect') : t('card.select')}
             >
@@ -68,8 +68,8 @@ function FolderCard({ folder, onDoubleClick, onContextMenu, onStarToggle, isSele
                         onDoubleClick={stopDoubleClick}
                         className={`hidden compact:flex absolute inset-0 items-center justify-center rounded-xl transition-opacity ${
                             isSelected
-                                ? 'opacity-100 text-blue-600 dark:text-blue-400'
-                                : 'opacity-0 group-hover:opacity-100 text-[var(--fc-muted-l)] dark:text-[var(--fc-muted-d)] hover:text-blue-600 dark:hover:text-blue-400'
+                                ? 'opacity-100 text-[var(--ink)]'
+                                : 'opacity-0 group-hover:opacity-100 text-[var(--fc-muted-l)] dark:text-[var(--fc-muted-d)] hover:text-[var(--ink)]'
                         }`}
                         title={isSelected ? t('card.deselect') : t('card.select')}
                     >
@@ -80,12 +80,12 @@ function FolderCard({ folder, onDoubleClick, onContextMenu, onStarToggle, isSele
                     {/* Thẻ gọn: sao và "được chia sẻ" thành huy hiệu ở góc icon, nhường chỗ cho tên */}
                     {folder.isStarred && !folder.isSharedWithMe && (
                         <span role="img" aria-label={t('card.starredBadge')} className="hidden compact:flex absolute -top-1 -right-1 pointer-events-none items-center justify-center w-4 h-4 rounded-full bg-white/90 dark:bg-[#3a3a3e] ring-1 ring-[var(--fc-border-l)] dark:ring-[var(--fc-border-d)]">
-                            <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-500" />
+                            <Star className="w-2.5 h-2.5 fill-current text-[var(--ink)]" />
                         </span>
                     )}
                     {folder.isShared && (
                         <span role="img" aria-label={t('card.sharedBadge')} className="hidden compact:flex absolute -bottom-1 -right-1 pointer-events-none items-center justify-center w-4 h-4 rounded-full bg-white/90 dark:bg-[#3a3a3e] ring-1 ring-[var(--fc-border-l)] dark:ring-[var(--fc-border-d)]">
-                            <Users className="w-2.5 h-2.5 text-blue-500" />
+                            <Users className="w-2.5 h-2.5 text-[var(--ink-muted)]" />
                         </span>
                     )}
                 </div>
@@ -98,7 +98,7 @@ function FolderCard({ folder, onDoubleClick, onContextMenu, onStarToggle, isSele
                     </span>
                     {folder.isShared && (
                         <span className="text-[11px] flex compact:hidden items-center gap-1 text-[var(--fc-muted-l)] dark:text-[var(--fc-muted-d)]">
-                            <Users className="w-3 h-3 text-blue-500 shrink-0" />
+                            <Users className="w-3 h-3 shrink-0" />
                             <span className="truncate">{t('card.sharedBadge')}</span>
                         </span>
                     )}

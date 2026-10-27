@@ -80,7 +80,7 @@ export default function SheetPreview({ url, onDownload }) {
   if (status === 'loading') {
     return (
       <div className="flex flex-col items-center justify-center gap-3 py-16 text-slate-400 m-auto">
-        <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
+        <Loader2 className="w-8 h-8 animate-spin text-zinc-400" />
         <p className="text-sm font-medium">{t('preview.sheet.loading')}</p>
       </div>
     );
@@ -174,7 +174,7 @@ export default function SheetPreview({ url, onDownload }) {
               onClick={() => setActive(index)}
               className={`px-3 py-1 rounded-lg text-[11px] font-medium whitespace-nowrap transition-colors cursor-pointer ${
                 index === active
-                  ? 'bg-emerald-600 text-white shadow-sm'
+                  ? 'bg-white dark:bg-white/15 text-zinc-900 dark:text-white shadow-sm'
                   : 'text-slate-600 dark:text-slate-400'
               }`}
             >

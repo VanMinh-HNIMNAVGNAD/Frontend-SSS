@@ -33,6 +33,10 @@ const SIDEBAR_TAG_LIMIT = 8;
  * <LiquidGroup> bọc ngoài vẽ, nối với mục qua `data-liquid-key`. Mục chỉ còn đổi màu chữ/icon
  * (rê chuột cũng chỉ đổi màu, không có nền).
  *
+ * Đơn sắc (26/10/2026): mỗi mục từng có một màu icon riêng khi chọn/rê chuột (xanh, lục, chàm,
+ * ngọc, hổ phách, vàng, cam, hồng, tím) — chín màu cho chín mục. Nay icon xám, mục đang chọn icon
+ * và chữ màu mực đậm; số đếm (Nội dung rác, Thùng rác) là chữ xám như số tệp của nhãn.
+ *
  * Khai báo ở cấp module: trước đây NavItem nằm TRONG thân Sidebar, nên mỗi lần Sidebar render
  * (FileContext đổi là đổi) React thấy một kiểu component mới và gỡ/dựng lại toàn bộ nút menu.
  */
@@ -41,9 +45,6 @@ function NavItem({
   label,
   icon: Icon,
   badge,
-  badgeColor = 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300',
-  hoverColor = 'group-hover:text-blue-600',
-  activeColor = 'text-blue-600 dark:text-blue-400',
   isActive,
   isCollapsed,
   onSelect,
@@ -57,22 +58,22 @@ function NavItem({
       aria-current={isActive ? 'page' : undefined}
       className={`w-full flex items-center gap-4 px-4 py-2.5 short:py-2 rounded-[14px] transition-colors duration-150 text-[14px] font-medium text-left group relative cursor-pointer ${
         isCollapsed ? 'justify-center px-0 py-3 short:py-2.5' : 'justify-start'
-      } ${isActive ? 'text-gray-900 dark:text-white font-semibold' : 'text-gray-700 dark:text-gray-300'}`}
+      } ${isActive ? 'text-[var(--ink)] font-semibold' : 'text-[var(--ink)]/85'}`}
     >
       <Icon
         className={`w-5 h-5 shrink-0 transition-colors duration-150 ${
-          isActive ? activeColor : `text-gray-600 dark:text-gray-400 ${hoverColor}`
+          isActive ? 'text-[var(--ink)]' : 'text-[var(--ink-muted)] group-hover:text-[var(--ink)]'
         }`}
       />
 
       {!isCollapsed && <span className="truncate flex-1">{label}</span>}
 
       {!isCollapsed && badge > 0 && (
-        <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${badgeColor}`}>{badge}</span>
+        <span className="text-xs font-medium tabular-nums text-[var(--ink-subtle)]">{badge}</span>
       )}
 
       {isCollapsed && badge > 0 && (
-        <span className="absolute top-1 right-2 w-2 h-2 rounded-full bg-rose-500" />
+        <span className="absolute top-1.5 right-3 w-1.5 h-1.5 rounded-full bg-[var(--ink-muted)]" />
       )}
     </button>
   );
@@ -98,19 +99,20 @@ export default function Sidebar() {
   // gói, đang dùng 600% hạn mức Miễn phí, trước đây chỉ đọc được "Gần đầy!".
   const storageStatus = getStorageStatus(storageInfo.usedBytes, storageInfo.limitBytes);
 
-  // Màu thanh theo MỨC chứ không theo con số: đầy và vượt mức là đỏ đặc — không tải lên được nữa.
+  // Màu thanh theo MỨC chứ không theo con số: bình thường là thanh xám (dải cầu vồng xanh → ngọc →
+  // lục cũ không nói thêm gì); gần đầy chuyển hổ phách dịu, đầy / vượt mức là đỏ — không tải lên
+  // được nữa. Chỉ hai mức cuối mới được phép có màu.
   const getProgressBarColor = (level) => {
-    if (level === 'over' || level === 'full') return 'bg-rose-600 shadow-sm shadow-rose-500/40';
-    if (level === 'almostFull') return 'bg-gradient-to-r from-amber-500 to-rose-600 shadow-sm shadow-rose-500/40';
-    if (level === 'warning') return 'bg-gradient-to-r from-emerald-500 via-amber-400 to-amber-500';
-    return 'bg-gradient-to-r from-blue-500 via-teal-400 to-emerald-500';
+    if (level === 'over' || level === 'full') return 'bg-[var(--tone-danger)]';
+    if (level === 'almostFull' || level === 'warning') return 'bg-[var(--tone-warn)]';
+    return 'bg-[var(--ink-muted)]';
   };
 
   const storageBadge = {
-    over: { labelKey: 'sidebar.storage.full', tone: 'text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-500/15' },
-    full: { labelKey: 'sidebar.storage.full', tone: 'text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-500/15' },
-    almostFull: { labelKey: 'sidebar.storage.almostFull', tone: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/15' },
-    warning: { labelKey: 'sidebar.storage.warning', tone: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/15' },
+    over: { labelKey: 'sidebar.storage.full', tone: 'text-[var(--tone-danger)] bg-[var(--tone-danger-soft)]' },
+    full: { labelKey: 'sidebar.storage.full', tone: 'text-[var(--tone-danger)] bg-[var(--tone-danger-soft)]' },
+    almostFull: { labelKey: 'sidebar.storage.almostFull', tone: 'text-[var(--tone-warn)] bg-[var(--tone-warn-soft)]' },
+    warning: { labelKey: 'sidebar.storage.warning', tone: 'text-[var(--tone-warn)] bg-[var(--tone-warn-soft)]' },
   }[storageStatus.level];
 
   // Ba thứ mọi NavItem đều cần — gom lại để mỗi dòng bên dưới chỉ còn phần riêng của nó.
@@ -155,25 +157,25 @@ export default function Sidebar() {
             LiquidGroup: giọt kính "đang chọn" nhảy giữa các mục khi đổi trang
             (components/ui/LiquidGroup.jsx). */}
         <LiquidGroup as="nav" activeKey={activeNavKey} className="flex-1 overflow-y-auto space-y-1 short:space-y-0.5 pr-1 custom-scrollbar">
-          <NavItem {...navProps('home')} label={t('nav.home')} icon={Home} hoverColor="group-hover:text-blue-600" activeColor="text-blue-600 dark:text-blue-400" />
-          <NavItem {...navProps('my-drive')} label={t('nav.myDrive')} icon={HardDrive} hoverColor="group-hover:text-emerald-600" activeColor="text-emerald-600 dark:text-emerald-400" />
-          <NavItem {...navProps('shared-drives')} label={t('nav.sharedDrives')} icon={FolderGit2} hoverColor="group-hover:text-indigo-600" activeColor="text-indigo-600 dark:text-indigo-400" />
-          <NavItem {...navProps('shared-with-me')} label={t('nav.sharedWithMe')} icon={Users} hoverColor="group-hover:text-teal-600" activeColor="text-teal-600 dark:text-teal-400" />
-          <NavItem {...navProps('recent')} label={t('nav.recent')} icon={Clock} hoverColor="group-hover:text-amber-500" activeColor="text-amber-500 dark:text-amber-400" />
-          <NavItem {...navProps('starred')} label={t('nav.starred')} icon={Star} hoverColor="group-hover:text-yellow-500" activeColor="text-yellow-500 dark:text-yellow-400" />
+          <NavItem {...navProps('home')} label={t('nav.home')} icon={Home} />
+          <NavItem {...navProps('my-drive')} label={t('nav.myDrive')} icon={HardDrive} />
+          <NavItem {...navProps('shared-drives')} label={t('nav.sharedDrives')} icon={FolderGit2} />
+          <NavItem {...navProps('shared-with-me')} label={t('nav.sharedWithMe')} icon={Users} />
+          <NavItem {...navProps('recent')} label={t('nav.recent')} icon={Clock} />
+          <NavItem {...navProps('starred')} label={t('nav.starred')} icon={Star} />
 
           {/* NHÃN (##91) — mỗi nhãn mở trang "Nhãn" của nó: mọi mục gắn nhãn đó, ở bất cứ đâu. */}
           {tagsCtx && (
             <div className="pt-2 short:pt-1">
               {!isSidebarCollapsed && (
-                <div className="flex items-center justify-between pl-4 pr-1 pb-1 text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                <div className="flex items-center justify-between pl-4 pr-1 pb-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--ink-subtle)]">
                   <span title={t('tags.page.about')}>{t('tags.sidebar.title')}</span>
                   <button
                     type="button"
                     onClick={tagsCtx.openManager}
                     title={t('tags.menu.manage')}
                     aria-label={t('tags.menu.manage')}
-                    className="p-1 rounded-full normal-case cursor-pointer"
+                    className="p-1 rounded-full normal-case text-[var(--ink-subtle)] hover:text-[var(--ink)] cursor-pointer"
                   >
                     <Settings2 className="w-3.5 h-3.5" />
                   </button>
@@ -185,7 +187,7 @@ export default function Sidebar() {
                   data-liquid-key="tags:create"
                   onClick={tagsCtx.openManager}
                   title={isSidebarCollapsed ? t('tags.sidebar.create') : undefined}
-                  className={`w-full flex items-center gap-4 px-4 py-2 short:py-1.5 rounded-[14px] text-[13px] text-gray-600 dark:text-gray-400 text-left cursor-pointer ${
+                  className={`w-full flex items-center gap-4 px-4 py-2 short:py-1.5 rounded-[14px] text-[13px] text-[var(--ink-muted)] hover:text-[var(--ink)] text-left cursor-pointer ${
                     isSidebarCollapsed ? 'justify-center px-0' : ''
                   }`}
                 >
@@ -206,12 +208,19 @@ export default function Sidebar() {
                       aria-current={active ? 'page' : undefined}
                       className={`w-full flex items-center gap-4 px-4 py-2 short:py-1.5 rounded-[14px] transition-colors duration-150 text-[14px] font-medium text-left cursor-pointer ${
                         isSidebarCollapsed ? 'justify-center px-0' : ''
-                      } ${active ? 'text-gray-900 dark:text-white font-semibold' : 'text-gray-700 dark:text-gray-300'}`}
+                      } ${active ? 'text-[var(--ink)] font-semibold' : 'text-[var(--ink)]/85'}`}
                     >
-                      <Tag className="w-5 h-5 shrink-0" style={{ color }} fill={active ? color : 'none'} />
+                      {/* Màu của nhãn là một chấm tròn trong ô icon (như thẻ màu ở Finder) thay cho
+                          cả một icon thẻ treo tô màu — bốn năm nhãn là bốn năm mảng màu trên thanh bên. */}
+                      <span className="w-5 h-5 shrink-0 flex items-center justify-center">
+                        <span
+                          className={`rounded-full ring-2 ring-white/80 dark:ring-white/10 ${active ? 'w-3 h-3' : 'w-2.5 h-2.5'}`}
+                          style={{ backgroundColor: color }}
+                        />
+                      </span>
                       {!isSidebarCollapsed && <span className="truncate flex-1">{tag.name}</span>}
                       {!isSidebarCollapsed && tag.fileCount > 0 && (
-                        <span className="text-xs text-gray-500 dark:text-gray-400">{tag.fileCount}</span>
+                        <span className="text-xs font-medium tabular-nums text-[var(--ink-subtle)]">{tag.fileCount}</span>
                       )}
                     </button>
                   );
@@ -221,7 +230,7 @@ export default function Sidebar() {
                 <button
                   type="button"
                   onClick={tagsCtx.openManager}
-                  className="w-full pl-[3.25rem] pr-4 py-1.5 text-left text-xs font-medium text-blue-700 dark:text-blue-300 hover:underline cursor-pointer"
+                  className="w-full pl-[3.25rem] pr-4 py-1.5 text-left text-xs font-medium text-[var(--ink-muted)] hover:text-[var(--ink)] hover:underline cursor-pointer"
                 >
                   {t('tags.sidebar.more', { count: tags.length - SIDEBAR_TAG_LIMIT })}
                 </button>
@@ -231,12 +240,12 @@ export default function Sidebar() {
 
           <div className="my-2 short:my-1 mx-2 border-t border-glass-divider" />
 
-          <NavItem {...navProps('spam')} label={t('nav.spam')} icon={ShieldAlert} badge={spamCount} badgeColor="bg-amber-100 text-amber-800 dark:bg-amber-400/15 dark:text-amber-300" hoverColor="group-hover:text-orange-600" activeColor="text-orange-600 dark:text-orange-400" />
-          <NavItem {...navProps('trash')} label={t('nav.trash')} icon={Trash2} badge={trashCount} hoverColor="group-hover:text-rose-600" activeColor="text-rose-600 dark:text-rose-400" />
+          <NavItem {...navProps('spam')} label={t('nav.spam')} icon={ShieldAlert} badge={spamCount} />
+          <NavItem {...navProps('trash')} label={t('nav.trash')} icon={Trash2} badge={trashCount} />
 
           <div className="my-2 short:my-1 mx-2 border-t border-glass-divider" />
 
-          <NavItem {...navProps('billing')} label={t('nav.billing')} icon={CreditCard} hoverColor="group-hover:text-purple-600" activeColor="text-purple-600 dark:text-purple-400" />
+          <NavItem {...navProps('billing')} label={t('nav.billing')} icon={CreditCard} />
         </LiquidGroup>
 
         {/* KHỐI THANH LƯU TRỮ DYNAMIC COLOR */}
@@ -253,12 +262,12 @@ export default function Sidebar() {
             >
               <Cloud
                 className={`w-5 h-5 mb-1 ${
-                  storageStatus.isFull ? 'text-rose-600 dark:text-rose-400' : 'text-blue-600 dark:text-blue-400'
+                  storageStatus.isFull ? 'text-[var(--tone-danger)]' : 'text-[var(--ink-muted)]'
                 }`}
               />
               <span
-                className={`text-[10px] font-bold ${
-                  storageStatus.isFull ? 'text-rose-600 dark:text-rose-400' : 'text-gray-700 dark:text-gray-300'
+                className={`text-[10px] font-bold tabular-nums ${
+                  storageStatus.isFull ? 'text-[var(--tone-danger)]' : 'text-[var(--ink-muted)]'
                 }`}
               >
                 {storageStatus.percent}%
@@ -266,9 +275,9 @@ export default function Sidebar() {
             </div>
           ) : (
             <div className="px-3 py-2.5 glass-soft rounded-[20px]">
-              <div className="flex items-center justify-between mb-2 text-xs font-semibold text-gray-700 dark:text-gray-300">
+              <div className="flex items-center justify-between mb-2 text-xs font-semibold text-[var(--ink)]">
                 <div className="flex items-center gap-2">
-                  <Cloud className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  <Cloud className="w-4 h-4 text-[var(--ink-muted)]" />
                   <span>{t('sidebar.storage.title')}</span>
                 </div>
                 {/* Nhãn cảnh báo theo mức: "Đã đầy!" khi dùng ≥ hạn mức (kể cả vượt xa sau khi
@@ -288,11 +297,11 @@ export default function Sidebar() {
                 />
               </div>
 
-              <div className="text-xs text-gray-600 dark:text-gray-300 mb-3 short:mb-2">
+              <div className="text-xs text-[var(--ink-muted)] mb-3 short:mb-2">
                 {t('sidebar.storage.usedLabel')}{' '}
                 <span
                   className={`font-semibold ${
-                    storageStatus.isFull ? 'text-rose-600 dark:text-rose-400' : 'text-gray-900 dark:text-gray-100'
+                    storageStatus.isFull ? 'text-[var(--tone-danger)]' : 'text-[var(--ink)]'
                   }`}
                 >
                   {storageInfo.usedFormatted || `${storageInfo.usedGB} GB`}
@@ -300,7 +309,7 @@ export default function Sidebar() {
                 {t('sidebar.storage.ofTotal', { total: storageInfo.totalGB })}
                 {/* Đầy thì nói luôn hậu quả: tải lên bị chặn tới khi dọn bớt hoặc mua thêm. */}
                 {storageStatus.isFull && (
-                  <p className="mt-1 text-[11px] font-semibold leading-snug text-rose-600 dark:text-rose-400">
+                  <p className="mt-1 text-[11px] font-semibold leading-snug text-[var(--tone-danger)]">
                     {storageStatus.level === 'over'
                       ? t('sidebar.storage.overBy', { size: formatBytes(storageStatus.overBytes) })
                       : t('sidebar.storage.noSpace')}
@@ -318,7 +327,7 @@ export default function Sidebar() {
                 </button>
                 <button
                   onClick={() => setIsCleanupOpen(true)}
-                  className="py-1.5 px-3 glass-soft text-gray-700 dark:text-gray-300 rounded-full text-xs font-semibold transition-colors shrink-0 cursor-pointer"
+                  className="py-1.5 px-3 glass-soft text-[var(--ink)] rounded-full text-xs font-semibold transition-colors shrink-0 cursor-pointer"
                   title={t('sidebar.storage.cleanupTitle')}
                 >
                   {t('sidebar.storage.cleanup')}

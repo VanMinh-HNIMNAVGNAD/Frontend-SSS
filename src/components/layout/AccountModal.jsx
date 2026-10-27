@@ -125,14 +125,14 @@ export default function AccountModal({ isOpen, onClose }) {
                 {user?.avatarUrl ? (
                     <img src={user.avatarUrl} alt="Avatar" className="w-12 h-12 rounded-full object-cover shadow-sm border border-gray-200 dark:border-gray-700" />
                 ) : (
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center font-bold text-lg shadow-sm">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-zinc-400 to-zinc-600 dark:from-zinc-500 dark:to-zinc-700 text-white flex items-center justify-center font-semibold text-lg shadow-sm">
                         {initialLetter}
                     </div>
                 )}
                 <div className="flex-1 min-w-0">
                     <h4 className="font-semibold text-gray-900 dark:text-gray-100 truncate">{user?.fullName || t('profile.defaultName')}</h4>
                     <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.email || 'user@cloudsss.com'}</p>
-                    <span className="inline-flex items-center mt-1 text-[11px] font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-500/15 px-2 py-0.5 rounded-full">
+                    <span className="chip mt-1 px-2 py-0.5 text-[11px]">
                         {t('account.providerBadge', { provider: getProviderBadge(user?.provider) })}
                     </span>
                 </div>
@@ -144,7 +144,7 @@ export default function AccountModal({ isOpen, onClose }) {
                 onClick={openBilling}
                 className="mt-3 w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 transition-colors text-left cursor-pointer"
             >
-                <CreditCard className={`w-4 h-4 shrink-0 ${hasPlan ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400'}`} />
+                <CreditCard className="w-4 h-4 shrink-0 text-[var(--ink-muted)]" />
                 <span className="flex-1 min-w-0">
                     <span className="block text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
                         {t('profile.plan.sectionTitle')}
@@ -184,9 +184,9 @@ export default function AccountModal({ isOpen, onClose }) {
                 )}
                 <button
                     onClick={handleLogout}
-                    className="w-full flex items-center gap-3 px-3 py-2 text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/15 rounded-xl transition-colors text-left font-medium cursor-pointer"
+                    className="w-full flex items-center gap-3 px-3 py-2 text-sm text-[var(--tone-danger)] rounded-xl transition-colors text-left font-medium cursor-pointer"
                 >
-                    <LogOut className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+                    <LogOut className="w-4 h-4" />
                     {otherAccountCount > 0 ? t('account.logoutAll') : t('account.logout')}
                 </button>
             </div>

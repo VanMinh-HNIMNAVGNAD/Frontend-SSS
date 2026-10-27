@@ -69,7 +69,7 @@ const RENAME_SHORTCUT_KEYS =
 // Viền sáng của khung menu do `glass-strong` tự lo (styles/liquid-glass.css).
 const MENU_SHELL =
     'glass-strong fixed z-50 w-72 max-w-[calc(100vw-16px)] ' +
-    'text-gray-900 dark:text-gray-100 rounded-[20px] px-1.5 py-1.5 ' +
+    'text-[var(--ink)] rounded-[20px] px-1.5 py-1.5 ' +
     'text-[13px] font-sans select-none animate-glass-in';
 
 // Rê chuột không đổi nền hàng; riêng ngón tay thì giữ nền khi đang ấn để chạm vẫn có phản hồi.
@@ -77,13 +77,16 @@ const ROW_BASE =
     'w-full px-2.5 py-2 rounded-[12px] flex items-center gap-3 text-left transition-colors ' +
     'pointer-coarse:active:bg-black/[0.06] dark:pointer-coarse:active:bg-white/[0.09]';
 
+// Đơn sắc (26/10/2026): icon của mọi hàng là màu mực nhạt (bản cũ: AI tím, Xem trước / Tạo mới /
+// Khôi phục xanh, Tải thư mục hổ phách, "Không phải rác" lục…). Chỉ lệnh KHÔNG hoàn tác được còn
+// chữ đỏ dịu.
 const TONE = {
-    default: 'text-gray-800 dark:text-gray-200',
-    strong: 'text-gray-900 dark:text-gray-100 font-medium',
-    accent: 'text-blue-700 dark:text-blue-300 font-medium',
-    danger: 'text-rose-600 dark:text-rose-300',
+    default: 'text-[var(--ink)]',
+    strong: 'text-[var(--ink)] font-medium',
+    accent: 'text-[var(--ink)] font-medium',
+    danger: 'text-[var(--tone-danger)]',
     // Chỉ chữ chuyển sang đỏ khi rê chuột (Chuyển vào thùng rác)
-    dangerHover: 'text-gray-800 dark:text-gray-200 hover:text-rose-700 dark:hover:text-rose-300',
+    dangerHover: 'text-[var(--ink)] hover:text-[var(--tone-danger)]',
 };
 
 /**
@@ -119,7 +122,7 @@ function MenuRow({
             {shortcut && (
                 <span
                     title={shortcutTitle}
-                    className="shrink-0 font-mono text-[11px] text-gray-400 dark:text-gray-500 whitespace-nowrap"
+                    className="shrink-0 font-mono text-[11px] text-[var(--ink-subtle)] whitespace-nowrap"
                 >
                     {shortcut}
                 </span>
@@ -132,7 +135,7 @@ function MenuRow({
 /** Hàng bị khoá quyền: cùng lưới với MenuRow để chữ không bị so le. */
 function MenuRowLocked({ label, hint }) {
     return (
-        <div className={`${ROW_BASE} text-gray-400 dark:text-gray-500 cursor-not-allowed`}>
+        <div className={`${ROW_BASE} text-[var(--ink-subtle)] cursor-not-allowed`}>
             <ShieldOff className="w-4 h-4 shrink-0" />
             <span className="flex-1 min-w-0 truncate line-through">{label}</span>
             <span className="shrink-0 text-[10px] whitespace-nowrap">{hint}</span>
@@ -141,7 +144,7 @@ function MenuRowLocked({ label, hint }) {
 }
 
 function MenuSeparator() {
-    return <div className="h-px bg-gray-200 dark:bg-gray-700/60 my-1 mx-1.5" />;
+    return <div className="h-px bg-[var(--glass-divider)] my-1 mx-1.5" />;
 }
 
 // ── Menu con (▸) ────────────────────────────────────────────────────────────
@@ -472,7 +475,7 @@ function TagMenu({ item, closeMenu }) {
 
             {draft === null ? (
                 <MenuRow
-                    icon={<Plus className="w-4 h-4 text-blue-600 dark:text-blue-400" />}
+                    icon={<Plus className="w-4 h-4 text-[var(--ink-muted)]" />}
                     label={t('tags.menu.new')}
                     onClick={() => setDraft('')}
                 />
@@ -491,7 +494,7 @@ function TagMenu({ item, closeMenu }) {
                         }}
                         placeholder={t('tags.newPlaceholder')}
                         aria-label={t('tags.name')}
-                        className="glass-input flex-1 min-w-0 px-2.5 py-1.5 rounded-lg border text-[13px] outline-none focus:border-blue-500"
+                        className="glass-input flex-1 min-w-0 px-2.5 py-1.5 rounded-lg border text-[13px] outline-none focus:ring-2 focus:ring-black/10 dark:focus:ring-white/15"
                     />
                     <button
                         type="button"
@@ -663,12 +666,12 @@ export default function ContextMenu({
             <SubmenuRow
                 path={uploadPath}
                 tone="strong"
-                icon={<Upload className="w-4 h-4 text-blue-600 dark:text-blue-400" />}
+                icon={<Upload className="w-4 h-4 text-[var(--ink-muted)]" />}
                 label={t('menu.upload')}
             >
                 <MenuRow
                     tone="strong"
-                    icon={<FileUp className="w-4 h-4 text-blue-600 dark:text-blue-400" />}
+                    icon={<FileUp className="w-4 h-4 text-[var(--ink-muted)]" />}
                     label={t('menu.uploadFile')}
                     onClick={() => { onUploadFile?.(); closeMenu(); }}
                 />
@@ -677,8 +680,8 @@ export default function ContextMenu({
                     tone="strong"
                     disabled={isBuildingTree}
                     icon={isBuildingTree
-                        ? <Loader2 className="w-4 h-4 text-amber-600 dark:text-amber-400 animate-spin" />
-                        : <FolderUp className="w-4 h-4 text-amber-600 dark:text-amber-400" />}
+                        ? <Loader2 className="w-4 h-4 text-[var(--ink-muted)] animate-spin" />
+                        : <FolderUp className="w-4 h-4 text-[var(--ink-muted)]" />}
                     label={isBuildingTree ? t('menu.buildingTree') : t('menu.uploadFolder')}
                     onClick={() => { onUploadFolder?.(); closeMenu(); }}
                 />
@@ -729,8 +732,8 @@ export default function ContextMenu({
                             tone="accent"
                             disabled={isPasting}
                             icon={isPasting
-                                ? <Loader2 className="w-4 h-4 text-blue-600 dark:text-blue-400 animate-spin" />
-                                : <FolderInput className="w-4 h-4 text-blue-600 dark:text-blue-400" />}
+                                ? <Loader2 className="w-4 h-4 text-[var(--ink-muted)] animate-spin" />
+                                : <FolderInput className="w-4 h-4 text-[var(--ink-muted)]" />}
                             label={t('menu.paste')}
                             shortcut="Ctrl+V"
                             onClick={() => { onPaste?.(undefined); closeMenu(); }}
@@ -758,14 +761,10 @@ export default function ContextMenu({
                 onContextMenu={(e) => e.preventDefault()}
             >
                 {/* Header */}
-                <div className="px-2.5 pt-1 pb-2 mb-1 border-b text-xs font-semibold text-gray-500 dark:text-gray-400 flex items-center gap-2 border-glass-divider">
+                <div className="px-2.5 pt-1 pb-2 mb-1 border-b text-xs font-semibold text-[var(--ink-muted)] flex items-center gap-2 border-glass-divider">
                     <span className="flex-1 min-w-0 truncate">{item.name}</span>
                     {item.userRole && (
-                        <span className={`shrink-0 px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
-                            isDriveAdmin
-                                ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-300'
-                                : 'bg-sky-100 dark:bg-sky-500/20 text-sky-600 dark:text-sky-300'
-                        }`}>
+                        <span className="chip shrink-0 px-1.5 py-0.5 text-[10px]">
                             {item.userRole}
                         </span>
                     )}
@@ -802,7 +801,7 @@ export default function ContextMenu({
                     {/* Gắn sao — mọi thành viên đều làm được, và là dấu sao RIÊNG của người đang
                         đăng nhập (backend lưu ở hàng shared_drive_members của họ) */}
                     <MenuRow
-                        icon={<Star className={`w-4 h-4 ${item.isStarred ? 'text-amber-600 dark:text-amber-400 fill-amber-400' : 'text-gray-700 dark:text-gray-300'}`} />}
+                        icon={<Star className={`w-4 h-4 ${item.isStarred ? 'text-[var(--ink)] fill-current' : 'text-[var(--ink-muted)]'}`} />}
                         label={item.isStarred ? t('menu.star.remove') : t('menu.star.add')}
                         onClick={() => { onToggleStar?.(item); closeMenu(); }}
                     />
@@ -881,14 +880,10 @@ export default function ContextMenu({
             onContextMenu={(e) => e.preventDefault()}
         >
             {/* Header */}
-            <div className="px-2.5 pt-1 pb-2 mb-1 border-b text-xs font-bold text-gray-700 dark:text-gray-400 flex items-center gap-2 border-glass-divider">
+            <div className="px-2.5 pt-1 pb-2 mb-1 border-b text-xs font-semibold text-[var(--ink-muted)] flex items-center gap-2 border-glass-divider">
                 <span className="flex-1 min-w-0 truncate">{item.name}</span>
                 {isShared && sharedRole && (
-                    <span className={`shrink-0 px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
-                        sharedRole === 'EDITOR'
-                            ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300'
-                            : 'bg-sky-100 dark:bg-sky-500/20 text-sky-800 dark:text-sky-300'
-                    }`}>
+                    <span className="chip shrink-0 px-1.5 py-0.5 text-[10px]">
                         {sharedRole === 'EDITOR' ? t('menu.roleEditor') : t('menu.roleViewer')}
                     </span>
                 )}
@@ -901,7 +896,7 @@ export default function ContextMenu({
                         trước đây tab này KHÔNG hề có mục gỡ cờ — người dùng buộc phải
                         tích chọn rồi tìm nút trên thanh công cụ xanh. */}
                     <MenuRow
-                        icon={<ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />}
+                        icon={<ShieldCheck className="w-4 h-4 text-[var(--ink-muted)]" />}
                         label={t('menu.notSpamRestore')}
                         onClick={() => { onNotSpam?.(item); closeMenu(); }}
                     />
@@ -917,7 +912,7 @@ export default function ContextMenu({
                 <>
                     {/* Trash view options */}
                     <MenuRow
-                        icon={<RotateCcw className="w-4 h-4 text-blue-600 dark:text-blue-400" />}
+                        icon={<RotateCcw className="w-4 h-4 text-[var(--ink-muted)]" />}
                         label={t('common.restore')}
                         onClick={() => { onRestore?.(item); closeMenu(); }}
                     />
@@ -948,7 +943,7 @@ export default function ContextMenu({
                         chỗ duy nhất là GeminiModal.jsx. */}
                     <MenuRow
                         tone="strong"
-                        icon={<Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400" />}
+                        icon={<Sparkles className="w-4 h-4 text-[var(--ink-muted)]" />}
                         label={t('ai.menu.title')}
                         onClick={() => { onGemini?.(item, 'chat'); closeMenu(); }}
                     />
@@ -961,7 +956,7 @@ export default function ContextMenu({
                         <SubmenuRow
                             path="create"
                             tone="strong"
-                            icon={<Plus className="w-4 h-4 text-blue-600 dark:text-blue-400" />}
+                            icon={<Plus className="w-4 h-4 text-[var(--ink-muted)]" />}
                             label={t('menu.createNew')}
                         >
                             {renderCreateRows('create/upload')}
@@ -974,7 +969,7 @@ export default function ContextMenu({
                     {item.type !== 'folder' && (
                         <MenuRow
                             tone="strong"
-                            icon={<Eye className="w-4 h-4 text-blue-600 dark:text-blue-400" />}
+                            icon={<Eye className="w-4 h-4 text-[var(--ink-muted)]" />}
                             label={t('menu.preview')}
                             onClick={() => { onPreview?.(item); closeMenu(); }}
                         />
@@ -1042,8 +1037,8 @@ export default function ContextMenu({
                                 tone="accent"
                                 disabled={isPasting}
                                 icon={isPasting
-                                    ? <Loader2 className="w-4 h-4 text-blue-600 dark:text-blue-400 animate-spin" />
-                                    : <FolderInput className="w-4 h-4 text-blue-600 dark:text-blue-400" />}
+                                    ? <Loader2 className="w-4 h-4 text-[var(--ink-muted)] animate-spin" />
+                                    : <FolderInput className="w-4 h-4 text-[var(--ink-muted)]" />}
                                 label={isFolder ? t('menu.pasteIntoFolder') : t('menu.paste')}
                                 shortcut="Ctrl+V"
                                 onClick={() => {
@@ -1068,7 +1063,7 @@ export default function ContextMenu({
                             <>
                                 <MenuSeparator />
                                 <MenuRow
-                                    icon={<Star className={`w-4 h-4 ${item.isStarred ? 'text-amber-600 dark:text-amber-400 fill-amber-400' : 'text-gray-700 dark:text-gray-300'}`} />}
+                                    icon={<Star className={`w-4 h-4 ${item.isStarred ? 'text-[var(--ink)] fill-current' : 'text-[var(--ink-muted)]'}`} />}
                                     label={item.isStarred ? t('menu.star.remove') : t('menu.star.add')}
                                     onClick={() => { onToggleStar?.(item); closeMenu(); }}
                                 />

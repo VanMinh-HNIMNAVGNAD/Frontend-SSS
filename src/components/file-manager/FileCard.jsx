@@ -38,6 +38,9 @@ import {
 //
 // Mỗi biến có hai bản `-l` (sáng) / `-d` (tối); biến thể `dark:` của Tailwind
 // chọn giúp, nên thẻ không cần biết đang ở theme nào.
+//
+// Đơn sắc (26/10/2026): tệp chưa tự chọn màu là thẻ kính XÁM, màu loại tệp chỉ còn ở icon (đã dịu);
+// nhãn đuôi tệp ở chân thẻ là chữ xám trên nền kính nhạt thay cho con tem màu đặc.
 
 /** Icon theo loại tệp; màu lấy từ biến CSS nên tự đổi theo màu thẻ và theo theme. */
 function getCatIcon(cat, size = 'w-5 h-5') {
@@ -89,7 +92,7 @@ function FileCard({ file, onDoubleClick, onContextMenu, isSelected, isCut = fals
                 hover:bg-[var(--fc-hover-l)] dark:hover:bg-[var(--fc-hover-d)]
                 border-[var(--fc-border-l)] dark:border-[var(--fc-border-d)] ${
                 isCut ? 'opacity-50 border-dashed' : ''
-            } ${isSelected ? 'ring-2 ring-blue-500/80 ring-offset-2 ring-offset-transparent' : ''}`}
+            } ${isSelected ? 'ring-2 ring-black/55 dark:ring-white/60' : ''}`}
         >
             {/* Hàng đầu: icon loại tệp căn đều ở góc trên trái, tên tệp nâng cao và chữ nhỏ đi,
                 ô chọn hiện đè lên icon khi rê chuột/đã chọn, nút sao đã bỏ vì có trong context menu */}
@@ -112,8 +115,8 @@ function FileCard({ file, onDoubleClick, onContextMenu, isSelected, isCut = fals
                         onDoubleClick={(e) => { e.stopPropagation(); e.preventDefault(); }}
                         className={`absolute inset-0 flex items-center justify-center rounded transition-opacity ${
                             isSelected
-                                ? 'opacity-100 text-blue-600 dark:text-blue-400'
-                                : 'opacity-0 group-hover:opacity-100 text-[var(--fc-muted-l)] dark:text-[var(--fc-muted-d)] hover:text-blue-600 dark:hover:text-blue-400'
+                                ? 'opacity-100 text-[var(--ink)]'
+                                : 'opacity-0 group-hover:opacity-100 text-[var(--fc-muted-l)] dark:text-[var(--fc-muted-d)] hover:text-[var(--ink)]'
                         }`}
                         title={isSelected ? t('card.deselect') : t('card.select')}
                     >
@@ -131,7 +134,7 @@ function FileCard({ file, onDoubleClick, onContextMenu, isSelected, isCut = fals
                 {/* Ly do bi gan co doi voi tep trong muc Noi dung rac */}
                 {file.isSpam && (
                     <span
-                        className="shrink-0 text-amber-600 dark:text-amber-400"
+                        className="shrink-0 text-[var(--ink-muted)]"
                         title={file.suspiciousReason || t('list.suspicious')}
                     >
                         <ShieldAlert className="w-3.5 h-3.5" />
@@ -203,7 +206,7 @@ function FileCard({ file, onDoubleClick, onContextMenu, isSelected, isCut = fals
                         <div className="p-1.5 rounded-lg shadow-sm bg-white dark:bg-white/10 border border-[var(--fc-border-l)] dark:border-[var(--fc-border-d)]">
                             <FileCode className="w-4 h-4 text-[var(--fc-icon-l)] dark:text-[var(--fc-icon-d)]" />
                         </div>
-                        <span className="text-[8px] font-mono font-bold tracking-[0.2em] px-1.5 py-0.5 rounded-md bg-[var(--fc-badge-l)] text-[var(--fc-badge-fg-l)] dark:bg-[var(--fc-badge-d)] dark:text-[var(--fc-badge-fg-d)]">
+                        <span className="text-[8px] font-mono font-bold tracking-[0.2em] px-1.5 py-0.5 rounded-md bg-black/[0.05] dark:bg-white/[0.08] text-[var(--fc-muted-l)] dark:text-[var(--fc-muted-d)]">
                             MARKDOWN
                         </span>
                     </div>
@@ -239,7 +242,7 @@ function FileCard({ file, onDoubleClick, onContextMenu, isSelected, isCut = fals
                     {file.parentName !== undefined ? (
                         <ItemLocation item={file} onOpen={onOpenLocation} compact />
                     ) : (
-                        <span className="px-1 py-px rounded font-semibold text-[8px] tracking-wider uppercase bg-[var(--fc-badge-l)] text-[var(--fc-badge-fg-l)] dark:bg-[var(--fc-badge-d)] dark:text-[var(--fc-badge-fg-d)]">
+                        <span className="px-1 py-px rounded font-semibold text-[8.5px] tracking-wider uppercase bg-black/[0.05] dark:bg-white/[0.08] text-[var(--fc-muted-l)] dark:text-[var(--fc-muted-d)]">
                             {file.name.split('.').pop() || 'FILE'}
                         </span>
                     )}

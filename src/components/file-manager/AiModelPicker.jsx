@@ -107,10 +107,10 @@ export default function AiModelPicker({ models, value, onChange, onLockedPick, p
                 title={t('ai.model.label')}
                 className="flex items-center gap-1.5 max-w-[15rem] px-2.5 py-1 rounded-full bg-black/[0.05] dark:bg-white/[0.08] ring-1 ring-black/[0.04] dark:ring-white/10 text-gray-800 dark:text-gray-200 font-medium transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
-                {selected?.locked && <Lock className="w-3 h-3 shrink-0 text-amber-600 dark:text-amber-400" />}
+                {selected?.locked && <Lock className="w-3 h-3 shrink-0 text-[var(--ink-muted)]" />}
                 <span className="truncate">{selected?.label ?? value}</span>
                 {selected?.location && selected.location !== 'global' && (
-                    <span className="shrink-0 flex items-center gap-0.5 text-[10px] text-emerald-700 dark:text-emerald-400">
+                    <span className="shrink-0 flex items-center gap-0.5 text-[10px] text-[var(--ink-muted)]">
                         <MapPin className="w-3 h-3" />
                         {regionLabel(t, selected.location)}
                     </span>
@@ -203,18 +203,18 @@ function ModelRow({ m, active = false, locked = false, onPick, readsText, number
             onClick={onPick}
             title={locked ? t('ai.model.lockedHint', { tier: TIER_LABEL[m.minTier] ?? m.minTier }) : undefined}
             className={`w-full flex items-start gap-2 px-2.5 py-2 rounded-[12px] text-left transition-colors cursor-pointer ${
-                active ? 'bg-blue-500/10 dark:bg-blue-400/15' : ''
+                active ? 'glass-active' : ''
             }`}
         >
             <span className="w-4 shrink-0 pt-0.5">
-                {active && <Check className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />}
+                {active && <Check className="w-3.5 h-3.5 text-[var(--ink)]" strokeWidth={2.5} />}
                 {locked && <Lock className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />}
             </span>
             <span className={`min-w-0 flex-1 ${locked ? 'opacity-60' : ''}`}>
                 <span className="flex items-center gap-1.5 flex-wrap">
                     <span className="text-[13px] font-semibold text-gray-900 dark:text-gray-100">{m.label}</span>
                     {m.preview && (
-                        <span className="px-1 rounded text-[9px] font-bold uppercase bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300">
+                        <span className="chip px-1.5 text-[9px] uppercase tracking-wide">
                             preview
                         </span>
                     )}
@@ -225,7 +225,7 @@ function ModelRow({ m, active = false, locked = false, onPick, readsText, number
             </span>
             <span className="shrink-0 flex flex-col items-end gap-0.5 text-[10px]">
                 {locked ? (
-                    <span className="px-1.5 py-0.5 rounded-full font-bold bg-gradient-to-r from-amber-400/20 to-rose-400/20 text-amber-800 dark:text-amber-300 ring-1 ring-amber-500/25 whitespace-nowrap">
+                    <span className="chip px-1.5 py-0.5">
                         {t('ai.model.tierBadge', { tier: TIER_LABEL[m.minTier] ?? m.minTier })}
                     </span>
                 ) : (
@@ -234,7 +234,7 @@ function ModelRow({ m, active = false, locked = false, onPick, readsText, number
                             className={`flex items-center gap-0.5 ${
                                 m.location === 'global'
                                     ? 'text-gray-500 dark:text-gray-400'
-                                    : 'text-emerald-700 dark:text-emerald-400 font-semibold'
+                                    : 'text-[var(--ink)] font-semibold'
                             }`}
                         >
                             <MapPin className="w-3 h-3" />
@@ -246,10 +246,8 @@ function ModelRow({ m, active = false, locked = false, onPick, readsText, number
                     <span
                         className={`font-mono font-semibold ${locked ? 'opacity-60' : ''} ${
                             weight > 1.05
-                                ? 'text-rose-600 dark:text-rose-400'
-                                : weight < 0.95
-                                  ? 'text-emerald-700 dark:text-emerald-400'
-                                  : 'text-gray-500 dark:text-gray-400'
+                                ? 'text-[var(--ink)]'
+                                : 'text-gray-500 dark:text-gray-400'
                         }`}
                         title={t('ai.model.weightHint', { weight: number.format(weight) })}
                     >

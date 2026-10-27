@@ -300,7 +300,7 @@ function PdfCanvasViewer({ url, sizeBytes, zoom = 1, rotation = 0, onWheelZoom }
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center gap-3 text-zinc-400 py-20">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+        <Loader2 className="w-8 h-8 animate-spin text-white/60" />
         <p className="text-sm font-medium">{t('preview.pdf.rendering')}</p>
       </div>
     );
@@ -946,9 +946,7 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
             <X className="w-5 h-5" />
           </button>
           <div
-            className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 text-white ${
-              isImage || isVideo || isPdf ? 'bg-rose-500' : isAudio ? 'bg-violet-500' : isSheet ? 'bg-emerald-600' : 'bg-blue-500'
-            }`}
+            className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-white/90 bg-white/12 ring-1 ring-white/15"
           >
             {isImage ? <FileImage className="w-4 h-4" /> : isVideo ? <FileVideo className="w-4 h-4" /> : isAudio ? <FileAudio className="w-4 h-4" /> : isSheet ? <FileSpreadsheet className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
           </div>
@@ -978,7 +976,7 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
             >
               <MessageSquarePlus className="w-4 h-4" />
               {comments.count > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-sky-500 text-[10px] leading-4 font-semibold">
+                <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-white text-[#161618] text-[10px] leading-4 font-semibold tabular-nums">
                   {comments.count}
                 </span>
               )}
@@ -997,7 +995,7 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
             className="relative flex items-center gap-2 px-2.5 @lg:px-4 py-2 rounded-full glass-plain glass-dark text-white text-sm font-medium transition-colors cursor-pointer"
             title={t('preview.askAi')}
           >
-            <Sparkles className="w-4 h-4 text-sky-300" />
+            <Sparkles className="w-4 h-4 text-white/90" />
             <span className="hidden @lg:inline">{t('preview.askAi')}</span>
           </button>
 
@@ -1070,7 +1068,7 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
 
         {loading && (
           <div className="flex flex-col items-center gap-3 text-zinc-400">
-            <Loader2 className="w-10 h-10 animate-spin text-blue-500" />
+            <Loader2 className="w-10 h-10 animate-spin text-white/60" />
             <p className="text-sm font-medium">{t('preview.loading')}</p>
           </div>
         )}
@@ -1125,7 +1123,7 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
                 {!playerDiagnosis && (
                   <div className="absolute top-4 left-4 right-4 glass-dark text-xs text-zinc-200 p-3 rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-200 z-10 flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
+                      <span className="w-2 h-2 rounded-full bg-white/70 animate-pulse shrink-0" />
                       <span className="leading-relaxed">
                         <strong>{t('preview.audio.noticeTitle')}</strong> {t('preview.audio.notice')}
                       </span>
@@ -1180,7 +1178,7 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
 
             {isAudio && (
               <div className="relative p-8 glass-dark rounded-[28px] flex flex-col items-center gap-6 text-center max-w-md w-full">
-                <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-indigo-500/30 to-purple-500/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30 shadow-inner animate-pulse">
+                <div className="w-20 h-20 rounded-2xl bg-white/10 text-white/80 flex items-center justify-center border border-white/15 shadow-inner">
                   <FileAudio className="w-10 h-10" />
                 </div>
                 <div className="space-y-1 max-w-full">
@@ -1236,7 +1234,7 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
               <div className="w-full h-full max-w-5xl rounded-2xl overflow-hidden bg-white dark:bg-[#1c1c1f] border border-zinc-200 dark:border-white/10 shadow-2xl flex flex-col">
                 <div className="px-4 py-2.5 bg-zinc-100 dark:bg-white/[0.04] border-b border-zinc-200 dark:border-white/10 text-xs font-mono text-zinc-600 dark:text-zinc-400 flex items-center justify-between">
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block shrink-0" />
+                    <FileText className="w-3.5 h-3.5 shrink-0 text-zinc-500 dark:text-zinc-400" />
                     <span className="hidden @lg:inline font-semibold text-zinc-800 dark:text-zinc-200 truncate">{item.name}</span>
                   </div>
                   <span>{t('preview.wordDocument')} • {formatBytes(item.sizeBytes)}</span>
@@ -1254,7 +1252,7 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
               <div className="w-full h-full max-w-6xl rounded-2xl overflow-hidden bg-white dark:bg-[#1c1c1f] border border-zinc-200 dark:border-white/10 shadow-2xl flex flex-col">
                 <div className="px-4 py-2.5 bg-zinc-100 dark:bg-white/[0.04] border-b border-zinc-200 dark:border-white/10 text-xs font-mono text-zinc-600 dark:text-zinc-400 flex items-center justify-between">
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block shrink-0" />
+                    <FileSpreadsheet className="w-3.5 h-3.5 shrink-0 text-zinc-500 dark:text-zinc-400" />
                     <span className="hidden @lg:inline font-semibold text-zinc-800 dark:text-zinc-200 truncate">{item.name}</span>
                   </div>
                   <span className="shrink-0">{t('preview.sheet.label')} • {formatBytes(item.sizeBytes)}</span>
@@ -1267,10 +1265,10 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
               <div className="w-full h-full max-w-5xl rounded-2xl overflow-hidden bg-white dark:bg-[#1c1c1f] border border-zinc-200 dark:border-white/10 shadow-2xl flex flex-col">
                 <div className="px-4 py-2.5 bg-white dark:bg-white/[0.04] border-b border-zinc-200 dark:border-white/10 text-xs font-mono text-zinc-600 dark:text-zinc-400 flex items-center justify-between">
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className={`w-2.5 h-2.5 rounded-full inline-block shrink-0 ${isMd ? 'bg-sky-400' : 'bg-emerald-500'}`} />
+                    <FileText className="w-3.5 h-3.5 shrink-0 text-zinc-500 dark:text-zinc-400" />
                     <span className="hidden @lg:inline font-semibold text-zinc-800 dark:text-zinc-200 truncate">{item.name}</span>
                     {isMd && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 font-mono hidden @lg:inline-block">
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-black/[0.06] dark:bg-white/10 text-zinc-600 dark:text-zinc-300 font-mono hidden @lg:inline-block">
                         Markdown
                       </span>
                     )}
@@ -1281,7 +1279,7 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
                         <button
                           onClick={() => setMdViewMode('preview')}
                           className={`px-2 py-1 rounded text-[11px] font-sans font-medium transition-colors cursor-pointer ${
-                            mdViewMode === 'preview' ? 'bg-blue-600 text-white shadow-sm' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
+                            mdViewMode === 'preview' ? 'bg-white dark:bg-white/15 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
                           }`}
                         >
                           {t('sharePage.previewLabel')}
@@ -1289,7 +1287,7 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
                         <button
                           onClick={() => setMdViewMode('source')}
                           className={`px-2 py-1 rounded text-[11px] font-sans font-medium transition-colors cursor-pointer ${
-                            mdViewMode === 'source' ? 'bg-blue-600 text-white shadow-sm' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
+                            mdViewMode === 'source' ? 'bg-white dark:bg-white/15 text-zinc-900 dark:text-white shadow-sm' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
                           }`}
                         >
                           {t('sharePage.sourceLabel')}
@@ -1305,10 +1303,10 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
                     <span className="hidden @lg:inline">UTF-8 • {formatBytes(item.sizeBytes)}</span>
                   </div>
                 </div>
-                <div className="flex-1 overflow-auto text-xs text-zinc-700 dark:text-zinc-200 selection:bg-blue-500/40">
+                <div className="flex-1 overflow-auto text-xs text-zinc-700 dark:text-zinc-200 selection:bg-zinc-400/40">
                   {isLoadingText ? (
                     <div className="flex flex-col items-center justify-center gap-3 text-zinc-400 py-20">
-                      <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+                      <Loader2 className="w-8 h-8 animate-spin text-white/60" />
                       <p className="text-sm font-medium">{t('preview.text.loading')}</p>
                     </div>
                   ) : textError ? (
@@ -1408,7 +1406,7 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
 
             {!isImage && !isVideo && !isAudio && !isPdf && !isCodeOrText && !isDocx && !isSheet && (
               <div className="relative p-8 glass-dark rounded-[28px] flex flex-col items-center gap-4 text-center max-w-sm">
-                <FileText className="w-16 h-16 text-blue-400" />
+                <FileText className="w-16 h-16 text-white/50" />
                 <h4 className="font-bold text-white text-sm">{item.name}</h4>
                 <p className="text-xs text-zinc-400">
                   {Number(item.sizeBytes) > PREVIEW_MAX_BYTES

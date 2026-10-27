@@ -12,6 +12,7 @@ import ActivityLogDrawer from '../file-manager/ActivityLogDrawer';
 import NotificationBell from './NotificationBell';
 import { useAiPanel } from '../../context/AiPanelContext';
 import GlassEdge from '../ui/GlassEdge';
+import { confirmDialog } from '../../utils/dialog';
 import { 
     Menu, 
     Search, 
@@ -216,7 +217,7 @@ export default function Header({ toggleRightSidebar }) {
     const handleDeleteSelected = async () => {
         const items = getSelectedItems(folders, files);
         if (!items.length) return;
-        if (!confirm(t('header.confirm.trash', { count: items.length }))) return;
+        if (!(await confirmDialog({ message: t('header.confirm.trash', { count: items.length }), confirmLabel: t('common.delete') }))) return;
 
         const succeeded = await runBulk(
             items,
@@ -241,7 +242,7 @@ export default function Header({ toggleRightSidebar }) {
         const items = getSelectedItems(folders, files);
         if (!items.length) return;
         const confirmKey = isSpamTab ? 'header.confirm.notSpam' : 'header.confirm.restore';
-        if (!confirm(t(confirmKey, { count: items.length }))) return;
+        if (!(await confirmDialog({ message: t(confirmKey, { count: items.length }), confirmLabel: t('common.restore') }))) return;
 
         // Nơi tệp quay về, để báo cho người dùng biết — họ đang đứng ở trang Nội dung
         // rác nên không nhìn thấy nó xuất hiện lại trong cây thư mục.
@@ -269,7 +270,11 @@ export default function Header({ toggleRightSidebar }) {
     const handlePermanentDeleteSelected = async () => {
         const items = getSelectedItems(folders, files);
         if (!items.length) return;
-        if (!confirm(t('header.confirm.deleteForever', { count: items.length }))) return;
+        if (!(await confirmDialog({
+            message: t('header.confirm.deleteForever', { count: items.length }),
+            confirmLabel: t('common.deleteForever'),
+            danger: true,
+        }))) return;
 
         const succeeded = await runBulk(
             items,
@@ -323,9 +328,9 @@ export default function Header({ toggleRightSidebar }) {
 
     if (selectedCount > 0) {
         return (
-            // Thanh chọn nhiều: cùng tấm kính với header thường, chỉ ánh xanh nhạt + viền nhấn để
-            // người dùng biết đang ở chế độ chọn (trước: nền xanh đặc #0b57d0 chữ trắng).
-            <header className="relative h-14 sm:h-16 flex items-center justify-between px-2 sm:px-3 md:px-4 glass bg-blue-50/75! dark:bg-white/[0.09]! ring-1 ring-blue-500/25 dark:ring-blue-400/40 rounded-[20px] sm:rounded-full text-gray-900 dark:text-gray-100 shrink-0 gap-2 sm:gap-3 transition-colors duration-200 animate-fade-in">
+            // Thanh chọn nhiều: cùng tấm kính với header thường, sáng hơn một bậc (kính đang chọn) để
+            // người dùng biết đang ở chế độ chọn — không còn ánh xanh (trước nữa: nền xanh đặc #0b57d0).
+            <header className="relative h-14 sm:h-16 flex items-center justify-between px-2 sm:px-3 md:px-4 glass bg-[var(--glass-active)]! rounded-[20px] sm:rounded-full text-[var(--ink)] shrink-0 gap-2 sm:gap-3 transition-colors duration-200 animate-fade-in">
                 {/* Viền sáng của kính — xem chú thích ở header thường bên dưới. */}
                 <GlassEdge className="z-auto" />
 
@@ -334,7 +339,7 @@ export default function Header({ toggleRightSidebar }) {
                     <button onClick={deselectAll} className="p-2 rounded-full transition-colors cursor-pointer shrink-0" title={t('common.close')}>
                         <X className="w-5 h-5" />
                     </button>
-                    <span className="font-semibold text-base sm:text-lg truncate text-blue-700 dark:text-blue-300">{t('header.selected', { count: selectedCount })}</span>
+                    <span className="font-semibold text-base sm:text-lg truncate tabular-nums">{t('header.selected', { count: selectedCount })}</span>
                     
                     <div className="w-px h-6 bg-black/10 dark:bg-white/15 mx-2 hidden sm:block" />
                     
@@ -352,7 +357,7 @@ export default function Header({ toggleRightSidebar }) {
                     {!isTrashTab && !isSpamTab ? (
                         <>
                             {canTrashSelection && (
-                            <button onClick={handleDeleteSelected} className="flex items-center gap-1.5 px-3 py-2 hover:bg-rose-500/12 hover:text-rose-600 dark:hover:text-rose-300 rounded-full transition-colors text-sm font-medium cursor-pointer" title={t('common.delete')}>
+                            <button onClick={handleDeleteSelected} className="flex items-center gap-1.5 px-3 py-2 hover:text-[var(--tone-danger)] rounded-full transition-colors text-sm font-medium cursor-pointer" title={t('common.delete')}>
                                 <Trash2 className="w-4 h-4" />
                                 <span className="hidden lg:inline">{t('common.delete')}</span>
                             </button>
@@ -386,12 +391,12 @@ export default function Header({ toggleRightSidebar }) {
                         </>
                     ) : (
                         <>
-                            <button onClick={handleRestoreSelected} className="flex items-center gap-1.5 px-3 py-2 hover:bg-emerald-500/12 hover:text-emerald-700 dark:hover:text-emerald-300 rounded-full transition-colors text-sm font-medium cursor-pointer" title={t('common.restore')}>
+                            <button onClick={handleRestoreSelected} className="flex items-center gap-1.5 px-3 py-2 rounded-full transition-colors text-sm font-medium cursor-pointer" title={t('common.restore')}>
                                 <RotateCcw className="w-4 h-4" />
                                 <span className="hidden lg:inline">{t('common.restore')}</span>
                             </button>
                             {canDeleteForeverSelection && (
-                            <button onClick={handlePermanentDeleteSelected} className="flex items-center gap-1.5 px-3 py-2 hover:bg-rose-500/12 hover:text-rose-600 dark:hover:text-rose-300 rounded-full transition-colors text-sm font-medium cursor-pointer" title={t('common.deleteForever')}>
+                            <button onClick={handlePermanentDeleteSelected} className="flex items-center gap-1.5 px-3 py-2 text-[var(--tone-danger)] rounded-full transition-colors text-sm font-medium cursor-pointer" title={t('common.deleteForever')}>
                                 <AlertCircle className="w-4 h-4" />
                                 <span className="hidden lg:inline">{t('common.deleteForever')}</span>
                             </button>
@@ -445,8 +450,8 @@ export default function Header({ toggleRightSidebar }) {
 
             {/* VÙNG TÌM KIẾM TO + BỘ LỌC TÌM KIẾM */}
             <div className="flex-1 min-w-0 max-w-2xl relative sm:mx-2">
-                <div className="flex items-center h-11 glass-input hover:bg-white/75 dark:hover:bg-white/[0.09] focus-within:bg-white/90 dark:focus-within:bg-white/10 focus-within:ring-2 focus-within:ring-blue-500/30 rounded-full pl-3 pr-1.5 sm:pl-4 sm:pr-2 transition-all duration-200">
-                    <Search className="w-5 h-5 text-gray-600 dark:text-gray-400 mr-2 sm:mr-3 shrink-0" />
+                <div className="flex items-center h-11 glass-input hover:bg-white/75 dark:hover:bg-white/[0.09] focus-within:bg-white/90 dark:focus-within:bg-white/10 focus-within:ring-2 focus-within:ring-black/10 dark:focus-within:ring-white/15 rounded-full pl-3 pr-1.5 sm:pl-4 sm:pr-2 transition-all duration-200">
+                    <Search className="w-5 h-5 text-[var(--ink-muted)] mr-2 sm:mr-3 shrink-0" />
                     <input
                         id="global-search-input"
                         ref={searchInputRef}
@@ -483,17 +488,21 @@ export default function Header({ toggleRightSidebar }) {
                         </button>
                     )}
                     
-                    {/* Nút Bộ lọc tìm kiếm — tô xanh khi có bộ lọc nào đang áp (cả Ngày sửa đổi, ##90) */}
+                    {/* Nút Bộ lọc tìm kiếm — viên kính sáng + chấm khi có bộ lọc nào đang áp (cả Ngày
+                        sửa đổi, ##90); không còn tô xanh. */}
                     <button
                         ref={filterToggleRef}
                         onClick={() => setIsFilterOpen(!isFilterOpen)}
                         title={t('header.search.filter')}
                         aria-expanded={isFilterOpen}
-                        className={`p-2 sm:p-1.5 rounded-full transition-colors ml-1 sm:ml-2 shrink-0 cursor-pointer ${
-                            isFilterOpen || filterType !== 'all' || filterDate !== 'all' || filterOwner !== 'all' ? 'text-blue-700 dark:text-blue-300 bg-blue-500/12 dark:bg-blue-400/15' : 'text-gray-700 dark:text-gray-300'
+                        className={`relative p-2 sm:p-1.5 rounded-full transition-colors ml-1 sm:ml-2 shrink-0 cursor-pointer ${
+                            isFilterOpen ? 'glass-active text-[var(--ink)]' : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
                         }`}
                     >
                         <SlidersHorizontal className="w-4 h-4" />
+                        {(filterType !== 'all' || filterDate !== 'all' || filterOwner !== 'all') && (
+                            <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-[var(--ink)]" aria-hidden="true" />
+                        )}
                     </button>
                 </div>
 
@@ -630,7 +639,7 @@ export default function Header({ toggleRightSidebar }) {
                             <button
                                 onClick={() => setIsAccountOpen(!isAccountOpen)}
                                 title={t('header.account')}
-                                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-blue-500 to-violet-500 text-white font-bold flex items-center justify-center hover:brightness-105 shadow-sm ring-2 ring-white/80 dark:ring-white/15 transition ml-1 mr-0.5 cursor-pointer overflow-hidden"
+                                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-zinc-400 to-zinc-600 dark:from-zinc-500 dark:to-zinc-700 text-white font-semibold flex items-center justify-center hover:brightness-105 shadow-sm ring-2 ring-white/80 dark:ring-white/15 transition ml-1 mr-0.5 cursor-pointer overflow-hidden"
                             >
                                 {user?.avatarUrl ? (
                                     <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />

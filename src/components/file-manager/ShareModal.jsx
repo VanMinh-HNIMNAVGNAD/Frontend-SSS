@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { UserPlus, X, Copy, Check, Lock, Shield, Eye, Edit3, Loader2, AlertCircle, HelpCircle, Link2Off } from 'lucide-react';
+import { UserPlus, X, Copy, Check, Lock, Shield, Eye, Edit3, Loader2, AlertCircle, HelpCircle, Link2Off, CalendarClock } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useLanguage } from '../../context/LanguageContext';
 import { sharingApi } from '../../services/api';
@@ -22,14 +22,10 @@ const ROLE_CONFIG = {
     VIEWER: {
         labelKey: 'share.role.viewer',
         icon: Eye,
-        color: 'text-sky-400',
-        bg: 'bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-500/30',
     },
     EDITOR: {
         labelKey: 'share.role.editor',
         icon: Edit3,
-        color: 'text-emerald-400',
-        bg: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30',
     },
 };
 
@@ -45,7 +41,7 @@ function Avatar({ name, avatarUrl, size = 9 }) {
         );
     }
     return (
-        <div className={`w-${size} h-${size} rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm ring-1 ring-gray-200 dark:ring-white/10`}>
+        <div className={`w-${size} h-${size} rounded-full bg-gradient-to-br from-zinc-400 to-zinc-600 dark:from-zinc-500 dark:to-zinc-700 flex items-center justify-center text-white font-semibold text-sm ring-1 ring-black/5 dark:ring-white/10`}>
             {initials}
         </div>
     );
@@ -261,14 +257,14 @@ export default function ShareModal({ isOpen, item, onClose }) {
             onClick={onClose}
         >
             <div
-                className="glass-strong relative text-gray-900 dark:text-gray-100 rounded-[20px] w-full max-w-lg border overflow-hidden cursor-default"
+                className="glass-strong relative text-[var(--ink)] rounded-[24px] w-full max-w-lg overflow-hidden cursor-default animate-glass-in"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-glass-divider">
-                    <div className="flex items-center gap-2.5 font-bold text-base text-gray-900 dark:text-gray-100">
-                        <div className="p-1.5 rounded-lg bg-blue-600/10 dark:bg-blue-500/15">
-                            <UserPlus className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    <div className="flex items-center gap-2.5 font-semibold text-base text-[var(--ink)]">
+                        <div className="p-1.5 rounded-lg bg-[var(--chip-fill)]">
+                            <UserPlus className="w-4 h-4 text-[var(--ink-muted)]" />
                         </div>
                         <span className="truncate max-w-[320px]">{t('share.titleOf', { name: item.name })}</span>
                     </div>
@@ -283,10 +279,10 @@ export default function ShareModal({ isOpen, item, onClose }) {
                 <div className="p-5 space-y-5 text-sm">
                     {/* Error message */}
                     {errorMsg && (
-                        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-500/15 border border-red-200 dark:border-red-500/30 text-red-700 dark:text-red-300 text-xs">
+                        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[var(--tone-danger-soft)] text-[var(--tone-danger)] text-xs">
                             <AlertCircle className="w-4 h-4 shrink-0" />
                             <span>{errorMsg}</span>
-                            <button onClick={() => setErrorMsg('')} className="ml-auto text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-200">
+                            <button onClick={() => setErrorMsg('')} className="ml-auto text-[var(--tone-danger)] opacity-70 hover:opacity-100 cursor-pointer">
                                 <X className="w-3.5 h-3.5" />
                             </button>
                         </div>
@@ -306,7 +302,7 @@ export default function ShareModal({ isOpen, item, onClose }) {
                                 title={t(EMAIL_LOOKUP_HINT_KEY)}
                                 aria-label={t(EMAIL_LOOKUP_HINT_KEY)}
                                 tabIndex={0}
-                                className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 rounded-full cursor-help transition-colors"
+                                className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-soft)] rounded-full cursor-help transition-colors"
                             >
                                 <HelpCircle className="w-3.5 h-3.5" />
                             </span>
@@ -318,12 +314,12 @@ export default function ShareModal({ isOpen, item, onClose }) {
                                 onChange={(e) => { setEmail(e.target.value); setErrorMsg(''); }}
                                 placeholder={t('share.email.placeholder')}
                                 title={t(EMAIL_LOOKUP_HINT_KEY)}
-                                className="flex-1 px-3.5 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-white/5 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 outline-none transition"
+                                className="glass-input flex-1 min-w-0 px-3.5 py-2.5 rounded-xl text-[var(--ink)] placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-[var(--accent-soft)] outline-none transition"
                             />
                             <select
                                 value={role}
                                 onChange={(e) => setRole(e.target.value)}
-                                className="px-3 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-white/5 text-gray-700 dark:text-gray-300 font-medium outline-none focus:ring-2 focus:ring-blue-500/50 cursor-pointer"
+                                className="glass-select py-2.5 pl-3 rounded-xl text-[var(--ink)] font-medium outline-none focus:ring-2 focus:ring-[var(--accent-soft)] cursor-pointer"
                             >
                                 <option value="VIEWER">{t('share.role.viewer')}</option>
                                 <option value="EDITOR">{t('share.role.editor')}</option>
@@ -331,7 +327,7 @@ export default function ShareModal({ isOpen, item, onClose }) {
                             <button
                                 type="submit"
                                 disabled={!email.trim() || isSubmitting}
-                                className="px-4 py-2.5 btn-accent hover:brightness-105 font-semibold rounded-xl shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center gap-1.5"
+                                className="px-4 py-2.5 btn-accent hover:brightness-105 font-semibold rounded-full disabled:cursor-not-allowed transition-all cursor-pointer flex items-center gap-1.5"
                             >
                                 {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>{t('share.send')}</span>}
                             </button>
@@ -374,7 +370,7 @@ export default function ShareModal({ isOpen, item, onClose }) {
                                             <select
                                                 value={member.role}
                                                 onChange={(e) => handleChangeRole(member.id, e.target.value)}
-                                                className={`text-xs px-2 py-1 rounded-lg border cursor-pointer outline-none bg-transparent ${roleInfo.bg} hover:opacity-80 transition`}
+                                                className="glass-select text-xs pl-2.5 py-1 rounded-full text-[var(--ink)] cursor-pointer outline-none transition"
                                                 title={t('share.changeRole')}
                                             >
                                                 <option value="VIEWER" className="glass-soft text-gray-900 dark:text-gray-100">{t('share.role.viewer')}</option>
@@ -384,7 +380,7 @@ export default function ShareModal({ isOpen, item, onClose }) {
                                             <button
                                                 onClick={() => handleRemoveMember(member.id)}
                                                 disabled={removingId === member.id}
-                                                className="p-1 rounded-lg text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors disabled:opacity-50 opacity-0 group-hover:opacity-100"
+                                                className="p-1 rounded-full text-[var(--ink-subtle)] hover:text-[var(--tone-danger)] transition-colors disabled:opacity-50 opacity-0 group-hover:opacity-100 focus:opacity-100 cursor-pointer"
                                                 title={t('share.revoke')}
                                             >
                                                 {removingId === member.id
@@ -405,8 +401,8 @@ export default function ShareModal({ isOpen, item, onClose }) {
                         </h4>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            <div className="flex items-center gap-2 p-2.5 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-700">
-                                <Lock className="w-4 h-4 text-amber-500 dark:text-amber-400 shrink-0" />
+                            <div className="glass-input flex items-center gap-2 p-2.5 rounded-xl focus-within:ring-2 focus-within:ring-[var(--accent-soft)]">
+                                <Lock className="w-4 h-4 text-[var(--ink-subtle)] shrink-0" />
                                 <input
                                     type="password"
                                     value={sharePassword}
@@ -416,8 +412,8 @@ export default function ShareModal({ isOpen, item, onClose }) {
                                 />
                             </div>
 
-                            <div className="flex items-center gap-2 p-2.5 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-700">
-                                <span className="text-gray-500 dark:text-gray-400 text-xs font-bold shrink-0">⏳</span>
+                            <div className="glass-input flex items-center gap-2 p-2.5 rounded-xl focus-within:ring-2 focus-within:ring-[var(--accent-soft)]">
+                                <CalendarClock className="w-4 h-4 text-[var(--ink-subtle)] shrink-0" />
                                 <input
                                     type="date"
                                     value={expireDate}
@@ -438,7 +434,7 @@ export default function ShareModal({ isOpen, item, onClose }) {
                                         setAllowDownload(e.target.checked);
                                         if (e.target.checked) setPreviewOnly(false);
                                     }}
-                                    className="rounded text-blue-500 focus:ring-blue-500 cursor-pointer accent-blue-500"
+                                    className="rounded cursor-pointer accent-[var(--accent)]"
                                 />
                                 <span>{t('share.allowDownload')}</span>
                             </label>
@@ -451,22 +447,22 @@ export default function ShareModal({ isOpen, item, onClose }) {
                                         setPreviewOnly(e.target.checked);
                                         if (e.target.checked) setAllowDownload(false);
                                     }}
-                                    className="rounded text-blue-500 focus:ring-blue-500 cursor-pointer accent-blue-500"
+                                    className="rounded cursor-pointer accent-[var(--accent)]"
                                 />
                                 <span>{t('share.previewOnly')}</span>
                             </label>
                         </div>
 
                         {activeLinkCount > 0 && (
-                            <div className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-rose-50/70 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30">
-                                <span className="text-xs text-rose-800 dark:text-rose-200">
+                            <div className="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-[var(--tone-danger-soft)]">
+                                <span className="text-xs text-[var(--ink)]">
                                     {t('share.links.active', { count: activeLinkCount })}
                                 </span>
                                 <button
                                     type="button"
                                     onClick={handleRevokeLinks}
                                     disabled={isRevokingLinks}
-                                    className="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-rose-700 dark:text-rose-300 hover:bg-rose-100 dark:hover:bg-rose-500/20 transition-colors disabled:opacity-50 cursor-pointer"
+                                    className="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-semibold text-[var(--tone-danger)] transition-colors disabled:opacity-50 cursor-pointer"
                                 >
                                     {isRevokingLinks ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Link2Off className="w-3.5 h-3.5" />}
                                     <span>{confirmRevokeLinks ? t('share.links.revokeConfirm') : t('share.links.revoke')}</span>
@@ -479,15 +475,15 @@ export default function ShareModal({ isOpen, item, onClose }) {
                     <div className="pt-3 border-t flex items-center justify-between border-glass-divider">
                         <button
                             onClick={handleCopyLink}
-                            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors font-medium text-sm cursor-pointer"
+                            className="glass-soft flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[var(--ink)] transition-colors font-medium text-sm cursor-pointer"
                         >
-                            {copied ? <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                            {copied ? <Check className="w-4 h-4" strokeWidth={2.5} /> : <Copy className="w-4 h-4 text-[var(--ink-muted)]" />}
                             <span>{copied ? t('share.copied') : t('share.copyLink')}</span>
                         </button>
 
                         <button
                             onClick={onClose}
-                            className="px-5 py-2 btn-accent hover:brightness-105 font-semibold rounded-xl shadow-sm transition-all cursor-pointer"
+                            className="px-5 py-2 btn-accent hover:brightness-105 font-semibold rounded-full transition-all cursor-pointer"
                         >
                             {t('common.done')}
                         </button>

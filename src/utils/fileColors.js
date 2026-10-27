@@ -35,6 +35,16 @@
 export const DEFAULT_FOLDER_COLOR = '#6B7280'; // gray-500 — xám trung tính
 export const DEFAULT_FILE_COLOR   = '#0EA5E9'; // sky-500  — xanh da trời nhạt
 
+/**
+ * Đơn sắc (26/10/2026): tệp/thư mục CHƯA tự chọn màu là kính xám trung tính — nền, viền, tên, nhãn
+ * đuôi đều theo màu này. Màu theo loại tệp (bảng bên dưới) chỉ còn ở ICON, và đã bị rút bớt độ bão
+ * hoà (`TYPE_TINT_SATURATION`): một lưới 30 tệp trước đây là 30 mảng đỏ/tím/vàng/xanh, nay chỉ còn
+ * những chấm màu dịu đủ để nhận ra PDF hay ảnh. Màu người dùng TỰ CHỌN (customColor) vẫn tô cả thẻ
+ * như cũ — đó là lựa chọn có chủ ý của họ.
+ */
+const NEUTRAL_CARD_COLOR = '#71717A'; // zinc-500 — cùng thang xám của app (index.css)
+const TYPE_TINT_SATURATION = 0.38;
+
 // ─── Map extension → màu HEX ─────────────────────────────────
 const EXTENSION_COLOR_MAP = {
   // Java
@@ -369,7 +379,9 @@ export function getCardPalette(hex) {
  * @param {object} item - file/folder
  */
 export function getCardColorVars(item) {
-  const { light, dark } = getCardPalette(getEffectiveColor(item));
+  const hasCustom = Boolean(item?.customColor);
+  const { light, dark } = getCardPalette(hasCustom ? item.customColor : NEUTRAL_CARD_COLOR);
+  const icon = getIconColors(item);
   return {
     '--fc-surface-l': light.surface,
     '--fc-hover-l':   light.surfaceHover,
@@ -377,7 +389,7 @@ export function getCardColorVars(item) {
     '--fc-border-l':  light.border,
     '--fc-ink-l':     light.ink,
     '--fc-muted-l':   light.muted,
-    '--fc-icon-l':    light.icon,
+    '--fc-icon-l':    icon.light,
     '--fc-badge-l':   light.badgeBg,
     '--fc-badge-fg-l': light.badgeFg,
     '--fc-surface-d': dark.surface,
@@ -386,8 +398,51 @@ export function getCardColorVars(item) {
     '--fc-border-d':  dark.border,
     '--fc-ink-d':     dark.ink,
     '--fc-muted-d':   dark.muted,
-    '--fc-icon-d':    dark.icon,
+    '--fc-icon-d':    icon.dark,
     '--fc-badge-d':   dark.badgeBg,
     '--fc-badge-fg-d': dark.badgeFg,
   };
+}
+
+/**
+ * Icon theo loại tệp, đã dịu: rút độ bão hoà (`TYPE_TINT_SATURATION`) rồi chỉ kéo ĐỘ SÁNG cho tới khi
+ * đủ tương phản 3:1 trên nền thẻ. Không đi qua `readable()`: hàm đó cố ý nâng bão hoà lên tối thiểu
+ * 0.45 cho màu người dùng chọn, tức là trả lại đúng sắc chói vừa rút đi.
+ */
+function mutedTypeIcon(hex, isDark) {
+  const rgb = hexToRgb(hex) ?? hexToRgb(DEFAULT_FILE_COLOR);
+  const base = hexToRgb(isDark ? BASE_DARK : BASE_LIGHT);
+  const hsl = rgbToHsl(rgb);
+  const muted = { ...hsl, s: hsl.s * TYPE_TINT_SATURATION };
+  const toward = isDark ? 1 : 0;
+  for (let step = 0; step <= 24; step++) {
+    const candidate = hslToRgb({ ...muted, l: muted.l + (toward - muted.l) * (step / 24) });
+    if (contrast(candidate, base) >= 3.2) return rgbToHex(candidate);
+  }
+  return isDark ? '#D4D4D8' : '#52525B';
+}
+
+/**
+ * Màu ICON của một mục ở hai chế độ { light, dark } (mã hex, đã đủ tương phản trên nền thẻ):
+ *   • có customColor   → đúng màu người dùng chọn;
+ *   • thư mục mặc định → xám trung tính;
+ *   • tệp mặc định     → màu theo loại tệp, đã dịu bớt.
+ * Dùng chung cho thẻ lưới (`getCardColorVars`) và icon ở bảng danh sách / Trang chủ (getFileIcon).
+ *
+ * @param {object} item
+ * @returns {{light: string, dark: string}}
+ */
+export function getIconColors(item) {
+  if (item && !item.customColor && item.type !== 'folder') {
+    const key = `muted:${getDefaultColor(item)}`;
+    let cached = paletteCache.get(key);
+    if (!cached) {
+      const hex = getDefaultColor(item);
+      cached = { light: mutedTypeIcon(hex, false), dark: mutedTypeIcon(hex, true) };
+      paletteCache.set(key, cached);
+    }
+    return cached;
+  }
+  const { light, dark } = getCardPalette(item?.customColor || NEUTRAL_CARD_COLOR);
+  return { light: light.icon, dark: dark.icon };
 }

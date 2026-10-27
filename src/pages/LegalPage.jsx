@@ -99,7 +99,7 @@ export default function LegalPage({ docId }) {
     switch (block.type) {
       case 'ul':
         return (
-          <ul key={index} className="space-y-2 list-disc pl-5 marker:text-blue-400/70">
+          <ul key={index} className="space-y-2 list-disc pl-5 marker:text-[var(--ink-subtle)]">
             {block.items.map((item, i) => (
               <li key={i}>{fill(item)}</li>
             ))}
@@ -108,7 +108,7 @@ export default function LegalPage({ docId }) {
 
       case 'ol':
         return (
-          <ol key={index} className="space-y-2 list-decimal pl-5 marker:text-blue-400/70 marker:font-bold">
+          <ol key={index} className="space-y-2 list-decimal pl-5 marker:text-[var(--ink-subtle)] marker:font-bold">
             {block.items.map((item, i) => (
               <li key={i}>{fill(item)}</li>
             ))}
@@ -156,7 +156,7 @@ export default function LegalPage({ docId }) {
         return (
           <p
             key={index}
-            className="border-l-2 border-amber-400/60 bg-amber-400/[0.06] rounded-r-lg px-4 py-3 text-gray-800 dark:text-gray-200"
+            className="border-l-2 border-[var(--tone-warn)]/50 bg-[var(--tone-warn-soft)] rounded-r-lg px-4 py-3 text-gray-800 dark:text-gray-200"
           >
             {fill(block.text)}
           </p>
@@ -230,7 +230,7 @@ export default function LegalPage({ docId }) {
               <li key={index}>
                 <a
                   href={`#muc-${index + 1}`}
-                  className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                  className="text-gray-600 dark:text-gray-400 hover:text-[var(--ink)] transition-colors"
                 >
                   {section.heading}
                 </a>
@@ -269,12 +269,12 @@ export default function LegalPage({ docId }) {
               <Link
                 key={sibling.id}
                 to={sibling.path}
-                className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                className="text-gray-600 dark:text-gray-400 hover:text-[var(--ink)] transition-colors"
               >
                 {sibling.title}
               </Link>
             ))}
-            <Link to="/register" className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+            <Link to="/register" className="text-gray-600 dark:text-gray-400 hover:text-[var(--ink)] transition-colors">
               {t('legal.toRegister')}
             </Link>
           </div>

@@ -3,6 +3,7 @@ import { ChevronDown, Check, X } from 'lucide-react';
 
 /**
  * Viên chọn kiểu kính cho thanh lọc (Loại tệp, Ngày sửa đổi, Người sở hữu, Sắp xếp).
+ * Các viên không có icon đầu; ChevronDown luôn được giữ lại để nhận biết đây là menu.
  *
  * @param {string} label - Nhãn khi chưa chọn gì (giá trị 'all')
  * @param {React.ComponentType} icon - Icon đầu viên (tuỳ chọn)
@@ -77,13 +78,11 @@ export default function SelectDropdown({
                         <Icon className={`w-3.5 h-3.5 shrink-0 ${active ? 'text-[var(--ink)]' : 'text-[var(--ink-muted)]'}`} />
                     )}
                     <span className="truncate max-w-[160px]">{displayLabel}</span>
-                    {!showClear && (
-                        <ChevronDown
-                            className={`w-3.5 h-3.5 shrink-0 text-[var(--ink-subtle)] transition-transform duration-200 ${
-                                isOpen ? 'rotate-180' : ''
-                            }`}
-                        />
-                    )}
+                    <ChevronDown
+                        className={`w-3.5 h-3.5 shrink-0 text-[var(--ink-subtle)] transition-transform duration-200 ${
+                            isOpen ? 'rotate-180' : ''
+                        }`}
+                    />
                 </button>
                 {showClear && (
                     <button

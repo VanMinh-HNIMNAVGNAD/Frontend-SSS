@@ -1,8 +1,6 @@
 import SelectDropdown from '../ui/SelectDropdown';
 import ViewModeToggle from './ViewModeToggle';
 import {
-    FileType,
-    Calendar,
     Folder,
     File,
     FileText,
@@ -12,8 +10,6 @@ import {
     Archive,
     Video,
     FileCode,
-    ArrowUpDown,
-    UserRound,
     User,
     Users
 } from 'lucide-react';
@@ -52,8 +48,9 @@ const SORT_FIELD_LABEL_KEYS = {
  * mà KHÔNG hiện thanh này thì có bộ lọc vô hình: chọn "Hình ảnh" ở cloudSSS của tôi rồi sang
  * Gần đây, trang Gần đây chỉ còn ảnh mà không có gì cho biết vì sao, cũng không có nút xoá (##83).
  *
- * Bố cục (26/10/2026): MỘT hàng, MỘT đường kẻ dưới —
- *   [Loại tệp ▾] [Ngày sửa đổi ▾] [Người sở hữu ▾] (Xoá bộ lọc)          [⇅ Sắp xếp ▾] [≡ | ⊞]
+ * Bố cục: một đường kẻ dưới; trên màn rộng là một hàng, trên điện thoại nhóm filter
+ * nằm ngang riêng và nhóm sắp xếp/chế độ xem xuống hàng dưới —
+ *   [Loại tệp ▾] [Ngày sửa đổi ▾] [Người sở hữu ▾] (Xoá bộ lọc)   [Sắp xếp ▾] [≡ | ⊞]
  * Bên trái là bộ lọc (thu hẹp danh sách), bên phải là cách TRÌNH BÀY (thứ tự, Danh sách/Lưới) —
  * trước đây "Sắp xếp" đứng lẫn đầu hàng bộ lọc, nút Danh sách/Lưới nằm tít trên tiêu đề trang, và
  * tiêu đề + thanh lọc mỗi thứ một đường kẻ riêng chồng lên nhau. Bộ lọc đang bật hiện giá trị của
@@ -143,64 +140,60 @@ export default function FileFilterBar({
     };
 
     return (
-        // Mọi viên là con TRỰC TIẾP của một hàng flex-wrap (không bọc nhóm bộ lọc riêng): trên điện
-        // thoại "Xoá bộ lọc" và cụm Sắp xếp/Chế độ xem dùng chung dòng thứ hai thay vì mỗi thứ một dòng.
-        <div className="flex flex-wrap items-center gap-2 pb-3 border-b border-glass-divider select-none">
-            {/* Bộ lọc — thu hẹp danh sách */}
-            <SelectDropdown
-                label={t('filter.type.label')}
-                icon={FileType}
-                options={typeOptions}
-                value={filterType}
-                onChange={setFilterType}
-                active={filterType !== 'all'}
-                onClear={() => setFilterType('all')}
-                clearLabel={t('filter.clearOne')}
-            />
-
-            <SelectDropdown
-                label={t('filter.date.label')}
-                icon={Calendar}
-                options={dateOptions}
-                value={filterDate}
-                onChange={setFilterDate}
-                active={filterDate !== 'all'}
-                onClear={() => setFilterDate('all')}
-                clearLabel={t('filter.clearOne')}
-            />
-
-            {/* Người sở hữu — chỉ ở Bộ nhớ chung */}
-            {showOwner && (
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-2 pb-3 border-b border-glass-divider select-none">
+            <div className="flex min-w-0 max-w-full flex-1 items-center gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {/* Bộ lọc — thu hẹp danh sách */}
                 <SelectDropdown
-                    label={t('search.filter.owner.label')}
-                    icon={UserRound}
-                    options={ownerOptions}
-                    value={filterOwner}
-                    onChange={setFilterOwner}
-                    active={filterOwner !== 'all'}
-                    onClear={() => setFilterOwner('all')}
+                    label={t('filter.type.label')}
+                    options={typeOptions}
+                    value={filterType}
+                    onChange={setFilterType}
+                    active={filterType !== 'all'}
+                    onClear={() => setFilterType('all')}
                     clearLabel={t('filter.clearOne')}
                 />
-            )}
 
-            {activeCount >= 2 && (
-                <button
-                    type="button"
-                    onClick={onReset}
-                    className="h-8 px-2 text-[12.5px] font-medium text-[var(--ink-muted)] hover:text-[var(--ink)] hover:underline underline-offset-2 cursor-pointer"
-                    title={t('filter.resetTitle')}
-                >
-                    {t('filter.reset')}
-                </button>
-            )}
+                <SelectDropdown
+                    label={t('filter.date.label')}
+                    options={dateOptions}
+                    value={filterDate}
+                    onChange={setFilterDate}
+                    active={filterDate !== 'all'}
+                    onClear={() => setFilterDate('all')}
+                    clearLabel={t('filter.clearOne')}
+                />
+
+                {/* Người sở hữu — chỉ ở Bộ nhớ chung */}
+                {showOwner && (
+                    <SelectDropdown
+                        label={t('search.filter.owner.label')}
+                        options={ownerOptions}
+                        value={filterOwner}
+                        onChange={setFilterOwner}
+                        active={filterOwner !== 'all'}
+                        onClear={() => setFilterOwner('all')}
+                        clearLabel={t('filter.clearOne')}
+                    />
+                )}
+
+                {activeCount >= 2 && (
+                    <button
+                        type="button"
+                        onClick={onReset}
+                        className="h-8 shrink-0 px-2 text-[12.5px] font-medium text-[var(--ink-muted)] hover:text-[var(--ink)] hover:underline underline-offset-2 cursor-pointer"
+                        title={t('filter.resetTitle')}
+                    >
+                        {t('filter.reset')}
+                    </button>
+                )}
+            </div>
 
             {/* Trình bày — thứ tự và chế độ xem, dồn sang phải */}
             {(showSort || showViewToggle) && (
-                <div className="ml-auto flex items-center gap-2">
+                <div className="flex w-full shrink-0 items-center justify-end gap-2 sm:ml-auto sm:w-auto">
                     {showSort && (
                         <SelectDropdown
                             label={t('filter.sort.label')}
-                            icon={ArrowUpDown}
                             options={sortOptions}
                             value={currentSort}
                             onChange={handleSortChange}

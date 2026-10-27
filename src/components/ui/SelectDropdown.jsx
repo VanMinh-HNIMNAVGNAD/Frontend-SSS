@@ -58,7 +58,7 @@ export default function SelectDropdown({
     const showClear = active && typeof onClear === 'function';
 
     return (
-        <div className="relative inline-block text-left" ref={dropdownRef}>
+        <div className="relative inline-block shrink-0 whitespace-nowrap text-left" ref={dropdownRef}>
             <div
                 className={`flex items-center h-8 rounded-full transition-colors duration-150 select-none ${
                     active ? 'glass-active text-[var(--ink)]' : 'glass-soft text-[var(--ink)]'

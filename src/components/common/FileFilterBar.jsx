@@ -140,8 +140,8 @@ export default function FileFilterBar({
     };
 
     return (
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-2 pb-3 border-b border-glass-divider select-none">
-            <div className="flex min-w-0 max-w-full flex-1 items-center gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex min-w-0 flex-nowrap items-center gap-2 overflow-x-auto pb-3 border-b border-glass-divider select-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="flex shrink-0 items-center gap-2">
                 {/* Bộ lọc — thu hẹp danh sách */}
                 <SelectDropdown
                     label={t('filter.type.label')}
@@ -190,7 +190,7 @@ export default function FileFilterBar({
 
             {/* Trình bày — thứ tự và chế độ xem, dồn sang phải */}
             {(showSort || showViewToggle) && (
-                <div className="flex w-full shrink-0 items-center justify-end gap-2 sm:ml-auto sm:w-auto">
+                <div className="flex shrink-0 items-center justify-end gap-2 sm:ml-auto">
                     {showSort && (
                         <SelectDropdown
                             label={t('filter.sort.label')}

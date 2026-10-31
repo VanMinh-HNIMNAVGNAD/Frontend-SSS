@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import { ChevronDown, Check, X } from 'lucide-react';
 
 /**
@@ -35,12 +36,54 @@ export default function SelectDropdown({
 }) {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef(null);
+    const menuRef = useRef(null);
+    const [menuPosition, setMenuPosition] = useState(null);
+
+    const updateMenuPosition = useCallback(() => {
+        if (!dropdownRef.current) return;
+        const rect = dropdownRef.current.getBoundingClientRect();
+        const menuWidth = 208;
+        const horizontalPadding = 8;
+        const left = align === 'right'
+            ? rect.right - menuWidth
+            : rect.left;
+        const clampedLeft = Math.min(
+            Math.max(horizontalPadding, left),
+            window.innerWidth - menuWidth - horizontalPadding,
+        );
+        setMenuPosition({
+            top: rect.bottom + 8,
+            left: clampedLeft,
+        });
+    }, [align]);
+
+    useLayoutEffect(() => {
+        if (!isOpen) return undefined;
+        updateMenuPosition();
+        return undefined;
+    }, [isOpen, updateMenuPosition]);
+
+    useEffect(() => {
+        if (!isOpen) return undefined;
+        const handleViewportChange = () => updateMenuPosition();
+        window.addEventListener('resize', handleViewportChange);
+        window.addEventListener('scroll', handleViewportChange, true);
+        return () => {
+            window.removeEventListener('resize', handleViewportChange);
+            window.removeEventListener('scroll', handleViewportChange, true);
+        };
+    }, [isOpen, updateMenuPosition]);
 
     // Bấm ra ngoài hoặc Esc thì đóng.
     useEffect(() => {
         if (!isOpen) return undefined;
         const handleClickOutside = (event) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) setIsOpen(false);
+            if (
+                !dropdownRef.current?.contains(event.target)
+                && !menuRef.current?.contains(event.target)
+            ) {
+                setIsOpen(false);
+            }
         };
         const handleKeyDown = (event) => {
             if (event.key === 'Escape') setIsOpen(false);
@@ -97,12 +140,12 @@ export default function SelectDropdown({
                 )}
             </div>
 
-            {isOpen && (
+            {isOpen && menuPosition && createPortal(
                 <div
+                    ref={menuRef}
                     role="listbox"
-                    className={`absolute mt-2 min-w-52 glass-strong rounded-[18px] p-1.5 z-50 animate-glass-in ${
-                        align === 'right' ? 'right-0 origin-top-right' : 'left-0 origin-top-left'
-                    }`}
+                    className="fixed w-52 max-w-[calc(100vw-1rem)] glass-strong rounded-[18px] p-1.5 z-[1000] animate-glass-in origin-top-left"
+                    style={{ top: menuPosition.top, left: menuPosition.left }}
                 >
                     <div className="max-h-72 overflow-y-auto custom-scrollbar">
                         {options.map((option) => {
@@ -137,7 +180,8 @@ export default function SelectDropdown({
                             );
                         })}
                     </div>
-                </div>
+                </div>,
+                document.body,
             )}
         </div>
     );

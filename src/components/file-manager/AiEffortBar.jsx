@@ -2,6 +2,10 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, Check } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { localeTagOf } from '../../utils/locale';
+import LiquidGroup from '../ui/LiquidGroup';
+
+/** Chọn xong đợi chừng này rồi mới khép menu — thấy giọt kính nhảy sang mức mới (06/11/2026). */
+const CLOSE_AFTER_PICK_MS = 280;
 
 /**
  * Nút "Mức suy luận" của khung Hỏi AI — Thấp / Vừa / Cao / Tối đa.
@@ -58,6 +62,10 @@ export default function AiEffortBar({ levels, value, onChange, seconds, disabled
     const rootRef = useRef(null);
     const triggerRef = useRef(null);
     const optionRefs = useRef([]);
+    // Mức vừa bấm, giữ trong lúc menu chờ khép — giọt kính nhảy tới đây.
+    const [picked, setPicked] = useState(null);
+    const closeTimerRef = useRef(0);
+    useEffect(() => () => window.clearTimeout(closeTimerRef.current), []);
     const index = Math.max(0, levels.indexOf(value));
     const current = levels[index];
     const number = useMemo(
@@ -75,11 +83,23 @@ export default function AiEffortBar({ levels, value, onChange, seconds, disabled
         return t('ai.effort.waitMinutes', { n: number.format(Math.round(s / 30) / 2) });
     };
 
-    const pick = (level) => {
-        if (disabled || !levels.includes(level)) return;
-        onChange(level);
+    const closeMenu = () => {
+        window.clearTimeout(closeTimerRef.current);
+        closeTimerRef.current = 0;
+        setPicked(null);
         setOpen(false);
+    };
+
+    const pick = (level) => {
+        if (disabled || !levels.includes(level) || closeTimerRef.current) return;
+        onChange(level);
         triggerRef.current?.focus();
+        if (level === current || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+            closeMenu();
+            return;
+        }
+        setPicked(level);
+        closeTimerRef.current = window.setTimeout(closeMenu, CLOSE_AFTER_PICK_MS);
     };
 
     const toggle = () => {
@@ -183,9 +203,17 @@ export default function AiEffortBar({ levels, value, onChange, seconds, disabled
                     <div className="px-3 pt-2.5 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
                         {t('ai.effort.label')}
                     </div>
-                    <div role="listbox" aria-label={t('ai.effort.label')} onKeyDown={onListKeyDown} className="p-1.5 pt-0">
+                    {/* Mức đang chọn nằm trên giọt kính (LiquidGroup) — chọn mức khác thì giọt nhảy
+                        sang rồi menu mới khép. */}
+                    <LiquidGroup
+                        activeKey={picked ?? current}
+                        role="listbox"
+                        aria-label={t('ai.effort.label')}
+                        onKeyDown={onListKeyDown}
+                        className="p-1.5 pt-0"
+                    >
                         {levels.map((level, i) => {
-                            const active = level === current;
+                            const active = level === (picked ?? current);
                             const wait = waitText(level);
                             const max = level === 'max';
                             return (
@@ -197,9 +225,10 @@ export default function AiEffortBar({ levels, value, onChange, seconds, disabled
                                     type="button"
                                     role="option"
                                     aria-selected={active}
+                                    data-liquid-key={level}
                                     onClick={() => pick(level)}
                                     className={`w-full flex items-start gap-2.5 px-2.5 py-2 rounded-[12px] text-left transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-soft)] ${
-                                        active ? 'glass-active' : 'hover:bg-black/[0.04] dark:hover:bg-white/[0.06]'
+                                        active ? '' : 'hover:bg-black/[0.04] dark:hover:bg-white/[0.06]'
                                     }`}
                                 >
                                     <span className="pt-0.5">
@@ -232,7 +261,7 @@ export default function AiEffortBar({ levels, value, onChange, seconds, disabled
                                 </button>
                             );
                         })}
-                    </div>
+                    </LiquidGroup>
                     <p className="px-3 pt-1.5 pb-2.5 text-[10px] leading-snug text-gray-500 dark:text-gray-400 border-t border-glass-divider">
                         {t(seconds ? 'ai.effort.footnoteTimed' : 'ai.effort.footnote')}
                     </p>

@@ -1,5 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { Analytics } from '@vercel/analytics/react'
 import './index.css'
 import App from './App.jsx'
 import cloudLogo from './assets/icon/cloud-acceleration-svgrepo-com.svg'
@@ -28,5 +29,7 @@ createRoot(document.getElementById('root')).render(
     <ErrorBoundary>
       <App />
     </ErrorBoundary>
+    {/* Vercel Web Analytics — chỉ gửi số liệu khi chạy trên Vercel (bản build thật). */}
+    <Analytics />
   </StrictMode>,
 )

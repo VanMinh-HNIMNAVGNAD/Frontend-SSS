@@ -6,14 +6,27 @@ import { useTags } from '../../context/TagsContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { DEFAULT_TAG_COLOR, TAG_COLORS, TAG_NAME_MAX } from '../../constants/tags';
 import { confirmDialog } from '../../utils/dialog';
+import LiquidGroup from '../ui/LiquidGroup';
 
-/** Một ô chọn màu — vòng tròn, đánh dấu màu đang chọn. */
+/**
+ * Một ô chọn màu — vòng tròn, đánh dấu màu đang chọn.
+ *
+ * Giọt kính (06/11/2026): mỗi chấm màu nằm trong một ô đệm `p-1`, nên giọt kính của LiquidGroup
+ * hiện thành một VÒNG kính quanh chấm đang chọn và trượt sang chấm mới khi đổi màu — cùng một ngôn
+ * ngữ "đang chọn" với thanh bên và các tab, thay cho vòng `ring` màu đặc cũ.
+ */
 function ColorDots({ value, onChange, disabled }) {
     const { t } = useLanguage();
+    const current = (value || DEFAULT_TAG_COLOR).toLowerCase();
     return (
-        <div className="flex flex-wrap items-center gap-1.5" role="radiogroup" aria-label={t('tags.color')}>
+        <LiquidGroup
+            activeKey={current}
+            className="flex flex-wrap items-center gap-0.5"
+            role="radiogroup"
+            aria-label={t('tags.color')}
+        >
             {TAG_COLORS.map((color) => {
-                const active = (value || DEFAULT_TAG_COLOR).toLowerCase() === color.toLowerCase();
+                const active = current === color.toLowerCase();
                 return (
                     <button
                         key={color}
@@ -22,17 +35,22 @@ function ColorDots({ value, onChange, disabled }) {
                         aria-checked={active}
                         aria-label={color}
                         disabled={disabled}
+                        data-liquid-key={color.toLowerCase()}
                         onClick={() => onChange(color)}
-                        className={`w-5 h-5 rounded-full flex items-center justify-center transition-transform cursor-pointer disabled:cursor-not-allowed ${
-                            active ? 'ring-2 ring-offset-2 ring-offset-[var(--app-surface)] scale-110' : 'hover:scale-110'
-                        }`}
-                        style={{ backgroundColor: color, '--tw-ring-color': color }}
+                        className="p-1 rounded-full cursor-pointer disabled:cursor-not-allowed group"
                     >
-                        {active && <Check className="w-3 h-3 text-white" />}
+                        <span
+                            className={`w-5 h-5 rounded-full flex items-center justify-center transition-transform ${
+                                active ? '' : 'group-hover:scale-110'
+                            }`}
+                            style={{ backgroundColor: color }}
+                        >
+                            {active && <Check className="w-3 h-3 text-white" />}
+                        </span>
                     </button>
                 );
             })}
-        </div>
+        </LiquidGroup>
     );
 }
 

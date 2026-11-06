@@ -304,9 +304,14 @@ export default function Header({ toggleRightSidebar }) {
         }
 
         const errors = [];
+        let cancelled = 0;
         for (const item of fileItems) {
             try {
-                const url = await getDownloadUrl(item.id, { silent: true });
+                const url = await getDownloadUrl(item.id, {
+                    silent: true,
+                    name: item.name,
+                    sizeBytes: Number(item.sizeBytes ?? item.size ?? 0) || undefined,
+                });
                 if (!url) {
                     errors.push({ name: item.name, reason: t('header.error.noDownloadUrl') });
                     continue;
@@ -314,9 +319,15 @@ export default function Header({ toggleRightSidebar }) {
                 triggerDownload(url, item.name);
                 await new Promise((r) => setTimeout(r, 300));
             } catch (err) {
+                // Có mã độc: hộp thoại đã nói rõ (và người dùng đã chọn huỷ) — không báo lỗi lần hai.
+                if (err?.handled) {
+                    cancelled += 1;
+                    continue;
+                }
                 errors.push({ name: item.name, reason: err?.message || t('common.unknownError') });
             }
         }
+        if (cancelled === fileItems.length) return;
         showBatchResult(
             fileItems.length,
             errors,

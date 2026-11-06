@@ -20,6 +20,7 @@ import { buildSortedDirPaths, chunkDirPaths } from '../utils/uploadTree';
 import { CHUNK_THRESHOLD, isResumableSize } from '../constants/upload';
 import { localeTagOf } from '../utils/locale';
 import { tOutsideReact } from '../utils/translate';
+import { fetchDownloadWithScan, VirusBlockedError } from '../utils/virusScan';
 import { dateFilterStart } from '../constants/fileFilters';
 import { readNamespace, writeManyCached, clearPersistentCache, cacheScope } from '../utils/persistentCache';
 import { primeThumbnailsForUpload } from '../utils/thumbnailPrimer';
@@ -3595,11 +3596,24 @@ export function FileProvider({ children }) {
    * cần chính `err.message` để gộp thành một thông báo có nguyên nhân, còn trả
    * null suông thì nó chỉ biết "thất bại" mà không biết vì sao.
    */
-  const getDownloadUrl = useCallback(async (id, { silent = false } = {}) => {
+  /**
+   * Quét virus (06/11/2026): backend quét tệp ≤ 20 MB trước khi ký URL. `fetchDownloadWithScan`
+   * hiện "Đang quét virus…", toast kết quả, và hộp thoại khi có mã độc — người dùng huỷ hay bị chặn
+   * thì nó ném `VirusBlockedError` (đã báo rồi): ở đây trả null, không toast thêm câu lỗi nào.
+   * `name`/`sizeBytes` chỉ để câu chữ của hộp thoại và để khỏi hiện "Đang quét…" cho tệp > 20 MB.
+   */
+  const getDownloadUrl = useCallback(async (id, { silent = false, name, sizeBytes } = {}) => {
     try {
-      const res = await storageApi.getDownloadUrl(id);
+      const res = await fetchDownloadWithScan(
+        (acceptRisk) => storageApi.getDownloadUrl(id, { acceptRisk }),
+        { t, name, sizeBytes },
+      );
       return res.downloadUrl;
     } catch (err) {
+      if (err instanceof VirusBlockedError) {
+        if (silent) throw err;
+        return null;
+      }
       if (silent) throw err;
       toast.error(t('file.downloadUrl.failed', { reason: err.message }));
       return null;

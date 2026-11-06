@@ -41,6 +41,7 @@ import { prefetchPreviewImage, usePreviewImage } from '../../hooks/usePreviewIma
 import { useFileThumbnail } from '../../hooks/useFileThumbnail';
 import { thumbnailFingerprint } from '../../utils/thumbnailStore';
 import { useZoomPan, useWheelZoom, ZOOM_MIN, ZOOM_MAX } from '../../hooks/useZoomPan';
+import { fetchDownloadWithScan, VirusBlockedError } from '../../utils/virusScan';
 
 // Tô màu mã nguồn là chunk RIÊNG, chỉ tải khi mở một tệp code/văn bản — xem `CodeHighlighter`.
 // pdf.js cũng vậy: `loadPdfjs()` trong `PdfCanvasViewer` (##85). Hai thứ này từng là import
@@ -642,7 +643,18 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
   const handleDownload = async () => {
     if (!item) return;
 
-    const res = await storageApi.getDownloadUrl(item.id).catch(() => null);
+    let res;
+    try {
+      // Quét virus trước khi tải (06/11/2026) — xem utils/virusScan.js.
+      res = await fetchDownloadWithScan(
+        (acceptRisk) => storageApi.getDownloadUrl(item.id, { acceptRisk }),
+        { t, name: item.name, sizeBytes: Number(item.sizeBytes ?? item.size ?? 0) || undefined },
+      );
+    } catch (err) {
+      // Có mã độc: hộp thoại đã báo; người dùng huỷ thì thôi, không thêm toast lỗi.
+      if (err instanceof VirusBlockedError) return;
+      res = null;
+    }
     const resolvedUrl = typeof res === 'string' ? res : res?.downloadUrl || res?.url || null;
 
     if (!resolvedUrl) {

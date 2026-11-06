@@ -111,7 +111,10 @@ export async function downloadSingleItem(item, getDownloadUrl, { t = tOutsideRea
     if (item.type === 'folder') return downloadItemsAsZip([item], { t });
 
     try {
-        const url = await getDownloadUrl(item.id);
+        const url = await getDownloadUrl(item.id, {
+            name: item.name,
+            sizeBytes: Number(item.sizeBytes ?? item.size ?? 0) || undefined,
+        });
         if (!url) return false;
         triggerDownload(url, item.name);
         return true;

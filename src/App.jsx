@@ -9,6 +9,10 @@ import AppRouter from './routes/AppRouter';
 import GlobalProgressBar from './components/common/GlobalProgressBar';
 import GlassToaster from './components/ui/GlassToaster';
 import DialogHost from './components/ui/DialogHost';
+import { initGlassFx } from './utils/glassPerf';
+
+// Mức hiệu ứng kính (Tự động / Đầy đủ / Tiết kiệm) gắn class lên <html> TRƯỚC render đầu tiên.
+initGlassFx();
 
 export default function App() {
     return (

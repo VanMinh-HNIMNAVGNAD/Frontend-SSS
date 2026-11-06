@@ -30,7 +30,18 @@
  * vẫn liền mạch — lò xo giữ nguyên vận tốc đang có khi đổi đích, transition thì bắt đầu lại từ 0.
  *
  * Mọi giọt trên trang dùng chung MỘT vòng requestAnimationFrame, tự tắt khi tất cả đứng yên.
+ *
+ * Hiệu năng (06/11/2026 — "còn khá lag trên máy yếu"):
+ *   • lúc đang chuyển động, giọt mang class `is-moving` (CSS: `will-change` → lớp riêng trên GPU, mỗi
+ *     khung chỉ dời lớp chứ không vẽ lại), đứng yên thì gỡ để không giữ bộ nhớ GPU cho hàng chục nhóm;
+ *   • `is-flying` chỉ bật khi giọt đang nhấc (`lift` > 0): CSS chỉ gắn `backdrop-filter` của lớp kính
+ *     trong và bóng xa vào lúc đó, thay vì để thường trực trên mọi nhóm của trang;
+ *   • `--lift` chỉ ghi khi đổi quá 0,01 — bớt tính lại style khi giọt gần như đã đứng;
+ *   • mỗi lượt chuyển động báo số khung hình chậm cho utils/glassPerf.js (chế độ Tự động chuyển sang
+ *     Tiết kiệm khi đo thấy giật thật).
  */
+
+import { reportLiquidFrames } from './glassPerf';
 
 /**
  * Lò xo theo thông số kiểu Apple.
@@ -103,22 +114,41 @@ const reducedMotion =
 const moving = new Set();
 let frame = 0;
 let lastTime = 0;
+/** Thống kê khung hình của lượt chuyển động hiện tại (từ lúc vòng lặp thức tới lúc mọi giọt đứng). */
+let statFrames = 0;
+let statSlow = 0;
+/** Khung dài hơn chừng này (ms) = dưới ~30 fps. */
+const SLOW_FRAME_MS = 34;
 
 function tick(now) {
+    const raw = now - lastTime;
+    statFrames += 1;
+    if (raw > SLOW_FRAME_MS) statSlow += 1;
     // Tab bị ẩn rồi quay lại thì `now - lastTime` có thể là vài giây: kẹp lại để giọt không
     // "dịch chuyển tức thời" qua một bước tích phân khổng lồ.
-    const dt = Math.min((now - lastTime) / 1000, 1 / 30);
+    const dt = Math.min(raw / 1000, 1 / 30);
     lastTime = now;
     for (const body of moving) {
-        if (!body.step(dt)) moving.delete(body);
+        if (!body.step(dt)) {
+            moving.delete(body);
+            body.setMoving(false);
+        }
     }
-    frame = moving.size ? requestAnimationFrame(tick) : 0;
+    if (moving.size) {
+        frame = requestAnimationFrame(tick);
+    } else {
+        frame = 0;
+        reportLiquidFrames(statFrames, statSlow);
+    }
 }
 
 function wake(body) {
     moving.add(body);
+    body.setMoving(true);
     if (!frame) {
         lastTime = performance.now();
+        statFrames = 0;
+        statSlow = 0;
         frame = requestAnimationFrame(tick);
     }
 }
@@ -176,6 +206,23 @@ export class LiquidBody {
         this.bounds = null;
         this.placed = false;
         this.visible = false;
+        this.movingClass = false;
+        this.flyingClass = false;
+        this.lastLift = -1;
+    }
+
+    /** `is-moving` trên các phần tử: CSS nâng chúng lên lớp GPU riêng trong lúc chuyển động. */
+    setMoving(on) {
+        if (this.movingClass === on) return;
+        this.movingClass = on;
+        for (const el of this.els) el.classList.toggle('is-moving', on);
+        if (!on) this.#setFlying(false);
+    }
+
+    #setFlying(on) {
+        if (this.flyingClass === on) return;
+        this.flyingClass = on;
+        for (const el of this.els) el.classList.toggle('is-flying', on);
     }
 
     get isMoving() {
@@ -190,6 +237,7 @@ export class LiquidBody {
         Object.assign(this.liftSpring, { x: 0, to: 0, v: 0 });
         this.leadEdge = this.trailEdge = null;
         moving.delete(this);
+        this.setMoving(false);
         this.#setBase(box);
         this.placed = true;
         this.render();
@@ -346,11 +394,16 @@ export class LiquidBody {
         const x = cx - this.baseW / 2;
         const y = cy - this.baseH / 2;
         const transform = Math.abs(sx - 1) < 1e-3 && Math.abs(sy - 1) < 1e-3 ? '' : `scale(${sx}, ${sy})`;
+        // `--lift` đổi kéo theo tính lại style (bóng xa, lớp kính trong): chỉ ghi khi đổi đáng kể,
+        // và luôn ghi đúng 0 khi hạ xuống hẳn.
+        const liftChanged = Math.abs(lift - this.lastLift) >= 0.01 || (lift === 0 && this.lastLift !== 0);
+        if (liftChanged) this.lastLift = lift;
         for (const el of this.els) {
             el.style.translate = `${x}px ${y}px`;
             el.style.transform = transform;
-            el.style.setProperty('--lift', lift.toFixed(3));
+            if (liftChanged) el.style.setProperty('--lift', lift.toFixed(2));
         }
+        if (this.movingClass) this.#setFlying(lift > 0.01);
         this.hooks.onRender?.();
     }
 

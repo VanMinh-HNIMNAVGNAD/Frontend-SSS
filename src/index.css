@@ -274,6 +274,49 @@ body {
   }
 }
 
+/* ── Hiệu ứng kính "Tiết kiệm" (06/11/2026) — `html.glass-lite`, bật ở Cài đặt hoặc tự bật trên máy
+   yếu (utils/glassPerf.js). Bỏ HẾT backdrop-filter: bề mặt đục hơn (cùng mức với khối "Giảm độ
+   trong suốt" ở trên) để chữ vẫn đọc rõ khi không còn lớp mờ phía sau; bóng đổ một lớp. Giao diện
+   vẫn là kính xám/trắng, chỉ không còn làm mờ những gì nằm sau nó — thứ tốn GPU nhất mỗi khi có gì
+   đó chuyển động phía sau một tấm kính nổi. */
+.glass-lite {
+  --glass-fill: rgba(255, 255, 255, 0.84);
+  --glass-fill-strong: rgba(250, 250, 251, 0.97);
+  --glass-fill-soft: rgba(255, 255, 255, 0.62);
+  --glass-overlay: rgba(220, 223, 228, 0.72);
+  --glass-shadow: 0 1px 2px rgba(15, 23, 42, 0.05), 0 8px 18px -12px rgba(15, 23, 42, 0.16);
+  --glass-shadow-pop: 0 2px 4px rgba(15, 23, 42, 0.06), 0 18px 36px -18px rgba(15, 23, 42, 0.3);
+}
+
+.glass-lite.dark {
+  --glass-fill: rgba(40, 40, 44, 0.9);
+  --glass-fill-strong: rgba(36, 36, 40, 0.98);
+  --glass-fill-soft: rgba(255, 255, 255, 0.06);
+  --glass-overlay: rgba(10, 10, 12, 0.7);
+  --glass-shadow: 0 1px 1px rgba(0, 0, 0, 0.25), 0 10px 22px -14px rgba(0, 0, 0, 0.6);
+  --glass-shadow-pop: 0 2px 4px rgba(0, 0, 0, 0.3), 0 20px 40px -18px rgba(0, 0, 0, 0.7);
+}
+
+.glass-lite :is(.glass-strong, .glass-overlay, .glass-stage, .glass-dark)::before {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.glass-lite [class*='backdrop-blur'] {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+/* Trình xem tệp luôn tối: không còn blur thì nền phải đục hơn để chữ trắng không nằm trên danh sách
+   tệp lờ mờ phía sau. */
+.glass-lite .glass-stage {
+  background-color: rgba(22, 22, 25, 0.95);
+}
+
+.glass-lite .glass-dark {
+  background-color: rgba(48, 48, 52, 0.94);
+}
+
 html,
 body,
 #root {
@@ -991,6 +1034,13 @@ html {
   word-break: break-word;
 }
 
+/* Khung AI: tấm Lịch sử đang mở thì giấu phần chat bên dưới (GeminiModal.jsx) — tấm Lịch sử không
+   có nền riêng, nằm thẳng trên kính của khung. `visibility` chứ không `display`: giữ chỗ cuộn của
+   hội thoại và chữ đang gõ dở, và phần bị giấu không nhận được cú bấm hay tiêu điểm bàn phím. */
+.ai-history-open > :not([data-ai-history]) {
+  visibility: hidden;
+}
+
 .prose-ai > *:first-child { margin-top: 0; }
 .prose-ai > *:last-child { margin-bottom: 0; }
 
@@ -1078,6 +1128,18 @@ html {
 }
 
 .prose-ai th { background: rgba(100, 116, 139, 0.12); font-weight: 600; }
+
+/* Ô bảng không bẻ giữa một con số hay một từ ("1.200.|000.0|00" — 06/11/2026): `.prose-ai` bẻ chữ
+   ở mọi chỗ để đoạn văn không tràn, nhưng bảng đã tự cuộn ngang (`display: block` + `overflow-x`)
+   nên ô cứ rộng theo nội dung, người đọc vuốt ngang thay vì đọc số bị chặt làm ba dòng. `min-width`
+   giữ cho cột chữ dài (ghi chú) không bị các cột số ép còn một từ mỗi dòng: đo trên bảng 5 cột trong
+   khung AI 30rem, dòng cao 188–208px → 89px. */
+.prose-ai th,
+.prose-ai td {
+  word-break: normal;
+  overflow-wrap: normal;
+  min-width: 6.5rem;
+}
 
 .prose-ai hr {
   border: 0;

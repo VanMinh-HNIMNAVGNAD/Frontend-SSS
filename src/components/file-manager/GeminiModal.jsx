@@ -1085,7 +1085,7 @@ export default function GeminiModal({
                 nextBefore: res.nextBefore,
             }));
         } catch (err) {
-            setHistoryError(err?.response?.data?.message || t('ai.history.loadError'));
+            setHistoryError(err?.message || t('ai.history.loadError'));
         } finally {
             setHistoryLoading(false);
         }
@@ -1106,7 +1106,7 @@ export default function GeminiModal({
         try {
             setViewing(await aiApi.getConversation(id));
         } catch (err) {
-            setHistoryError(err?.response?.data?.message || t('ai.history.loadError'));
+            setHistoryError(err?.message || t('ai.history.loadError'));
         } finally {
             setHistoryLoading(false);
         }
@@ -1126,7 +1126,7 @@ export default function GeminiModal({
             // theo sẽ mở cuộc mới thay vì ghi vào một id không còn tồn tại.
             if (conversationId === id) setConversationId(null);
         } catch (err) {
-            setHistoryError(err?.response?.data?.message || t('ai.history.loadError'));
+            setHistoryError(err?.message || t('ai.history.loadError'));
         }
     };
 
@@ -1162,7 +1162,7 @@ export default function GeminiModal({
                     : t('ai.history.wipe.empty'),
             );
         } catch (err) {
-            const message = err?.response?.data?.message || t('ai.history.wipe.failed');
+            const message = err?.message || t('ai.history.wipe.failed');
             // Lỗi hiện ở CẢ hai chỗ: toast cho người đang đứng ở khung chat (menu vừa
             // đóng, không còn gì để đọc ở đó), và dòng đỏ trong tấm lịch sử cho người
             // đang mở nó — họ nhìn vào danh sách chứ không nhìn góc màn hình.
@@ -1492,9 +1492,13 @@ export default function GeminiModal({
                 ref={panelRef}
                 // Kính nổi (`glass-strong`): trên máy tính là tấm kính đứng cách mép màn hình một
                 // khe như thanh bên/header của app, không còn là cột dính sát cạnh phải.
-                className="glass-strong relative flex flex-col overflow-hidden cursor-default text-gray-900 dark:text-gray-100
+                // `ai-history-open`: tấm Lịch sử phủ lên thì GIẤU phần chat bên dưới (visibility,
+                // không unmount — giữ nguyên chỗ cuộn và chữ đang gõ). Xem index.css.
+                className={`glass-strong relative flex flex-col overflow-hidden cursor-default text-gray-900 dark:text-gray-100
                            w-full max-w-lg h-[85vh] rounded-[26px] animate-glass-in
-                           sm:h-auto sm:my-3 sm:mr-3 sm:max-w-none sm:w-[26rem] lg:w-[30rem] sm:animate-slide-left"
+                           sm:h-auto sm:my-3 sm:mr-3 sm:max-w-none sm:w-[26rem] lg:w-[30rem] sm:animate-slide-left ${
+                               historyOpen ? 'ai-history-open' : ''
+                           }`}
                 role="dialog"
                 aria-modal="false"
                 aria-label={t('ai.title')}
@@ -2216,9 +2220,15 @@ export default function GeminiModal({
                     Một tấm phủ kín khung, có phần đầu riêng: khỏi phải đoán chiều cao
                     phần đầu của khung chat bằng con số px (con số đó sai ngay khi tên
                     tệp dài xuống hai dòng). Hai màn hình trong cùng tấm này: danh sách
-                    mọi cuộc, và nội dung một cuộc khi bấm vào. */}
+                    mọi cuộc, và nội dung một cuộc khi bấm vào.
+
+                    Không tự tô nền (06/11/2026): trước đây là `glass-soft` — trắng 46% ở bản
+                    Sáng, trắng 4,5% ở bản Tối, KHÔNG blur — nên tin nhắn, hạn mức và ô nhập
+                    của khung chat hiện xuyên qua, chồng lên danh sách lịch sử. Nay phần chat
+                    được giấu hẳn (`ai-history-open` trên khung), tấm này nằm thẳng trên kính
+                    của khung — một lớp kính, không phải hai lớp chồng nhau. */}
                 {historyOpen && (
-                    <div className="glass-soft absolute inset-0 z-10 flex flex-col animate-fade-in">
+                    <div data-ai-history="" className="absolute inset-0 z-10 flex flex-col animate-fade-in">
                         <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-glass-divider">
                             <div className="flex items-center gap-2 min-w-0">
                                 {viewing ? (
@@ -2277,18 +2287,22 @@ export default function GeminiModal({
                                             key={m.id}
                                             className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
                                         >
+                                            {/* `min-w-0` + `prose-ai` (06/11/2026): bản trước dùng `prose prose-sm`
+                                                của plugin typography — dự án KHÔNG cài plugin đó, nên bảng và khối code
+                                                không có `overflow-x: auto`, dòng dài đẩy bong bóng tràn khỏi khung và
+                                                đè lên chữ bên cạnh. `prose-ai` là đúng bộ kiểu của khung chat chính. */}
                                             <div
-                                                className={`max-w-[85%] px-3.5 py-2.5 rounded-2xl text-[13px] ${
+                                                className={`min-w-0 max-w-[85%] px-3.5 py-2.5 rounded-2xl text-[13px] leading-relaxed ${
                                                     m.role === 'user'
                                                         ? 'glass-active text-[var(--ink)]'
-                                                        : 'bg-gray-100 dark:bg-white/[0.06] text-gray-800 dark:text-gray-200'
+                                                        : 'bg-black/[0.04] dark:bg-white/[0.06] text-gray-800 dark:text-gray-200'
                                                 }`}
                                             >
                                                 {m.role === 'user' ? (
                                                     <p className="whitespace-pre-wrap break-words">{m.content}</p>
                                                 ) : (
                                                     <div
-                                                        className="prose prose-sm dark:prose-invert max-w-none break-words"
+                                                        className="prose-ai"
                                                         dangerouslySetInnerHTML={{ __html: renderMarkdown(m.content) }}
                                                     />
                                                 )}

@@ -22,6 +22,21 @@ function findItem(group, key) {
  * của nhóm, cộng phần đã cuộn — viên kính nằm trong nội dung cuộn nên cuộn theo nội dung. Chia
  * cho tỉ lệ co giãn hiện tại của nhóm (hộp thoại đang chạy hiệu ứng `animate-glass-in` 0.96 → 1).
  */
+/**
+ * Bán kính bo góc của mục — đọc `getComputedStyle` (bắt trình duyệt tính lại style) nên nhớ theo
+ * phần tử: bo góc của một nút không đổi trong đời nó. WeakMap để mục bị gỡ khỏi DOM tự được dọn.
+ */
+const radiusCache = new WeakMap();
+
+function itemRadius(item) {
+    let radius = radiusCache.get(item);
+    if (radius === undefined) {
+        radius = parseFloat(getComputedStyle(item).borderTopLeftRadius) || 0;
+        radiusCache.set(item, radius);
+    }
+    return radius;
+}
+
 function measure(group, item) {
     const g = group.getBoundingClientRect();
     const r = item.getBoundingClientRect();
@@ -31,7 +46,7 @@ function measure(group, item) {
     const t = (r.top - g.top) / sy - group.clientTop + group.scrollTop;
     const w = r.width / sx;
     const h = r.height / sy;
-    const radius = Math.min(parseFloat(getComputedStyle(item).borderTopLeftRadius) || 0, w / 2, h / 2);
+    const radius = Math.min(itemRadius(item), w / 2, h / 2);
     return { l, t, r: l + w, b: t + h, radius };
 }
 
@@ -40,10 +55,18 @@ function measure(group, item) {
  * toán `overflow-x-auto`) thì mọi thứ thò ra ngoài khung đệm bị cắt — kể cả góc bo của giọt đang
  * phình. Toạ độ cùng hệ với `measure` (gốc ở khung đệm, tính cả phần nội dung đã cuộn).
  */
-function measureBounds(group) {
-    const cs = getComputedStyle(group);
-    const clipX = cs.overflowX !== 'visible';
-    const clipY = cs.overflowY !== 'visible';
+const overflowCache = new WeakMap();
+
+function measureBounds(group, { fresh = false } = {}) {
+    // `overflow` của nhóm gần như không bao giờ đổi — đọc lại chỉ khi đổi cỡ (ResizeObserver).
+    let clip = fresh ? undefined : overflowCache.get(group);
+    if (!clip) {
+        const cs = getComputedStyle(group);
+        clip = { x: cs.overflowX !== 'visible', y: cs.overflowY !== 'visible' };
+        overflowCache.set(group, clip);
+    }
+    const clipX = clip.x;
+    const clipY = clip.y;
     if (!clipX && !clipY) return null;
     return {
         l: clipX ? group.scrollLeft : -Infinity,
@@ -100,16 +123,53 @@ export default function LiquidGroup({ as: Tag = 'div', activeKey = null, classNa
         return bodyRef.current;
     }, []);
 
+    /** Đo lại vị trí mục đang chọn ở khung hình kế (gộp nhiều lần gọi trong một khung thành một). */
+    const resyncFrameRef = useRef(0);
+    const freshBoundsRef = useRef(false);
+    const resync = useCallback(() => {
+        resyncFrameRef.current = 0;
+        const group = groupRef.current;
+        if (!group) return;
+        const body = getBody();
+        const key = lastActiveKeyRef.current;
+        const item = key == null ? null : findItem(group, key);
+        if (!body.placed) return;
+        if (!item) {
+            // Mục đang chọn vừa rời DOM: giấu giọt; khi mục quay lại, render kế sẽ đặt lại (đồng bộ).
+            if (body.visible) body.setVisible(false);
+            body.placed = false;
+            return;
+        }
+        const box = measure(group, item);
+        body.setBounds(measureBounds(group, { fresh: freshBoundsRef.current }));
+        freshBoundsRef.current = false;
+        if (body.isMoving) body.retarget(box);
+        else if (!body.isAt(box)) body.snap(box);
+    }, [getBody]);
+    const scheduleResync = useCallback(() => {
+        if (!resyncFrameRef.current) resyncFrameRef.current = requestAnimationFrame(resync);
+    }, [resync]);
+
     // Không có mảng phụ thuộc: chạy sau MỌI lần render, vì mục có thể dời chỗ mà `activeKey` không
-    // đổi (danh sách nhãn nạp xong chèn thêm hàng phía trên "Thùng rác"…). Mỗi lần chỉ tốn hai lần
-    // đo khung; trùng chỗ cũ thì không làm gì.
+    // đổi (danh sách nhãn nạp xong chèn thêm hàng phía trên "Thùng rác"…).
+    //
+    // Hiệu năng (06/11/2026): chỉ ĐO NGAY (đồng bộ, trong lúc React commit) khi phải phản ứng tức thì —
+    // lần hiện đầu, hoặc `activeKey` vừa đổi (cú nhảy phải bắt đầu ở đúng khung hình của cú bấm). Các
+    // lần render khác (thanh bên render lại theo tiến trình tải lên, đếm thông báo…) chỉ hẹn đo ở
+    // khung hình kế: không còn ép trình duyệt tính bố cục giữa lúc React đang ghi DOM, và nhiều lần
+    // render trong một khung chỉ đo một lần.
     useLayoutEffect(() => {
         const group = groupRef.current;
         const body = getBody();
-        const item = activeKey == null ? null : findItem(group, activeKey);
         const keyChanged = lastActiveKeyRef.current !== activeKey;
         lastActiveKeyRef.current = activeKey;
 
+        if (!keyChanged && body.placed) {
+            scheduleResync();
+            return;
+        }
+
+        const item = activeKey == null ? null : findItem(group, activeKey);
         if (!item) {
             if (body.visible) body.setVisible(false);
             body.placed = false;
@@ -126,33 +186,25 @@ export default function LiquidGroup({ as: Tag = 'div', activeKey = null, classNa
         if (!body.visible) body.setVisible(true, { instant: true });
     });
 
+    // Mục đang chọn có thể chưa có trong DOM ở lần render đầu (danh sách nạp sau): `placed` vẫn
+    // false nên lần render kế sẽ đo đồng bộ như cũ — xem nhánh `!body.placed` ở trên.
+
     // Bám theo bố cục: thu/mở thanh bên, đổi cỡ cửa sổ, phông chữ nạp xong.
     useEffect(() => {
         const group = groupRef.current;
-        let frame = 0;
-        const resync = () => {
-            frame = 0;
-            const body = getBody();
-            const key = lastActiveKeyRef.current;
-            const item = key == null ? null : findItem(group, key);
-            if (!item || !body.placed) return;
-            const box = measure(group, item);
-            body.setBounds(measureBounds(group));
-            if (body.isMoving) body.retarget(box);
-            else if (!body.isAt(box)) body.snap(box);
+        const onResize = () => {
+            freshBoundsRef.current = true;
+            scheduleResync();
         };
-        const schedule = () => {
-            if (!frame) frame = requestAnimationFrame(resync);
-        };
-
-        const observer = new ResizeObserver(schedule);
+        const observer = new ResizeObserver(onResize);
         observer.observe(group);
-        document.fonts?.ready.then(schedule);
+        document.fonts?.ready.then(scheduleResync);
         return () => {
             observer.disconnect();
-            cancelAnimationFrame(frame);
+            cancelAnimationFrame(resyncFrameRef.current);
+            resyncFrameRef.current = 0;
         };
-    }, [getBody]);
+    }, [scheduleResync]);
 
     return (
         <Tag ref={setGroupRef} data-liquid-group="" className={`liquid-group ${className}`} {...rest}>

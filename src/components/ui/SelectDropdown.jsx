@@ -1,6 +1,16 @@
 import { createPortal } from 'react-dom';
 import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import { ChevronDown, Check, X } from 'lucide-react';
+import LiquidGroup from './LiquidGroup';
+
+/**
+ * Chọn xong thì menu đợi chừng này (ms) rồi mới khép: đủ để thấy giọt kính nhảy từ mục cũ sang mục
+ * mới (vươn → đáp) — bộ lọc thì đã áp ngay lúc bấm, không ai phải chờ kết quả.
+ */
+const CLOSE_AFTER_PICK_MS = 280;
+
+const prefersReducedMotion = () =>
+    typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 /**
  * Viên chọn kiểu kính cho thanh lọc (Loại tệp, Ngày sửa đổi, Người sở hữu, Sắp xếp).
@@ -21,7 +31,10 @@ import { ChevronDown, Check, X } from 'lucide-react';
  * @param {string} [clearLabel] - Tooltip / aria-label của nút ✕
  *
  * Đơn sắc (26/10/2026): đang bật là viên kính SÁNG (`glass-active`) + chữ mực đậm thay cho nền xanh
- * chữ xanh; mục đang chọn trong menu cũng vậy, dấu ✓ màu mực.
+ * chữ xanh; dấu ✓ màu mực.
+ *
+ * Giọt kính (06/11/2026): mục đang chọn trong menu nằm trên giọt kính của LiquidGroup (như thanh
+ * bên, các tab) thay cho nền `glass-active` tĩnh; chọn mục khác thì giọt nhảy sang rồi menu mới khép.
  */
 export default function SelectDropdown({
     label,
@@ -38,6 +51,18 @@ export default function SelectDropdown({
     const dropdownRef = useRef(null);
     const menuRef = useRef(null);
     const [menuPosition, setMenuPosition] = useState(null);
+    // Mục vừa bấm, giữ trong lúc menu chờ khép — giọt kính nhảy tới đây.
+    const [picked, setPicked] = useState(null);
+    const closeTimerRef = useRef(0);
+
+    const closeMenu = useCallback(() => {
+        window.clearTimeout(closeTimerRef.current);
+        closeTimerRef.current = 0;
+        setPicked(null);
+        setIsOpen(false);
+    }, []);
+
+    useEffect(() => () => window.clearTimeout(closeTimerRef.current), []);
 
     const updateMenuPosition = useCallback(() => {
         if (!dropdownRef.current) return;
@@ -82,11 +107,11 @@ export default function SelectDropdown({
                 !dropdownRef.current?.contains(event.target)
                 && !menuRef.current?.contains(event.target)
             ) {
-                setIsOpen(false);
+                closeMenu();
             }
         };
         const handleKeyDown = (event) => {
-            if (event.key === 'Escape') setIsOpen(false);
+            if (event.key === 'Escape') closeMenu();
         };
         document.addEventListener('mousedown', handleClickOutside);
         window.addEventListener('keydown', handleKeyDown);
@@ -94,7 +119,20 @@ export default function SelectDropdown({
             document.removeEventListener('mousedown', handleClickOutside);
             window.removeEventListener('keydown', handleKeyDown);
         };
-    }, [isOpen]);
+    }, [isOpen, closeMenu]);
+
+    const pick = (optionValue) => {
+        if (closeTimerRef.current) return; // đang khép sau một cú chọn — bỏ qua cú bấm thứ hai
+        onChange(optionValue);
+        if (optionValue === value || prefersReducedMotion()) {
+            closeMenu();
+            return;
+        }
+        setPicked(optionValue);
+        closeTimerRef.current = window.setTimeout(closeMenu, CLOSE_AFTER_PICK_MS);
+    };
+
+    const shownValue = String(picked ?? value);
 
     const selectedOption = options.find((opt) => opt.value === value);
     const displayLabel = selectedOption && value !== 'all' ? selectedOption.label : label;
@@ -109,7 +147,7 @@ export default function SelectDropdown({
             >
                 <button
                     type="button"
-                    onClick={() => setIsOpen((open) => !open)}
+                    onClick={() => (isOpen ? closeMenu() : setIsOpen(true))}
                     aria-haspopup="listbox"
                     aria-expanded={isOpen}
                     title={label}
@@ -147,9 +185,9 @@ export default function SelectDropdown({
                     className="fixed w-52 max-w-[calc(100vw-1rem)] glass-strong rounded-[18px] p-1.5 z-[1000] animate-glass-in origin-top-left"
                     style={{ top: menuPosition.top, left: menuPosition.left }}
                 >
-                    <div className="max-h-72 overflow-y-auto custom-scrollbar">
+                    <LiquidGroup activeKey={shownValue} className="max-h-72 overflow-y-auto custom-scrollbar">
                         {options.map((option) => {
-                            const isSelected = option.value === value;
+                            const isSelected = String(option.value) === shownValue;
                             const OptionIcon = option.icon;
                             return (
                                 <button
@@ -157,13 +195,11 @@ export default function SelectDropdown({
                                     type="button"
                                     role="option"
                                     aria-selected={isSelected}
-                                    onClick={() => {
-                                        onChange(option.value);
-                                        setIsOpen(false);
-                                    }}
+                                    data-liquid-key={String(option.value)}
+                                    onClick={() => pick(option.value)}
                                     className={`w-full text-left px-2.5 py-2 rounded-xl text-[13px] flex items-center justify-between gap-3 transition-colors cursor-pointer text-[var(--ink)] ${
                                         isSelected
-                                            ? 'glass-active font-semibold'
+                                            ? 'font-semibold'
                                             : 'font-medium pointer-coarse:active:bg-black/[0.05] dark:pointer-coarse:active:bg-white/[0.08]'
                                     }`}
                                 >
@@ -179,7 +215,7 @@ export default function SelectDropdown({
                                 </button>
                             );
                         })}
-                    </div>
+                    </LiquidGroup>
                 </div>,
                 document.body,
             )}

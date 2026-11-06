@@ -1215,7 +1215,12 @@ export const storageApi = {
     });
     return res;
   },
-  getDownloadUrl: (id) => api.get(`/files/${id}/download-url`),
+  /**
+   * `acceptRisk`: chủ tệp đã được báo có mã độc và vẫn muốn tải (xem utils/virusScan.js). Backend
+   * quét virus tệp ≤ 20 MB trước khi ký URL, nên lượt gọi này có thể mất vài giây.
+   */
+  getDownloadUrl: (id, { acceptRisk = false } = {}) =>
+    api.get(`/files/${id}/download-url`, acceptRisk ? { params: { acceptRisk: 1 } } : undefined),
   /**
    * URL xem trước có chữ ký, qua bộ đệm.
    *

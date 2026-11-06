@@ -169,8 +169,11 @@
     pointer-events: none;
   }
 
-  /* Giọt kính: nằm dưới chữ. Bóng đổ xa và đậm dần theo `--lift` — lúc bay nó cách mặt kính
-     xa hơn, lúc đáp bóng thu về sát chân. */
+  /* Giọt kính: nằm dưới chữ. Bóng sát chân là bóng TĨNH; bóng xa lúc bay nằm ở `::after` và chỉ
+     đổi `opacity` theo `--lift` (06/11/2026). Bản trước nội suy cả độ lệch/độ nhoè/độ đậm của
+     box-shadow theo `--lift` — mỗi khung hình là một lần vẽ lại bóng nhoè, đúng thứ làm máy yếu
+     giật. Nay khi đang bay `::after` là một lớp GPU riêng (`is-flying` → will-change), đổi độ
+     trong suốt không phải vẽ lại gì. */
   .liquid-pill {
     z-index: -1;
     opacity: 0;
@@ -180,26 +183,56 @@
       inset 0 -1px 0 var(--drop-spec-bottom),
       inset 0 -8px 12px -10px var(--drop-caustic),
       0 0 0 0.5px var(--drop-hairline),
-      0 calc(2px + 9px * var(--lift, 0)) calc(6px + 16px * var(--lift, 0)) calc(-3px - 6px * var(--lift, 0))
-        rgb(var(--drop-shadow-rgb) / calc(var(--drop-shadow-alpha) + 0.1 * var(--lift, 0)));
+      0 2px 6px -3px rgb(var(--drop-shadow-rgb) / var(--drop-shadow-alpha));
     transition: opacity 0.2s ease;
+  }
+
+  .liquid-pill::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    box-shadow: 0 11px 22px -9px rgb(var(--drop-shadow-rgb) / calc(var(--drop-shadow-alpha) + 0.1));
+    opacity: var(--lift, 0);
   }
 
   .liquid-pill.is-visible {
     opacity: 1;
   }
 
+  /* Đang chuyển động: nâng giọt lên lớp GPU riêng để mỗi khung chỉ DỜI lớp (translate/scale) chứ
+     không vẽ lại. Gỡ ngay khi đứng yên — hàng chục nhóm trên trang mà nhóm nào cũng giữ một lớp
+     thường trực là tốn bộ nhớ GPU vô ích. */
+  .liquid-pill.is-moving,
+  .liquid-lens.is-moving {
+    will-change: transform, translate;
+  }
+
+  .liquid-pill.is-flying::after {
+    will-change: opacity;
+  }
+
   /* Lớp kính trong: TRÊN chữ, chỉ hiện khi giọt đang bay (độ trong suốt theo `--lift`) — viền sáng
-     + màu phía sau đậm lên chút, như nhìn qua một khối kính dày. Không làm mờ, không bẻ cong. */
+     + màu phía sau đậm lên chút, như nhìn qua một khối kính dày. Không làm mờ, không bẻ cong.
+     `backdrop-filter` CHỈ gắn khi đang bay (`is-flying`): bản trước để nó thường trực trên mọi nhóm
+     (thanh bên, tab, chip…) dù lớp kính trong ẩn (opacity 0) gần như toàn thời gian. */
   .liquid-lens {
     z-index: 1;
     opacity: calc(0.9 * var(--lift, 0));
-    -webkit-backdrop-filter: saturate(1.5) brightness(1.03);
-    backdrop-filter: saturate(1.5) brightness(1.03);
     box-shadow:
       inset 0 1px 0.5px var(--lens-rim-top),
       inset 0 -1px 1px var(--lens-rim-bottom),
       inset 0 0 0 1px var(--lens-rim);
+  }
+
+  .liquid-lens:not(.is-flying) {
+    visibility: hidden;
+  }
+
+  .liquid-lens.is-flying {
+    -webkit-backdrop-filter: saturate(1.5) brightness(1.03);
+    backdrop-filter: saturate(1.5) brightness(1.03);
   }
 
   /* ── 3. Công tắc bật/tắt: núm là một giọt nước ───────────────────────────
@@ -250,6 +283,25 @@
     transition-delay: 0s;
     transition-timing-function: ease;
   }
+}
+
+/* ── Hiệu ứng kính "Tiết kiệm" (06/11/2026) — `html.glass-lite`, xem utils/glassPerf.js ─────────
+   Giọt kính vẫn nhảy (transform trên lớp GPU — rẻ), nhưng không nhấc bóng, không lớp kính trong
+   (backdrop-filter), và viền sáng có hướng (mask) nhường chỗ cho đường viền thường của tấm kính.
+   Đặt NGOÀI @layer để thắng các luật trong `@layer components` bất kể độ đặc hiệu. */
+.glass-lite .liquid-lens,
+.glass-lite .liquid-pill::after,
+.glass-lite .glass-edge,
+.glass-lite :is(.glass-strong, .glass-dark)::after {
+  display: none;
+}
+
+.glass-lite .liquid-pill {
+  box-shadow:
+    inset 0 1px 0 var(--drop-spec-top),
+    inset 0 -1px 0 var(--drop-spec-bottom),
+    0 0 0 0.5px var(--drop-hairline),
+    0 1px 3px rgb(var(--drop-shadow-rgb) / var(--drop-shadow-alpha));
 }
 
 /* Chế độ tương phản cao của Windows: bỏ hết lớp trang trí, để màu hệ thống lo phần nổi bật. */

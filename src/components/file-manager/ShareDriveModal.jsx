@@ -5,6 +5,7 @@ import { sharedDrivesApi } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import tRich from '../../utils/tRich';
+import LiquidGroup from '../ui/LiquidGroup';
 
 /**
  * Chia sẻ một BỘ NHỚ DÙNG CHUNG — khác hẳn `ShareModal` của tệp/thư mục.
@@ -147,15 +148,6 @@ export default function ShareDriveModal({ isOpen, drive, onClose, onChanged }) {
                                 placeholder={t('driveShare.email.placeholder')}
                                 className="glass-input flex-1 min-w-0 px-3.5 py-2.5 rounded-2xl text-sm text-[var(--ink)] placeholder:text-[var(--ink-subtle)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-soft)] transition-all"
                             />
-                            <select
-                                value={role}
-                                onChange={(e) => setRole(e.target.value)}
-                                className="glass-select pl-3 py-2.5 rounded-2xl text-sm font-medium text-[var(--ink)] outline-none focus:ring-2 focus:ring-[var(--accent-soft)] cursor-pointer"
-                            >
-                                {ROLE_OPTIONS.map((r) => (
-                                    <option key={r.value} value={r.value}>{t(r.labelKey)}</option>
-                                ))}
-                            </select>
                             <button
                                 type="submit"
                                 disabled={!email.trim() || isSubmitting}
@@ -164,6 +156,31 @@ export default function ShareDriveModal({ isOpen, drive, onClose, onChanged }) {
                                 {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>{t('driveShare.add')}</span>}
                             </button>
                         </div>
+                        {/* Vai trò: khay ba lựa chọn có giọt kính (06/11/2026, cũ: <select>). */}
+                        <LiquidGroup
+                            activeKey={role}
+                            role="group"
+                            aria-label={t('driveShare.role.label')}
+                            className="grid grid-cols-3 gap-1 p-1 rounded-2xl glass-soft"
+                        >
+                            {ROLE_OPTIONS.map(({ value, labelKey, icon: Icon }) => (
+                                <button
+                                    key={value}
+                                    type="button"
+                                    data-liquid-key={value}
+                                    onClick={() => setRole(value)}
+                                    aria-pressed={role === value}
+                                    className={`min-w-0 flex items-center justify-center gap-1.5 px-2 py-2 rounded-xl text-xs transition-colors cursor-pointer ${
+                                        role === value
+                                            ? 'text-[var(--ink)] font-semibold'
+                                            : 'text-[var(--ink-muted)] hover:text-[var(--ink)] font-medium'
+                                    }`}
+                                >
+                                    <Icon className="w-3.5 h-3.5 shrink-0" />
+                                    <span className="truncate">{t(labelKey)}</span>
+                                </button>
+                            ))}
+                        </LiquidGroup>
                         <p className="text-[11px] text-slate-400">{ROLE_MAP[role]?.hintKey ? t(ROLE_MAP[role].hintKey) : ''}</p>
                     </form>
                 ) : (

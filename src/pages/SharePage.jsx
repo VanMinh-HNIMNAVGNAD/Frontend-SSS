@@ -18,6 +18,7 @@ import LiquidGroup from '../components/ui/LiquidGroup';
 import { usePreviewImage } from '../hooks/usePreviewImage';
 import { useZoomPan, ZOOM_MIN, ZOOM_MAX } from '../hooks/useZoomPan';
 import { alertDialog } from '../utils/dialog';
+import { fetchDownloadWithScan, VirusBlockedError } from '../utils/virusScan';
 
 // pdf.js (`loadPdfjs`) và bộ tô màu mã nguồn chỉ tải khi người nhận link mở đúng loại tệp đó —
 // trước ##85 chúng là import tĩnh, nên link chia sẻ một tấm ảnh cũng kéo theo ~1MB JS.
@@ -1296,7 +1297,15 @@ export default function SharePage() {
     if (downloadLoading) return;
     setDownloadLoading(true);
     try {
-      const res = await sharingApi.getSharedDownloadUrl(token, undefined, shareAuthToken || undefined);
+      // Quét virus trước khi tải (06/11/2026): khách qua link không được bỏ qua kết quả quét.
+      const res = await fetchDownloadWithScan(
+        () => sharingApi.getSharedDownloadUrl(token, undefined, shareAuthToken || undefined),
+        {
+          t,
+          name: shareData?.file?.name,
+          sizeBytes: Number(shareData?.file?.sizeBytes ?? shareData?.file?.size ?? 0) || undefined,
+        },
+      );
       const url = typeof res === 'string' ? res : (res?.downloadUrl || res?.url);
       if (url) {
         const a = document.createElement('a');
@@ -1308,6 +1317,7 @@ export default function SharePage() {
         document.body.removeChild(a);
       }
     } catch (err) {
+      if (err instanceof VirusBlockedError) return;
       await alertDialog(err?.message || t('sharePage.file.downloadFailed'));
     } finally {
       setDownloadLoading(false);
@@ -1347,7 +1357,14 @@ export default function SharePage() {
   const handleDownloadChild = useCallback(async (childFile) => {
     if (!childFile) return;
     try {
-      const res = await sharingApi.getSharedDownloadUrl(token, childFile.id, shareAuthToken || undefined);
+      const res = await fetchDownloadWithScan(
+        () => sharingApi.getSharedDownloadUrl(token, childFile.id, shareAuthToken || undefined),
+        {
+          t,
+          name: childFile.name,
+          sizeBytes: Number(childFile.sizeBytes ?? childFile.size ?? 0) || undefined,
+        },
+      );
       const url = typeof res === 'string' ? res : (res?.downloadUrl || res?.url);
       if (url) {
         const a = document.createElement('a');
@@ -1359,6 +1376,7 @@ export default function SharePage() {
         document.body.removeChild(a);
       }
     } catch (err) {
+      if (err instanceof VirusBlockedError) return;
       await alertDialog(err?.message || t('sharePage.file.downloadFailed'));
     }
   }, [token, shareAuthToken, t]);

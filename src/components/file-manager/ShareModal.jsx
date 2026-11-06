@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { useLanguage } from '../../context/LanguageContext';
 import { sharingApi } from '../../services/api';
 import { readDefaultShareRole } from '../../constants/privacy';
+import LiquidGroup from '../ui/LiquidGroup';
 
 // Câu giải thích DÙNG CHUNG cho tooltip cạnh ô email và cho thông báo lỗi khi
 // backend trả 404. Lý do đặt một chỗ: hai bên phải nói CÙNG một điều, nếu không
@@ -316,14 +317,6 @@ export default function ShareModal({ isOpen, item, onClose }) {
                                 title={t(EMAIL_LOOKUP_HINT_KEY)}
                                 className="glass-input flex-1 min-w-0 px-3.5 py-2.5 rounded-xl text-[var(--ink)] placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-[var(--accent-soft)] outline-none transition"
                             />
-                            <select
-                                value={role}
-                                onChange={(e) => setRole(e.target.value)}
-                                className="glass-select py-2.5 pl-3 rounded-xl text-[var(--ink)] font-medium outline-none focus:ring-2 focus:ring-[var(--accent-soft)] cursor-pointer"
-                            >
-                                <option value="VIEWER">{t('share.role.viewer')}</option>
-                                <option value="EDITOR">{t('share.role.editor')}</option>
-                            </select>
                             <button
                                 type="submit"
                                 disabled={!email.trim() || isSubmitting}
@@ -332,6 +325,36 @@ export default function ShareModal({ isOpen, item, onClose }) {
                                 {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <span>{t('share.send')}</span>}
                             </button>
                         </div>
+                        {/* Quyền của người được mời: khay hai lựa chọn có giọt kính (06/11/2026, cũ:
+                            <select> chen giữa ô email và nút Gửi). Hai lựa chọn nhìn thấy cùng lúc thì
+                            không ai gửi nhầm quyền Sửa vì quên mở menu ra xem. */}
+                        <LiquidGroup
+                            activeKey={role}
+                            role="group"
+                            aria-label={t('share.role.label')}
+                            className="mt-2 inline-flex gap-1 p-1 rounded-full glass-soft"
+                        >
+                            {[
+                                { value: 'VIEWER', Icon: Eye, labelKey: 'share.role.viewer' },
+                                { value: 'EDITOR', Icon: Edit3, labelKey: 'share.role.editor' },
+                            ].map(({ value, Icon, labelKey }) => (
+                                <button
+                                    key={value}
+                                    type="button"
+                                    data-liquid-key={value}
+                                    onClick={() => setRole(value)}
+                                    aria-pressed={role === value}
+                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs transition-colors cursor-pointer ${
+                                        role === value
+                                            ? 'text-[var(--ink)] font-semibold'
+                                            : 'text-[var(--ink-muted)] hover:text-[var(--ink)] font-medium'
+                                    }`}
+                                >
+                                    <Icon className="w-3.5 h-3.5 shrink-0" />
+                                    {t(labelKey)}
+                                </button>
+                            ))}
+                        </LiquidGroup>
                     </form>
 
                     {/* People with access */}

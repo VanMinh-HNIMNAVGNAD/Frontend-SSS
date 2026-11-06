@@ -3,6 +3,10 @@ import { ChevronDown, Check, Lock, MapPin } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { localeTagOf } from '../../utils/locale';
 import { TIER_LABEL, tierRank } from '../../constants/aiTiers';
+import LiquidGroup from '../ui/LiquidGroup';
+
+/** Chọn xong đợi chừng này rồi mới khép menu — thấy giọt kính nhảy sang model mới (06/11/2026). */
+const CLOSE_AFTER_PICK_MS = 280;
 
 /**
  * Nút chọn model của khung Hỏi AI (##91).
@@ -38,6 +42,27 @@ export default function AiModelPicker({ models, value, onChange, onLockedPick, p
     );
 
     const selected = models.find((m) => m.id === value) ?? models[0];
+    // Model vừa bấm, giữ trong lúc menu chờ khép — giọt kính nhảy tới đây.
+    const [picked, setPicked] = useState(null);
+    const closeTimerRef = useRef(0);
+    useEffect(() => () => window.clearTimeout(closeTimerRef.current), []);
+    const closeMenu = () => {
+        window.clearTimeout(closeTimerRef.current);
+        closeTimerRef.current = 0;
+        setPicked(null);
+        setOpen(false);
+    };
+    const pickModel = (id) => {
+        if (closeTimerRef.current) return;
+        onChange(id);
+        if (id === selected?.id || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+            closeMenu();
+            return;
+        }
+        setPicked(id);
+        closeTimerRef.current = window.setTimeout(closeMenu, CLOSE_AFTER_PICK_MS);
+    };
+    const shownId = picked ?? selected?.id;
 
     const groups = useMemo(() => {
         const byProvider = new Map();
@@ -123,7 +148,10 @@ export default function AiModelPicker({ models, value, onChange, onLockedPick, p
                 // phần tử absolute — đặt nó trong khung cuộn thì nó trôi theo nội dung và nửa dưới
                 // danh sách mất blur.
                 <div className="glass-strong absolute bottom-full left-0 mb-2 z-30 w-[min(22rem,calc(100vw-2rem))] rounded-[20px] overflow-hidden animate-glass-in origin-bottom-left">
-                    <div
+                    {/* Model đang chọn nằm trên giọt kính (LiquidGroup); chọn model khác thì giọt nhảy
+                        sang rồi menu mới khép. */}
+                    <LiquidGroup
+                        activeKey={shownId}
                         role="listbox"
                         aria-label={t('ai.model.label')}
                         className="max-h-[min(60vh,30rem)] overflow-y-auto overscroll-contain p-1.5"
@@ -137,11 +165,8 @@ export default function AiModelPicker({ models, value, onChange, onLockedPick, p
                                     <ModelRow
                                         key={m.id}
                                         m={m}
-                                        active={m.id === selected?.id}
-                                        onPick={() => {
-                                            onChange(m.id);
-                                            setOpen(false);
-                                        }}
+                                        active={m.id === shownId}
+                                        onPick={() => pickModel(m.id)}
                                         readsText={readsText(m)}
                                         number={number}
                                         t={t}
@@ -182,7 +207,7 @@ export default function AiModelPicker({ models, value, onChange, onLockedPick, p
                         <p className="px-2.5 pt-1.5 pb-1 text-[10px] leading-snug text-gray-500 dark:text-gray-400 border-t mt-1 border-glass-divider">
                             {t('ai.model.footnote')}
                         </p>
-                    </div>
+                    </LiquidGroup>
                 </div>
             )}
         </div>
@@ -200,11 +225,11 @@ function ModelRow({ m, active = false, locked = false, onPick, readsText, number
             // KHÔNG `aria-disabled`: hàng khoá vẫn bấm được (mở khối mời nâng cấp). Trạng thái khoá
             // đã nằm trong chính nội dung hàng (huy hiệu "Gói Plus+") nên trình đọc màn hình đọc ra.
             data-locked={locked || undefined}
+            // Hàng khoá không bao giờ là "đang chọn" nên không mang khoá của giọt kính.
+            data-liquid-key={locked ? undefined : m.id}
             onClick={onPick}
             title={locked ? t('ai.model.lockedHint', { tier: TIER_LABEL[m.minTier] ?? m.minTier }) : undefined}
-            className={`w-full flex items-start gap-2 px-2.5 py-2 rounded-[12px] text-left transition-colors cursor-pointer ${
-                active ? 'glass-active' : ''
-            }`}
+            className="w-full flex items-start gap-2 px-2.5 py-2 rounded-[12px] text-left transition-colors cursor-pointer"
         >
             <span className="w-4 shrink-0 pt-0.5">
                 {active && <Check className="w-3.5 h-3.5 text-[var(--ink)]" strokeWidth={2.5} />}

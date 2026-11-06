@@ -13,6 +13,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { userApi } from '../../services/api';
 import { STARTUP_PAGE_KEY, STARTUP_PAGES, readStartupPage } from '../../constants/routes';
 import { alertDialog } from '../../utils/dialog';
+import { setGlassFxPref, useGlassFx } from '../../utils/glassPerf';
 import {
   PRIVACY_DISCOVERABLE_KEY,
   SHARE_ROLES,
@@ -102,6 +103,8 @@ export default function SettingsModal({ isOpen, onClose }) {
   // Theme dùng chung toàn app — state nằm ở useTheme() nên nút toggle bên
   // RightSideBar.jsx và 3 nút dưới đây luôn hiển thị cùng một lựa chọn
   const { mode: theme, setMode: handleChangeTheme } = useTheme(); // 'light' | 'dark' | 'system'
+  // Mức hiệu ứng kính — kho ở utils/glassPerf.js (đổi là áp ngay lên <html>, như theme).
+  const glassFx = useGlassFx();
 
   // Trang khởi động — readStartupPage() đã bọc try/catch và tự lọc giá trị lạ
   // về 'my-drive', nên state không bao giờ nhận slug không có trong STARTUP_PAGES
@@ -220,7 +223,7 @@ export default function SettingsModal({ isOpen, onClose }) {
 
   if (!isOpen) return null;
 
-  // Dùng lại cho cả 3 <select> — cùng một kiểu ô nhập thì phải cùng một bộ màu
+  // Ô <select> còn lại (Trang khởi động — nhiều lựa chọn, vẫn là menu thả)
   const selectClass =
     'glass-select w-full rounded-xl px-3 py-2 text-xs text-[var(--ink)] focus:ring-2 focus:ring-[var(--accent-soft)] outline-none transition-colors cursor-pointer';
 
@@ -232,6 +235,14 @@ export default function SettingsModal({ isOpen, onClose }) {
     }`;
 
   const switchKnobClass = 'liquid-switch-knob';
+
+  // Khay phân đoạn có giọt kính (06/11/2026): thay cho các <select> chỉ có 2–3 lựa chọn — ngôn ngữ,
+  // quyền chia sẻ mặc định, hiệu ứng kính. Một lựa chọn nhìn thấy hết thì không cần một menu thả.
+  const segmentTrayClass = 'flex gap-1 p-1 rounded-2xl glass-soft';
+  const segmentClass = (on) =>
+    `flex-1 min-w-0 px-2 py-2 rounded-xl text-xs text-center truncate transition-colors cursor-pointer ${
+      on ? 'text-[var(--ink)] font-semibold' : 'text-[var(--ink-muted)] hover:text-[var(--ink)] font-medium'
+    }`;
 
   return (
     <div
@@ -321,19 +332,65 @@ export default function SettingsModal({ isOpen, onClose }) {
                   </LiquidGroup>
                 </div>
 
-                {/* 2. Ngôn ngữ */}
+                {/* Hiệu ứng kính (06/11/2026): Tự động / Đầy đủ / Tiết kiệm — utils/glassPerf.js. */}
                 <div className="pt-2 border-t border-glass-divider">
-                  <label className="block text-xs font-semibold text-gray-800 dark:text-gray-200 mb-1.5">{t('settings.language.label')}</label>
-                  <select
-                    value={language}
-                    // changeLanguage() của LanguageContext tự lưu localStorage và tự
-                    // cập nhật <html lang> — không tự ghi khoá ngôn ngữ ở đây nữa
-                    onChange={(e) => changeLanguage(e.target.value)}
-                    className={selectClass}
+                  <div className="block text-xs font-semibold text-gray-800 dark:text-gray-200 mb-1.5" id="glass-fx-label">
+                    {t('settings.glassFx.label')}
+                  </div>
+                  <LiquidGroup
+                    activeKey={glassFx.pref}
+                    className={segmentTrayClass}
+                    role="group"
+                    aria-labelledby="glass-fx-label"
                   >
-                    <option value="vi">{t('settings.language.vi')}</option>
-                    <option value="en">{t('settings.language.en')}</option>
-                  </select>
+                    {['auto', 'full', 'lite'].map((mode) => (
+                      <button
+                        key={mode}
+                        type="button"
+                        data-liquid-key={mode}
+                        onClick={() => setGlassFxPref(mode)}
+                        aria-pressed={glassFx.pref === mode}
+                        className={segmentClass(glassFx.pref === mode)}
+                      >
+                        {t(`settings.glassFx.${mode}`)}
+                      </button>
+                    ))}
+                  </LiquidGroup>
+                  <p className="mt-1.5 text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed px-0.5">
+                    {glassFx.pref === 'auto'
+                      ? glassFx.lite
+                        ? t('settings.glassFx.autoLite', { reason: t(`settings.glassFx.reason.${glassFx.reason}`) })
+                        : t('settings.glassFx.autoFull')
+                      : t(`settings.glassFx.hint.${glassFx.pref}`)}
+                  </p>
+                </div>
+
+                {/* 2. Ngôn ngữ — khay hai lựa chọn có giọt kính (cũ: <select>). */}
+                <div className="pt-2 border-t border-glass-divider">
+                  <div className="block text-xs font-semibold text-gray-800 dark:text-gray-200 mb-1.5" id="language-label">
+                    {t('settings.language.label')}
+                  </div>
+                  <LiquidGroup
+                    activeKey={language}
+                    className={segmentTrayClass}
+                    role="group"
+                    aria-labelledby="language-label"
+                  >
+                    {['vi', 'en'].map((code) => (
+                      <button
+                        key={code}
+                        type="button"
+                        data-liquid-key={code}
+                        // changeLanguage() của LanguageContext tự lưu localStorage và tự
+                        // cập nhật <html lang> — không tự ghi khoá ngôn ngữ ở đây nữa
+                        onClick={() => changeLanguage(code)}
+                        aria-pressed={language === code}
+                        className={segmentClass(language === code)}
+                      >
+                        {t(`settings.language.${code}`)}
+                      </button>
+                    ))}
+                  </LiquidGroup>
                 </div>
 
                 {/* 3. Trang khởi động */}
@@ -397,26 +454,33 @@ export default function SettingsModal({ isOpen, onClose }) {
 
                 {/* 2. Quyền chia sẻ mặc định khi tạo link */}
                 <div className="pt-1">
-                  <label
-                    htmlFor="share-role-select"
+                  <div
+                    id="share-role-label"
                     className="block text-xs font-semibold text-gray-800 dark:text-gray-200 mb-1.5"
                   >
                     {t('settings.privacy.shareRole.label')}
-                  </label>
-                  <select
-                    id="share-role-select"
-                    value={defaultShareRole}
-                    onChange={(e) => handleChangeShareRole(e.target.value)}
-                    className={selectClass}
+                  </div>
+                  {/* Khay phân đoạn có giọt kính (cũ: <select>). Render từ chính SHARE_ROLES:
+                      value luôn khớp danh sách mà readDefaultShareRole() dùng để lọc. */}
+                  <LiquidGroup
+                    activeKey={defaultShareRole}
+                    className={segmentTrayClass}
+                    role="group"
+                    aria-labelledby="share-role-label"
                   >
-                    {/* Render từ chính SHARE_ROLES: value luôn khớp danh sách mà
-                        readDefaultShareRole() dùng để lọc, không thể gõ sai */}
                     {SHARE_ROLES.map((role) => (
-                      <option key={role} value={role}>
+                      <button
+                        key={role}
+                        type="button"
+                        data-liquid-key={role}
+                        onClick={() => handleChangeShareRole(role)}
+                        aria-pressed={defaultShareRole === role}
+                        className={segmentClass(defaultShareRole === role)}
+                      >
                         {t(SHARE_ROLE_LABEL_KEYS[role] ?? role)}
-                      </option>
+                      </button>
                     ))}
-                  </select>
+                  </LiquidGroup>
                   <p className="mt-1.5 text-[11px] text-gray-400 dark:text-gray-500 leading-relaxed px-0.5">
                     {t('settings.privacy.shareRole.hint')}
                   </p>

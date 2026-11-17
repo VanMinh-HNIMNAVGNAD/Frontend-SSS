@@ -19,6 +19,7 @@ import {
   Star,
   ShieldAlert,
   Trash2,
+  DatabaseBackup,
   CreditCard,
   Cloud,
   Tag,
@@ -242,6 +243,7 @@ export default function Sidebar() {
 
           <NavItem {...navProps('spam')} label={t('nav.spam')} icon={ShieldAlert} badge={spamCount} />
           <NavItem {...navProps('trash')} label={t('nav.trash')} icon={Trash2} badge={trashCount} />
+          <NavItem {...navProps('backups')} label={t('nav.backups')} icon={DatabaseBackup} />
 
           <div className="my-2 short:my-1 mx-2 border-t border-glass-divider" />
 

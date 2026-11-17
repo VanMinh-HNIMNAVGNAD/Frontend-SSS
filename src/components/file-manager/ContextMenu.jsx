@@ -39,12 +39,14 @@ import {
     Check,
     Minus,
     Settings2,
+    DatabaseBackup,
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useDriveAccess, useFiles, useFileSelection } from '../../context/FileContext';
 import { useTags } from '../../context/TagsContext';
 import { DEFAULT_TAG_COLOR, TAG_COLORS, TAG_NAME_MAX } from '../../constants/tags';
 import { SHORTCUT_HINTS } from '../../hooks/useGlobalShortcuts';
+import { useBackupFiles } from '../../hooks/useBackupFiles';
 import ColorPickerPanel from './ColorPickerPanel';
 
 // Bảng phím tắt lấy thẳng từ hook — đã format sẵn theo hệ điều hành đang chạy,
@@ -133,6 +135,32 @@ function MenuRow({
 }
 
 /** Hàng bị khoá quyền: cùng lưới với MenuRow để chữ không bị so le. */
+/**
+ * "Sao lưu" (17/11/2026): sao lưu mục được bấm, hoặc cả tập đang chọn nếu mục nằm trong đó — cùng luật
+ * với menu Nhãn. Component riêng để chỉ hàng này đọc `items`/`selectedIds`, cả menu không phải vẽ lại.
+ */
+function BackupMenuRow({ item, closeMenu }) {
+    const { t } = useLanguage();
+    const { items } = useFiles();
+    const { selectedIds } = useFileSelection();
+    const backup = useBackupFiles();
+    const onClick = () => {
+        const ids = selectedIds?.has(item.id) && selectedIds.size > 1 ? [...selectedIds] : [item.id];
+        const targets = ids
+            .map((id) => items.find((x) => x.id === id) ?? (id === item.id ? item : null))
+            .filter(Boolean);
+        closeMenu();
+        void backup(targets);
+    };
+    return (
+        <MenuRow
+            icon={<DatabaseBackup className="w-4 h-4 text-gray-700 dark:text-gray-300" />}
+            label={t('backups.menu')}
+            onClick={onClick}
+        />
+    );
+}
+
 function MenuRowLocked({ label, hint }) {
     return (
         <div className={`${ROW_BASE} text-[var(--ink-subtle)] cursor-not-allowed`}>
@@ -870,6 +898,9 @@ export default function ContextMenu({
     // SỞ HỮU, không phải của từng người xem. Backend vì thế chỉ cho owner đổi; ẩn nút
     // đi thay vì để người dùng bấm rồi nhận 403.
     const canToggleStar = !item.isSharedWithMe;
+    // Sao lưu thủ công: tệp mình sở hữu (kể cả tệp mình tải vào Bộ nhớ chung), không phải thư mục.
+    const canBackup = !isFolder && !isShared &&
+        (currentUserId == null || item.ownerId == null || item.ownerId === currentUserId);
 
     return withSubmenus(
         <div
@@ -981,6 +1012,9 @@ export default function ContextMenu({
                         label={t('common.download')}
                         onClick={() => { onDownload?.(item); closeMenu(); }}
                     />
+
+                    {/* 3b. Sao lưu — chỉ tệp của CHÍNH MÌNH (backend cũng chỉ nhận tệp mình sở hữu). */}
+                    {canBackup && <BackupMenuRow item={item} closeMenu={closeMenu} />}
 
                     {/* 4. Chỉnh sửa ▸ (##90) — Đổi tên, Cắt / Sao chép / Dán, Di chuyển tới…, Gắn sao.
                         Trước đây sáu lệnh này nằm thẳng ở tầng đầu, kéo menu dài tới 16 hàng; gom

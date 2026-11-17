@@ -362,6 +362,7 @@ export function FileProvider({ children }) {
     if (path.includes('/app/trash')) return 'trash';
     if (path.includes('/app/tags')) return 'tags';
     if (path.includes('/app/billing')) return 'billing';
+    if (path.includes('/app/backups')) return 'backups';
     return 'my-drive';
   }, [location.pathname]);
 

@@ -1516,6 +1516,21 @@ export const tagsApi = {
   attachToNewItem: (tagId, fileId) => newItemTagBatch(tagId).load(fileId).then(Boolean),
 };
 
+// Sao lưu THỦ CÔNG (17/11/2026) — backend `user-backups/`. Người dùng tự chọn tệp của mình để sao
+// lưu sang Backblaze B2, mỗi người tối đa 50 MB (`limitBytes` do backend trả, đừng ghi cứng).
+export const backupsApi = {
+  /** `{ items: [{ id, fileId, name, mimeType, sizeBytes, createdAt }], usedBytes, limitBytes }` */
+  list: () => api.get('/backups', { meta: { noProgressBar: true } }),
+  /** `{ backedUp: [item], skipped: [{ fileId, name, reason }], usedBytes, limitBytes }` */
+  create: (fileIds) => api.post('/backups', { fileIds }),
+  /** `{ url, expiresIn }` — URL có chữ ký 15 phút, tải thẳng từ B2. */
+  downloadUrl: (id) => api.get(`/backups/${id}/download-url`),
+  /** Tạo một tệp MỚI ở gốc "Drive của tôi" → `{ file, userStorageUsed }`. */
+  restore: (id) => afterFileMutation(null, api.post(`/backups/${id}/restore`)),
+  /** `{ usedBytes, limitBytes }` */
+  remove: (id) => api.delete(`/backups/${id}`),
+};
+
 // Sharing APIs — Public share link & access management
 export const sharingApi = {
   /** Lấy thông tin tệp qua token chia sẻ (không cần đăng nhập) */

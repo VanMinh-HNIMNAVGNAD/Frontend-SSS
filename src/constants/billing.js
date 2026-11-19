@@ -77,12 +77,9 @@ export const resolveStorageBytes = (plan) => {
 //   1 Tháng: giá gốc · 3 Tháng: -5% · 6 Tháng: -15%
 //   1 Năm: dùng `priceYearly` của DB nếu > 0, không thì -20%
 //
-// NHÃN -17% CỦA CHU KỲ NĂM LÀ SỐ CỦA DỮ LIỆU, KHÔNG PHẢI CỦA CÔNG THỨC. Cả 4 gói trả phí
-// trong DB (017-reprice-storage-plans.sql) đều đặt `price_yearly` = 10 tháng, tức -16,67% →
-// làm tròn -17%; mức -20% ở `CYCLE_DISCOUNT` chỉ là đường lui cho gói nào để `price_yearly`
-// = 0. Đổi `price_yearly` trong DB (hoặc qua CLI `updatePlan`) là phải sửa lại nhãn ở đây —
-// con số tiết kiệm IN TRÊN TỪNG THẺ thì không cần, nó suy ngược từ giá thật trong
-// `buildPriceInfo` (pages/BillingAndQuota.jsx).
+// NHÃN GIẢM GIÁ CỦA CHU KỲ NĂM TÍNH TỪ GIÁ THẬT (`yearlyDiscountPct`), không ghi cứng: giá năm
+// là dữ liệu quản trị viên sửa được trong app (19/11/2026 — trước đó nhãn đóng đinh -17%, chỉ
+// đúng khi giá năm = 10 tháng). 3/6 tháng là hệ số CỐ ĐỊNH của backend nên nhãn vẫn cố định.
 
 // `labelKey` thay cho `label`: file này là module hằng số, nạp một lần lúc import,
 // nên chuỗi chốt ở đây sẽ đóng băng theo ngôn ngữ lúc tải trang. Nơi render gọi t().
@@ -90,8 +87,35 @@ export const CYCLES = [
   { id: 'monthly', labelKey: 'billing.cycle.monthly', badge: null },
   { id: '3_months', labelKey: 'billing.cycle.3months', badge: '-5%' },
   { id: '6_months', labelKey: 'billing.cycle.6months', badge: '-15%' },
-  { id: 'yearly', labelKey: 'billing.cycle.yearly', badge: '-17%' },
+  // `badge: null` — nhãn năm tính theo bảng giá lúc render, xem `yearlyBadge`.
+  { id: 'yearly', labelKey: 'billing.cycle.yearly', badge: null },
 ];
+
+/**
+ * Phần trăm giảm của chu kỳ năm so với 12 × giá tháng, theo đúng phép tính backend
+ * (`calculateAmountForCycle`: `price_yearly` nếu > 0, không thì -20%). Gói miễn phí → null.
+ */
+export const yearlyDiscountPct = (plan) => {
+  const monthly = Number(plan?.priceMonthly) || 0;
+  if (monthly <= 0) return null;
+  const yearly = Number(plan?.priceYearly) > 0 ? Number(plan.priceYearly) : monthly * 12 * 0.8;
+  return Math.max(0, Math.round((1 - yearly / (monthly * 12)) * 100));
+};
+
+/** Nhãn chip chu kỳ năm cho cả bảng giá: "-17%", hoặc "-10–17%" nếu các gói giảm khác nhau. */
+export const yearlyBadge = (plans) => {
+  const pcts = (plans ?? []).map(yearlyDiscountPct).filter((p) => p !== null && p > 0);
+  if (pcts.length === 0) return null;
+  const min = Math.min(...pcts);
+  const max = Math.max(...pcts);
+  return min === max ? `-${max}%` : `-${min}–${max}%`;
+};
+
+/** Mức giảm lớn nhất khi đăng ký dài hạn (dòng "giảm tới …%") — năm theo giá thật, 6 tháng 15%. */
+export const maxLongTermDiscountPct = (plans) => {
+  const pcts = (plans ?? []).map(yearlyDiscountPct).filter((p) => p !== null);
+  return Math.max(Math.round((1 - CYCLE_DISCOUNT['6_months']) * 100), ...pcts);
+};
 
 /** Số tháng của mỗi chu kỳ — dùng để quy đổi "mỗi tháng tương đương". */
 export const CYCLE_MONTHS = { monthly: 1, '3_months': 3, '6_months': 6, yearly: 12 };
@@ -132,6 +156,18 @@ export const CYCLE_LABEL_KEY = {
   '3_months': 'billing.cycleLabel.3months',
   '6_months': 'billing.cycleLabel.6months',
   yearly: 'billing.cycleLabel.yearly',
+};
+
+/**
+ * Nhãn chu kỳ lúc MUA một gói cụ thể: năm kèm % giảm thật của gói đó ("1 năm (-17%)"). Lịch sử
+ * giao dịch dùng thẳng `CYCLE_LABEL_KEY` — nhãn năm ở đó không kèm % vì giá đã có thể đổi.
+ */
+export const purchaseCycleLabel = (t, cycle, plan) => {
+  if (cycle === 'yearly') {
+    const pct = yearlyDiscountPct(plan);
+    if (pct) return t('billing.cycleLabel.yearlyPct', { pct });
+  }
+  return t(CYCLE_LABEL_KEY[cycle]);
 };
 
 // ───────────────────────── CẤU HÌNH GIAO DIỆN CỦA GÓI ─────────────────────────

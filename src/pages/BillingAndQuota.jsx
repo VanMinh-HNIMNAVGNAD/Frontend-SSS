@@ -34,6 +34,9 @@ import {
   CYCLES,
   CYCLE_DISCOUNT,
   CYCLE_LABEL_KEY,
+  maxLongTermDiscountPct,
+  purchaseCycleLabel,
+  yearlyBadge,
   CYCLE_MONTHS,
   CYCLE_UNIT_KEY,
   PAYMENT_METHOD_LABEL,
@@ -770,7 +773,7 @@ export default function BillingAndQuota() {
                   {t('billing.plans.heading')}
                 </h2>
                 <p className="text-[14px] text-gray-500 dark:text-gray-400 mt-1">
-                  {t('billing.plans.subheading')}
+                  {t('billing.plans.subheading', { pct: maxLongTermDiscountPct(plans) })}
                 </p>
               </div>
 
@@ -781,6 +784,8 @@ export default function BillingAndQuota() {
               >
                 {CYCLES.map((cycle) => {
                   const isSelected = billingCycle === cycle.id;
+                  // Chu kỳ năm: % giảm tính từ giá thật của bảng giá (quản trị viên sửa được).
+                  const badge = cycle.id === 'yearly' ? yearlyBadge(plans) : cycle.badge;
                   return (
                     <button
                       key={cycle.id}
@@ -796,11 +801,11 @@ export default function BillingAndQuota() {
                       <span>{t(cycle.labelKey)}</span>
                       {/* Chip giảm giá: chip kính xám (đang chọn thì chữ đậm hơn) — không còn mảng
                           xanh lục cạnh mỗi chu kỳ. */}
-                      {cycle.badge && (
+                      {badge && (
                         <span
                           className={`chip px-1.5 py-0.5 text-[11px] ${isSelected ? 'text-[var(--ink)]' : ''}`}
                         >
-                          {cycle.badge}
+                          {badge}
                         </span>
                       )}
                     </button>
@@ -1133,7 +1138,7 @@ export default function BillingAndQuota() {
                     storage: selectedPlan.storageLabel,
                     cycle: (
                       <span className="font-semibold text-gray-800 dark:text-gray-200">
-                        {t(CYCLE_LABEL_KEY[billingCycle])}
+                        {purchaseCycleLabel(t, billingCycle, selectedPlan)}
                       </span>
                     ),
                   })}
@@ -1191,7 +1196,7 @@ export default function BillingAndQuota() {
                   {creditAmount > 0 && (
                     <>
                       <div className="flex items-baseline justify-between gap-4 text-[14px]">
-                        <span className="font-semibold text-gray-500 dark:text-gray-400">{t('billing.confirm.planPrice', { cycle: t(CYCLE_LABEL_KEY[billingCycle]) })}</span>
+                        <span className="font-semibold text-gray-500 dark:text-gray-400">{t('billing.confirm.planPrice', { cycle: purchaseCycleLabel(t, billingCycle, selectedPlan) })}</span>
                         <span className="font-bold text-gray-700 dark:text-gray-300">{formatVnd(listAmount, locale)}</span>
                       </div>
                       <div className="flex items-baseline justify-between gap-4 text-[14px] text-[var(--ink)]">

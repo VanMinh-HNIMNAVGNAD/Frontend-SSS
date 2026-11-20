@@ -116,12 +116,16 @@ body {
   --app-muted: #646b78;
 
   /* Nền ambient: trắng ngọc + xám bạc, chỉ hơi ấm/lạnh ở các góc — không có sắc xanh navy. */
+  /* 20/11/2026 — "thêm tí màu sắc chứ không đơn giản chỉ là màu xám": thêm bốn quầng màu pastel
+     (lam trời, tím oải hương, đào, bạc hà) RẤT nhạt dưới nền xám bạc. Kính mờ phía trên bắt được
+     chút màu đó nên có chiều sâu thay vì một mặt phẳng xám; vẫn không có mảng navy nào. */
   --app-ambient:
-    radial-gradient(1100px 760px at 6% -6%, rgba(255, 255, 255, 0.75), transparent 62%),
-    radial-gradient(900px 680px at 100% 0%, rgba(198, 204, 213, 0.6), transparent 60%),
-    radial-gradient(1000px 820px at 96% 104%, rgba(212, 206, 198, 0.55), transparent 62%),
-    radial-gradient(880px 760px at -4% 100%, rgba(194, 200, 208, 0.6), transparent 60%),
-    linear-gradient(180deg, #e9ebee 0%, #dcdfe3 100%);
+    radial-gradient(1100px 760px at 6% -6%, rgba(255, 255, 255, 0.8), transparent 62%),
+    radial-gradient(760px 560px at 22% 18%, rgba(122, 178, 255, 0.2), transparent 64%),
+    radial-gradient(820px 640px at 100% 0%, rgba(186, 160, 255, 0.2), transparent 62%),
+    radial-gradient(900px 760px at 96% 104%, rgba(255, 186, 150, 0.2), transparent 62%),
+    radial-gradient(880px 760px at -4% 100%, rgba(120, 214, 196, 0.18), transparent 62%),
+    linear-gradient(180deg, #eceef2 0%, #dfe2e8 100%);
 
   /* Kính: lớp phủ trắng trong suốt + viền sáng + bóng mềm nhiều lớp. */
   --glass-fill: rgba(255, 255, 255, 0.64);
@@ -134,10 +138,12 @@ body {
   --glass-divider: rgba(15, 23, 42, 0.1);
   /* Vát cạnh: sáng ở mép trên, hắt nhẹ ở mép dưới — như cạnh một tấm kính dày. */
   --glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.9), inset 0 -1px 0 rgba(255, 255, 255, 0.35);
+  /* Bóng ba lớp (sát chân / tầm trung / xa) đậm hơn bản 27/10 một chút — tấm kính tách khỏi nền
+     như đang lơ lửng chứ không dán phẳng lên nền (20/11/2026). */
   --glass-shadow:
-    0 1px 1px rgba(15, 23, 42, 0.03),
-    0 8px 22px -10px rgba(15, 23, 42, 0.12),
-    0 26px 48px -28px rgba(15, 23, 42, 0.16);
+    0 1px 1px rgba(15, 23, 42, 0.04),
+    0 10px 26px -12px rgba(15, 23, 42, 0.16),
+    0 32px 60px -30px rgba(15, 23, 42, 0.22);
   --glass-shadow-pop:
     0 1px 2px rgba(15, 23, 42, 0.05),
     0 18px 40px -12px rgba(15, 23, 42, 0.22),
@@ -174,6 +180,29 @@ body {
      tấm kính đã gần trắng). */
   --row-hover: rgba(15, 23, 42, 0.035);
   --row-selected: rgba(15, 23, 42, 0.065);
+
+  /* Ánh khối của tấm kính (20/11/2026): sáng ở đỉnh, nhạt dần — như mặt kính dày hơi phồng bắt
+     sáng từ trên. Vẽ bằng background-image nên không tốn thêm lớp nào. */
+  --glass-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.12) 22%, rgba(255, 255, 255, 0) 55%);
+  --glass-sheen-strong: linear-gradient(180deg, rgba(255, 255, 255, 0.7) 0%, rgba(255, 255, 255, 0.18) 18%, rgba(255, 255, 255, 0) 50%);
+
+  /* MÀU ICON THANH BÊN (20/11/2026) — "icon bên sidebar cần có màu sắc riêng". Mười sắc kiểu màu
+     hệ thống của Apple, bản Sáng đậm hơn một bậc để icon nét mảnh vẫn rõ trên kính trắng. Dùng qua
+     `var(--hue-*)`; bản Tối sáng hơn (khối `.dark`). */
+  --hue-blue: #0a72ef;
+  --hue-indigo: #5b54e0;
+  --hue-cyan: #0793b3;
+  --hue-green: #1d9f47;
+  --hue-orange: #ea7a00;
+  --hue-yellow: #d99c00;
+  --hue-red: #e5342b;
+  --hue-pink: #e2326c;
+  --hue-mint: #0aa597;
+  --hue-purple: #9a4bd6;
+
+  /* Số chưa đọc trên chuông: đỏ hệ thống, chữ trắng. */
+  --badge-red: linear-gradient(180deg, #ff5a4f 0%, #e8302a 100%);
+  --badge-red-glow: rgba(232, 48, 42, 0.45);
 }
 
 /* Chữ `text-gray-400` / `text-slate-400` (75 + 9 chỗ: ngày giờ, chú thích, icon đóng ✕…) chỉ đạt
@@ -201,10 +230,13 @@ body {
   /* Graphite: xám than trung tính, các góc sáng/ấm rất nhẹ để kính có chiều sâu. */
   --app-ambient:
     radial-gradient(1100px 760px at 6% -6%, rgba(255, 255, 255, 0.07), transparent 62%),
-    radial-gradient(900px 680px at 100% 0%, rgba(120, 122, 130, 0.16), transparent 60%),
-    radial-gradient(1000px 820px at 96% 104%, rgba(110, 104, 98, 0.14), transparent 62%),
-    radial-gradient(880px 760px at -4% 100%, rgba(96, 98, 104, 0.14), transparent 60%),
-    linear-gradient(180deg, #1b1b1e 0%, #121214 100%);
+    /* Bản Tối giữ quầng màu rất thấp: kính `glass-strong` bão hoà 170% nên một quầng lam 12% đã
+       nhuộm thanh bên thành xám-navy. */
+    radial-gradient(760px 560px at 22% 18%, rgba(80, 170, 220, 0.05), transparent 64%),
+    radial-gradient(820px 640px at 100% 0%, rgba(160, 120, 255, 0.08), transparent 62%),
+    radial-gradient(900px 760px at 96% 104%, rgba(255, 140, 100, 0.09), transparent 62%),
+    radial-gradient(880px 760px at -4% 100%, rgba(60, 200, 175, 0.09), transparent 62%),
+    linear-gradient(180deg, #1b1b1f 0%, #121215 100%);
 
   --glass-fill: rgba(255, 255, 255, 0.055);
   --glass-fill-strong: rgba(40, 40, 44, 0.78);
@@ -242,6 +274,23 @@ body {
   --chip-fill: rgba(255, 255, 255, 0.07);
   --row-hover: rgba(255, 255, 255, 0.04);
   --row-selected: rgba(255, 255, 255, 0.1);
+
+  --glass-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.02) 22%, rgba(255, 255, 255, 0) 55%);
+  --glass-sheen-strong: linear-gradient(180deg, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0.025) 18%, rgba(255, 255, 255, 0) 50%);
+
+  --hue-blue: #4ea3ff;
+  --hue-indigo: #8a85ff;
+  --hue-cyan: #4fd2ec;
+  --hue-green: #48dc7a;
+  --hue-orange: #ffa94a;
+  --hue-yellow: #ffd54a;
+  --hue-red: #ff6b61;
+  --hue-pink: #ff6f9c;
+  --hue-mint: #4fe3d2;
+  --hue-purple: #c891ff;
+
+  --badge-red: linear-gradient(180deg, #ff5f55 0%, #e5352e 100%);
+  --badge-red-glow: rgba(255, 69, 58, 0.5);
 }
 
 /* Trình duyệt không có backdrop-filter, hoặc người dùng bật "Giảm độ trong suốt": kính
@@ -337,6 +386,7 @@ body {
    khối chú thích ở trên vì sao. */
 @utility glass {
   background-color: var(--glass-fill);
+  background-image: var(--glass-sheen);
   border: 1px solid var(--glass-rim);
   box-shadow: var(--glass-highlight), 0 0 0 1px var(--glass-hairline), var(--glass-shadow);
 }
@@ -352,6 +402,7 @@ body {
    relative) để `::before` phủ đúng khung của nó. */
 @utility glass-strong {
   background-color: var(--glass-fill-strong);
+  background-image: var(--glass-sheen-strong);
   border: 1px solid var(--glass-rim);
   box-shadow: var(--glass-highlight), 0 0 0 1px var(--glass-hairline), var(--glass-shadow-pop);
   isolation: isolate;
@@ -1175,4 +1226,27 @@ html {
   margin-bottom: 0;
   border-radius: 0.5rem;
   box-shadow: 0 12px 40px rgba(2, 6, 23, 0.35);
+}
+
+/* ── Icon màu của thanh bên (20/11/2026) ───────────────────────────────────────────────────────
+   Màu lấy từ `--nav-c` của nút (SideBar.jsx, một sắc `--hue-*` mỗi mục). Quầng bóng cùng màu dưới
+   icon cho cảm giác icon nổi trên tấm kính chứ không in phẳng lên đó. */
+.nav-icon {
+  color: var(--nav-c, var(--ink-muted));
+  filter: drop-shadow(0 1px 1.5px color-mix(in oklab, var(--nav-c, transparent) 38%, transparent));
+}
+
+/* Số chưa đọc trên chuông (NotificationBell.jsx): viên đỏ có ánh đỉnh và quầng đỏ nhẹ. */
+.badge-red {
+  background-image: var(--badge-red);
+  color: #fff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 2px 6px -1px var(--badge-red-glow);
+}
+
+@media (forced-colors: active) {
+  .nav-icon {
+    filter: none;
+  }
 }

@@ -18,6 +18,7 @@ import {
     Users,
     X,
 } from 'lucide-react';
+import { popBadge, ringBell } from '../../utils/motion';
 import { notificationsApi } from '../../services/api';
 import { useLanguage } from '../../context/LanguageContext';
 import { formatRelativeTime } from '../../utils/relativeTime';
@@ -76,6 +77,19 @@ export default function NotificationBell() {
 
     const [open, setOpen] = useState(false);
     const [unread, setUnread] = useState(0);
+    const bellIconRef = useRef(null);
+    const badgeRef = useRef(null);
+    const prevUnreadRef = useRef(0);
+
+    // Số chưa đọc TĂNG (có thông báo mới, kể cả lần nạp đầu khi đã có sẵn): chuông lắc + viên số bật
+    // ra (anime.js). Giảm (đã đọc) thì đứng yên.
+    useEffect(() => {
+        if (unread > prevUnreadRef.current) {
+            ringBell(bellIconRef.current);
+            popBadge(badgeRef.current);
+        }
+        prevUnreadRef.current = unread;
+    }, [unread]);
     const [items, setItems] = useState([]);
     const [hasMore, setHasMore] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -306,11 +320,16 @@ export default function NotificationBell() {
                 aria-expanded={open}
                 className="relative p-2 sm:p-2.5 text-gray-700 dark:text-gray-300 rounded-full transition-colors cursor-pointer"
             >
-                <Bell className="w-5 h-5" />
-                {/* Số chưa đọc: viên màu MỰC (đen ở bản Sáng, trắng ở bản Tối) thay cho chấm đỏ — vẫn nổi
-                    bật trên nền kính xám mà không phải mảng đỏ duy nhất của header. */}
+                <span ref={bellIconRef} className="inline-flex origin-top">
+                    <Bell className="w-5 h-5" />
+                </span>
+                {/* Số chưa đọc: viên ĐỎ chữ trắng (20/11/2026 — "để màu đỏ cho dễ nhìn"; bản 26/10 là
+                    viên màu mực). */}
                 {unread > 0 && (
-                    <span className="absolute top-1 right-1 sm:top-1.5 sm:right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-[var(--ink)] text-white dark:text-[#161618] text-[10px] font-bold leading-[18px] text-center tabular-nums ring-2 ring-white/80 dark:ring-[#2a2a2e]">
+                    <span
+                        ref={badgeRef}
+                        className="badge-red absolute top-1 right-1 sm:top-1.5 sm:right-1.5 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold leading-[18px] text-center tabular-nums ring-2 ring-white/85 dark:ring-[#2a2a2e]"
+                    >
                         {badge}
                     </span>
                 )}

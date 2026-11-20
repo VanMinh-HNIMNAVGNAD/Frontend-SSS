@@ -181,7 +181,9 @@ export class LiquidBody {
      *   `transform: scale` để góc bo luôn tròn đúng khi đứng yên.
      * @param {object} [options]
      * @param {typeof DROPLET} [options.params]
-     * @param {() => void} [options.onRender] Sau mỗi khung hình.
+     * @param {(lift: number) => void} [options.onRender] Sau mỗi khung hình (kèm độ nhấc 0 → 1).
+     * @param {(w: number, h: number, radius: number) => void} [options.onBase] Khi cỡ gốc của giọt đổi
+     *   (bản đồ khúc xạ phải vẽ lại cho đúng cỡ — utils/liquidRefraction.js).
      */
     constructor(els, options = {}) {
         this.els = els;
@@ -404,7 +406,7 @@ export class LiquidBody {
             if (liftChanged) el.style.setProperty('--lift', lift.toFixed(2));
         }
         if (this.movingClass) this.#setFlying(lift > 0.01);
-        this.hooks.onRender?.();
+        this.hooks.onRender?.(lift);
     }
 
     #pairs(box) {
@@ -426,6 +428,7 @@ export class LiquidBody {
             el.style.height = `${h}px`;
             el.style.borderRadius = `${radius}px`;
         }
+        this.hooks.onBase?.(w, h, radius);
     }
 
     /** Sức căng bề mặt + độ không nén được giữa hai mép của mỗi trục (xem đầu file). */

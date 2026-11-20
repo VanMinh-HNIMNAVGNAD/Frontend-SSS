@@ -36,6 +36,15 @@
      • núm công tắc bật/tắt cũng là một giọt nước (mục 3 bên dưới);
      • bản Sáng: giọt là kính XÁM đậm hơn nền, viền sáng ở đỉnh (kính trắng trên kính trắng gần
        như không thấy — xem token ở index.css).
+
+   BẢN 7 (20/11/2026) — người dùng: "giao diện xám/trắng hơi phẳng chưa có chiều sâu, tôi muốn kiểu
+   giọt nước đi qua text thì text bị khúc xạ ánh sáng, làm như thật" + "thêm tí màu sắc":
+     • lớp kính trong của giọt đang bay KHÚC XẠ thật (Chromium): thân giọt phóng nhẹ chữ, vành giọt
+       uốn cong chữ, tán sắc ở mép — utils/liquidRefraction.js, `.liquid-lens.has-refraction`;
+     • giọt đang chọn ánh MÀU của mục (`data-liquid-tint` → `--tint`, lớp `.liquid-pill::before`),
+       có ánh đỉnh dạng thấu kính (`--drop-sheen`) nên trông phồng chứ không phẳng;
+     • tấm kính lớn/nổi có ánh khối từ trên xuống (`--glass-sheen`, index.css) và nền ambient có
+       quầng màu pastel để kính có thứ mà làm mờ/khúc xạ.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 :root {
@@ -59,7 +68,11 @@
   --drop-caustic: rgba(120, 160, 235, 0.18);
   --drop-hairline: rgba(15, 23, 42, 0.1);
   --drop-shadow-rgb: 15 23 42;
-  --drop-shadow-alpha: 0.06;
+  --drop-shadow-alpha: 0.08;
+  /* Ánh đỉnh của giọt: một vệt sáng bầu dục ở nửa trên — thứ làm giọt trông PHỒNG như thấu kính. */
+  --drop-sheen: radial-gradient(120% 90% at 50% -20%, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0) 62%);
+  /* Độ đậm của màu mục nhuộm vào giọt. */
+  --drop-tint-mix: 16%;
 
   /* Lớp kính trong hiện trên chữ khi giọt đang bay. */
   --lens-rim: rgba(255, 255, 255, 0.55);
@@ -90,6 +103,8 @@
   --drop-hairline: rgba(0, 0, 0, 0.35);
   --drop-shadow-rgb: 0 0 0;
   --drop-shadow-alpha: 0.4;
+  --drop-sheen: radial-gradient(120% 90% at 50% -20%, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 62%);
+  --drop-tint-mix: 22%;
 
   --lens-rim: rgba(255, 255, 255, 0.2);
   --lens-rim-top: rgba(255, 255, 255, 0.4);
@@ -177,7 +192,7 @@
   .liquid-pill {
     z-index: -1;
     opacity: 0;
-    background: var(--drop-fill);
+    background: var(--drop-sheen), var(--drop-fill);
     box-shadow:
       inset 0 1px 0 var(--drop-spec-top),
       inset 0 -1px 0 var(--drop-spec-bottom),
@@ -199,6 +214,22 @@
 
   .liquid-pill.is-visible {
     opacity: 1;
+  }
+
+  /* Màu của mục đang chọn (`--tint`, LiquidGroup ghi khi đổi mục): một lớp màu dưới ánh đỉnh, đổi
+     màu DẦN trong lúc giọt nhảy (transition màu nền — không đụng vật lý của cú nhảy). Mục không
+     có màu thì `--tint: transparent` → lớp này trong suốt, giọt là kính xám như cũ. */
+  .liquid-pill::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background-color: color-mix(in oklab, var(--tint, transparent) var(--drop-tint-mix), transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--tint, transparent) 22%, transparent);
+    transition:
+      background-color 0.35s ease,
+      box-shadow 0.35s ease;
   }
 
   /* Đang chuyển động: nâng giọt lên lớp GPU riêng để mỗi khung chỉ DỜI lớp (translate/scale) chứ
@@ -233,6 +264,36 @@
   .liquid-lens.is-flying {
     -webkit-backdrop-filter: saturate(1.5) brightness(1.03);
     backdrop-filter: saturate(1.5) brightness(1.03);
+  }
+
+  /* Khúc xạ thật (Chromium, utils/liquidRefraction.js). Lớp kính ĐẶC (opacity 1) suốt lúc bay —
+     opacity < 1 là chữ thẳng và chữ cong chồng lên nhau thành bóng ma; độ cong tăng/giảm theo
+     `lift` ở chính bộ lọc. Viền sáng + vệt sáng đỉnh nằm ở `::after` và mới mờ dần theo `lift`. */
+  .liquid-lens.has-refraction {
+    opacity: 1;
+    box-shadow: none;
+  }
+
+  .liquid-lens.has-refraction.is-flying {
+    -webkit-backdrop-filter: var(--lens-filter) saturate(1.45) brightness(1.04);
+    backdrop-filter: var(--lens-filter) saturate(1.45) brightness(1.04);
+  }
+
+  .liquid-lens.has-refraction::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: var(--lift, 0);
+    background:
+      radial-gradient(90% 70% at 30% 0%, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0) 60%),
+      radial-gradient(70% 60% at 75% 110%, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0) 60%);
+    box-shadow:
+      inset 0 1px 0.5px var(--lens-rim-top),
+      inset 0 -1px 1px var(--lens-rim-bottom),
+      inset 0 0 0 1px var(--lens-rim),
+      inset 0 0 6px 1px rgba(255, 255, 255, 0.18);
   }
 
   /* ── 3. Công tắc bật/tắt: núm là một giọt nước ───────────────────────────

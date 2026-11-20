@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFiles } from '../../context/FileContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -10,6 +10,7 @@ import GlassEdge from '../ui/GlassEdge';
 import LiquidGroup from '../ui/LiquidGroup';
 import { formatBytes } from '../../utils/formatFileSize';
 import { getStorageStatus } from '../../utils/storageStatus';
+import { bounceIcon, hoverIcon, staggerIn } from '../../utils/motion';
 import {
   Home,
   HardDrive,
@@ -34,9 +35,12 @@ const SIDEBAR_TAG_LIMIT = 8;
  * <LiquidGroup> bọc ngoài vẽ, nối với mục qua `data-liquid-key`. Mục chỉ còn đổi màu chữ/icon
  * (rê chuột cũng chỉ đổi màu, không có nền).
  *
- * Đơn sắc (26/10/2026): mỗi mục từng có một màu icon riêng khi chọn/rê chuột (xanh, lục, chàm,
- * ngọc, hổ phách, vàng, cam, hồng, tím) — chín màu cho chín mục. Nay icon xám, mục đang chọn icon
- * và chữ màu mực đậm; số đếm (Nội dung rác, Thùng rác) là chữ xám như số tệp của nhãn.
+ * Màu riêng cho từng mục (20/11/2026 — "icon bên sidebar cần có màu sắc riêng"; đảo lại bản
+ * đơn sắc 26/10): mỗi mục một sắc `--hue-*` (index.css), icon vẽ kiểu HAI TÔNG — nét màu + lòng tô
+ * cùng màu rất nhạt, đậm lên khi đang chọn — và có quầng bóng cùng màu cho chiều sâu. Giọt kính
+ * đang chọn ánh theo màu mục đó (`data-liquid-tint`). Chữ vẫn màu mực để dễ đọc.
+ *
+ * Hoạt ảnh (anime.js, utils/motion.js): rê chuột icon nhấc nhẹ, bấm thì icon nảy kiểu thạch.
  *
  * Khai báo ở cấp module: trước đây NavItem nằm TRONG thân Sidebar, nên mỗi lần Sidebar render
  * (FileContext đổi là đổi) React thấy một kiểu component mới và gỡ/dựng lại toàn bộ nút menu.
@@ -45,27 +49,40 @@ function NavItem({
   id,
   label,
   icon: Icon,
+  hue,
   badge,
   isActive,
   isCollapsed,
   onSelect,
 }) {
+  const iconRef = useRef(null);
+  const color = `var(--hue-${hue})`;
   return (
     <button
       type="button"
       data-liquid-key={id}
-      onClick={() => onSelect(id)}
+      data-liquid-tint={color}
+      onClick={() => {
+        bounceIcon(iconRef.current);
+        onSelect(id);
+      }}
+      onPointerEnter={(e) => e.pointerType === 'mouse' && hoverIcon(iconRef.current, true)}
+      onPointerLeave={(e) => e.pointerType === 'mouse' && hoverIcon(iconRef.current, false)}
       title={isCollapsed ? label : undefined}
       aria-current={isActive ? 'page' : undefined}
+      style={{ '--nav-c': color }}
       className={`w-full flex items-center gap-4 px-4 py-2.5 short:py-2 rounded-[14px] transition-colors duration-150 text-[14px] font-medium text-left group relative cursor-pointer ${
         isCollapsed ? 'justify-center px-0 py-3 short:py-2.5' : 'justify-start'
-      } ${isActive ? 'text-[var(--ink)] font-semibold' : 'text-[var(--ink)]/85'}`}
+      } ${isActive ? 'text-[var(--ink)] font-semibold' : 'text-[var(--ink)]/85 hover:text-[var(--ink)]'}`}
     >
-      <Icon
-        className={`w-5 h-5 shrink-0 transition-colors duration-150 ${
-          isActive ? 'text-[var(--ink)]' : 'text-[var(--ink-muted)] group-hover:text-[var(--ink)]'
-        }`}
-      />
+      <span ref={iconRef} data-nav-icon="" className="shrink-0 inline-flex">
+        <Icon
+          className="nav-icon w-5 h-5"
+          strokeWidth={isActive ? 2.25 : 2}
+          fill="currentColor"
+          fillOpacity={isActive ? 0.26 : 0.12}
+        />
+      </span>
 
       {!isCollapsed && <span className="truncate flex-1">{label}</span>}
 
@@ -74,7 +91,7 @@ function NavItem({
       )}
 
       {isCollapsed && badge > 0 && (
-        <span className="absolute top-1.5 right-3 w-1.5 h-1.5 rounded-full bg-[var(--ink-muted)]" />
+        <span className="absolute top-1.5 right-3 w-2 h-2 rounded-full bg-[var(--hue-red)] ring-2 ring-white/80 dark:ring-[#2a2a2e]" />
       )}
     </button>
   );
@@ -87,6 +104,13 @@ export default function Sidebar() {
   const navigate = useNavigate();
   const tags = tagsCtx?.tags ?? [];
   const [isCleanupOpen, setIsCleanupOpen] = useState(false);
+  const asideRef = useRef(null);
+
+  // Lần đầu dựng thanh bên: icon bật ra lần lượt từ trên xuống (anime.js) — chỉ một lần mỗi lần
+  // tải trang, không lặp lại khi đổi trang.
+  useEffect(() => {
+    staggerIn(asideRef.current?.querySelectorAll('[data-nav-icon]'));
+  }, []);
 
   // Nhãn menu và khối bộ nhớ lấy qua t() — NavItem ở dưới nằm trong cùng
   // component nên dùng được t() qua closure, không cần truyền prop
@@ -106,7 +130,8 @@ export default function Sidebar() {
   const getProgressBarColor = (level) => {
     if (level === 'over' || level === 'full') return 'bg-[var(--tone-danger)]';
     if (level === 'almostFull' || level === 'warning') return 'bg-[var(--tone-warn)]';
-    return 'bg-[var(--ink-muted)]';
+    // Bình thường: dải màu lam → ngọc (20/11/2026, trước là thanh xám).
+    return 'bg-linear-to-r from-[var(--hue-blue)] to-[var(--hue-cyan)]';
   };
 
   const storageBadge = {
@@ -134,6 +159,7 @@ export default function Sidebar() {
       {/* Kính NỔI: điện thoại là ngăn kéo đè lên nội dung nên có blur (`glass-strong`); máy tính
           là tấm kính đứng cạnh vùng nội dung, chỉ có nền ambient phía sau (`lg:glass`). */}
       <aside
+        ref={asideRef}
         className={`glass-strong lg:glass rounded-[26px] flex flex-col pt-3 short:pt-2 select-none transition-all duration-300 ease-in-out shrink-0
           fixed lg:relative z-50 lg:z-0 top-2 bottom-2 left-2 lg:top-auto lg:bottom-auto lg:left-auto lg:my-3 lg:ml-3
           ${isSidebarCollapsed ? '-translate-x-[110%] lg:translate-x-0 lg:w-20 px-2' : 'translate-x-0 w-76 max-w-[calc(100vw-1rem)] px-3'}
@@ -158,12 +184,12 @@ export default function Sidebar() {
             LiquidGroup: giọt kính "đang chọn" nhảy giữa các mục khi đổi trang
             (components/ui/LiquidGroup.jsx). */}
         <LiquidGroup as="nav" activeKey={activeNavKey} className="flex-1 overflow-y-auto space-y-1 short:space-y-0.5 pr-1 custom-scrollbar">
-          <NavItem {...navProps('home')} label={t('nav.home')} icon={Home} />
-          <NavItem {...navProps('my-drive')} label={t('nav.myDrive')} icon={HardDrive} />
-          <NavItem {...navProps('shared-drives')} label={t('nav.sharedDrives')} icon={FolderGit2} />
-          <NavItem {...navProps('shared-with-me')} label={t('nav.sharedWithMe')} icon={Users} />
-          <NavItem {...navProps('recent')} label={t('nav.recent')} icon={Clock} />
-          <NavItem {...navProps('starred')} label={t('nav.starred')} icon={Star} />
+          <NavItem {...navProps('home')} label={t('nav.home')} icon={Home} hue="blue" />
+          <NavItem {...navProps('my-drive')} label={t('nav.myDrive')} icon={HardDrive} hue="indigo" />
+          <NavItem {...navProps('shared-drives')} label={t('nav.sharedDrives')} icon={FolderGit2} hue="cyan" />
+          <NavItem {...navProps('shared-with-me')} label={t('nav.sharedWithMe')} icon={Users} hue="green" />
+          <NavItem {...navProps('recent')} label={t('nav.recent')} icon={Clock} hue="orange" />
+          <NavItem {...navProps('starred')} label={t('nav.starred')} icon={Star} hue="yellow" />
 
           {/* NHÃN (##91) — mỗi nhãn mở trang "Nhãn" của nó: mọi mục gắn nhãn đó, ở bất cứ đâu. */}
           {tagsCtx && (
@@ -192,7 +218,7 @@ export default function Sidebar() {
                     isSidebarCollapsed ? 'justify-center px-0' : ''
                   }`}
                 >
-                  <Tag className="w-5 h-5 shrink-0" />
+                  <Tag className="w-5 h-5 shrink-0 text-[var(--hue-orange)]" fill="currentColor" fillOpacity={0.12} />
                   {!isSidebarCollapsed && <span className="truncate">{t('tags.sidebar.create')}</span>}
                 </button>
               ) : (
@@ -204,6 +230,7 @@ export default function Sidebar() {
                       key={tag.id}
                       type="button"
                       data-liquid-key={`tag:${tag.id}`}
+                      data-liquid-tint={color}
                       onClick={() => navigate(`/app/tags/${tag.id}`)}
                       title={isSidebarCollapsed ? tag.name : undefined}
                       aria-current={active ? 'page' : undefined}
@@ -241,13 +268,13 @@ export default function Sidebar() {
 
           <div className="my-2 short:my-1 mx-2 border-t border-glass-divider" />
 
-          <NavItem {...navProps('spam')} label={t('nav.spam')} icon={ShieldAlert} badge={spamCount} />
-          <NavItem {...navProps('trash')} label={t('nav.trash')} icon={Trash2} badge={trashCount} />
-          <NavItem {...navProps('backups')} label={t('nav.backups')} icon={DatabaseBackup} />
+          <NavItem {...navProps('spam')} label={t('nav.spam')} icon={ShieldAlert} hue="red" badge={spamCount} />
+          <NavItem {...navProps('trash')} label={t('nav.trash')} icon={Trash2} hue="pink" badge={trashCount} />
+          <NavItem {...navProps('backups')} label={t('nav.backups')} icon={DatabaseBackup} hue="mint" />
 
           <div className="my-2 short:my-1 mx-2 border-t border-glass-divider" />
 
-          <NavItem {...navProps('billing')} label={t('nav.billing')} icon={CreditCard} />
+          <NavItem {...navProps('billing')} label={t('nav.billing')} icon={CreditCard} hue="purple" />
         </LiquidGroup>
 
         {/* KHỐI THANH LƯU TRỮ DYNAMIC COLOR */}
@@ -264,7 +291,7 @@ export default function Sidebar() {
             >
               <Cloud
                 className={`w-5 h-5 mb-1 ${
-                  storageStatus.isFull ? 'text-[var(--tone-danger)]' : 'text-[var(--ink-muted)]'
+                  storageStatus.isFull ? 'text-[var(--tone-danger)]' : 'text-[var(--hue-blue)]'
                 }`}
               />
               <span
@@ -279,7 +306,7 @@ export default function Sidebar() {
             <div className="px-3 py-2.5 glass-soft rounded-[20px]">
               <div className="flex items-center justify-between mb-2 text-xs font-semibold text-[var(--ink)]">
                 <div className="flex items-center gap-2">
-                  <Cloud className="w-4 h-4 text-[var(--ink-muted)]" />
+                  <Cloud className="w-4 h-4 text-[var(--hue-blue)]" fill="currentColor" fillOpacity={0.14} />
                   <span>{t('sidebar.storage.title')}</span>
                 </div>
                 {/* Nhãn cảnh báo theo mức: "Đã đầy!" khi dùng ≥ hạn mức (kể cả vượt xa sau khi

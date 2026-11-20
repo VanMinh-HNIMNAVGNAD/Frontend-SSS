@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import { DROPLET, LiquidBody, SLIDE } from '../../utils/liquidMotion';
+import { createRefraction } from '../../utils/liquidRefraction';
 
 const ITEM_SELECTOR = '[data-liquid-key]';
 /**
@@ -88,7 +89,12 @@ function measureBounds(group, { fresh = false } = {}) {
  * xa hơn) và một lớp kính trong hiện trên chữ. Nhóm NHỎ (mục thấp hơn `DROPLET_MIN_SIZE`) thì
  * viên kính chỉ trượt êm. Toàn bộ chuyển động ở utils/liquidMotion.js.
  *
- * Lớp kính trong KHÔNG bẻ cong chữ (bản 2 có khúc xạ SVG — chữ các mục nó bay qua bị nén méo).
+ * Lớp kính trong KHÚC XẠ chữ nó bay qua (20/11/2026, chỉ Chromium — utils/liquidRefraction.js): thân
+ * giọt phóng nhẹ, vành giọt uốn cong chữ, viền chữ có ánh tán sắc. Trình duyệt khác giữ lớp kính
+ * trong không bẻ cong như cũ.
+ *
+ * MÀU GIỌT: mục mang `data-liquid-tint="<màu CSS>"` (vd. `var(--hue-blue)`) thì giọt đang chọn ánh
+ * màu đó (thanh bên: mỗi mục một màu icon, giọt nhuộm theo mục đang chọn, đổi màu dần khi nhảy).
  *
  * Phần tử nhóm tự có `position: relative` + `isolation: isolate` (lớp `components`, nên
  * `fixed`/`absolute` truyền qua `className` vẫn thắng). Mọi prop khác (onClick, style, role, ref…)
@@ -103,6 +109,7 @@ export default function LiquidGroup({ as: Tag = 'div', activeKey = null, classNa
     const pillRef = useRef(null);
     const lensRef = useRef(null);
     const bodyRef = useRef(null);
+    const refractionRef = useRef(null);
     const lastActiveKeyRef = useRef(undefined);
 
     const setGroupRef = useCallback(
@@ -118,7 +125,17 @@ export default function LiquidGroup({ as: Tag = 'div', activeKey = null, classNa
     /** Giọt kính + lớp kính trong đi chung một hình dạng; tạo lần đầu cần tới (chỉ trong effect). */
     const getBody = useCallback(() => {
         if (!bodyRef.current) {
-            bodyRef.current = new LiquidBody([pillRef.current, lensRef.current]);
+            refractionRef.current = createRefraction(lensRef.current);
+            const refraction = refractionRef.current;
+            bodyRef.current = new LiquidBody(
+                [pillRef.current, lensRef.current],
+                refraction
+                    ? {
+                          onBase: (w, h, radius) => refraction.resize(w, h, radius),
+                          onRender: (lift) => refraction.setStrength(lift),
+                      }
+                    : {},
+            );
         }
         return bodyRef.current;
     }, []);
@@ -176,6 +193,9 @@ export default function LiquidGroup({ as: Tag = 'div', activeKey = null, classNa
             return;
         }
 
+        // Màu của mục đang chọn (nếu có) nhuộm giọt — CSS chuyển màu dần trong lúc nhảy.
+        pillRef.current.style.setProperty('--tint', item.dataset.liquidTint || 'transparent');
+
         const box = measure(group, item);
         body.setBounds(measureBounds(group));
         body.setParams(box.b - box.t >= DROPLET_MIN_SIZE ? DROPLET : SLIDE);
@@ -205,6 +225,16 @@ export default function LiquidGroup({ as: Tag = 'div', activeKey = null, classNa
             resyncFrameRef.current = 0;
         };
     }, [scheduleResync]);
+
+    // Gỡ bộ lọc khúc xạ (nằm trong một <svg> chung ở <body>) khi nhóm rời trang.
+    useEffect(
+        () => () => {
+            refractionRef.current?.destroy();
+            refractionRef.current = null;
+            bodyRef.current = null;
+        },
+        [],
+    );
 
     return (
         <Tag ref={setGroupRef} data-liquid-group="" className={`liquid-group ${className}`} {...rest}>

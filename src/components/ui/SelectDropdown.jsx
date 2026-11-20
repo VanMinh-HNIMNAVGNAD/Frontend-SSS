@@ -1,6 +1,6 @@
 import { createPortal } from 'react-dom';
 import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
-import { ChevronDown, Check, X } from 'lucide-react';
+import { CaretDown as ChevronDown, Check, X } from '@phosphor-icons/react';
 import LiquidGroup from './LiquidGroup';
 
 /**
@@ -159,7 +159,7 @@ export default function SelectDropdown({
                         <Icon className={`w-3.5 h-3.5 shrink-0 ${active ? 'text-[var(--ink)]' : 'text-[var(--ink-muted)]'}`} />
                     )}
                     <span className="truncate max-w-[160px]">{displayLabel}</span>
-                    <ChevronDown
+                    <ChevronDown weight="bold"
                         className={`w-3.5 h-3.5 shrink-0 text-[var(--ink-subtle)] transition-transform duration-200 ${
                             isOpen ? 'rotate-180' : ''
                         }`}
@@ -173,7 +173,7 @@ export default function SelectDropdown({
                         aria-label={clearLabel}
                         className="mr-1 p-1 rounded-full text-[var(--ink-muted)] hover:text-[var(--ink)] cursor-pointer"
                     >
-                        <X className="w-3 h-3" strokeWidth={2.5} />
+                        <X className="w-3 h-3" weight="bold" />
                     </button>
                 )}
             </div>
@@ -211,7 +211,7 @@ export default function SelectDropdown({
                                         )}
                                         <span className="truncate">{option.label}</span>
                                     </span>
-                                    {isSelected && <Check className="w-3.5 h-3.5 shrink-0 text-[var(--ink)]" strokeWidth={2.5} />}
+                                    {isSelected && <Check className="w-3.5 h-3.5 shrink-0 text-[var(--ink)]" weight="bold" />}
                                 </button>
                             );
                         })}

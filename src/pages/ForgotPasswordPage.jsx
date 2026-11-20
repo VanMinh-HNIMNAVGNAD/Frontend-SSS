@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowRight, Lock, Mail, ShieldCheck } from 'lucide-react';
+import { ArrowRight, Lock, Envelope as Mail, ShieldCheck } from '@phosphor-icons/react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import AuthBackground from '../components/ui/AuthBackground';
@@ -289,7 +289,7 @@ export default function ForgotPasswordPage() {
         {step === 'done' && (
           <div className="flex flex-col items-center text-center gap-4 py-4">
             <div className={AUTH_SUCCESS_BADGE}>
-              <ShieldCheck className={AUTH_SUCCESS_ICON} strokeWidth={2.5} />
+              <ShieldCheck className={AUTH_SUCCESS_ICON} weight="bold" />
             </div>
             <p className={AUTH_SUCCESS_TEXT}>{t('forgot.done')}</p>
             <p className={`text-sm font-medium ${AUTH_MUTED}`}>

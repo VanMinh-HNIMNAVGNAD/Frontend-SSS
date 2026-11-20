@@ -3,34 +3,34 @@ import { Link } from 'react-router-dom';
 import { renderAiMarkdownSafe, safeHref, sanitizeSearchWidgetHtml } from '../../utils/safeMarkdown';
 import toast from 'react-hot-toast';
 import {
-    Sparkles,
+    Sparkle as Sparkles,
     X,
-    Send,
+    PaperPlaneRight as Send,
     Copy,
     Check,
     Square,
-    RefreshCw,
-    AlertTriangle,
-    Trash2,
-    Loader2,
-    FileSearch,
+    ArrowsClockwise as RefreshCw,
+    Warning as AlertTriangle,
+    Trash as Trash2,
+    CircleNotch as Loader2,
+    FileMagnifyingGlass as FileSearch,
     FileVideo,
-    FolderSearch,
+    FileMagnifyingGlass as FolderSearch,
     Info,
     Gauge,
     Globe,
-    History,
-    ChevronLeft,
-    MessageSquare,
+    ClockCounterClockwise as History,
+    CaretLeft as ChevronLeft,
+    ChatCircleText as MessageSquare,
     ArrowUpRight,
     Paperclip,
-    HardDrive,
-    Upload,
-    MoreVertical,
+    HardDrives as HardDrive,
+    UploadSimple as Upload,
+    DotsThreeVertical as MoreVertical,
     Minus,
     Eraser,
     Lock,
-} from 'lucide-react';
+} from '@phosphor-icons/react';
 
 import AiBubble from './AiBubble';
 import AiEffortBar from './AiEffortBar';
@@ -1304,7 +1304,7 @@ export default function GeminiModal({
                     liệu đã ghi thì không sửa lại được. */}
                 {msg?.grounded && (
                     <span className="flex items-center gap-1 text-gray-500 dark:text-gray-400 shrink-0">
-                        <Globe className="w-3 h-3" />
+                        <Globe weight="bold" className="w-3 h-3" />
                         {sourceCount > 0
                             ? t('ai.context.groundedCount', { count: sourceCount })
                             : t('ai.context.grounded')}
@@ -1352,7 +1352,7 @@ export default function GeminiModal({
         return (
             <div className="mt-2 pt-2 border-t border-glass-divider">
                 <p className="flex items-center gap-1.5 text-[11px] font-medium text-gray-600 dark:text-gray-300">
-                    <Globe className="w-3 h-3 shrink-0" />
+                    <Globe weight="bold" className="w-3 h-3 shrink-0" />
                     {t('ai.sources.title')}
                 </p>
 
@@ -1672,7 +1672,7 @@ export default function GeminiModal({
                                           })
                                 }
                             >
-                                <Gauge className="w-3.5 h-3.5 shrink-0" />
+                                <Gauge weight="bold" className="w-3.5 h-3.5 shrink-0" />
                                 {/* `sm:shrink-0`: từ sm tên gói hiện bên cạnh và CHỈ nó co lại khi thiếu chỗ.
                                     Để cả hai cùng co thì Chrome cắt "…" ở con số đã dùng chỉ vì lệch phần lẻ
                                     pixel (đo trên bản build: hai phần cùng co là "Đã dùng 5% hạn mức AI của g…").
@@ -1774,7 +1774,7 @@ export default function GeminiModal({
                                             luận như vậy, trong khi nó mới đang nói dở. */}
                                         {msg.truncated && (
                                             <p className="mt-2 flex items-start gap-1.5 text-[11px] text-[var(--tone-warn)]">
-                                                <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-px" />
+                                                <AlertTriangle weight="bold" className="w-3.5 h-3.5 shrink-0 mt-px" />
                                                 <span>{t('ai.truncated')}</span>
                                             </p>
                                         )}
@@ -1806,11 +1806,11 @@ export default function GeminiModal({
                                             }`}
                                         >
                                             {copiedIndex === `failed:${idx}` ? (
-                                                <AlertTriangle className="w-3 h-3" />
+                                                <AlertTriangle weight="bold" className="w-3 h-3" />
                                             ) : copiedIndex === idx ? (
-                                                <Check className="w-3 h-3" />
+                                                <Check weight="bold" className="w-3 h-3" />
                                             ) : (
-                                                <Copy className="w-3 h-3" />
+                                                <Copy weight="bold" className="w-3 h-3" />
                                             )}
                                             {copiedIndex === `failed:${idx}`
                                                 ? t('ai.copyFailed')
@@ -1843,7 +1843,7 @@ export default function GeminiModal({
                         và họ muốn dừng nhất. Ô nhập thì luôn đứng yên ở đáy panel. */}
                     {isThinking && (
                         <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            <Loader2 weight="bold" className="w-3.5 h-3.5 animate-spin" />
                             {reconnecting
                                 ? t('ai.reconnecting')
                                 : runEffort === 'high' || runEffort === 'max'
@@ -1869,7 +1869,7 @@ export default function GeminiModal({
                                         disabled={isThinking}
                                         className="btn-danger inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-medium transition-colors cursor-pointer disabled:cursor-not-allowed"
                                     >
-                                        <RefreshCw className="w-3 h-3" /> {t('ai.retry')}
+                                        <RefreshCw weight="bold" className="w-3 h-3" /> {t('ai.retry')}
                                     </button>
                                     {/* Đường ra thứ hai. Trước đây chỉ có một nút, và nó
                                         vừa mang nhãn "Thử lại" vừa làm việc đóng dòng lỗi —
@@ -1894,7 +1894,7 @@ export default function GeminiModal({
                     <div className="glass-soft mx-3 mb-2 px-3.5 py-3 rounded-[18px] animate-glass-in">
                         <div className="flex items-start gap-2.5">
                             <span className="mt-0.5 w-7 h-7 rounded-full bg-[var(--tone-warn-soft)] flex items-center justify-center shrink-0">
-                                <Lock className="w-3.5 h-3.5 text-[var(--tone-warn)]" />
+                                <Lock weight="bold" className="w-3.5 h-3.5 text-[var(--tone-warn)]" />
                             </span>
                             <div className="min-w-0 flex-1">
                                 <p className="text-[13px] font-semibold text-gray-900 dark:text-gray-100">
@@ -1915,7 +1915,7 @@ export default function GeminiModal({
                                         className="px-3 py-1.5 rounded-full btn-accent hover:brightness-105 text-xs font-semibold transition flex items-center gap-1.5"
                                     >
                                         {t('ai.model.locked.upgrade')}
-                                        <ArrowUpRight className="w-3.5 h-3.5" />
+                                        <ArrowUpRight weight="bold" className="w-3.5 h-3.5" />
                                     </Link>
                                     {selectedModel && !modelOptions?.find((m) => m.id === selectedModel)?.locked && (
                                         <span className="text-[11px] text-gray-500 dark:text-gray-400">
@@ -1947,7 +1947,7 @@ export default function GeminiModal({
                             className="shrink-0 px-3 py-2 rounded-lg btn-accent hover:brightness-105 font-medium text-xs transition-colors flex items-center gap-1.5"
                         >
                             {t('ai.quota.upgradeCta')}
-                            <ArrowUpRight className="w-3.5 h-3.5" />
+                            <ArrowUpRight weight="bold" className="w-3.5 h-3.5" />
                         </Link>
                     </div>
                 )}
@@ -1998,9 +1998,9 @@ export default function GeminiModal({
                                             )}
                                             <span className="relative flex items-center gap-1.5 min-w-0">
                                                 {busy ? (
-                                                    <Loader2 className="w-3 h-3 shrink-0 animate-spin text-[var(--ink-muted)]" />
+                                                    <Loader2 weight="bold" className="w-3 h-3 shrink-0 animate-spin text-[var(--ink-muted)]" />
                                                 ) : failed ? (
-                                                    <AlertTriangle className="w-3 h-3 shrink-0" />
+                                                    <AlertTriangle weight="bold" className="w-3 h-3 shrink-0" />
                                                 ) : (
                                                     <Icon className="w-3 h-3 shrink-0 text-gray-400 dark:text-gray-500" />
                                                 )}
@@ -2019,7 +2019,7 @@ export default function GeminiModal({
                                                     aria-label={t('ai.attach.remove', { name: src.name })}
                                                     className="relative shrink-0 p-0.5 rounded text-gray-400 hover:text-[var(--tone-danger)] transition-colors cursor-pointer"
                                                 >
-                                                    <X className="w-3 h-3" />
+                                                    <X weight="bold" className="w-3 h-3" />
                                                 </button>
                                             )}
                                         </span>
@@ -2030,7 +2030,7 @@ export default function GeminiModal({
 
                         {attachError && (
                             <p className="mt-1.5 flex items-start gap-1.5 text-[11px] text-[var(--tone-danger)]">
-                                <AlertTriangle className="w-3 h-3 shrink-0 mt-0.5" />
+                                <AlertTriangle weight="bold" className="w-3 h-3 shrink-0 mt-0.5" />
                                 <span className="min-w-0 break-words">{attachError}</span>
                             </p>
                         )}
@@ -2120,7 +2120,7 @@ export default function GeminiModal({
                                 aria-label={t('ai.stop')}
                                 className="btn-danger shrink-0 px-3 py-2 rounded-full transition-colors flex items-center gap-1.5 text-[13px] font-medium cursor-pointer"
                             >
-                                <Square className="w-3.5 h-3.5" />
+                                <Square weight="bold" className="w-3.5 h-3.5" />
                                 {t('ai.stop')}
                             </button>
                         ) : (
@@ -2203,7 +2203,7 @@ export default function GeminiModal({
                                         : 'bg-gray-100 text-gray-400 dark:bg-white/[0.07] dark:text-gray-500'
                                 }`}
                             >
-                                <Globe className="w-3.5 h-3.5" />
+                                <Globe weight="bold" className="w-3.5 h-3.5" />
                                 <span className={webSearchOn ? '' : 'line-through'}>{t('ai.web.short')}</span>
                             </button>
                         )}
@@ -2334,7 +2334,7 @@ export default function GeminiModal({
                                                         {c.itemName || t('ai.history.deletedItem')}
                                                     </span>
                                                     <span className="shrink-0 flex items-center gap-1">
-                                                        <MessageSquare className="w-3 h-3" />
+                                                        <MessageSquare weight="bold" className="w-3 h-3" />
                                                         {t('ai.history.messages', { count: c.messageCount })}
                                                     </span>
                                                     <span className="shrink-0 hidden sm:inline">
@@ -2372,7 +2372,7 @@ export default function GeminiModal({
                                                         : 'p-1.5 text-gray-400 hover:text-[var(--tone-danger)]'
                                                 }`}
                                             >
-                                                <Trash2 className="w-3.5 h-3.5 shrink-0" />
+                                                <Trash2 weight="bold" className="w-3.5 h-3.5 shrink-0" />
                                                 {confirmDeleteId === c.id && t('ai.clear.confirm')}
                                             </button>
                                         </div>
@@ -2384,7 +2384,7 @@ export default function GeminiModal({
                                             disabled={historyLoading}
                                             className="w-full mt-1 py-2 text-[11px] font-medium text-gray-600 dark:text-gray-300 rounded-lg transition-colors cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5"
                                         >
-                                            {historyLoading && <Loader2 className="w-3 h-3 animate-spin" />}
+                                            {historyLoading && <Loader2 weight="bold" className="w-3 h-3 animate-spin" />}
                                             {t('ai.history.loadMore')}
                                         </button>
                                     )}

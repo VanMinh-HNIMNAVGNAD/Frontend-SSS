@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown, Check, Lock, MapPin } from 'lucide-react';
+import { CaretDown as ChevronDown, Check, Lock, MapPin } from '@phosphor-icons/react';
 import { useLanguage } from '../../context/LanguageContext';
 import { localeTagOf } from '../../utils/locale';
 import { TIER_LABEL, tierRank } from '../../constants/aiTiers';
@@ -132,15 +132,15 @@ export default function AiModelPicker({ models, value, onChange, onLockedPick, p
                 title={t('ai.model.label')}
                 className="flex items-center gap-1.5 max-w-[15rem] px-2.5 py-1 rounded-full bg-black/[0.05] dark:bg-white/[0.08] ring-1 ring-black/[0.04] dark:ring-white/10 text-gray-800 dark:text-gray-200 font-medium transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
-                {selected?.locked && <Lock className="w-3 h-3 shrink-0 text-[var(--ink-muted)]" />}
+                {selected?.locked && <Lock weight="bold" className="w-3 h-3 shrink-0 text-[var(--ink-muted)]" />}
                 <span className="truncate">{selected?.label ?? value}</span>
                 {selected?.location && selected.location !== 'global' && (
                     <span className="shrink-0 flex items-center gap-0.5 text-[10px] text-[var(--ink-muted)]">
-                        <MapPin className="w-3 h-3" />
+                        <MapPin weight="bold" className="w-3 h-3" />
                         {regionLabel(t, selected.location)}
                     </span>
                 )}
-                <ChevronDown className={`w-3.5 h-3.5 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
+                <ChevronDown weight="bold" className={`w-3.5 h-3.5 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
             </button>
 
             {open && (
@@ -232,8 +232,8 @@ function ModelRow({ m, active = false, locked = false, onPick, readsText, number
             className="w-full flex items-start gap-2 px-2.5 py-2 rounded-[12px] text-left transition-colors cursor-pointer"
         >
             <span className="w-4 shrink-0 pt-0.5">
-                {active && <Check className="w-3.5 h-3.5 text-[var(--ink)]" strokeWidth={2.5} />}
-                {locked && <Lock className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />}
+                {active && <Check className="w-3.5 h-3.5 text-[var(--ink)]" weight="bold" />}
+                {locked && <Lock weight="bold" className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />}
             </span>
             <span className={`min-w-0 flex-1 ${locked ? 'opacity-60' : ''}`}>
                 <span className="flex items-center gap-1.5 flex-wrap">
@@ -262,7 +262,7 @@ function ModelRow({ m, active = false, locked = false, onPick, readsText, number
                                     : 'text-[var(--ink)] font-semibold'
                             }`}
                         >
-                            <MapPin className="w-3 h-3" />
+                            <MapPin weight="bold" className="w-3 h-3" />
                             {regionLabel(t, m.location)}
                         </span>
                     )

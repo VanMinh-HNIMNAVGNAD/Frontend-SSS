@@ -1,23 +1,25 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+// Phosphor như header / thanh bên (20/11/2026); bí danh giữ tên cũ cho phần dưới. Nét mặc định hai
+// tông đến từ IconContext của Header.jsx.
 import {
     Bell,
-    BellOff,
-    CalendarClock,
+    BellSlash as BellOff,
+    CalendarDots as CalendarClock,
     Check,
     CreditCard,
-    HardDrive,
+    HardDrives as HardDrive,
     Info,
-    Loader2,
-    MessageSquare,
-    Sparkles,
-    Trash2,
-    TriangleAlert,
+    CircleNotch as Loader2,
+    ChatCircleText as MessageSquare,
+    Sparkle as Sparkles,
+    Trash as Trash2,
+    Warning as TriangleAlert,
     UserPlus,
-    Users,
+    UsersThree as Users,
     X,
-} from 'lucide-react';
+} from '@phosphor-icons/react';
 import { popBadge, ringBell } from '../../utils/motion';
 import { notificationsApi } from '../../services/api';
 import { useLanguage } from '../../context/LanguageContext';
@@ -371,7 +373,7 @@ export default function NotificationBell() {
                         <div className="flex-1 overflow-y-auto">
                             {loading && items.length === 0 ? (
                                 <div className="flex items-center justify-center py-10 text-[var(--ink-subtle)]">
-                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                    <Loader2 className="w-5 h-5 animate-spin" weight="bold" />
                                 </div>
                             ) : error && items.length === 0 ? (
                                 <p className="px-4 py-8 text-center text-sm text-[var(--tone-danger)]">{error}</p>
@@ -427,7 +429,7 @@ export default function NotificationBell() {
                                                             aria-label={t('notifications.markRead')}
                                                             className={ROW_ACTION_CLASS}
                                                         >
-                                                            <Check className="w-4 h-4" />
+                                                            <Check className="w-4 h-4" weight="bold" />
                                                         </button>
                                                     )}
                                                     <button
@@ -457,7 +459,7 @@ export default function NotificationBell() {
                                             disabled={loadingMore}
                                             className="flex items-center gap-1 font-medium text-[var(--ink)] hover:underline disabled:opacity-50 cursor-pointer"
                                         >
-                                            {loadingMore && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                                            {loadingMore && <Loader2 className="w-3.5 h-3.5 animate-spin" weight="bold" />}
                                             {t('notifications.loadMore')}
                                         </button>
                                     ) : (

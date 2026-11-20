@@ -6,7 +6,7 @@ import FileGridView from '../components/file-manager/FileGridView';
 import FileFilterBar from '../components/common/FileFilterBar';
 import Breadcrumb from '../components/file-manager/Breadcrumb';
 import PageHeader from '../components/common/PageHeader';
-import { UploadCloud, FolderInput, Loader2 } from 'lucide-react';
+import { CloudArrowUp as UploadCloud, ArrowSquareIn as FolderInput, CircleNotch as Loader2 } from '@phosphor-icons/react';
 import { collectDropEntries } from '../utils/uploadTree';
 
 export default function MyDrivePage() {
@@ -95,7 +95,7 @@ export default function MyDrivePage() {
       {/* Đang đọc cây thư mục vừa thả — với thư mục lớn bước này mất vài giây */}
       {isReadingDrop && (
         <div className="glass-strong glass-plain absolute top-3 right-3 z-40 flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold text-[var(--ink)]">
-          <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--ink-muted)]" />
+          <Loader2 weight="bold" className="w-3.5 h-3.5 animate-spin text-[var(--ink-muted)]" />
           <span>{t('myDrive.drop.reading')}</span>
         </div>
       )}

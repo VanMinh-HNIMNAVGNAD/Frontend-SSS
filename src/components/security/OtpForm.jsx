@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ArrowRight, Check, MailCheck, RotateCw } from 'lucide-react';
+import { ArrowRight, Check, EnvelopeOpen as MailCheck, ArrowClockwise as RotateCw } from '@phosphor-icons/react';
 import { useLanguage } from '../../context/LanguageContext';
 import OtpInput from './OtpInput';
 import TurnstileWidget from './TurnstileWidget';
@@ -114,7 +114,7 @@ export default function OtpForm({
       <div className="space-y-6">
         <div className="flex flex-col items-center gap-4 py-2">
           <div className={AUTH_SUCCESS_BADGE}>
-            <Check className={AUTH_SUCCESS_ICON} strokeWidth={3} />
+            <Check className={AUTH_SUCCESS_ICON} weight="bold" />
           </div>
           <p className={AUTH_SUCCESS_TEXT}>{successMessage ?? t('otp.success')}</p>
         </div>

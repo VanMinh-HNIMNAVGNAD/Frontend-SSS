@@ -1,4 +1,4 @@
-import { Loader2 } from 'lucide-react';
+import { CircleNotch as Loader2 } from '@phosphor-icons/react';
 import { useLanguage } from '../../context/LanguageContext';
 import { formatBytes } from '../../utils/formatFileSize';
 
@@ -19,7 +19,7 @@ export default function ImageStagePill({ stage, sizeBytes, onLoadOriginal }) {
   if (stage.stage === 'placeholder' && stage.src) {
     return (
       <div className={base}>
-        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+        <Loader2 weight="bold" className="w-3.5 h-3.5 animate-spin" />
         {t('preview.image.loadingSharp')}
       </div>
     );
@@ -29,7 +29,7 @@ export default function ImageStagePill({ stage, sizeBytes, onLoadOriginal }) {
     return (
       <div className={`${base} flex-col !gap-1 !py-2`}>
         <span className="flex items-center gap-2">
-          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          <Loader2 weight="bold" className="w-3.5 h-3.5 animate-spin" />
           {pct == null ? t('preview.image.loadingOriginal') : t('preview.image.loadingOriginalPct', { percent: pct })}
         </span>
         {pct != null && (

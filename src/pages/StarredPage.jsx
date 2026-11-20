@@ -3,7 +3,7 @@ import FileGridView from '../components/file-manager/FileGridView';
 import FileFilterBar from '../components/common/FileFilterBar';
 import { useFiles } from '../context/FileContext';
 import { useLanguage } from '../context/LanguageContext';
-import { Star } from 'lucide-react';
+import { Star } from '@phosphor-icons/react';
 import PageHeader from '../components/common/PageHeader';
 
 export default function StarredPage() {

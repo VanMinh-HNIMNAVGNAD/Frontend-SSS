@@ -3,7 +3,7 @@ import FileGridView from '../components/file-manager/FileGridView';
 import FileFilterBar from '../components/common/FileFilterBar';
 import { useFiles } from '../context/FileContext';
 import { useLanguage } from '../context/LanguageContext';
-import { Users, Share2 } from 'lucide-react';
+import { UsersThree as Users, ShareNetwork as Share2 } from '@phosphor-icons/react';
 import Breadcrumb from '../components/file-manager/Breadcrumb';
 import PageHeader from '../components/common/PageHeader';
 

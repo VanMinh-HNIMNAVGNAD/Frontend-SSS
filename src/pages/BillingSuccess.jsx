@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
-  AlertTriangle,
-  ArrowLeft,
-  CheckCircle2,
-  Clock,
-  Loader2,
-  RefreshCw,
-  XCircle,
-} from 'lucide-react';
+    Warning as AlertTriangle,
+    ArrowLeft,
+    CheckCircle as CheckCircle2,
+    Clock,
+    CircleNotch as Loader2,
+    ArrowsClockwise as RefreshCw,
+    XCircle,
+} from '@phosphor-icons/react';
 import { billingApi } from '../services/api';
 import { aiStatusCache } from '../utils/ttlCache';
 import { useAuth } from '../context/AuthContext';

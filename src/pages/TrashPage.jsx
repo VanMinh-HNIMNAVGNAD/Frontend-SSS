@@ -6,7 +6,7 @@ import Notice from '../components/common/Notice';
 import { useFiles } from '../context/FileContext';
 import { useLanguage } from '../context/LanguageContext';
 import { confirmDialog } from '../utils/dialog';
-import { Trash2, Clock } from 'lucide-react';
+import { Trash as Trash2, Clock } from '@phosphor-icons/react';
 
 export default function TrashPage() {
     const { t } = useLanguage();
@@ -45,7 +45,7 @@ export default function TrashPage() {
                         onClick={handleEmptyTrash}
                         className="btn-danger h-8 px-3.5 rounded-full text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer"
                     >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash2 weight="bold" className="w-3.5 h-3.5" />
                         {t('trash.empty.button')}
                     </button>
                 )}

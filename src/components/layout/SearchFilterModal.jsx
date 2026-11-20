@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react';
-import { Check } from 'lucide-react';
+import { Check } from '@phosphor-icons/react';
 import { useFiles } from '../../context/FileContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { FILE_TYPE_FILTER_OPTIONS } from '../../constants/fileFilters';
@@ -35,7 +35,7 @@ function ChipGroup({ label, options, value, onChange }) {
                                     : 'glass-soft font-medium text-[var(--ink-muted)] hover:text-[var(--ink)]'
                             }`}
                         >
-                            {selected && <Check className="w-3.5 h-3.5 -ml-0.5" strokeWidth={2.5} />}
+                            {selected && <Check className="w-3.5 h-3.5 -ml-0.5" weight="bold" />}
                             {option.label}
                         </button>
                     );

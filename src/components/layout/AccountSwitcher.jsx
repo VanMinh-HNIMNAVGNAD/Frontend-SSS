@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertCircle, Loader2, LogOut, UserPlus } from 'lucide-react';
+import { WarningCircle as AlertCircle, CircleNotch as Loader2, SignOut as LogOut, UserPlus } from '@phosphor-icons/react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { ACCOUNT_NOT_SIGNED_IN_CODE } from '../../services/api';
@@ -126,7 +126,7 @@ export default function AccountSwitcher({ guard, onNavigate }) {
                                     aria-label={t('account.switch.signOutOne', { email: account.email })}
                                     className="p-2 mr-1 rounded-full text-[var(--ink-subtle)] hover:text-[var(--tone-danger)] opacity-60 group-hover:opacity-100 focus:opacity-100 transition cursor-pointer disabled:cursor-wait"
                                 >
-                                    <LogOut className="w-3.5 h-3.5" />
+                                    <LogOut weight="bold" className="w-3.5 h-3.5" />
                                 </button>
                             </li>
                         ))}

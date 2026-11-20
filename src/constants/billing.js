@@ -18,7 +18,7 @@
 // dùng chung được các nhãn trạng thái/chu kỳ mà không phải import ngược từ page
 // (page → modal → page là vòng import).
 
-import { AlertTriangle, Check, Clock, XCircle } from 'lucide-react';
+import { Warning as AlertTriangle, Check, Clock, XCircle } from '@phosphor-icons/react';
 
 // ─────────────────────────────── Định dạng số ───────────────────────────────
 

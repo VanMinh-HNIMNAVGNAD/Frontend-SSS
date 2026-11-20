@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import {
-    ChevronRight,
+    CaretRight as ChevronRight,
     Folder,
-    FolderGit2,
-    FolderSymlink,
-    HardDrive,
-    Loader2,
-    Users,
+    FolderSimpleUser as FolderGit2,
+    ArrowBendUpRight as FolderSymlink,
+    HardDrives as HardDrive,
+    CircleNotch as Loader2,
+    UsersThree as Users,
     X,
-} from 'lucide-react';
+} from '@phosphor-icons/react';
 import { useFiles } from '../../context/FileContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { filesApi, sharedDrivesApi } from '../../services/api';
@@ -281,7 +281,7 @@ function MovePanel({ items, onClose, onMoved }) {
                         const isLast = index === trail.length - 1;
                         return (
                             <span key={`${crumb.area}:${crumb.driveId ?? ''}:${crumb.folderId ?? ''}`} className="flex items-center gap-0.5 min-w-0">
-                                {index > 0 && <ChevronRight className="w-3.5 h-3.5 shrink-0 text-gray-400" />}
+                                {index > 0 && <ChevronRight weight="bold" className="w-3.5 h-3.5 shrink-0 text-gray-400" />}
                                 {isLast ? (
                                     <span className="px-1.5 py-0.5 truncate max-w-[14rem] text-gray-900 dark:text-gray-100" aria-current="location">
                                         {crumbLabel(crumb)}
@@ -350,8 +350,8 @@ function MovePanel({ items, onClose, onMoved }) {
                     ) : folders.length === 0 ? (
                         <div className="flex flex-col items-center justify-center gap-2 py-12 text-sm text-gray-500 dark:text-gray-400">
                             {location.area === 'shared' && !location.folderId
-                                ? <Users className="w-8 h-8 stroke-1 text-gray-300 dark:text-gray-600" />
-                                : <Folder className="w-8 h-8 stroke-1 text-gray-300 dark:text-gray-600" />}
+                                ? <Users weight="light" className="w-8 h-8 text-gray-300 dark:text-gray-600" />
+                                : <Folder weight="light" className="w-8 h-8 text-gray-300 dark:text-gray-600" />}
                             <span>{t('move.empty')}</span>
                         </div>
                     ) : (
@@ -369,7 +369,7 @@ function MovePanel({ items, onClose, onMoved }) {
                                             style={getCardColorVars(folder)}
                                             className={`${rowClass} ${isSelf ? 'opacity-45 cursor-not-allowed' : 'cursor-pointer'}`}
                                         >
-                                            <Folder className="w-4 h-4 shrink-0 fill-current text-[var(--fc-icon-l)] dark:text-[var(--fc-icon-d)]" />
+                                            <Folder weight="fill" className="w-4 h-4 shrink-0 text-[var(--fc-icon-l)] dark:text-[var(--fc-icon-d)]" />
                                             <span className="flex-1 min-w-0 truncate">{folder.name}</span>
                                             {location.area === 'shared' && folder.sharedRole === 'VIEWER' && (
                                                 <span className="chip shrink-0 text-[10px] px-1.5 py-0.5">

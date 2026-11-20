@@ -1,26 +1,26 @@
 import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import { formatBytes } from '../../utils/formatFileSize';
-import { 
-  X, 
-  ZoomIn, 
-  ZoomOut, 
-  RotateCw, 
-  Download, 
-  Maximize2, 
-  FileImage,
-  FileVideo,
-  FileAudio,
-  FileText,
-  FileSpreadsheet,
-  Loader2,
-  ChevronLeft,
-  ChevronRight,
-  AlertTriangle,
-  VolumeX,
-  EyeOff,
-  Sparkles,
-  MessageSquarePlus
-} from 'lucide-react';
+import {
+    X,
+    MagnifyingGlassPlus as ZoomIn,
+    MagnifyingGlassMinus as ZoomOut,
+    ArrowClockwise as RotateCw,
+    DownloadSimple as Download,
+    ArrowsOut as Maximize2,
+    FileImage,
+    FileVideo,
+    FileAudio,
+    FileText,
+    FileXls as FileSpreadsheet,
+    CircleNotch as Loader2,
+    CaretLeft as ChevronLeft,
+    CaretRight as ChevronRight,
+    Warning as AlertTriangle,
+    SpeakerSimpleX as VolumeX,
+    EyeSlash as EyeOff,
+    Sparkle as Sparkles,
+    ChatTeardropText as MessageSquarePlus,
+} from '@phosphor-icons/react';
 import toast from 'react-hot-toast';
 import { useFiles } from '../../context/FileContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -411,7 +411,7 @@ function MediaSupportNotice({ diagnosis, fileName, onDownload, t, inline = false
         onClick={onDownload}
         className="px-3 py-1.5 bg-white/15 text-white rounded-lg transition-colors font-semibold text-xs shrink-0 flex items-center gap-1.5 cursor-pointer"
       >
-        <Download className="w-3.5 h-3.5" />
+        <Download weight="bold" className="w-3.5 h-3.5" />
         <span>{t('preview.media.downloadAndOpenLocally')}</span>
       </button>
     </div>
@@ -1145,7 +1145,7 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
                       onClick={handleDownload}
                       className="px-3 py-1.5 btn-accent hover:brightness-105 rounded-lg transition-colors font-semibold shadow-sm text-xs shrink-0 flex items-center gap-1.5"
                     >
-                      <Download className="w-3.5 h-3.5" />
+                      <Download weight="bold" className="w-3.5 h-3.5" />
                       <span>{t('preview.downloadOriginal')}</span>
                     </button>
                   </div>
@@ -1247,7 +1247,7 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
               <div className="w-full h-full max-w-5xl rounded-2xl overflow-hidden bg-white dark:bg-[#1c1c1f] border border-zinc-200 dark:border-white/10 shadow-2xl flex flex-col">
                 <div className="px-4 py-2.5 bg-zinc-100 dark:bg-white/[0.04] border-b border-zinc-200 dark:border-white/10 text-xs font-mono text-zinc-600 dark:text-zinc-400 flex items-center justify-between">
                   <div className="flex items-center gap-2 min-w-0">
-                    <FileText className="w-3.5 h-3.5 shrink-0 text-zinc-500 dark:text-zinc-400" />
+                    <FileText weight="bold" className="w-3.5 h-3.5 shrink-0 text-zinc-500 dark:text-zinc-400" />
                     <span className="hidden @lg:inline font-semibold text-zinc-800 dark:text-zinc-200 truncate">{item.name}</span>
                   </div>
                   <span>{t('preview.wordDocument')} • {formatBytes(item.sizeBytes)}</span>
@@ -1265,7 +1265,7 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
               <div className="w-full h-full max-w-6xl rounded-2xl overflow-hidden bg-white dark:bg-[#1c1c1f] border border-zinc-200 dark:border-white/10 shadow-2xl flex flex-col">
                 <div className="px-4 py-2.5 bg-zinc-100 dark:bg-white/[0.04] border-b border-zinc-200 dark:border-white/10 text-xs font-mono text-zinc-600 dark:text-zinc-400 flex items-center justify-between">
                   <div className="flex items-center gap-2 min-w-0">
-                    <FileSpreadsheet className="w-3.5 h-3.5 shrink-0 text-zinc-500 dark:text-zinc-400" />
+                    <FileSpreadsheet weight="bold" className="w-3.5 h-3.5 shrink-0 text-zinc-500 dark:text-zinc-400" />
                     <span className="hidden @lg:inline font-semibold text-zinc-800 dark:text-zinc-200 truncate">{item.name}</span>
                   </div>
                   <span className="shrink-0">{t('preview.sheet.label')} • {formatBytes(item.sizeBytes)}</span>
@@ -1278,7 +1278,7 @@ export default function FilePreviewModal({ item, siblings = null, onNavigate, on
               <div className="w-full h-full max-w-5xl rounded-2xl overflow-hidden bg-white dark:bg-[#1c1c1f] border border-zinc-200 dark:border-white/10 shadow-2xl flex flex-col">
                 <div className="px-4 py-2.5 bg-white dark:bg-white/[0.04] border-b border-zinc-200 dark:border-white/10 text-xs font-mono text-zinc-600 dark:text-zinc-400 flex items-center justify-between">
                   <div className="flex items-center gap-2 min-w-0">
-                    <FileText className="w-3.5 h-3.5 shrink-0 text-zinc-500 dark:text-zinc-400" />
+                    <FileText weight="bold" className="w-3.5 h-3.5 shrink-0 text-zinc-500 dark:text-zinc-400" />
                     <span className="hidden @lg:inline font-semibold text-zinc-800 dark:text-zinc-200 truncate">{item.name}</span>
                     {isMd && (
                       <span className="text-[10px] px-1.5 py-0.5 rounded bg-black/[0.06] dark:bg-white/10 text-zinc-600 dark:text-zinc-300 font-mono hidden @lg:inline-block">

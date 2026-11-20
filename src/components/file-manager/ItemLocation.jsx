@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Folder, FolderGit2, HardDrive, Users } from 'lucide-react';
+import { Folder, FolderSimpleUser as FolderGit2, HardDrives as HardDrive, UsersThree as Users } from '@phosphor-icons/react';
 import { useDriveAccess } from '../../context/FileContext';
 import { useLanguage } from '../../context/LanguageContext';
 

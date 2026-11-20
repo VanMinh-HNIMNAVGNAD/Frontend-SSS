@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { Lock, Mail, ArrowRight, ArrowLeft, Loader2, X } from 'lucide-react';
+import { Lock, Envelope as Mail, ArrowRight, ArrowLeft, CircleNotch as Loader2, X } from '@phosphor-icons/react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import AuthBackground from '../components/ui/AuthBackground';

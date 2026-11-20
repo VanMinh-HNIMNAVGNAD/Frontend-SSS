@@ -1,4 +1,4 @@
-import { ChevronRight, HardDrive } from 'lucide-react';
+import { CaretRight as ChevronRight, HardDrives as HardDrive } from '@phosphor-icons/react';
 
 import { useLanguage } from '../../context/LanguageContext';
 

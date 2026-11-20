@@ -14,17 +14,17 @@ import PageHeader from '../components/common/PageHeader';
 import { alertDialog } from '../utils/dialog';
 import toast from 'react-hot-toast';
 import {
-    FolderGit2,
+    FolderSimpleUser as FolderGit2,
     Plus,
     ArrowLeft,
     X,
-    MoreVertical,
-    Share2,
+    DotsThreeVertical as MoreVertical,
+    ShareNetwork as Share2,
     Star,
-    AlertTriangle,
-    Loader2,
-    LogOut,
-} from 'lucide-react';
+    Warning as AlertTriangle,
+    CircleNotch as Loader2,
+    SignOut as LogOut,
+} from '@phosphor-icons/react';
 import { sharedDrivesApi } from '../services/api';
 
 // Vai trò của mình trong một drive — nhãn đọc được thay cho mã thô "ADMIN"/"VIEWER" in hoa.
@@ -416,7 +416,7 @@ export default function SharedDrivesPage() {
                                             drive.isStarred ? 'text-[var(--ink)]' : 'text-[var(--ink-subtle)] hover:text-[var(--ink)]'
                                         }`}
                                     >
-                                        <Star className={`w-4 h-4 ${drive.isStarred ? 'fill-current' : ''}`} />
+                                        <Star weight={drive.isStarred ? 'fill' : 'regular'} className="w-4 h-4" />
                                     </button>
                                     {/* 3 chấm — cùng menu với right-click */}
                                     <button
@@ -582,7 +582,7 @@ export default function SharedDrivesPage() {
                             disabled={!renameName.trim() || isSavingRename}
                             className="px-4 py-2 text-xs font-semibold btn-accent hover:brightness-105 disabled:cursor-not-allowed rounded-full transition flex items-center gap-2 cursor-pointer"
                         >
-                            {isSavingRename && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                            {isSavingRename && <Loader2 weight="bold" className="w-3.5 h-3.5 animate-spin" />}
                             {t('drives.saveChanges')}
                         </button>
                     </div>
@@ -634,7 +634,7 @@ export default function SharedDrivesPage() {
                             disabled={isDeleting}
                             className="px-4 py-2 text-xs font-semibold btn-danger disabled:cursor-not-allowed rounded-full transition-colors flex items-center gap-2 cursor-pointer"
                         >
-                            {isDeleting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                            {isDeleting && <Loader2 weight="bold" className="w-3.5 h-3.5 animate-spin" />}
                             {t('common.deleteForever')}
                         </button>
                     </div>
@@ -681,7 +681,7 @@ export default function SharedDrivesPage() {
                             disabled={isLeaving}
                             className="px-4 py-2 text-xs font-semibold btn-danger disabled:cursor-not-allowed rounded-full transition-colors flex items-center gap-2 cursor-pointer"
                         >
-                            {isLeaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <LogOut className="w-3.5 h-3.5" />}
+                            {isLeaving ? <Loader2 weight="bold" className="w-3.5 h-3.5 animate-spin" /> : <LogOut weight="bold" className="w-3.5 h-3.5" />}
                             {t('drives.leave.confirm')}
                         </button>
                     </div>

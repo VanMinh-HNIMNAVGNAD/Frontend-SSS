@@ -5,14 +5,14 @@ import {
     File,
     FileText,
     Image as ImageIcon,
-    FileSpreadsheet,
-    Presentation,
+    FileXls as FileSpreadsheet,
+    PresentationChart as Presentation,
     Archive,
-    Video,
+    VideoCamera as Video,
     FileCode,
     User,
-    Users
-} from 'lucide-react';
+    UsersThree as Users,
+} from '@phosphor-icons/react';
 import { useFiles } from '../../context/FileContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { FILE_TYPE_FILTER_OPTIONS } from '../../constants/fileFilters';

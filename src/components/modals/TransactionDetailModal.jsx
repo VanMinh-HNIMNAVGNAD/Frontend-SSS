@@ -2,17 +2,17 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
-  AlertTriangle,
-  Ban,
-  CreditCard,
-  ExternalLink,
-  Hash,
-  Loader2,
-  Package,
-  Receipt,
-  RefreshCw,
-  X,
-} from 'lucide-react';
+    Warning as AlertTriangle,
+    Prohibit as Ban,
+    CreditCard,
+    ArrowSquareOut as ExternalLink,
+    Hash,
+    CircleNotch as Loader2,
+    Package,
+    Receipt,
+    ArrowsClockwise as RefreshCw,
+    X,
+} from '@phosphor-icons/react';
 import { useLanguage } from '../../context/LanguageContext';
 import { displayPlanName } from '../../utils/planName';
 import { billingApi } from '../../services/api';

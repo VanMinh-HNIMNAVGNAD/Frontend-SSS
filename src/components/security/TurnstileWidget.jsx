@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Turnstile } from '@marsidev/react-turnstile';
-import { Loader2, ShieldAlert } from 'lucide-react';
+import { CircleNotch as Loader2, ShieldWarning as ShieldAlert } from '@phosphor-icons/react';
 import useTheme from '../../hooks/useTheme';
 import { useLanguage } from '../../context/LanguageContext';
 import {

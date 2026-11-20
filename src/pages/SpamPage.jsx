@@ -5,7 +5,7 @@ import PageHeader from '../components/common/PageHeader';
 import Notice from '../components/common/Notice';
 import { useFiles } from '../context/FileContext';
 import { useLanguage } from '../context/LanguageContext';
-import { ShieldAlert, AlertTriangle } from 'lucide-react';
+import { ShieldWarning as ShieldAlert, Warning as AlertTriangle } from '@phosphor-icons/react';
 
 export default function SpamPage() {
     const { t } = useLanguage();

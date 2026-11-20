@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Loader2, Sparkles } from 'lucide-react';
+import { CircleNotch as Loader2, Sparkle as Sparkles } from '@phosphor-icons/react';
 
 /**
  * Bong bóng của trợ lý AI khi panel đang thu nhỏ — KÉO ĐƯỢC quanh cả bốn cạnh màn hình.

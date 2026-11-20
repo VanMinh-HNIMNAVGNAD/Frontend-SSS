@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Sparkles, Flower2, Sunset } from 'lucide-react';
+import { Sparkle as Sparkles, Flower as Flower2, SunHorizon as Sunset } from '@phosphor-icons/react';
 
 export default function AnimatedBackground({ mode = 'sunset' }) {
     const canvasRef = useRef(null);

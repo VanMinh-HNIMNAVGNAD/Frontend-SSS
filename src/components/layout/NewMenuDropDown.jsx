@@ -1,5 +1,5 @@
 import React from 'react';
-import { FolderPlus, FileUp } from 'lucide-react';
+import { FolderSimplePlus as FolderPlus, FileArrowUp as FileUp } from '@phosphor-icons/react';
 import { useLanguage } from '../../context/LanguageContext';
 
 export default function NewMenuDropDown({ onCreateFolder, onUploadFile, onClose }) {

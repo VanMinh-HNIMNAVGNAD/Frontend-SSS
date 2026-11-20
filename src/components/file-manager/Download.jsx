@@ -1,5 +1,5 @@
 import React from 'react';
-import { Download as DownloadIcon } from 'lucide-react';
+import { DownloadSimple as DownloadIcon } from '@phosphor-icons/react';
 import { useLanguage } from '../../context/LanguageContext';
 
 export default function Download({ file, onDownload }) {

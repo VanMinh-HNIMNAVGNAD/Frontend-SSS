@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
-import { Lock, Mail, User, ArrowRight } from 'lucide-react';
+import { Lock, Envelope as Mail, User, ArrowRight } from '@phosphor-icons/react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import AuthBackground from '../components/ui/AuthBackground';

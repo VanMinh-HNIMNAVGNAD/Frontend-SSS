@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { AlertTriangle } from 'lucide-react';
+import { Warning as AlertTriangle } from '@phosphor-icons/react';
 import { useLanguage } from '../../context/LanguageContext';
 import { getDialogQueue, settleDialog, subscribeDialogs } from '../../utils/dialog';
 

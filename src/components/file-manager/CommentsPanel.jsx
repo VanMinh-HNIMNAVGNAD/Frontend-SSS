@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Loader2, MessageSquare, X } from 'lucide-react';
+import { CircleNotch as Loader2, ChatCircleText as MessageSquare, X } from '@phosphor-icons/react';
 import toast from 'react-hot-toast';
 import { useLanguage } from '../../context/LanguageContext';
 import { formatRelativeTime } from '../../utils/relativeTime';
@@ -260,7 +260,7 @@ export default function CommentsPanel({ comments, onClose, className = '' }) {
             disabled={!draft.trim() || sending || Boolean(comments.error)}
             className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium btn-accent hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
           >
-            {sending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+            {sending && <Loader2 weight="bold" className="w-3.5 h-3.5 animate-spin" />}
             {t('preview.comments.send')}
           </button>
         </div>

@@ -2,7 +2,8 @@ import { useState, useRef, useEffect } from 'react';
 import { useFiles, useDriveAccess } from '../../context/FileContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useTags } from '../../context/TagsContext';
-import { Plus, FolderPlus, FileUp, FolderUp, Loader2 } from 'lucide-react';
+// Phosphor như thanh bên (SideBar.jsx) — nút này đứng đầu cột icon của thanh bên.
+import { Plus, FolderSimplePlus, FileArrowUp, UploadSimple, CircleNotch } from '@phosphor-icons/react';
 import { collectInputEntries } from '../../utils/uploadTree';
 import { alertDialog, promptDialog } from '../../utils/dialog';
 
@@ -147,11 +148,12 @@ export default function NewButton({ isCollapsed }) {
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={`glass-soft flex items-center justify-center gap-3 text-[var(--ink)] rounded-2xl hover:shadow-md active:scale-[0.98] font-medium text-sm transition-all duration-200 cursor-pointer ${
-          isCollapsed ? 'w-12 h-12 p-0 rounded-full' : 'px-5 py-3'
+          // Mở rộng: lề trái 15px + viền 1px = lề trái 16px của mục thanh bên → dấu + thẳng cột với icon bên dưới.
+          isCollapsed ? 'w-12 h-12 p-0 rounded-full' : 'pl-[15px] pr-6 py-3'
         }`}
         title={t('newBtn.title')}
       >
-        <Plus className="w-6 h-6 text-[var(--ink)] shrink-0 stroke-[2.5]" />
+        <Plus size={22} weight="bold" className="text-[var(--ink)] shrink-0" />
         {!isCollapsed && <span className="font-semibold tracking-wide text-[15px]">{t('newBtn.label')}</span>}
       </button>
 
@@ -177,7 +179,7 @@ export default function NewButton({ isCollapsed }) {
             disabled={isWriteLocked}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-[14px] text-sm text-[var(--ink)] cursor-pointer pointer-coarse:active:bg-black/[0.05] dark:pointer-coarse:active:bg-white/[0.08] transition-colors text-left disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            <FolderPlus className="w-5 h-5 text-[var(--ink-muted)]" />
+            <FolderSimplePlus size={20} weight="duotone" className="text-[var(--hue-blue)] shrink-0" />
             <span>{t('newBtn.newFolder')}</span>
           </button>
 
@@ -192,7 +194,7 @@ export default function NewButton({ isCollapsed }) {
             disabled={isWriteLocked}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-[14px] text-sm text-[var(--ink)] cursor-pointer pointer-coarse:active:bg-black/[0.05] dark:pointer-coarse:active:bg-white/[0.08] transition-colors text-left disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            <FileUp className="w-5 h-5 text-[var(--ink-muted)]" />
+            <FileArrowUp size={20} weight="duotone" className="text-[var(--hue-indigo)] shrink-0" />
             <div className="flex flex-col items-start">
               <span className="font-medium">{t('newBtn.uploadFile')}</span>
             </div>
@@ -212,8 +214,8 @@ export default function NewButton({ isCollapsed }) {
             }`}
           >
             {isBuildingTree
-              ? <Loader2 className="w-5 h-5 text-[var(--ink-muted)] animate-spin" />
-              : <FolderUp className="w-5 h-5 text-[var(--ink-muted)]" />
+              ? <CircleNotch size={20} weight="bold" className="text-[var(--ink-muted)] animate-spin shrink-0" />
+              : <UploadSimple size={20} weight="duotone" className="text-[var(--hue-cyan)] shrink-0" />
             }
             <div className="flex flex-col items-start">
               <span className="font-medium">

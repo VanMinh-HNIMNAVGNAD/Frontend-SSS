@@ -1,11 +1,11 @@
 import toast, { Toaster, resolveValue } from 'react-hot-toast';
-import { AlertCircle, Check, Info, Loader2, X } from 'lucide-react';
+import { WarningCircle as AlertCircle, Check, Info, CircleNotch as Loader2, X } from '@phosphor-icons/react';
 import { useLanguage } from '../../context/LanguageContext';
 
 /** Icon ở đầu toast: chỉ lỗi mang sắc đỏ dịu, còn lại là mực/xám như phần còn lại của giao diện. */
 function ToastIcon({ toast: item }) {
     if (item.type === 'loading') return <Loader2 className="w-4 h-4 animate-spin text-[var(--ink-muted)]" />;
-    if (item.type === 'success') return <Check className="w-4 h-4 text-[var(--ink)]" strokeWidth={2.5} />;
+    if (item.type === 'success') return <Check className="w-4 h-4 text-[var(--ink)]" weight="bold" />;
     if (item.type === 'error') return <AlertCircle className="w-4 h-4 text-[var(--tone-danger)]" />;
     // `toast(msg, { icon: 'ℹ️' })` ở vài chỗ: emoji màu lạc tông giữa các icon nét — đổi về icon nét.
     if (item.icon && item.icon !== 'ℹ️') return <span className="text-sm leading-none">{item.icon}</span>;
@@ -53,7 +53,7 @@ export default function GlassToaster() {
                             aria-label={t('common.close')}
                             className="shrink-0 p-1.5 rounded-full text-[var(--ink-subtle)] hover:text-[var(--ink)] cursor-pointer"
                         >
-                            <X className="w-3.5 h-3.5" />
+                            <X weight="bold" className="w-3.5 h-3.5" />
                         </button>
                     )}
                 </div>

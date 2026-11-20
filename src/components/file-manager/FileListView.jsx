@@ -24,18 +24,18 @@ import { localeTagOf } from '../../utils/locale';
 import { alertDialog, promptDialog } from '../../utils/dialog';
 import {
     Folder,
-    MoreVertical,
+    DotsThreeVertical as MoreVertical,
     FolderOpen,
-    ChevronLeft,
-    ChevronRight,
+    CaretLeft as ChevronLeft,
+    CaretRight as ChevronRight,
     ArrowUp,
     ArrowDown,
     CheckSquare,
     Square,
     Minus,
-    ShieldAlert,
-    SearchX,
-} from 'lucide-react';
+    ShieldWarning as ShieldAlert,
+    MagnifyingGlassMinus as SearchX,
+} from '@phosphor-icons/react';
 
 const TYPE_KEY_BY_EXT = [
     // Cùng nhóm đuôi với icon (`utils/getFileIcon.jsx`) và bộ lọc "Loại tệp" của backend
@@ -233,7 +233,7 @@ const FolderTableRow = memo(function FolderTableRow({
             <td className="py-2.5 px-3">
                 <div className="flex items-center gap-2.5 min-w-0">
                     <div className="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center bg-[var(--fc-surface-l)] dark:bg-[var(--fc-surface-d)] border border-[var(--fc-border-l)] dark:border-[var(--fc-border-d)]">
-                        <Folder className="w-4 h-4 fill-current text-[var(--fc-icon-l)] dark:text-[var(--fc-icon-d)]" />
+                        <Folder weight="fill" className="w-4 h-4 text-[var(--fc-icon-l)] dark:text-[var(--fc-icon-d)]" />
                     </div>
                     <div className="min-w-0 flex flex-col">
                         <div className="flex items-center gap-2 min-w-0">
@@ -317,7 +317,7 @@ const FileTableRow = memo(function FileTableRow({
                                     className="shrink-0 text-[var(--ink-muted)]"
                                     title={file.suspiciousReason || t('list.suspicious')}
                                 >
-                                    <ShieldAlert className="w-3.5 h-3.5" />
+                                    <ShieldAlert weight="bold" className="w-3.5 h-3.5" />
                                 </span>
                             )}
                             {/* Nhãn riêng của người xem (##91) */}
@@ -363,8 +363,8 @@ function SortHeader({ field, label, className = '', onSort, sortField, sortDirec
                 <span>{label}</span>
                 {active && (
                     sortDirection === 'asc'
-                        ? <ArrowUp className="w-3 h-3" />
-                        : <ArrowDown className="w-3 h-3" />
+                        ? <ArrowUp weight="bold" className="w-3 h-3" />
+                        : <ArrowDown weight="bold" className="w-3 h-3" />
                 )}
             </div>
         </th>

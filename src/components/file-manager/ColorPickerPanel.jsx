@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
-import { RotateCcw, Check, Pipette } from 'lucide-react';
+import { ArrowCounterClockwise as RotateCcw, Check, Eyedropper as Pipette } from '@phosphor-icons/react';
 import { getDefaultColor } from '../../utils/fileColors';
 import { useLanguage } from '../../context/LanguageContext';
 
@@ -277,7 +277,7 @@ export default function ColorPickerPanel({ item, currentColor, onSelectColor, on
                             style={{ backgroundColor: hex }}
                         >
                             {isActive && (
-                                <Check className="w-3.5 h-3.5 text-white drop-shadow" strokeWidth={3} />
+                                <Check className="w-3.5 h-3.5 text-white drop-shadow" weight="bold" />
                             )}
                         </button>
                     );
@@ -288,7 +288,7 @@ export default function ColorPickerPanel({ item, currentColor, onSelectColor, on
 
             {/* ── Bộ chọn màu tự do ───────────────────────────────────────── */}
             <div className="flex items-center gap-1.5 mb-2">
-                <Pipette className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500 shrink-0" />
+                <Pipette weight="bold" className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500 shrink-0" />
                 <span className="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     {t('color.custom')}
                 </span>
@@ -367,7 +367,7 @@ export default function ColorPickerPanel({ item, currentColor, onSelectColor, on
                         onClick={handleReset}
                         className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-[12px] text-gray-600 dark:text-gray-400 transition-colors"
                     >
-                        <RotateCcw className="w-3.5 h-3.5 text-gray-500 shrink-0" />
+                        <RotateCcw weight="bold" className="w-3.5 h-3.5 text-gray-500 shrink-0" />
                         <span className="flex-1 text-left truncate">{t('color.reset')}</span>
                         <span
                             className="w-4 h-4 rounded-full border border-gray-300 dark:border-gray-600 shrink-0"

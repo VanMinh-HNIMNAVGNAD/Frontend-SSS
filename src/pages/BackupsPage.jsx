@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import { DatabaseBackup, Download, Loader2, MousePointerClick, RotateCcw, Trash2 } from 'lucide-react';
+import { Archive as DatabaseBackup, DownloadSimple as Download, CircleNotch as Loader2, CursorClick as MousePointerClick, ArrowCounterClockwise as RotateCcw, Trash as Trash2 } from '@phosphor-icons/react';
 import PageHeader from '../components/common/PageHeader';
 import Notice from '../components/common/Notice';
 import { backupsApi } from '../services/api';

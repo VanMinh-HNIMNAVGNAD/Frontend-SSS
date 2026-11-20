@@ -6,21 +6,21 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
-  AlertTriangle,
-  CalendarClock,
-  CalendarX,
-  Check,
-  ChevronRight,
-  CreditCard,
-  HardDrive,
-  History,
-  Loader2,
-  QrCode,
-  RefreshCw,
-  RotateCcw,
-  X,
-  XCircle,
-} from 'lucide-react';
+    Warning as AlertTriangle,
+    CalendarDots as CalendarClock,
+    CalendarX,
+    Check,
+    CaretRight as ChevronRight,
+    CreditCard,
+    HardDrives as HardDrive,
+    ClockCounterClockwise as History,
+    CircleNotch as Loader2,
+    QrCode,
+    ArrowsClockwise as RefreshCw,
+    ArrowCounterClockwise as RotateCcw,
+    X,
+    XCircle,
+} from '@phosphor-icons/react';
 import { aiApi, billingApi, userApi } from '../services/api';
 import { aiModelsLineFor, tierOfPlanUiKey } from '../constants/aiTiers';
 import { useAuth } from '../context/AuthContext';

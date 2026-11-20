@@ -25,17 +25,17 @@ import { formatListDate } from '../utils/relativeTime';
 import { localeTagOf } from '../utils/locale';
 import PageHeader from '../components/common/PageHeader';
 import {
-    HardDrive,
+    HardDrives as HardDrive,
     Clock,
-    Users,
+    UsersThree as Users,
     ArrowRight,
-    MoreVertical,
-    Home,
+    DotsThreeVertical as MoreVertical,
+    House as Home,
     File,
-    EyeOff,
-    Search,
+    EyeSlash as EyeOff,
+    MagnifyingGlass as Search,
     ArrowLeft,
-} from 'lucide-react';
+} from '@phosphor-icons/react';
 import ViewModeToggle from '../components/common/ViewModeToggle';
 
 /** Tiêu đề một mục của Trang chủ: icon màu mực + tên + chữ phụ, "Xem tất cả" bên phải. */
@@ -52,7 +52,7 @@ function SectionHeader({ icon: Icon, title, meta, onViewAll }) {
                 onClick={onViewAll}
                 className="shrink-0 text-xs font-semibold text-[var(--ink-muted)] hover:text-[var(--ink)] flex items-center gap-1 transition-colors cursor-pointer"
             >
-                {t('home.viewAll')} <ArrowRight className="w-3.5 h-3.5" />
+                {t('home.viewAll')} <ArrowRight weight="bold" className="w-3.5 h-3.5" />
             </button>
         </div>
     );
@@ -174,7 +174,7 @@ const SectionGrid = ({ itemList, emptyMessage, onItemOpen, onToggleStar, onConte
                             className="text-[var(--ink-subtle)] hover:text-[var(--ink)] p-0.5 rounded-full opacity-0 group-hover:opacity-100 pointer-coarse:opacity-100 transition-opacity shrink-0 cursor-pointer"
                             title={t('home.moreActions')}
                         >
-                            <MoreVertical className="w-3.5 h-3.5" />
+                            <MoreVertical weight="bold" className="w-3.5 h-3.5" />
                         </button>
                     </div>
 
@@ -412,11 +412,11 @@ export default function HomePage() {
         return (
             <div className="space-y-6">
                 <div>
-                    <div className="h-6 bg-black/[0.06] dark:bg-white/[0.08] rounded-lg w-48 mb-3 animate-pulse" />
+                    <div className="h-6 skel rounded-lg w-48 mb-3" />
                     <FileSkeleton type="home-section" />
                 </div>
                 <div>
-                    <div className="h-6 bg-black/[0.06] dark:bg-white/[0.08] rounded-lg w-48 mb-3 animate-pulse" />
+                    <div className="h-6 skel rounded-lg w-48 mb-3" />
                     <FileSkeleton type="home-section" />
                 </div>
             </div>
@@ -449,7 +449,7 @@ export default function HomePage() {
                                 title={t('home.restoreDismissed.hint')}
                                 className="glass-soft flex items-center gap-1.5 text-xs font-medium text-[var(--ink)] h-8 px-3 rounded-full transition-colors cursor-pointer"
                             >
-                                <EyeOff className="w-3.5 h-3.5 text-[var(--ink-muted)]" />
+                                <EyeOff weight="bold" className="w-3.5 h-3.5 text-[var(--ink-muted)]" />
                                 {t('home.restoreDismissed', { count: dismissed.size })}
                             </button>
                         )}

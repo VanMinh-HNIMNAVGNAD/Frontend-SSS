@@ -1,5 +1,5 @@
 import { Component } from 'react';
-import { AlertTriangle, RefreshCw, RotateCcw, Home } from 'lucide-react';
+import { Warning as AlertTriangle, ArrowsClockwise as RefreshCw, ArrowCounterClockwise as RotateCcw, House as Home } from '@phosphor-icons/react';
 import { readSavedLanguage, translate } from '../../utils/translate';
 import { isChunkLoadError, reloadOnceForNewVersion } from '../../utils/chunkReload';
 

@@ -1,4 +1,4 @@
-import { Home, ArrowLeft } from 'lucide-react';
+import { House as Home, ArrowLeft } from '@phosphor-icons/react';
 import { useLanguage } from '../context/LanguageContext';
 
 export default function PageNotFound({ onGoHome }) {

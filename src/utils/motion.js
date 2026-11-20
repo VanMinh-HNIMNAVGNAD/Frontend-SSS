@@ -93,3 +93,24 @@ export function staggerIn(els) {
         ease: spring({ bounce: 0.5, duration: 520 }),
     });
 }
+
+/**
+ * Chuyển trang (MainLayout.jsx): nội dung mới trồi lên 10px và rõ dần bằng lò xo êm.
+ *
+ * Gỡ `transform` ngay khi xong: một phần tử còn giữ transform (kể cả `translateY(0)`) thành khối
+ * chứa của mọi con `position: fixed` — menu chuột phải, hộp thoại render trong trang sẽ bị nhốt
+ * vào vùng nội dung. Đổi trang liên tục thì anime.js thay tween cũ, lần gỡ cuối vẫn chạy.
+ * @param {HTMLElement|null} el
+ */
+export function pageIn(el) {
+    if (!canAnimate(el)) return;
+    animate(el, {
+        opacity: [0, 1],
+        y: [10, 0],
+        ease: spring({ bounce: 0.18, duration: 420 }),
+        onComplete: () => {
+            el.style.removeProperty('transform');
+            el.style.removeProperty('opacity');
+        },
+    });
+}

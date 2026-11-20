@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useFiles } from '../../context/FileContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { filesApi } from '../../services/api';
-import { Trash2, HardDrive, X, Check, AlertTriangle, FileText } from 'lucide-react';
+import { Trash as Trash2, HardDrives as HardDrive, X, Check, Warning as AlertTriangle, FileText } from '@phosphor-icons/react';
 import { alertDialog } from '../../utils/dialog';
 
 export default function QuickCleanupModal({ isOpen, onClose }) {

@@ -9,38 +9,38 @@ import {
     useState,
 } from 'react';
 import {
-    Download,
-    Pencil,
-    Sparkles,
+    DownloadSimple as Download,
+    PencilSimple as Pencil,
+    Sparkle as Sparkles,
     UserPlus,
     Info,
-    Trash2,
+    Trash as Trash2,
     ThumbsDown,
     Copy,
     Star,
-    FolderInput,
-    RotateCcw,
+    ArrowSquareIn as FolderInput,
+    ArrowCounterClockwise as RotateCcw,
     Eye,
     Scissors,
-    Loader2,
-    ShieldOff,
+    CircleNotch as Loader2,
+    ShieldSlash as ShieldOff,
     ShieldCheck,
-    FileUp,
-    FolderUp,
-    FolderPlus,
+    FileArrowUp as FileUp,
+    UploadSimple as FolderUp,
+    FolderSimplePlus as FolderPlus,
     Palette,
-    ChevronRight,
+    CaretRight as ChevronRight,
     Plus,
-    Upload,
-    LogOut,
-    SquarePen,
-    FolderSymlink,
+    UploadSimple as Upload,
+    SignOut as LogOut,
+    NotePencil as SquarePen,
+    ArrowBendUpRight as FolderSymlink,
     Tag,
     Check,
     Minus,
-    Settings2,
-    DatabaseBackup,
-} from 'lucide-react';
+    SlidersHorizontal as Settings2,
+    Archive as DatabaseBackup,
+} from '@phosphor-icons/react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useDriveAccess, useFiles, useFileSelection } from '../../context/FileContext';
 import { useTags } from '../../context/TagsContext';
@@ -306,7 +306,7 @@ function SubmenuRow({ path, icon, label, tone = 'default', panelWidth = 'w-56', 
                     else setOpenPath((cur) => (isInBranch(cur, path) ? parentOf(path) : path));
                     pointerTypeRef.current = '';
                 }}
-                trailing={<ChevronRight className="w-3.5 h-3.5 shrink-0 text-gray-400 dark:text-gray-500" />}
+                trailing={<ChevronRight weight="bold" className="w-3.5 h-3.5 shrink-0 text-gray-400 dark:text-gray-500" />}
             />
 
             {isOpen && <SubmenuPanel widthClass={panelWidth}>{children}</SubmenuPanel>}
@@ -488,8 +488,8 @@ function TagMenu({ item, closeMenu }) {
                                         backgroundColor: state === 'none' ? 'transparent' : tag.colorHex || DEFAULT_TAG_COLOR,
                                     }}
                                 >
-                                    {state === 'all' && <Check className="w-2.5 h-2.5 text-white" strokeWidth={3.5} />}
-                                    {state === 'some' && <Minus className="w-2.5 h-2.5 text-white" strokeWidth={3.5} />}
+                                    {state === 'all' && <Check className="w-2.5 h-2.5 text-white" weight="bold" />}
+                                    {state === 'some' && <Minus className="w-2.5 h-2.5 text-white" weight="bold" />}
                                 </span>
                             }
                             label={tag.name}
@@ -532,7 +532,7 @@ function TagMenu({ item, closeMenu }) {
                         aria-label={t('tags.create')}
                         className="shrink-0 p-1.5 rounded-lg btn-accent hover:brightness-105 disabled:opacity-50 cursor-pointer"
                     >
-                        {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                        {busy ? <Loader2 weight="bold" className="w-3.5 h-3.5 animate-spin" /> : <Check weight="bold" className="w-3.5 h-3.5" />}
                     </button>
                 </div>
             )}
@@ -829,7 +829,7 @@ export default function ContextMenu({
                     {/* Gắn sao — mọi thành viên đều làm được, và là dấu sao RIÊNG của người đang
                         đăng nhập (backend lưu ở hàng shared_drive_members của họ) */}
                     <MenuRow
-                        icon={<Star className={`w-4 h-4 ${item.isStarred ? 'text-[var(--ink)] fill-current' : 'text-[var(--ink-muted)]'}`} />}
+                        icon={<Star weight={item.isStarred ? 'fill' : 'regular'} className={`w-4 h-4 ${item.isStarred ? 'text-[var(--ink)]' : 'text-[var(--ink-muted)]'}`} />}
                         label={item.isStarred ? t('menu.star.remove') : t('menu.star.add')}
                         onClick={() => { onToggleStar?.(item); closeMenu(); }}
                     />
@@ -1097,7 +1097,7 @@ export default function ContextMenu({
                             <>
                                 <MenuSeparator />
                                 <MenuRow
-                                    icon={<Star className={`w-4 h-4 ${item.isStarred ? 'text-[var(--ink)] fill-current' : 'text-[var(--ink-muted)]'}`} />}
+                                    icon={<Star weight={item.isStarred ? 'fill' : 'regular'} className={`w-4 h-4 ${item.isStarred ? 'text-[var(--ink)]' : 'text-[var(--ink-muted)]'}`} />}
                                     label={item.isStarred ? t('menu.star.remove') : t('menu.star.add')}
                                     onClick={() => { onToggleStar?.(item); closeMenu(); }}
                                 />
@@ -1151,7 +1151,7 @@ export default function ContextMenu({
                                             className="w-3.5 h-3.5 rounded-full border border-gray-300 dark:border-gray-600"
                                             style={{ backgroundColor: item.customColor || undefined }}
                                         />
-                                        <ChevronRight className={`w-3.5 h-3.5 text-gray-400 transition-transform ${showColorPicker ? 'rotate-90' : ''}`} />
+                                        <ChevronRight weight="bold" className={`w-3.5 h-3.5 text-gray-400 transition-transform ${showColorPicker ? 'rotate-90' : ''}`} />
                                     </span>
                                 }
                             />

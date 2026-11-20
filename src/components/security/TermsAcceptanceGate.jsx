@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ScrollText } from 'lucide-react';
+import { Scroll as ScrollText } from '@phosphor-icons/react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { LEGAL_DOCS, LEGAL_PATHS } from '../../constants/legal';
@@ -73,7 +73,7 @@ export default function TermsAcceptanceGate() {
       rel="noopener noreferrer"
       className="inline-flex items-center gap-1.5 text-[var(--accent)] font-semibold underline decoration-current/40 underline-offset-2"
     >
-      <ScrollText className="w-3.5 h-3.5 shrink-0" />
+      <ScrollText weight="bold" className="w-3.5 h-3.5 shrink-0" />
       {label}
     </Link>
   );

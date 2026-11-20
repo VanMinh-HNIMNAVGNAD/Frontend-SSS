@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, XCircle, LifeBuoy } from 'lucide-react';
+import { ArrowLeft, XCircle, Lifebuoy as LifeBuoy } from '@phosphor-icons/react';
 import { billingApi } from '../services/api';
 import { useLanguage } from '../context/LanguageContext';
 import tRich from '../utils/tRich';
@@ -84,7 +84,7 @@ export default function BillingCancel() {
         </div>
 
         <p className="mt-6 text-[13px] text-gray-400 dark:text-gray-500 flex items-center justify-center gap-1.5">
-          <LifeBuoy className="w-3.5 h-3.5 shrink-0" />
+          <LifeBuoy weight="bold" className="w-3.5 h-3.5 shrink-0" />
           {t('billing.cancel.help')}
         </p>
       </div>

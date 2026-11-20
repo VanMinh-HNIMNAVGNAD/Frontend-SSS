@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, Loader2, Lock, Pencil, Plus, Tag, Trash2 } from 'lucide-react';
+import { Check, CircleNotch as Loader2, Lock, PencilSimple as Pencil, Plus, Tag, Trash as Trash2 } from '@phosphor-icons/react';
 import Modal from '../common/Modal';
 import { useTags } from '../../context/TagsContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -45,7 +45,7 @@ function ColorDots({ value, onChange, disabled }) {
                             }`}
                             style={{ backgroundColor: color }}
                         >
-                            {active && <Check className="w-3 h-3 text-white" />}
+                            {active && <Check weight="bold" className="w-3 h-3 text-white" />}
                         </span>
                     </button>
                 );
@@ -119,7 +119,7 @@ function TagRow({ tag }) {
                             disabled={busy || !name.trim()}
                             className="px-2.5 py-1 rounded-lg text-xs font-semibold btn-accent hover:brightness-105 disabled:opacity-50 cursor-pointer flex items-center gap-1"
                         >
-                            {busy && <Loader2 className="w-3 h-3 animate-spin" />}
+                            {busy && <Loader2 weight="bold" className="w-3 h-3 animate-spin" />}
                             {t('common.save')}
                         </button>
                     </div>
@@ -154,7 +154,7 @@ function TagRow({ tag }) {
                 aria-label={t('tags.edit')}
                 className="p-1.5 rounded-full text-gray-500 hover:text-gray-800 dark:hover:text-gray-100 cursor-pointer"
             >
-                <Pencil className="w-3.5 h-3.5" />
+                <Pencil weight="bold" className="w-3.5 h-3.5" />
             </button>
             <button
                 type="button"
@@ -164,7 +164,7 @@ function TagRow({ tag }) {
                 aria-label={t('tags.delete')}
                 className="p-1.5 rounded-full text-[var(--ink-subtle)] hover:text-[var(--tone-danger)] disabled:opacity-50 cursor-pointer"
             >
-                {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                {busy ? <Loader2 weight="bold" className="w-3.5 h-3.5 animate-spin" /> : <Trash2 weight="bold" className="w-3.5 h-3.5" />}
             </button>
         </li>
     );
@@ -238,7 +238,7 @@ export default function TagManagerModal() {
                 )}
 
                 <p className="text-xs text-gray-500 dark:text-gray-400 flex items-start gap-1.5">
-                    <Lock className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                    <Lock weight="bold" className="w-3.5 h-3.5 mt-0.5 shrink-0" />
                     {t('tags.manager.privacy')}
                 </p>
             </div>

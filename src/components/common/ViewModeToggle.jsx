@@ -1,4 +1,4 @@
-import { List, LayoutGrid } from 'lucide-react';
+import { ListBullets as List, SquaresFour as LayoutGrid } from '@phosphor-icons/react';
 import { useLanguage } from '../../context/LanguageContext';
 import LiquidGroup from '../ui/LiquidGroup';
 

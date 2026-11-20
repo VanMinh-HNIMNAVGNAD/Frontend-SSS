@@ -1,4 +1,4 @@
-import { Info } from 'lucide-react';
+import { Info } from '@phosphor-icons/react';
 
 const ICON_TONE = {
     neutral: 'bg-[var(--chip-fill)] text-[var(--ink-muted)]',

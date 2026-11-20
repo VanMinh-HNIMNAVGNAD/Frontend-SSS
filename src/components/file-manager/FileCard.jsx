@@ -7,22 +7,22 @@ import { useLanguage } from '../../context/LanguageContext';
 import { FILE_CARD_HEIGHT_CLASS } from './gridLayout';
 import ItemLocation from './ItemLocation';
 import { TagIcons } from '../common/TagChips';
-import { 
-    FileText, 
-    FileSpreadsheet, 
-    Image as ImageIcon, 
-    FileCode, 
-    FileArchive, 
-    File, 
-    Video, 
-    Music, 
-    Database, 
-    Layers, 
-    MoreVertical, 
+import {
+    FileText,
+    FileXls as FileSpreadsheet,
+    Image as ImageIcon,
+    FileCode,
+    FileArchive,
+    File,
+    VideoCamera as Video,
+    MusicNotes as Music,
+    Database,
+    Stack as Layers,
+    DotsThreeVertical as MoreVertical,
     CheckSquare,
     Square,
-    ShieldAlert,
-} from 'lucide-react';
+    ShieldWarning as ShieldAlert,
+} from '@phosphor-icons/react';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TOÀN BỘ THẺ ĂN THEO MÀU CỦA TỆP
@@ -46,18 +46,18 @@ import {
 function getCatIcon(cat, size = 'w-5 h-5') {
     const cls = `${size} shrink-0 text-[var(--fc-icon-l)] dark:text-[var(--fc-icon-d)]`;
     switch (cat) {
-        case 'pdf':      return <FileText className={cls} />;
-        case 'sheet':    return <FileSpreadsheet className={cls} />;
-        case 'image':    return <ImageIcon className={cls} />;
-        case 'video':    return <Video className={cls} />;
-        case 'audio':    return <Music className={cls} />;
-        case 'database': return <Database className={cls} />;
-        case 'figma':    return <Layers className={cls} />;
-        case 'markdown': return <FileCode className={cls} />;
-        case 'doc':      return <FileText className={cls} />;
-        case 'archive':  return <FileArchive className={cls} />;
-        case 'code':     return <FileCode className={cls} />;
-        default:         return <File className={cls} />;
+        case 'pdf':      return <FileText weight="duotone" className={cls} />;
+        case 'sheet':    return <FileSpreadsheet weight="duotone" className={cls} />;
+        case 'image':    return <ImageIcon weight="duotone" className={cls} />;
+        case 'video':    return <Video weight="duotone" className={cls} />;
+        case 'audio':    return <Music weight="duotone" className={cls} />;
+        case 'database': return <Database weight="duotone" className={cls} />;
+        case 'figma':    return <Layers weight="duotone" className={cls} />;
+        case 'markdown': return <FileCode weight="duotone" className={cls} />;
+        case 'doc':      return <FileText weight="duotone" className={cls} />;
+        case 'archive':  return <FileArchive weight="duotone" className={cls} />;
+        case 'code':     return <FileCode weight="duotone" className={cls} />;
+        default:         return <File weight="duotone" className={cls} />;
     }
 }
 
@@ -121,8 +121,8 @@ function FileCard({ file, onDoubleClick, onContextMenu, isSelected, isCut = fals
                         title={isSelected ? t('card.deselect') : t('card.select')}
                     >
                         {isSelected
-                            ? <CheckSquare className="w-3.5 h-3.5" />
-                            : <Square className="w-3.5 h-3.5" />}
+                            ? <CheckSquare weight="bold" className="w-3.5 h-3.5" />
+                            : <Square weight="bold" className="w-3.5 h-3.5" />}
                     </button>
                 </div>
                 <span
@@ -137,7 +137,7 @@ function FileCard({ file, onDoubleClick, onContextMenu, isSelected, isCut = fals
                         className="shrink-0 text-[var(--ink-muted)]"
                         title={file.suspiciousReason || t('list.suspicious')}
                     >
-                        <ShieldAlert className="w-3.5 h-3.5" />
+                        <ShieldAlert weight="bold" className="w-3.5 h-3.5" />
                     </span>
                 )}
                 <button
@@ -146,7 +146,7 @@ function FileCard({ file, onDoubleClick, onContextMenu, isSelected, isCut = fals
                     className="shrink-0 -mr-0.5 p-0.5 rounded-full transition-colors opacity-80 group-hover:opacity-100 text-[var(--fc-muted-l)] dark:text-[var(--fc-muted-d)] hover:text-[var(--fc-ink-l)] dark:hover:text-[var(--fc-ink-d)]"
                     title={t('card.fileOptions')}
                 >
-                    <MoreVertical className="w-3.5 h-3.5" />
+                    <MoreVertical weight="bold" className="w-3.5 h-3.5" />
                 </button>
             </div>
 

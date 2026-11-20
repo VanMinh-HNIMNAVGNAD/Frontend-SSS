@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Mail } from 'lucide-react';
+import { ArrowLeft, Envelope as Mail } from '@phosphor-icons/react';
 import { useLanguage } from '../context/LanguageContext';
 import LiquidGroup from '../components/ui/LiquidGroup';
 import legalVi from '../locales/legal.vi';

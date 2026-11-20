@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Users, Loader2, AlertCircle, X, Crown, ShieldCheck, Eye, Pencil } from 'lucide-react';
+import { UsersThree as Users, CircleNotch as Loader2, WarningCircle as AlertCircle, X, Crown, ShieldCheck, Eye, PencilSimple as Pencil } from '@phosphor-icons/react';
 import Modal from '../common/Modal';
 import { sharedDrivesApi } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -129,7 +129,7 @@ export default function ShareDriveModal({ isOpen, drive, onClose, onChanged }) {
                         <AlertCircle className="w-4 h-4 shrink-0" />
                         <span className="flex-1">{errorMsg}</span>
                         <button onClick={() => setErrorMsg('')} className="text-[var(--tone-danger)] opacity-70 hover:opacity-100 cursor-pointer">
-                            <X className="w-3.5 h-3.5" />
+                            <X weight="bold" className="w-3.5 h-3.5" />
                         </button>
                     </div>
                 )}
@@ -221,7 +221,7 @@ export default function ShareDriveModal({ isOpen, drive, onClose, onChanged }) {
                                                 {member.user?.fullName || member.user?.email}
                                                 {isCreator && (
                                                     <span title={t('driveShare.creatorTitle')}>
-                                                        <Crown className="w-3.5 h-3.5 text-[var(--ink-muted)] shrink-0" />
+                                                        <Crown weight="bold" className="w-3.5 h-3.5 text-[var(--ink-muted)] shrink-0" />
                                                     </span>
                                                 )}
                                                 {isSelf && <span className="text-[10px] font-bold text-slate-400">{t('driveShare.you')}</span>}
@@ -245,8 +245,8 @@ export default function ShareDriveModal({ isOpen, drive, onClose, onChanged }) {
                                                 className="p-1.5 rounded-full text-[var(--ink-subtle)] hover:text-[var(--tone-danger)] transition-colors disabled:opacity-50 opacity-0 group-hover:opacity-100 focus:opacity-100 cursor-pointer"
                                             >
                                                 {removingUserId === memberUserId
-                                                    ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                                    : <X className="w-3.5 h-3.5" />}
+                                                    ? <Loader2 weight="bold" className="w-3.5 h-3.5 animate-spin" />
+                                                    : <X weight="bold" className="w-3.5 h-3.5" />}
                                             </button>
                                         )}
                                     </div>

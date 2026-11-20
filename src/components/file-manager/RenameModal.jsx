@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Pencil, X } from 'lucide-react';
+import { PencilSimple as Pencil, X } from '@phosphor-icons/react';
 
 import { useLanguage } from '../../context/LanguageContext';
 import { splitFileName, fileExtension } from '../../utils/fileName';

@@ -11,7 +11,7 @@ import ContextMenu from './ContextMenu';
 import RenameModal from './RenameModal';
 import ShareModal from './ShareModal';
 import MoveModal from './MoveModal';
-import { Folder, FileText, ChevronLeft, ChevronRight, SearchX } from 'lucide-react';
+import { Folder, FileText, CaretLeft as ChevronLeft, CaretRight as ChevronRight, MagnifyingGlassMinus as SearchX } from '@phosphor-icons/react';
 import { collectInputEntries } from '../../utils/uploadTree';
 import { downloadSingleItem } from '../../utils/downloadItems';
 import tRich from '../../utils/tRich';
@@ -295,7 +295,7 @@ export default function FileGridView() {
                 {folders && folders.length > 0 && (
                     <div>
                         <div className="flex items-center gap-2 mb-3 phone:mb-2 text-[11px] font-semibold text-[var(--ink-muted)] uppercase tracking-wider">
-                            <Folder className="w-3.5 h-3.5" />
+                            <Folder weight="bold" className="w-3.5 h-3.5" />
                             <span>{t('list.group.folders', { count: folders.length })}</span>
                         </div>
                         <div className={FOLDER_GRID_CLASS}>
@@ -321,7 +321,7 @@ export default function FileGridView() {
                 {files && files.length > 0 && (
                     <div>
                         <div className="flex items-center gap-2 mb-3 phone:mb-2 text-[11px] font-semibold text-[var(--ink-muted)] uppercase tracking-wider">
-                            <FileText className="w-3.5 h-3.5" />
+                            <FileText weight="bold" className="w-3.5 h-3.5" />
                             <span>{t('list.group.files', { count: files.length })}</span>
                         </div>
                         <div className={FILE_GRID_CLASS}>

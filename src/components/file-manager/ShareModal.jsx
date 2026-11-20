@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { UserPlus, X, Copy, Check, Lock, Shield, Eye, Edit3, Loader2, AlertCircle, HelpCircle, Link2Off, CalendarClock } from 'lucide-react';
+import { UserPlus, X, Copy, Check, Lock, Shield, Eye, PencilSimpleLine as Edit3, CircleNotch as Loader2, WarningCircle as AlertCircle, Question as HelpCircle, LinkBreak as Link2Off, CalendarDots as CalendarClock } from '@phosphor-icons/react';
 import toast from 'react-hot-toast';
 import { useLanguage } from '../../context/LanguageContext';
 import { sharingApi } from '../../services/api';
@@ -284,7 +284,7 @@ export default function ShareModal({ isOpen, item, onClose }) {
                             <AlertCircle className="w-4 h-4 shrink-0" />
                             <span>{errorMsg}</span>
                             <button onClick={() => setErrorMsg('')} className="ml-auto text-[var(--tone-danger)] opacity-70 hover:opacity-100 cursor-pointer">
-                                <X className="w-3.5 h-3.5" />
+                                <X weight="bold" className="w-3.5 h-3.5" />
                             </button>
                         </div>
                     )}
@@ -305,7 +305,7 @@ export default function ShareModal({ isOpen, item, onClose }) {
                                 tabIndex={0}
                                 className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-soft)] rounded-full cursor-help transition-colors"
                             >
-                                <HelpCircle className="w-3.5 h-3.5" />
+                                <HelpCircle weight="bold" className="w-3.5 h-3.5" />
                             </span>
                         </div>
                         <div className="flex gap-2">
@@ -407,8 +407,8 @@ export default function ShareModal({ isOpen, item, onClose }) {
                                                 title={t('share.revoke')}
                                             >
                                                 {removingId === member.id
-                                                    ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                                    : <X className="w-3.5 h-3.5" />}
+                                                    ? <Loader2 weight="bold" className="w-3.5 h-3.5 animate-spin" />
+                                                    : <X weight="bold" className="w-3.5 h-3.5" />}
                                             </button>
                                         </div>
                                     </div>
@@ -487,7 +487,7 @@ export default function ShareModal({ isOpen, item, onClose }) {
                                     disabled={isRevokingLinks}
                                     className="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-semibold text-[var(--tone-danger)] transition-colors disabled:opacity-50 cursor-pointer"
                                 >
-                                    {isRevokingLinks ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Link2Off className="w-3.5 h-3.5" />}
+                                    {isRevokingLinks ? <Loader2 weight="bold" className="w-3.5 h-3.5 animate-spin" /> : <Link2Off weight="bold" className="w-3.5 h-3.5" />}
                                     <span>{confirmRevokeLinks ? t('share.links.revokeConfirm') : t('share.links.revoke')}</span>
                                 </button>
                             </div>
@@ -500,7 +500,7 @@ export default function ShareModal({ isOpen, item, onClose }) {
                             onClick={handleCopyLink}
                             className="glass-soft flex items-center gap-1.5 px-3.5 py-2 rounded-full text-[var(--ink)] transition-colors font-medium text-sm cursor-pointer"
                         >
-                            {copied ? <Check className="w-4 h-4" strokeWidth={2.5} /> : <Copy className="w-4 h-4 text-[var(--ink-muted)]" />}
+                            {copied ? <Check className="w-4 h-4" weight="bold" /> : <Copy className="w-4 h-4 text-[var(--ink-muted)]" />}
                             <span>{copied ? t('share.copied') : t('share.copyLink')}</span>
                         </button>
 

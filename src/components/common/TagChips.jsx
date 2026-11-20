@@ -1,20 +1,25 @@
 import { memo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Tag } from 'lucide-react';
+import { Tag } from '@phosphor-icons/react';
 import { useLanguage } from '../../context/LanguageContext';
 import { DEFAULT_TAG_COLOR } from '../../constants/tags';
 
 /**
- * Icon một nhãn: hình thẻ treo của lucide (cùng icon ở thanh bên và trang Nhãn), tô ĐẶC màu nhãn,
- * viền và lỗ xỏ màu trắng. Bản chấm tròn 8px cũ vừa quá bé vừa lẫn vào màu riêng của thẻ (nền thẻ
- * ăn theo `customColor`) — viền trắng tách icon khỏi mọi nền, hình thẻ treo thì không ai đọc nhầm
- * thành một ô màu.
+ * Icon một nhãn: hình thẻ treo (Phosphor, cùng icon ở thanh bên và trang Nhãn), tô ĐẶC màu nhãn,
+ * viền trắng. Bản chấm tròn 8px cũ vừa quá bé vừa lẫn vào màu riêng của thẻ (nền thẻ ăn theo
+ * `customColor`) — viền trắng tách icon khỏi mọi nền, hình thẻ treo thì không ai đọc nhầm thành
+ * một ô màu.
  *
- * `text-white` chứ không truyền `color`: prop `color` của lucide chỉ đặt `stroke`, còn lỗ xỏ là
- * `<circle fill="currentColor">` — nó đọc màu chữ CSS, nên phải đặt bằng class.
+ * Hai lớp chồng nhau: thẻ đặc (`fill`, lỗ xỏ là lỗ thủng thật) mang màu nhãn, phía trên là đúng
+ * hình đó ở nét đậm màu trắng làm viền. `className` (cỡ) đặt lên khung ngoài.
  */
 function TagGlyph({ color, className = '' }) {
-    return <Tag className={`shrink-0 text-white ${className}`} fill={color} strokeWidth={2} aria-hidden="true" />;
+    return (
+        <span className={`relative inline-flex shrink-0 ${className}`} aria-hidden="true">
+            <Tag weight="fill" className="w-full h-full" style={{ color }} />
+            <Tag weight="bold" className="absolute inset-0 w-full h-full text-white" />
+        </span>
+    );
 }
 
 /**

@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Star } from 'lucide-react';
+import { Star } from '@phosphor-icons/react';
 
 import { useLanguage } from '../../context/LanguageContext';
 
@@ -42,11 +42,7 @@ function StarButton({
     const s = SIZES[size] || SIZES.md;
 
     const icon = (
-        <Star
-            className={`${s.icon} transition-all duration-200 ${
-                isStarred ? 'fill-current' : ''
-            }`}
-        />
+        <Star weight={isStarred ? 'fill' : 'regular'} className={`${s.icon} transition-all duration-200`} />
     );
 
     if (readOnly) {

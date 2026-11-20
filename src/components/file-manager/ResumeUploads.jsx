@@ -2,7 +2,7 @@ import { useState, useMemo, useRef, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { useFiles } from '../../context/FileContext';
 import { useLanguage } from '../../context/LanguageContext';
-import { RotateCcw, X, FileUp, AlertTriangle } from 'lucide-react';
+import { ArrowCounterClockwise as RotateCcw, X, FileArrowUp as FileUp, Warning as AlertTriangle } from '@phosphor-icons/react';
 import { formatBytes } from '../../utils/formatFileSize';
 
 /**
@@ -120,7 +120,7 @@ export default function ResumeUploads() {
 
       {error && (
         <div className="mx-4 mt-2 flex items-start gap-2 rounded-xl bg-[var(--tone-danger-soft)] px-3 py-2 text-[11px] text-[var(--tone-danger)]">
-          <AlertTriangle className="w-3.5 h-3.5 mt-px shrink-0" />
+          <AlertTriangle weight="bold" className="w-3.5 h-3.5 mt-px shrink-0" />
           <span>{error}</span>
         </div>
       )}
@@ -153,7 +153,7 @@ export default function ResumeUploads() {
                   onClick={() => openPicker(session)}
                   className="glass-soft flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold text-[var(--ink)] transition-colors cursor-pointer"
                 >
-                  <FileUp className="w-3 h-3" />
+                  <FileUp weight="bold" className="w-3 h-3" />
                   {t('resume.pickAgain')}
                 </button>
                 <button

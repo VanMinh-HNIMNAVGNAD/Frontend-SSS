@@ -11,28 +11,28 @@ import { displayPlanName } from '../../utils/planName';
 import { localeTagOf } from '../../utils/locale';
 import tRich from '../../utils/tRich';
 import {
-  X,
-  User as UserIcon,
-  Lock,
-  Save,
-  Loader2,
-  Mail,
-  Camera,
-  Laptop,
-  Smartphone,
-  Monitor,
-  LogOut,
-  Trash2,
-  AlertTriangle,
-  CheckCircle2,
-  RefreshCw,
-  KeyRound,
-  HardDrive,
-  Clock,
-  ShieldAlert,
-  CreditCard,
-  ChevronRight,
-} from 'lucide-react';
+    X,
+    User as UserIcon,
+    Lock,
+    FloppyDisk as Save,
+    CircleNotch as Loader2,
+    Envelope as Mail,
+    Camera,
+    Laptop,
+    DeviceMobile as Smartphone,
+    Monitor,
+    SignOut as LogOut,
+    Trash as Trash2,
+    Warning as AlertTriangle,
+    CheckCircle as CheckCircle2,
+    ArrowsClockwise as RefreshCw,
+    Key as KeyRound,
+    HardDrives as HardDrive,
+    Clock,
+    ShieldWarning as ShieldAlert,
+    CreditCard,
+    CaretRight as ChevronRight,
+} from '@phosphor-icons/react';
 import { userApi } from '../../services/api';
 import LiquidGroup from '../ui/LiquidGroup';
 
@@ -637,7 +637,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                   {/* Gói đang dùng ngay dưới email — chỗ đầu tiên mắt nhìn khi mở hồ sơ. */}
                   {hasPlan && (
                     <span className="chip mt-1.5 max-w-full px-2 py-0.5 text-[11px]">
-                      <CreditCard className="w-3 h-3 shrink-0" />
+                      <CreditCard weight="bold" className="w-3 h-3 shrink-0" />
                       <span className="truncate">
                         {planDisplayName}
                         {planTermKey ? ` · ${t(planTermKey)}` : ''}
@@ -692,7 +692,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                     {/* "Nâng cấp" chỉ khi server ĐÃ trả lời là không có gói (`null`) — lúc đang tải hay
                         lỗi mà hiện "Nâng cấp" là mời người đang có gói Pro mua lại từ đầu. */}
                     {subscription === null ? t('profile.plan.upgrade') : t('profile.plan.manage')}
-                    <ChevronRight className="w-3.5 h-3.5" />
+                    <ChevronRight weight="bold" className="w-3.5 h-3.5" />
                   </button>
                 </div>
 
@@ -945,9 +945,9 @@ export default function UserProfileModal({ isOpen, onClose }) {
                       className="btn-danger px-3 py-1.5 text-xs font-semibold rounded-full transition-all flex items-center gap-1.5 disabled:cursor-not-allowed cursor-pointer"
                     >
                       {isRevokingAll ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <Loader2 weight="bold" className="w-3.5 h-3.5 animate-spin" />
                       ) : (
-                        <LogOut className="w-3.5 h-3.5" />
+                        <LogOut weight="bold" className="w-3.5 h-3.5" />
                       )}
                       {t('profile.sessions.revokeOthers')}
                     </button>
@@ -961,23 +961,24 @@ export default function UserProfileModal({ isOpen, onClose }) {
                   {[0, 1, 2].map((i) => (
                     <div
                       key={i}
-                      className="glass-soft p-3.5 rounded-2xl border flex items-center justify-between gap-3 animate-pulse"
+                      style={{ '--i': i }}
+                      className="skel-in glass-soft p-3.5 rounded-2xl border flex items-center justify-between gap-3"
                     >
                       <div className="flex items-center gap-3 min-w-0 flex-1">
                         {/* Placeholder icon thiết bị */}
-                        <div className="w-10 h-10 rounded-xl bg-gray-200 dark:bg-gray-700 shrink-0" />
+                        <div className="w-10 h-10 rounded-xl skel shrink-0" />
                         <div className="min-w-0 flex-1 space-y-2">
                           {/* Dòng 1: tên thiết bị + badge */}
                           <div className="flex items-center gap-2">
-                            <div className="h-3 w-32 rounded-full bg-gray-200 dark:bg-gray-700" />
-                            <div className="h-3 w-16 rounded-full bg-gray-100 dark:bg-white/[0.07]" />
+                            <div className="h-3 w-32 rounded-full skel" />
+                            <div className="h-3 w-16 rounded-full skel" />
                           </div>
                           {/* Dòng 2: IP + thời gian */}
-                          <div className="h-2.5 w-48 max-w-full rounded-full bg-gray-100 dark:bg-white/[0.07]" />
+                          <div className="h-2.5 w-48 max-w-full rounded-full skel" />
                         </div>
                       </div>
                       {/* Placeholder nút Thu hồi */}
-                      <div className="h-6 w-16 rounded-xl bg-gray-100 dark:bg-white/[0.07] shrink-0" />
+                      <div className="h-6 w-16 rounded-xl skel shrink-0" />
                     </div>
                   ))}
                 </div>
@@ -1017,7 +1018,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                               </span>
                               {sess.isCurrent && (
                                 <span className="chip px-2 py-0.5 text-[10px] text-[var(--ink)]">
-                                  <CheckCircle2 className="w-3 h-3" /> {t('profile.session.thisDevice')}
+                                  <CheckCircle2 weight="bold" className="w-3 h-3" /> {t('profile.session.thisDevice')}
                                 </span>
                               )}
                               {sess.isRevoked && (
@@ -1037,7 +1038,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                                   Hạn phiên nay tính theo thời gian không dùng nên
                                   `lastUsedAt` chính là mốc quyết định phiên còn sống. */}
                               <span className="flex items-center gap-1" title={t('profile.session.lastUsed')}>
-                                <Clock className="w-3 h-3 text-gray-400 dark:text-gray-500" />
+                                <Clock weight="bold" className="w-3 h-3 text-gray-400 dark:text-gray-500" />
                                 {t('profile.session.lastUsed')}: {formatSessionDate(sess.lastUsedAt ?? sess.createdAt, t, locale)}
                               </span>
                               <span>•</span>
@@ -1056,7 +1057,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                             className="px-3 py-1.5 text-xs font-semibold text-[var(--tone-danger)] rounded-full transition-colors shrink-0 disabled:opacity-50 flex items-center gap-1 cursor-pointer"
                           >
                             {revokingSessionId === sess.id ? (
-                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              <Loader2 weight="bold" className="w-3.5 h-3.5 animate-spin" />
                             ) : (
                               t('profile.sessions.revoke')
                             )}
@@ -1097,7 +1098,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                   onClick={() => setShowDeleteModal(true)}
                   className="btn-danger px-3.5 py-2 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer"
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
+                  <Trash2 weight="bold" className="w-3.5 h-3.5" />
                   {t('profile.danger.button')}
                 </button>
               </div>
@@ -1190,7 +1191,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
                       disabled={isSendingDeleteCode || isDeletingAccount}
                       className="glass-soft shrink-0 px-3 py-2.5 rounded-full text-xs font-semibold text-[var(--ink)] transition-colors disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
                     >
-                      {isSendingDeleteCode && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                      {isSendingDeleteCode && <Loader2 weight="bold" className="w-3.5 h-3.5 animate-spin" />}
                       {deleteCodeSent ? t('profile.delete.resendCode') : t('profile.delete.sendCode')}
                     </button>
                   </div>

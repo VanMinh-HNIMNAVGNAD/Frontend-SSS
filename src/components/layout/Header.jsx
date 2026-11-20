@@ -13,26 +13,33 @@ import NotificationBell from './NotificationBell';
 import { useAiPanel } from '../../context/AiPanelContext';
 import GlassEdge from '../ui/GlassEdge';
 import { confirmDialog } from '../../utils/dialog';
-import { 
-    Menu, 
-    Search, 
-    SlidersHorizontal, 
-    Settings, 
-    Trash2,
-    RotateCcw,
+/*
+ * Icon Phosphor (20/11/2026) — cùng bộ với thanh bên (SideBar.jsx) để hai thanh ghép thành một
+ * khung nhìn thống nhất. Giữ tên cũ qua bí danh để phần JSX bên dưới không phải đổi. Nét mặc định
+ * là hai tông (IconContext ở cuối tệp); ✕ và nút lọc nhỏ dùng nét đậm cho rõ ở 16px.
+ */
+import {
+    IconContext,
+    List as Menu,
+    MagnifyingGlass as Search,
+    SlidersHorizontal,
+    GearSix as Settings,
+    Trash as Trash2,
+    ArrowCounterClockwise as RotateCcw,
     X,
     CheckSquare,
-    Download,
+    DownloadSimple as Download,
     Copy,
     Scissors,
-    AlertCircle,
-    History,
-    Sparkles,
-    MoreVertical
-} from 'lucide-react';
+    WarningCircle as AlertCircle,
+    ClockCounterClockwise as History,
+    Sparkle as Sparkles,
+    DotsThreeVertical as MoreVertical,
+} from '@phosphor-icons/react';
+import { bounceIcon, hoverIcon } from '../../utils/motion';
 import cloudLogo from '../../assets/icon/cloud-acceleration-svgrepo-com.svg';
 
-export default function Header({ toggleRightSidebar }) {
+function HeaderBar({ toggleRightSidebar }) {
     const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
     // Mở khung hỏi AI KHÔNG kèm mục nào — người dùng tự đính tệp từ máy trong panel.
     // Trước bản này `openAi(null)` thoát ngay ở dòng đầu, nên cái nút dưới đây không thể
@@ -341,7 +348,11 @@ export default function Header({ toggleRightSidebar }) {
         return (
             // Thanh chọn nhiều: cùng tấm kính với header thường, sáng hơn một bậc (`--glass-bright`) để
             // người dùng biết đang ở chế độ chọn — không còn ánh xanh (trước nữa: nền xanh đặc #0b57d0).
-            <header className="relative h-14 sm:h-16 flex items-center justify-between px-2 sm:px-3 md:px-4 glass bg-[var(--glass-bright)]! rounded-[20px] sm:rounded-full text-[var(--ink)] shrink-0 gap-2 sm:gap-3 transition-colors duration-200 animate-fade-in">
+            <header
+                onPointerOver={(e) => onIconHover(e, true)}
+                onPointerOut={(e) => onIconHover(e, false)}
+                onClickCapture={onIconPress}
+                className="relative h-14 sm:h-16 flex items-center justify-between px-2 sm:px-3 md:px-4 glass bg-[var(--glass-bright)]! rounded-[20px] sm:rounded-full text-[var(--ink)] shrink-0 gap-2 sm:gap-3 transition-colors duration-200 animate-fade-in">
                 {/* Viền sáng của kính — xem chú thích ở header thường bên dưới. */}
                 <GlassEdge className="z-auto" />
 
@@ -422,7 +433,11 @@ export default function Header({ toggleRightSidebar }) {
     return (
         // Tấm kính hình viên thuốc nổi trên nền ambient. `glass` KHÔNG blur: header chứa modal
         // Cài đặt + ngăn Lịch sử (`fixed inset-0`) — backdrop-filter sẽ nhốt chúng vào thanh này.
-        <header className="relative h-14 sm:h-16 flex items-center justify-between px-1.5 sm:px-2.5 md:px-3 glass rounded-[20px] sm:rounded-full shrink-0 gap-1.5 sm:gap-3 transition-colors duration-200">
+        <header
+            onPointerOver={(e) => onIconHover(e, true)}
+            onPointerOut={(e) => onIconHover(e, false)}
+            onClickCapture={onIconPress}
+            className="relative h-14 sm:h-16 flex items-center justify-between px-1.5 sm:px-2.5 md:px-3 glass rounded-[20px] sm:rounded-full shrink-0 gap-1.5 sm:gap-3 transition-colors duration-200">
             {/* Viền sáng của kính. Header KHÔNG được là stacking context: popover tài khoản, bộ
                 lọc tìm kiếm… (`z-50` bên trong) đang so z-index trực tiếp với <main> (`z-0`) — nhốt
                 chúng vào header là chúng chui xuống dưới vùng nội dung. Vì vậy viền không dùng
@@ -495,7 +510,7 @@ export default function Header({ toggleRightSidebar }) {
                             aria-label={t('header.search.clear')}
                             className="p-2 sm:p-1 rounded-full text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 transition-colors ml-1 shrink-0 cursor-pointer"
                         >
-                            <X className="w-4 h-4" />
+                            <X className="w-4 h-4" weight="bold" />
                         </button>
                     )}
                     
@@ -510,7 +525,7 @@ export default function Header({ toggleRightSidebar }) {
                             isFilterOpen ? 'glass-active text-[var(--ink)]' : 'text-[var(--ink-muted)] hover:text-[var(--ink)]'
                         }`}
                     >
-                        <SlidersHorizontal className="w-4 h-4" />
+                        <SlidersHorizontal className="w-4 h-4" weight="bold" />
                         {(filterType !== 'all' || filterDate !== 'all' || filterOwner !== 'all') && (
                             <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-[var(--ink)]" aria-hidden="true" />
                         )}
@@ -572,7 +587,7 @@ export default function Header({ toggleRightSidebar }) {
                     aria-label={isAuthenticated ? t('header.ai') : t('header.ai.needLogin')}
                     className="p-2 sm:p-2.5 text-gray-700 dark:text-gray-300 rounded-full transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                    <Sparkles className="w-5 h-5" />
+                    <Sparkles className="w-5 h-5 text-[var(--hue-purple)]" />
                 </button>
 
                 {/* Chuông thông báo (##91) — chỉ khi đã đăng nhập: thông báo là dữ liệu riêng của
@@ -635,7 +650,7 @@ export default function Header({ toggleRightSidebar }) {
                 <div className="relative">
                     {isAuthLoading ? (
                         /* Skeleton khi đang kiểm tra auth */
-                        <div className="w-9 h-9 rounded-full bg-black/10 dark:bg-white/10 animate-pulse ml-1" />
+                        <div className="w-9 h-9 rounded-full skel ml-1" />
                     ) : !isAuthenticated ? (
                         /* Chưa đăng nhập → hiện nút Đăng nhập */
                         <button
@@ -685,5 +700,36 @@ export default function Header({ toggleRightSidebar }) {
                 fileName={null}
             />
         </header>
+    );
+}
+
+/** Icon nằm ngay trong nút tròn của header (không tính icon trong menu thả xuống / ô tìm kiếm). */
+const headerIconOf = (target) => target?.closest?.('button')?.querySelector(':scope > svg') ?? null;
+
+/**
+ * Rê chuột vào một nút của header: icon nhấc nhẹ (anime.js, utils/motion.js). Gắn MỘT lần ở
+ * <header> thay vì từng nút; `relatedTarget` vẫn nằm trong cùng nút là chuột chỉ đi qua phần
+ * tử con — bỏ qua để icon không giật lên xuống.
+ */
+function onIconHover(e, on) {
+    if (e.pointerType !== 'mouse') return;
+    const btn = e.target.closest?.('button');
+    if (!btn || btn.contains(e.relatedTarget)) return;
+    hoverIcon(headerIconOf(btn), on);
+}
+
+/** Bấm nút: icon nảy kiểu thạch như thanh bên. */
+function onIconPress(e) {
+    bounceIcon(headerIconOf(e.target));
+}
+
+/** Nét mặc định của mọi icon Phosphor trong header: hai tông, giống thanh bên. */
+const HEADER_ICON_STYLE = { weight: 'duotone' };
+
+export default function Header(props) {
+    return (
+        <IconContext.Provider value={HEADER_ICON_STYLE}>
+            <HeaderBar {...props} />
+        </IconContext.Provider>
     );
 }

@@ -3,19 +3,19 @@ import { useUpload } from '../../context/UploadContext';
 import { useFiles } from '../../context/FileContext';
 import { useLanguage } from '../../context/LanguageContext';
 import {
-    UploadCloud,
-    CheckCircle2,
+    CloudArrowUp as UploadCloud,
+    CheckCircle as CheckCircle2,
     XCircle,
     X,
-    Ban,
+    Prohibit as Ban,
     Pause,
     Play,
-    ChevronUp,
-    ChevronDown,
-    Loader2,
+    CaretUp as ChevronUp,
+    CaretDown as ChevronDown,
+    CircleNotch as Loader2,
     Clock,
-    RefreshCw,
-} from 'lucide-react';
+    ArrowsClockwise as RefreshCw,
+} from '@phosphor-icons/react';
 import Modal from '../common/Modal';
 import Button from '../common/Button';
 import { formatBytes } from '../../utils/formatFileSize';
@@ -585,7 +585,7 @@ const FileJobRow = memo(function FileJobRow({ job, jobId, etaSeconds, onDismissE
                     title={t('upload.pause')}
                     aria-label={t('upload.pauseAria', { name: fileName })}
                 >
-                    <Pause className="w-3.5 h-3.5 text-[var(--ink-subtle)] hover:text-[var(--ink)]" />
+                    <Pause weight="bold" className="w-3.5 h-3.5 text-[var(--ink-subtle)] hover:text-[var(--ink)]" />
                 </button>
             )}
 
@@ -596,7 +596,7 @@ const FileJobRow = memo(function FileJobRow({ job, jobId, etaSeconds, onDismissE
                     title={t('upload.resume')}
                     aria-label={t('upload.resumeAria', { name: fileName })}
                 >
-                    <Play className="w-3.5 h-3.5 text-[var(--ink)]" />
+                    <Play weight="bold" className="w-3.5 h-3.5 text-[var(--ink)]" />
                 </button>
             )}
 
@@ -608,7 +608,7 @@ const FileJobRow = memo(function FileJobRow({ job, jobId, etaSeconds, onDismissE
                     title={t('upload.cancelOne')}
                     aria-label={t('upload.cancelOneAria', { name: fileName })}
                 >
-                    <X className="w-3.5 h-3.5 text-[var(--ink-subtle)] hover:text-[var(--tone-danger)]" />
+                    <X weight="bold" className="w-3.5 h-3.5 text-[var(--ink-subtle)] hover:text-[var(--tone-danger)]" />
                 </button>
             )}
 
@@ -620,14 +620,14 @@ const FileJobRow = memo(function FileJobRow({ job, jobId, etaSeconds, onDismissE
                         className="p-1 rounded-full transition-colors cursor-pointer"
                         title={status === 'canceled' ? t('upload.restart') : t('upload.retry')}
                     >
-                        <RefreshCw className="w-3.5 h-3.5 text-[var(--ink-muted)] hover:text-[var(--ink)]" />
+                        <RefreshCw weight="bold" className="w-3.5 h-3.5 text-[var(--ink-muted)] hover:text-[var(--ink)]" />
                     </button>
                     <button
                         onClick={handleDismiss}
                         className="p-1 rounded transition-colors cursor-pointer"
                         title={status === 'canceled' ? t('upload.dismissRow') : t('upload.clearError')}
                     >
-                        <X className="w-3.5 h-3.5 text-[var(--ink-subtle)] hover:text-[var(--ink)]" />
+                        <X weight="bold" className="w-3.5 h-3.5 text-[var(--ink-subtle)] hover:text-[var(--ink)]" />
                     </button>
                 </div>
             )}

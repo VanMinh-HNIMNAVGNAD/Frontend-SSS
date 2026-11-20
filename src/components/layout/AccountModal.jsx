@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useFiles } from '../../context/FileContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useUploadActions } from '../../context/UploadContext';
-import { User as UserIcon, LogOut, CreditCard, ChevronRight } from 'lucide-react';
+import { User as UserIcon, SignOut as LogOut, CreditCard, CaretRight as ChevronRight } from '@phosphor-icons/react';
 import UserProfileModal from '../modals/UserProfileModal';
 import Modal from '../common/Modal';
 import Button from '../common/Button';

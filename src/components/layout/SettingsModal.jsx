@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Settings, Keyboard, Sun, Moon, Laptop, ShieldCheck } from 'lucide-react';
+import { X, GearSix as Settings, Keyboard, Sun, Moon, Laptop, ShieldCheck } from '@phosphor-icons/react';
 import {
   SHORTCUT_HINTS,
   PLATFORM_LABEL,

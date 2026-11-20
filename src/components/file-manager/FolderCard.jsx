@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Folder, MoreVertical, Users, CheckSquare, Square, Star } from 'lucide-react';
+import { Folder, DotsThreeVertical as MoreVertical, UsersThree as Users, CheckSquare, Square, Star } from '@phosphor-icons/react';
 import StarButton from '../common/StarButton';
 import { getCardColorVars } from '../../utils/fileColors';
 import { useLanguage } from '../../context/LanguageContext';
@@ -59,7 +59,7 @@ function FolderCard({ folder, onDoubleClick, onContextMenu, onStarToggle, isSele
 
             <div className="flex items-center gap-3 tablet:gap-2 phone:gap-1.5 min-w-0 pr-2 pl-5 compact:pr-0 compact:pl-0">
                 <div className="relative p-2 tablet:p-1.5 phone:p-1 rounded-xl shadow-2xs shrink-0 bg-[var(--fc-panel-l)] dark:bg-[var(--fc-panel-d)] border border-[var(--fc-border-l)] dark:border-[var(--fc-border-d)]">
-                    <Folder className={`w-5 h-5 fill-current text-[var(--fc-icon-l)] dark:text-[var(--fc-icon-d)] transition-opacity ${
+                    <Folder weight="fill" className={`w-5 h-5 text-[var(--fc-icon-l)] dark:text-[var(--fc-icon-d)] transition-opacity ${
                         isSelected ? 'compact:opacity-0' : 'compact:group-hover:opacity-0'
                     }`} />
                     {/* Ô chọn của thẻ gọn: đè lên icon thư mục */}
@@ -80,12 +80,12 @@ function FolderCard({ folder, onDoubleClick, onContextMenu, onStarToggle, isSele
                     {/* Thẻ gọn: sao và "được chia sẻ" thành huy hiệu ở góc icon, nhường chỗ cho tên */}
                     {folder.isStarred && !folder.isSharedWithMe && (
                         <span role="img" aria-label={t('card.starredBadge')} className="hidden compact:flex absolute -top-1 -right-1 pointer-events-none items-center justify-center w-4 h-4 rounded-full bg-white/90 dark:bg-[#3a3a3e] ring-1 ring-[var(--fc-border-l)] dark:ring-[var(--fc-border-d)]">
-                            <Star className="w-2.5 h-2.5 fill-current text-[var(--ink)]" />
+                            <Star weight="fill" className="w-2.5 h-2.5 text-[var(--ink)]" />
                         </span>
                     )}
                     {folder.isShared && (
                         <span role="img" aria-label={t('card.sharedBadge')} className="hidden compact:flex absolute -bottom-1 -right-1 pointer-events-none items-center justify-center w-4 h-4 rounded-full bg-white/90 dark:bg-[#3a3a3e] ring-1 ring-[var(--fc-border-l)] dark:ring-[var(--fc-border-d)]">
-                            <Users className="w-2.5 h-2.5 text-[var(--ink-muted)]" />
+                            <Users weight="bold" className="w-2.5 h-2.5 text-[var(--ink-muted)]" />
                         </span>
                     )}
                 </div>
@@ -98,7 +98,7 @@ function FolderCard({ folder, onDoubleClick, onContextMenu, onStarToggle, isSele
                     </span>
                     {folder.isShared && (
                         <span className="text-[11px] flex compact:hidden items-center gap-1 text-[var(--fc-muted-l)] dark:text-[var(--fc-muted-d)]">
-                            <Users className="w-3 h-3 shrink-0" />
+                            <Users weight="bold" className="w-3 h-3 shrink-0" />
                             <span className="truncate">{t('card.sharedBadge')}</span>
                         </span>
                     )}

@@ -1250,3 +1250,65 @@ html {
     filter: none;
   }
 }
+
+/* ── Skeleton đang tải (20/11/2026) ────────────────────────────────────────────────────────────
+   Thay `animate-pulse` (cả khối nhấp nháy mờ/rõ) bằng MỘT vệt sáng lướt chéo qua kính. Nền vệt gắn
+   với khung nhìn (`background-attachment: fixed`) nên mọi khối skeleton trên trang dùng chung một
+   vệt — thấy như một luồng sáng quét qua cả danh sách chứ không phải trăm khối nhấp nháy riêng.
+   Dùng: `skel` cho từng khối xám; `skel-in` + `style={{ '--i': n }}` cho hàng hiện dần lệch nhịp.
+   Máy yếu (`glass-lite`) quay về nhịp mờ/rõ chỉ đụng opacity (không vẽ lại); "Giảm chuyển động"
+   thì đứng yên. */
+:root {
+  --skel-base: rgba(15, 23, 42, 0.07);
+  --skel-shine: rgba(255, 255, 255, 0.75);
+}
+.dark {
+  --skel-base: rgba(255, 255, 255, 0.07);
+  --skel-shine: rgba(255, 255, 255, 0.11);
+}
+.skel {
+  background-color: var(--skel-base);
+  background-image: linear-gradient(
+    105deg,
+    transparent 0%,
+    var(--skel-shine) 50%,
+    transparent 100%
+  );
+  background-size: 45vw 100%;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  animation: skel-sweep 1.7s cubic-bezier(0.45, 0, 0.35, 1) infinite;
+}
+@keyframes skel-sweep {
+  from {
+    background-position: -45vw 0;
+  }
+  to {
+    background-position: 100vw 0;
+  }
+}
+.skel-in {
+  animation: skel-in 0.42s cubic-bezier(0.2, 0.9, 0.3, 1.2) backwards;
+  animation-delay: calc(var(--i, 0) * 45ms);
+}
+@keyframes skel-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.985);
+  }
+}
+.glass-lite .skel {
+  background-image: none;
+  animation: skel-breathe 1.4s ease-in-out infinite;
+}
+@keyframes skel-breathe {
+  50% {
+    opacity: 0.55;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skel,
+  .skel-in {
+    animation: none;
+  }
+}

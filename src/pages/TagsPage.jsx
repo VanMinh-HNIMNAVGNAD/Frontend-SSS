@@ -7,7 +7,7 @@ import { useFiles } from '../context/FileContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useTags } from '../context/TagsContext';
 import { DEFAULT_TAG_COLOR } from '../constants/tags';
-import { Tag, Settings2 } from 'lucide-react';
+import { Tag, SlidersHorizontal as Settings2 } from '@phosphor-icons/react';
 import PageHeader from '../components/common/PageHeader';
 
 /**
@@ -77,7 +77,7 @@ export default function TagsPage() {
                         aria-label={t('tags.menu.manage')}
                         className="glass-soft flex items-center gap-1.5 h-8 px-3 rounded-full text-xs font-semibold text-[var(--ink)] cursor-pointer"
                     >
-                        <Settings2 className="w-3.5 h-3.5 text-[var(--ink-muted)]" />
+                        <Settings2 weight="bold" className="w-3.5 h-3.5 text-[var(--ink-muted)]" />
                         <span className="hidden sm:inline">{t('tags.menu.manage')}</span>
                     </button>
                 )}

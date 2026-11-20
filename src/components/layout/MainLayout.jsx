@@ -9,6 +9,7 @@ import RightSidebar from './RightSideBar';
 import Header from './Header';
 import GlassEdge from '../ui/GlassEdge';
 import { confirmDialog, promptDialog } from '../../utils/dialog';
+import { pageIn } from '../../utils/motion';
 import FileInfoDrawer from '../file-manager/FileInfoDrawer';
 import ShareModal from '../file-manager/ShareModal';
 import RenameModal from '../file-manager/RenameModal';
@@ -82,6 +83,15 @@ export default function MainLayout() {
         const rest = params.toString();
         navigate({ pathname: location.pathname, search: rest ? `?${rest}` : '' }, { replace: true });
     }, [location.search, location.pathname, files, openPreview, navigate]);
+
+    // Chuyển cảnh khi đổi trang / mở thư mục. Bỏ lần dựng đầu: trang vừa tải đã có skeleton hiện dần.
+    const pageRef = useRef(null);
+    const lastPathRef = useRef(location.pathname);
+    useEffect(() => {
+        if (lastPathRef.current === location.pathname) return;
+        lastPathRef.current = location.pathname;
+        pageIn(pageRef.current);
+    }, [location.pathname]);
 
     const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
     const [shareTargetItem, setShareTargetItem] = useState(null);
@@ -290,9 +300,14 @@ export default function MainLayout() {
                     <GlassEdge />
                     {/* Lỗi trong một trang chỉ thay phần nội dung — Sidebar/Header vẫn còn để
                         người dùng bấm sang trang khác. */}
-                    <ErrorBoundary variant="inline" resetKey={location.pathname}>
-                        <Outlet />
-                    </ErrorBoundary>
+                    {/* Lớp chuyển cảnh: đổi trang là nội dung trồi lên (anime.js, pageIn). Không dùng
+                        `key` để dựng lại trang — mất trạng thái và gọi API lại; chỉ diễn hoạt ảnh
+                        trên chính phần tử này. `h-full` để trang con vẫn đo được chiều cao <main>. */}
+                    <div ref={pageRef} className="h-full">
+                        <ErrorBoundary variant="inline" resetKey={location.pathname}>
+                            <Outlet />
+                        </ErrorBoundary>
+                    </div>
                 </main>
             </div>
 

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown, Check } from 'lucide-react';
+import { CaretDown as ChevronDown, Check } from '@phosphor-icons/react';
 import { useLanguage } from '../../context/LanguageContext';
 import { localeTagOf } from '../../utils/locale';
 import LiquidGroup from '../ui/LiquidGroup';
@@ -189,7 +189,7 @@ export default function AiEffortBar({ levels, value, onChange, seconds, disabled
                         {currentWait}
                     </span>
                 )}
-                <ChevronDown
+                <ChevronDown weight="bold"
                     className={`w-3.5 h-3.5 shrink-0 text-gray-500 transition-transform ${open ? 'rotate-180' : ''}`}
                 />
             </button>
@@ -256,7 +256,7 @@ export default function AiEffortBar({ levels, value, onChange, seconds, disabled
                                         </span>
                                     </span>
                                     <span className="w-3.5 shrink-0 pt-0.5">
-                                        {active && <Check className="w-3.5 h-3.5 text-[var(--ink)]" strokeWidth={2.5} />}
+                                        {active && <Check className="w-3.5 h-3.5 text-[var(--ink)]" weight="bold" />}
                                     </span>
                                 </button>
                             );

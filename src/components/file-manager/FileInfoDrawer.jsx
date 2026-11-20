@@ -7,32 +7,32 @@ import { formatBytes } from '../../utils/formatFileSize';
 import { localeTagOf } from '../../utils/locale';
 import LiquidGroup from '../ui/LiquidGroup';
 import { getFileIcon } from '../../utils/getFileIcon';
-import { 
-    X, 
-    User, 
-    Clock, 
-    HardDrive, 
-    FolderTree, 
-    Lock, 
-    Share2, 
-    Pencil, 
-    Sparkles, 
-    Activity as ActivityIcon, 
+import {
+    X,
+    User,
+    Clock,
+    HardDrives as HardDrive,
+    TreeStructure as FolderTree,
+    Lock,
+    ShareNetwork as Share2,
+    PencilSimple as Pencil,
+    Sparkle as Sparkles,
+    Pulse as ActivityIcon,
     Info as InfoIcon,
-    History,
+    ClockCounterClockwise as History,
     Shield,
-    Users,
+    UsersThree as Users,
     Eye,
-    AlertCircle,
-    RotateCcw,
-    Trash2,
-    Upload,
-    Download,
+    WarningCircle as AlertCircle,
+    ArrowCounterClockwise as RotateCcw,
+    Trash as Trash2,
+    UploadSimple as Upload,
+    DownloadSimple as Download,
     Star,
     Copy,
-    RefreshCw,
-    Loader2
-} from 'lucide-react';
+    ArrowsClockwise as RefreshCw,
+    CircleNotch as Loader2,
+} from '@phosphor-icons/react';
 
 export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', onClose, onOpenShare, onOpenRename }) {
     const { openPreview } = useFilePreview();
@@ -330,7 +330,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                             : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 font-medium'
                     }`}
                 >
-                    <InfoIcon className="w-3.5 h-3.5" />
+                    <InfoIcon weight="bold" className="w-3.5 h-3.5" />
                     <span>{t('info.tab.details')}</span>
                 </button>
 
@@ -344,7 +344,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                             : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 font-medium'
                     }`}
                 >
-                    <ActivityIcon className="w-3.5 h-3.5" />
+                    <ActivityIcon weight="bold" className="w-3.5 h-3.5" />
                     <span>{t('info.tab.activity')}</span>
                 </button>
 
@@ -359,7 +359,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                                 : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 font-medium'
                         }`}
                     >
-                        <History className="w-3.5 h-3.5" />
+                        <History weight="bold" className="w-3.5 h-3.5" />
                         <span>{t('info.tab.versions')}</span>
                     </button>
                 )}
@@ -391,7 +391,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                                             onClick={() => { openPreview(item); onClose?.(); }}
                                             className="glass-soft px-2.5 py-1.5 text-[var(--ink)] rounded-full font-semibold flex items-center gap-1 transition-all cursor-pointer"
                                         >
-                                            <Eye className="w-3.5 h-3.5 text-[var(--ink-muted)]" /> {t('menu.preview')}
+                                            <Eye weight="bold" className="w-3.5 h-3.5 text-[var(--ink-muted)]" /> {t('menu.preview')}
                                         </button>
                                     )}
                                     <button
@@ -408,7 +408,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                                         }}
                                         className="px-3 py-1.5 btn-accent hover:brightness-105 rounded-full font-semibold flex items-center gap-1 transition-all cursor-pointer"
                                     >
-                                        <Share2 className="w-3.5 h-3.5" /> {t('info.access.manage')}
+                                        <Share2 weight="bold" className="w-3.5 h-3.5" /> {t('info.access.manage')}
                                     </button>
                                 </div>
                             </div>
@@ -442,7 +442,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                             <div className="flex justify-between py-1.5 border-b border-glass-divider">
                                 <span className="text-gray-600 dark:text-gray-400 font-semibold">{t('info.field.location')}</span>
                                 <span className="font-semibold text-[var(--ink)] flex items-center gap-1 min-w-0">
-                                    <FolderTree className="w-3.5 h-3.5 shrink-0" />
+                                    <FolderTree weight="bold" className="w-3.5 h-3.5 shrink-0" />
                                     {/* Mở từ kết quả tìm kiếm thì có tên thư mục cha thật (`parentName`, ##90) */}
                                     <span className="truncate">
                                         {item.parentName || (item.parentId ? t('info.location.subfolder') : t('breadcrumb.myDriveRoot'))}
@@ -487,7 +487,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                                     className="p-1 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors cursor-pointer"
                                     title={t('info.refresh')}
                                 >
-                                    <RefreshCw className="w-3.5 h-3.5" />
+                                    <RefreshCw weight="bold" className="w-3.5 h-3.5" />
                                 </button>
                             )}
                         </div>
@@ -510,7 +510,7 @@ export default function FileInfoDrawer({ isOpen, item, activeTab = 'details', on
                                     onClick={fetchActivityLogs}
                                     className="glass-soft inline-flex items-center gap-1.5 px-3 py-1.5 mt-1 text-[var(--ink)] text-xs font-semibold rounded-full transition-colors cursor-pointer"
                                 >
-                                    <RefreshCw className="w-3.5 h-3.5" /> {t('common.retry')}
+                                    <RefreshCw weight="bold" className="w-3.5 h-3.5" /> {t('common.retry')}
                                 </button>
                             </div>
                         ) : activityLogs.length > 0 ? (

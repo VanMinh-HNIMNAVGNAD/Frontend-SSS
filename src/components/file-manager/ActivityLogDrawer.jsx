@@ -8,30 +8,30 @@ import tRich from '../../utils/tRich';
 import { formatRelativeTime } from '../../utils/relativeTime';
 import {
     X,
-    RefreshCw,
-    History,
-    Activity,
-    Upload,
-    FolderPlus,
-    Pencil,
-    Move,
+    ArrowsClockwise as RefreshCw,
+    ClockCounterClockwise as History,
+    Pulse as Activity,
+    UploadSimple as Upload,
+    FolderSimplePlus as FolderPlus,
+    PencilSimple as Pencil,
+    ArrowsOutCardinal as Move,
     Star,
-    Trash2,
-    RotateCcw,
-    Share2,
+    Trash as Trash2,
+    ArrowCounterClockwise as RotateCcw,
+    ShareNetwork as Share2,
     UserPlus,
     UserMinus,
-    AlertTriangle,
+    Warning as AlertTriangle,
     Copy,
     FileText,
     Folder,
-    HardDrive,
-    Sparkles,
+    HardDrives as HardDrive,
+    Sparkle as Sparkles,
     Clock,
-    Filter,
+    Funnel as Filter,
     Shield,
-    Check
-} from 'lucide-react';
+    Check,
+} from '@phosphor-icons/react';
 import LiquidGroup from '../ui/LiquidGroup';
 
 const ACTION_GROUPS = {
@@ -451,7 +451,7 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                             })}
                         </div>
                         <div className="chip px-2 py-0.5 text-xs">
-                            <Shield className="w-3 h-3" />
+                            <Shield weight="bold" className="w-3 h-3" />
                             <span>{roleText}</span>
                         </div>
                     </div>
@@ -531,12 +531,12 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                                 <p className="text-xs text-gray-500 dark:text-gray-400 font-medium truncate flex items-center gap-1.5 mt-0.5">
                                     {fileId ? (
                                         <>
-                                            <FileText className="w-3 h-3 shrink-0" />
+                                            <FileText weight="bold" className="w-3 h-3 shrink-0" />
                                             <span className="truncate">{fileName || t('activity.scope.selectedFile')}</span>
                                         </>
                                     ) : (
                                         <>
-                                            <HardDrive className="w-3 h-3 shrink-0" />
+                                            <HardDrive weight="bold" className="w-3 h-3 shrink-0" />
                                             <span>{t('activity.scope.wholeAccount')}</span>
                                         </>
                                     )}
@@ -604,13 +604,13 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                 <div className="flex-1 overflow-y-auto p-5 relative">
                     {/* Loading State */}
                     {isLoading && (
-                        <div className="space-y-4 animate-pulse">
+                        <div className="space-y-4">
                             {[1, 2, 3, 4, 5].map((idx) => (
-                                <div key={idx} className="flex gap-3.5 items-start">
-                                    <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-white/[0.07] shrink-0" />
+                                <div key={idx} style={{ '--i': idx }} className="skel-in flex gap-3.5 items-start">
+                                    <div className="w-8 h-8 rounded-full skel shrink-0" />
                                     <div className="flex-1 space-y-2 pt-1">
-                                        <div className="h-3.5 bg-gray-200 dark:bg-white/[0.07] rounded w-2/5" />
-                                        <div className="h-3 bg-gray-100 dark:bg-white/[0.07] rounded w-4/5" />
+                                        <div className="h-3.5 skel rounded w-2/5" />
+                                        <div className="h-3 skel rounded w-4/5" />
                                     </div>
                                 </div>
                             ))}
@@ -626,7 +626,7 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                                 onClick={fetchLogs}
                                 className="glass-soft px-4 py-2 rounded-full text-[var(--ink)] text-xs font-semibold transition-colors cursor-pointer inline-flex items-center gap-1.5"
                             >
-                                <RefreshCw className="w-3.5 h-3.5" />
+                                <RefreshCw weight="bold" className="w-3.5 h-3.5" />
                                 <span>{t('upload.retry')}</span>
                             </button>
                         </div>
@@ -702,7 +702,7 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                                                     className="text-xs text-gray-500 dark:text-gray-400 font-medium flex items-center gap-1 shrink-0"
                                                     title={formatExactDateTime(log.createdAt)}
                                                 >
-                                                    <Clock className="w-3.5 h-3.5" />
+                                                    <Clock weight="bold" className="w-3.5 h-3.5" />
                                                     <span>{formatRelativeTime(log.createdAt, t, locale)}</span>
                                                 </div>
                                             </div>
@@ -722,7 +722,7 @@ export default function ActivityLogDrawer({ isOpen, onClose, fileId = null, file
                 {/* Footer Summary */}
                 <div className="px-5 py-3 border-t flex items-center justify-between text-xs text-[var(--ink-muted)] shrink-0 border-glass-divider">
                     <div className="flex items-center gap-1.5">
-                        <Activity className="w-3.5 h-3.5" />
+                        <Activity weight="bold" className="w-3.5 h-3.5" />
                         <span>{tRich(t('activity.total'), {
                             shown: <strong className="text-gray-900 dark:text-gray-200 font-bold">{filteredLogs.length}</strong>,
                             total: logs.length,

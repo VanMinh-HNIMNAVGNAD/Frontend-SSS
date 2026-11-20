@@ -22,6 +22,7 @@ import {
 } from '@phosphor-icons/react';
 import { popBadge, ringBell } from '../../utils/motion';
 import useListMotion from '../../hooks/useListMotion';
+import NotificationDetailDialog from './NotificationDetailDialog';
 import { notificationsApi } from '../../services/api';
 import { useLanguage } from '../../context/LanguageContext';
 import { formatRelativeTime } from '../../utils/relativeTime';
@@ -274,10 +275,24 @@ export default function NotificationBell() {
         runEdit(() => notificationsApi.markRead(id));
     };
 
+    // Bấm một thông báo: mở hộp thoại chi tiết chỉ-đọc (NotificationDetailDialog.jsx) thay vì nhảy
+    // thẳng tới liên kết — nội dung dài bị cắt 3 dòng trong danh sách giờ đọc được trọn. Liên kết
+    // (nếu có) đi qua nút "Mở" trong hộp thoại.
+    const [detail, setDetail] = useState(null);
     const openNotification = (n) => {
         if (!n.isRead) markRead(n.id);
         setOpen(false);
-        if (isInternalLink(n.linkUrl)) navigate(n.linkUrl);
+        setDetail(n);
+    };
+    // Đóng hộp thoại: focus về nút chuông (hàng thông báo đã bấm nằm trong bảng vừa đóng).
+    const closeDetail = useCallback(() => {
+        setDetail(null);
+        buttonRef.current?.focus();
+    }, []);
+    const openDetailLink = () => {
+        const link = detail?.linkUrl;
+        setDetail(null);
+        if (isInternalLink(link)) navigate(link);
     };
 
     const markAllRead = () => {
@@ -303,6 +318,12 @@ export default function NotificationBell() {
         setHasMore(false);
         setUnread(0);
         runEdit(() => notificationsApi.clearAll());
+    };
+
+    const deleteDetail = () => {
+        // Mở hộp thoại đã đánh dấu đã đọc (và trừ số chưa đọc) — đừng để removeOne trừ thêm lần nữa.
+        if (detail) removeOne({ ...detail, isRead: true });
+        setDetail(null);
     };
 
     const badge = unread > 99 ? '99+' : String(unread);
@@ -497,6 +518,17 @@ export default function NotificationBell() {
                         )}
                     </div>
                 </>
+            )}
+
+            {detail && (
+                <NotificationDetailDialog
+                    notification={detail}
+                    {...(TYPE_STYLE[detail.type] ?? DEFAULT_STYLE)}
+                    canOpen={isInternalLink(detail.linkUrl)}
+                    onOpen={openDetailLink}
+                    onDelete={deleteDetail}
+                    onClose={closeDetail}
+                />
             )}
         </div>
     );

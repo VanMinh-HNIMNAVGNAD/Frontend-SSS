@@ -1,6 +1,8 @@
 import { CaretRight as ChevronRight, HardDrives as HardDrive } from '@phosphor-icons/react';
 
+import { useLayoutEffect, useRef } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
+import { slideInEnd } from '../../utils/motion';
 
 /**
  * Đường dẫn thư mục, đồng thời là TIÊU ĐỀ của trang (26/10/2026): chặng đang đứng to và đậm như
@@ -17,8 +19,21 @@ export default function Breadcrumb({ path = [], onNavigate, rootLabel, rootIcon:
     const { t } = useLanguage();
     const atRoot = path.length === 0;
 
+    // Đi sâu thêm một cấp (dãy cũ là phần đầu của dãy mới): chặng mới trượt vào. Đi lên hay nhảy
+    // sang nhánh khác thì không — chỉ hoạt ảnh cho đúng cú "mở thư mục con".
+    const navRef = useRef(null);
+    const lastIdsRef = useRef(path.map((p) => p.id));
+    const idsKey = path.map((p) => p.id).join('/');
+    useLayoutEffect(() => {
+        const ids = idsKey ? idsKey.split('/') : [];
+        const prev = lastIdsRef.current;
+        lastIdsRef.current = ids;
+        const deeper = ids.length === prev.length + 1 && prev.every((id, i) => ids[i] === id);
+        if (deeper) slideInEnd(navRef.current?.lastElementChild);
+    }, [idsKey]);
+
     return (
-        <nav className="flex items-center gap-1 min-w-0 overflow-x-auto py-0.5">
+        <nav ref={navRef} className="flex items-center gap-1 min-w-0 overflow-x-auto py-0.5">
             <button
                 onClick={() => onNavigate && onNavigate(null)}
                 aria-current={atRoot ? 'page' : undefined}

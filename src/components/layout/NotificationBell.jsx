@@ -21,6 +21,7 @@ import {
     X,
 } from '@phosphor-icons/react';
 import { popBadge, ringBell } from '../../utils/motion';
+import useListMotion from '../../hooks/useListMotion';
 import { notificationsApi } from '../../services/api';
 import { useLanguage } from '../../context/LanguageContext';
 import { formatRelativeTime } from '../../utils/relativeTime';
@@ -93,6 +94,10 @@ export default function NotificationBell() {
         prevUnreadRef.current = unread;
     }, [unread]);
     const [items, setItems] = useState([]);
+    // Mở bảng: thông báo hiện dần lệch nhịp; xoá một cái thì những cái dưới trượt lên lấp chỗ
+    // (hooks/useListMotion.js).
+    const listRef = useRef(null);
+    useListMotion(listRef, items.map((n) => n.id));
     const [hasMore, setHasMore] = useState(false);
     const [loading, setLoading] = useState(false);
     const [loadingMore, setLoadingMore] = useState(false);
@@ -320,9 +325,12 @@ export default function NotificationBell() {
                 aria-label={unread > 0 ? t('notifications.unreadAria', { count: unread }) : t('notifications.title')}
                 aria-haspopup="dialog"
                 aria-expanded={open}
-                className="relative p-2 sm:p-2.5 text-gray-700 dark:text-gray-300 rounded-full transition-colors cursor-pointer"
+                // Cùng khuôn 40×40 `inline-flex` căn giữa như các nút tròn khác của header (20/11/2026):
+                // bản cũ là nút inline thường bọc một <span inline-flex> — span nằm theo dòng chữ
+                // (line-height 24px) nên nút cao hơn các nút bên cạnh và icon lệch khỏi tâm.
+                className="relative inline-flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 text-gray-700 dark:text-gray-300 rounded-full hover:bg-[var(--row-selected)] transition-colors cursor-pointer"
             >
-                <span ref={bellIconRef} className="inline-flex origin-top">
+                <span ref={bellIconRef} className="flex origin-top">
                     <Bell className="w-5 h-5" />
                 </span>
                 {/* Số chưa đọc: viên ĐỎ chữ trắng (20/11/2026 — "để màu đỏ cho dễ nhìn"; bản 26/10 là
@@ -330,7 +338,7 @@ export default function NotificationBell() {
                 {unread > 0 && (
                     <span
                         ref={badgeRef}
-                        className="badge-red absolute top-1 right-1 sm:top-1.5 sm:right-1.5 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold leading-[18px] text-center tabular-nums ring-2 ring-white/85 dark:ring-[#2a2a2e]"
+                        className="badge-red absolute top-0.5 right-0.5 min-w-4 h-4 px-1 rounded-full text-[10px] font-bold leading-4 text-center tabular-nums ring-2 ring-[var(--app-bg)] pointer-events-none"
                     >
                         {badge}
                     </span>
@@ -385,7 +393,7 @@ export default function NotificationBell() {
                                     <p className="text-[11px] text-[var(--ink-subtle)]">{retentionNote}</p>
                                 </div>
                             ) : (
-                                <ul className="divide-y divide-[var(--app-border)]">
+                                <ul ref={listRef} className="divide-y divide-[var(--app-border)]">
                                     {items.map((n) => {
                                         const { Icon, tone } = TYPE_STYLE[n.type] ?? DEFAULT_STYLE;
                                         return (

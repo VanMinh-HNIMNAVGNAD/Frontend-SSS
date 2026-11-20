@@ -205,12 +205,12 @@ export function getEffectiveColor(item) {
 // đều đọc được, chủ thể không bị chìm vào nền ở chế độ lưới.
 
 /**
- * Màu MẮT THẤY phía sau thẻ: tấm kính vùng nội dung (`glass` ở index.css) đè lên nền ambient.
- * Thẻ giờ là kính ánh màu (rgba, xem `buildScheme`), nên tương phản của chữ phải tính trên màu
- * đã trộn với nền này chứ không trên chính mã rgba.
+ * Màu MẮT THẤY phía sau thẻ: tấm nội dung đặc kiểu Google Drive (`--shell-main` ở index.css,
+ * 20/11/2026 — trước là kính trên nền ambient). Thẻ là lớp ánh màu bán trong suốt (rgba, xem
+ * `buildScheme`), nên tương phản của chữ phải tính trên màu đã trộn với nền này.
  */
-const BASE_LIGHT = '#F6F7F8';
-const BASE_DARK  = '#252527';
+const BASE_LIGHT = '#FFFFFF';
+const BASE_DARK  = '#1E1F20';
 const WHITE = { r: 255, g: 255, b: 255 };
 
 function hexToRgb(hex) {
@@ -317,8 +317,11 @@ function buildScheme(rgb, baseHex, isDark) {
     : { color: blend(rgb, WHITE, tint), alpha });
   // Bản Tối: nền gần như trung tính, màu nằm ở viền / icon / chữ — xanh của .docx pha 10–15% trên
   // graphite đã ngả hẳn sang navy (đúng thứ bản kính này bỏ đi).
-  const surfaceL = layer(isDark ? 0.055 : 0.16, 0.62);
-  const hoverL   = layer(isDark ? 0.1 : 0.27, 0.74);
+  // Thẻ XÁM mặc định ở bản Tối nhấc lên rõ hơn hẳn (20/11/2026 — "tương phản rõ ràng" như thẻ của
+  // Drive trên tấm nội dung tối): xám không có sắc nên không lo ngả navy; thẻ có màu riêng giữ mức cũ.
+  const greyLift = isDark && hsl.s < 0.12 ? 2.4 : 1;
+  const surfaceL = layer(isDark ? 0.055 * greyLift : 0.16, 0.62);
+  const hoverL   = layer(isDark ? 0.1 * greyLift : 0.27, 0.74);
   // Khung xem trước giữ gần như trung tính để ảnh / bảng tính không bị ám màu
   const panelL   = layer(isDark ? 0.02 : 0.05, 0.66);
   const seen = (l) => blend(l.color, base, l.alpha);

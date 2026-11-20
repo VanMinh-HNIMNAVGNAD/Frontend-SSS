@@ -108,24 +108,25 @@ body {
        sáng. Bản Tối giữ nguyên: ở đó kính sáng hơn nền là đủ tương phản. */
 :root {
   color-scheme: light;
-  --app-bg: #e2e5e9;
+  --app-bg: #f0f4f9;
   --app-surface: rgba(255, 255, 255, 0.78);
   --app-sidebar: rgba(255, 255, 255, 0.5);
   --app-border: rgba(15, 23, 42, 0.09);
   --app-ink: #1c1f26;
   --app-muted: #646b78;
 
-  /* Nền ambient: trắng ngọc + xám bạc, chỉ hơi ấm/lạnh ở các góc — không có sắc xanh navy. */
-  /* 20/11/2026 — "thêm tí màu sắc chứ không đơn giản chỉ là màu xám": thêm bốn quầng màu pastel
-     (lam trời, tím oải hương, đào, bạc hà) RẤT nhạt dưới nền xám bạc. Kính mờ phía trên bắt được
-     chút màu đó nên có chiều sâu thay vì một mặt phẳng xám; vẫn không có mảng navy nào. */
-  --app-ambient:
-    radial-gradient(1100px 760px at 6% -6%, rgba(255, 255, 255, 0.8), transparent 62%),
-    radial-gradient(760px 560px at 22% 18%, rgba(122, 178, 255, 0.2), transparent 64%),
-    radial-gradient(820px 640px at 100% 0%, rgba(186, 160, 255, 0.2), transparent 62%),
-    radial-gradient(900px 760px at 96% 104%, rgba(255, 186, 150, 0.2), transparent 62%),
-    radial-gradient(880px 760px at -4% 100%, rgba(120, 214, 196, 0.18), transparent 62%),
-    linear-gradient(180deg, #eceef2 0%, #dfe2e8 100%);
+  /* Nền trang PHẲNG một màu kiểu Google Drive (20/11/2026 — "background đừng màu mè phản chiếu ở 2
+     góc nữa"): bỏ hết quầng sáng / quầng pastel ở các góc. Header và thanh bên đứng thẳng trên nền
+     này, vùng nội dung chính là tấm trắng đặc (`.shell-main`) — tương phản đến từ hai mặt phẳng
+     khác màu chứ không từ kính mờ hay ánh sáng. */
+  --app-ambient: none;
+  --shell-main: #ffffff;
+  /* Nút "Mới", ô tìm kiếm: tách khỏi nền như Drive — nút trắng nổi, ô tìm kiếm xám đậm hơn nền. */
+  --shell-raised: #ffffff;
+  --shell-raised-shadow: 0 1px 2px rgba(15, 23, 42, 0.12), 0 1px 4px 1px rgba(15, 23, 42, 0.06);
+  --shell-search: #e3e8ef;
+  --shell-search-hover: #dbe1ea;
+  --shell-drawer: #f0f4f9;
 
   /* Kính: lớp phủ trắng trong suốt + viền sáng + bóng mềm nhiều lớp. */
   --glass-fill: rgba(255, 255, 255, 0.64);
@@ -220,23 +221,21 @@ body {
 
 .dark {
   color-scheme: dark;
-  --app-bg: #161618;
+  --app-bg: #131314;
   --app-surface: rgba(38, 38, 42, 0.82);
   --app-sidebar: rgba(255, 255, 255, 0.05);
   --app-border: rgba(255, 255, 255, 0.09);
   --app-ink: #f2f2f4;
   --app-muted: #a3a6ad;
 
-  /* Graphite: xám than trung tính, các góc sáng/ấm rất nhẹ để kính có chiều sâu. */
-  --app-ambient:
-    radial-gradient(1100px 760px at 6% -6%, rgba(255, 255, 255, 0.07), transparent 62%),
-    /* Bản Tối giữ quầng màu rất thấp: kính `glass-strong` bão hoà 170% nên một quầng lam 12% đã
-       nhuộm thanh bên thành xám-navy. */
-    radial-gradient(760px 560px at 22% 18%, rgba(80, 170, 220, 0.05), transparent 64%),
-    radial-gradient(820px 640px at 100% 0%, rgba(160, 120, 255, 0.08), transparent 62%),
-    radial-gradient(900px 760px at 96% 104%, rgba(255, 140, 100, 0.09), transparent 62%),
-    radial-gradient(880px 760px at -4% 100%, rgba(60, 200, 175, 0.09), transparent 62%),
-    linear-gradient(180deg, #1b1b1f 0%, #121215 100%);
+  /* Phẳng như bản Sáng: nền than #131314, vùng chính xám đậm hơn một bậc (bảng màu tối của Google). */
+  --app-ambient: none;
+  --shell-main: #1e1f20;
+  --shell-raised: #2a2b2e;
+  --shell-raised-shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 1px 4px 1px rgba(0, 0, 0, 0.25);
+  --shell-search: #282a2c;
+  --shell-search-hover: #303235;
+  --shell-drawer: #1b1c1e;
 
   --glass-fill: rgba(255, 255, 255, 0.055);
   --glass-fill-strong: rgba(40, 40, 44, 0.78);
@@ -1311,4 +1310,26 @@ html {
   .skel-in {
     animation: none;
   }
+}
+
+/* ── Khung ứng dụng kiểu Google Drive (20/11/2026) ─────────────────────────────────────────────
+   Vùng nội dung chính (MainLayout.jsx): tấm đặc, không viền, không bóng, không kính — nổi khỏi nền
+   chỉ nhờ khác màu, như Drive. `position: relative` + `z-index: 0` giữ stacking context cũ của <main>. */
+.shell-main {
+  background-color: var(--shell-main);
+}
+/* Nút nổi trên nền trang (nút "Mới" ở thanh bên). */
+.shell-raised {
+  background-color: var(--shell-raised);
+  box-shadow: var(--shell-raised-shadow);
+}
+.shell-raised:hover {
+  box-shadow:
+    0 1px 3px rgba(15, 23, 42, 0.14),
+    0 4px 8px 3px rgba(15, 23, 42, 0.08);
+}
+.dark .shell-raised:hover {
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.55),
+    0 4px 8px 3px rgba(0, 0, 0, 0.3);
 }

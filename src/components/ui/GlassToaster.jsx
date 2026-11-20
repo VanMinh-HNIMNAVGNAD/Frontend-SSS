@@ -1,11 +1,13 @@
 import toast, { Toaster, resolveValue } from 'react-hot-toast';
-import { WarningCircle as AlertCircle, Check, Info, CircleNotch as Loader2, X } from '@phosphor-icons/react';
+import { WarningCircle as AlertCircle, Info, CircleNotch as Loader2, X } from '@phosphor-icons/react';
+import DrawnCheck from './DrawnCheck';
 import { useLanguage } from '../../context/LanguageContext';
 
 /** Icon ở đầu toast: chỉ lỗi mang sắc đỏ dịu, còn lại là mực/xám như phần còn lại của giao diện. */
 function ToastIcon({ toast: item }) {
     if (item.type === 'loading') return <Loader2 className="w-4 h-4 animate-spin text-[var(--ink-muted)]" />;
-    if (item.type === 'success') return <Check className="w-4 h-4 text-[var(--ink)]" weight="bold" />;
+    // ✓ tự vẽ nét khi toast hiện (hoặc khi toast "đang…" chuyển sang thành công).
+    if (item.type === 'success') return <DrawnCheck className="w-4 h-4 text-[var(--ink)]" delay={140} />;
     if (item.type === 'error') return <AlertCircle className="w-4 h-4 text-[var(--tone-danger)]" />;
     // `toast(msg, { icon: 'ℹ️' })` ở vài chỗ: emoji màu lạc tông giữa các icon nét — đổi về icon nét.
     if (item.icon && item.icon !== 'ℹ️') return <span className="text-sm leading-none">{item.icon}</span>;

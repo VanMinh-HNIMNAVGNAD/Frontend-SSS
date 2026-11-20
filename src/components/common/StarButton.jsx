@@ -1,7 +1,8 @@
-import { memo } from 'react';
+import { memo, useRef } from 'react';
 import { Star } from '@phosphor-icons/react';
 
 import { useLanguage } from '../../context/LanguageContext';
+import { popStar } from '../../utils/motion';
 
 /**
  * Nút gắn sao dùng chung cho MỌI chỗ có dấu sao: thẻ tệp / thư mục, hàng trong
@@ -41,8 +42,11 @@ function StarButton({
     const { t } = useLanguage();
     const s = SIZES[size] || SIZES.md;
 
+    // Bấm gắn sao: ngôi sao bật lên và xoay một cánh (utils/motion.js → popStar). Chỉ chuyển tiếp
+    // MÀU bằng CSS — một `transition` trên transform sẽ kéo trễ từng khung hình của anime.js.
+    const iconRef = useRef(null);
     const icon = (
-        <Star weight={isStarred ? 'fill' : 'regular'} className={`${s.icon} transition-all duration-200`} />
+        <Star ref={iconRef} weight={isStarred ? 'fill' : 'regular'} className={`${s.icon} transition-colors duration-200`} />
     );
 
     if (readOnly) {
@@ -62,6 +66,7 @@ function StarButton({
             onClick={(e) => {
                 e.stopPropagation();
                 e.preventDefault();
+                popStar(iconRef.current, !isStarred);
                 onToggle?.();
             }}
             // Chặn dblclick để không lọt xuống onDoubleClick của thẻ/hàng (mở preview)

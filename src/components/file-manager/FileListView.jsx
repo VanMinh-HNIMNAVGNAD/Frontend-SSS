@@ -8,6 +8,7 @@ import { sharingApi } from '../../services/api';
 import toast from 'react-hot-toast';
 import { formatBytes } from '../../utils/formatFileSize';
 import FileSkeleton from '../common/FileSkeleton';
+import useListMotion from '../../hooks/useListMotion';
 import ContextMenu from './ContextMenu';
 import RenameModal from './RenameModal';
 import ShareModal from './ShareModal';
@@ -631,6 +632,11 @@ export default function FileListView() {
         selectRange(id, folders, files);
     }, [selectRange, folders, files]);
 
+    // Hoạt ảnh hàng (hooks/useListMotion.js) — thư mục rồi tệp, đúng thứ tự các <tr> trong <tbody>.
+    // Gọi TRƯỚC các nhánh `return` sớm (skeleton, rỗng).
+    const rowsRef = useRef(null);
+    useListMotion(rowsRef, [...sortedFolders, ...sortedFiles].map((item) => item.id));
+
     if (isLoading) {
         return <FileSkeleton count={10} type="table" />;
     }
@@ -732,7 +738,7 @@ export default function FileListView() {
                         </tr>
                     </thead>
 
-                    <tbody className="divide-y divide-[var(--glass-divider)] text-[13px]">
+                    <tbody ref={rowsRef} className="divide-y divide-[var(--glass-divider)] text-[13px]">
                         {/* Render Folders */}
                         {sortedFolders.map((folder) => (
                             <FolderTableRow

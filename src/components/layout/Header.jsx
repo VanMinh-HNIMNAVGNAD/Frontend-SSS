@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useFiles, useFileSelection, useClipboard, useDriveAccess } from '../../context/FileContext';
 import { downloadItemsAsZip, triggerDownload } from '../../utils/downloadItems';
@@ -11,7 +11,6 @@ import AccountModal from './AccountModal';
 import ActivityLogDrawer from '../file-manager/ActivityLogDrawer';
 import NotificationBell from './NotificationBell';
 import { useAiPanel } from '../../context/AiPanelContext';
-import GlassEdge from '../ui/GlassEdge';
 import { confirmDialog } from '../../utils/dialog';
 /*
  * Icon Phosphor (20/11/2026) — cùng bộ với thanh bên (SideBar.jsx) để hai thanh ghép thành một
@@ -36,7 +35,7 @@ import {
     Sparkle as Sparkles,
     DotsThreeVertical as MoreVertical,
 } from '@phosphor-icons/react';
-import { bounceIcon, hoverIcon } from '../../utils/motion';
+import { bounceIcon, hoverIcon, tickNumber } from '../../utils/motion';
 import cloudLogo from '../../assets/icon/cloud-acceleration-svgrepo-com.svg';
 
 function HeaderBar({ toggleRightSidebar }) {
@@ -71,6 +70,16 @@ function HeaderBar({ toggleRightSidebar }) {
     const { selectedIds, selectedCount, deselectAll, selectAll } = useFileSelection();
 
     const { cutItems, copyItems } = useClipboard();
+
+    // "Đã chọn N mục" nhích nhẹ mỗi lần N đổi (không nhích lúc thanh chọn vừa hiện — nó đã có
+    // hiệu ứng hiện dần riêng).
+    const selectedCountRef = useRef(null);
+    const lastSelectedCountRef = useRef(selectedCount);
+    useEffect(() => {
+        const prev = lastSelectedCountRef.current;
+        lastSelectedCountRef.current = selectedCount;
+        if (prev > 0 && selectedCount > 0 && prev !== selectedCount) tickNumber(selectedCountRef.current);
+    }, [selectedCount]);
 
     const { t } = useLanguage();
 
@@ -346,22 +355,20 @@ function HeaderBar({ toggleRightSidebar }) {
 
     if (selectedCount > 0) {
         return (
-            // Thanh chọn nhiều: cùng tấm kính với header thường, sáng hơn một bậc (`--glass-bright`) để
-            // người dùng biết đang ở chế độ chọn — không còn ánh xanh (trước nữa: nền xanh đặc #0b57d0).
+            // Thanh chọn nhiều: viên đặc nổi trên nền trang (`shell-raised`, 20/11/2026) để người dùng
+            // biết đang ở chế độ chọn — header thường thì nằm phẳng trên nền, không có khung.
             <header
                 onPointerOver={(e) => onIconHover(e, true)}
                 onPointerOut={(e) => onIconHover(e, false)}
                 onClickCapture={onIconPress}
-                className="relative h-14 sm:h-16 flex items-center justify-between px-2 sm:px-3 md:px-4 glass bg-[var(--glass-bright)]! rounded-[20px] sm:rounded-full text-[var(--ink)] shrink-0 gap-2 sm:gap-3 transition-colors duration-200 animate-fade-in">
-                {/* Viền sáng của kính — xem chú thích ở header thường bên dưới. */}
-                <GlassEdge className="z-auto" />
+                className="relative h-14 sm:h-16 my-1 sm:my-0 flex items-center justify-between px-2 sm:px-3 md:px-4 shell-raised rounded-[20px] sm:rounded-full text-[var(--ink)] shrink-0 gap-2 sm:gap-3 animate-fade-in">
 
                 {/* Left */}
                 <div className="relative flex items-center gap-2 sm:gap-4 min-w-0">
                     <button onClick={deselectAll} className="p-2 rounded-full transition-colors cursor-pointer shrink-0" title={t('common.close')}>
                         <X className="w-5 h-5" />
                     </button>
-                    <span className="font-semibold text-base sm:text-lg truncate tabular-nums">{t('header.selected', { count: selectedCount })}</span>
+                    <span ref={selectedCountRef} className="inline-block font-semibold text-base sm:text-lg truncate tabular-nums">{t('header.selected', { count: selectedCount })}</span>
                     
                     <div className="w-px h-6 bg-black/10 dark:bg-white/15 mx-2 hidden sm:block" />
                     
@@ -431,19 +438,17 @@ function HeaderBar({ toggleRightSidebar }) {
     }
 
     return (
-        // Tấm kính hình viên thuốc nổi trên nền ambient. `glass` KHÔNG blur: header chứa modal
-        // Cài đặt + ngăn Lịch sử (`fixed inset-0`) — backdrop-filter sẽ nhốt chúng vào thanh này.
+        // Kiểu Google Drive (20/11/2026): header KHÔNG có khung — nằm thẳng trên nền trang, chỉ ô tìm
+        // kiếm có nền riêng. Đừng thêm backdrop-filter / transform: header chứa modal Cài đặt + ngăn
+        // Lịch sử (`fixed inset-0`), chúng sẽ bị nhốt vào thanh này.
         <header
             onPointerOver={(e) => onIconHover(e, true)}
             onPointerOut={(e) => onIconHover(e, false)}
             onClickCapture={onIconPress}
-            className="relative h-14 sm:h-16 flex items-center justify-between px-1.5 sm:px-2.5 md:px-3 glass rounded-[20px] sm:rounded-full shrink-0 gap-1.5 sm:gap-3 transition-colors duration-200">
-            {/* Viền sáng của kính. Header KHÔNG được là stacking context: popover tài khoản, bộ
-                lọc tìm kiếm… (`z-50` bên trong) đang so z-index trực tiếp với <main> (`z-0`) — nhốt
-                chúng vào header là chúng chui xuống dưới vùng nội dung. Vì vậy viền không dùng
-                được `z-index: -1` mà là `z-auto` + con ĐẦU TIÊN, và ba khối nội dung đều
-                `relative` để được vẽ đè lên nó (cùng tầng, đứng sau trong cây DOM). */}
-            <GlassEdge className="z-auto" />
+            className="relative h-14 sm:h-16 flex items-center justify-between px-0.5 sm:px-1 shrink-0 gap-1.5 sm:gap-3">
+            {/* Header KHÔNG được là stacking context: popover tài khoản, bộ lọc tìm kiếm… (`z-50`
+                bên trong) đang so z-index trực tiếp với <main> (`z-0`) — nhốt chúng vào header là
+                chúng chui xuống dưới vùng nội dung. */}
 
             {/* LOGO & Web Title "cloudSSS" */}
             <div className="relative flex items-center gap-2 shrink-0">
@@ -451,7 +456,7 @@ function HeaderBar({ toggleRightSidebar }) {
                 <button
                     onClick={toggleSidebar}
                     title={isSidebarCollapsed ? t('header.sidebar.expand') : t('header.sidebar.collapse')}
-                    className="p-2.5 text-gray-700 dark:text-gray-300 rounded-full transition-colors focus:outline-none cursor-pointer"
+                    className="inline-flex items-center justify-center w-10 h-10 text-gray-700 dark:text-gray-300 rounded-full hover:bg-[var(--row-selected)] transition-colors focus:outline-none cursor-pointer"
                 >
                     <Menu className="w-5 h-5 text-gray-800 dark:text-gray-200" />
                 </button>
@@ -476,7 +481,7 @@ function HeaderBar({ toggleRightSidebar }) {
 
             {/* VÙNG TÌM KIẾM TO + BỘ LỌC TÌM KIẾM */}
             <div className="flex-1 min-w-0 max-w-2xl relative sm:mx-2">
-                <div className="flex items-center h-11 glass-input hover:bg-white/75 dark:hover:bg-white/[0.09] focus-within:bg-white/90 dark:focus-within:bg-white/10 focus-within:ring-2 focus-within:ring-black/10 dark:focus-within:ring-white/15 rounded-full pl-3 pr-1.5 sm:pl-4 sm:pr-2 transition-all duration-200">
+                <div className="flex items-center h-12 bg-[var(--shell-search)] hover:bg-[var(--shell-search-hover)] focus-within:bg-[var(--shell-main)]! focus-within:shadow-[var(--shell-raised-shadow)] rounded-full pl-3 pr-1.5 sm:pl-4 sm:pr-2 transition-all duration-200">
                     <Search className="w-5 h-5 text-[var(--ink-muted)] mr-2 sm:mr-3 shrink-0" />
                     <input
                         id="global-search-input"
@@ -557,7 +562,7 @@ function HeaderBar({ toggleRightSidebar }) {
                     onClick={handleOpenActivityLog}
                     disabled={isAuthLoading}
                     title={isAuthenticated ? t('header.activityLog') : t('header.activityLog.needLogin')}
-                    className="hidden sm:inline-flex p-2.5 text-gray-700 dark:text-gray-300 rounded-full transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="hidden sm:inline-flex items-center justify-center w-10 h-10 text-gray-700 dark:text-gray-300 rounded-full hover:bg-[var(--row-selected)] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                     <History className="w-5 h-5" />
                 </button>
@@ -585,7 +590,7 @@ function HeaderBar({ toggleRightSidebar }) {
                     disabled={isAuthLoading}
                     title={isAuthenticated ? t('header.ai') : t('header.ai.needLogin')}
                     aria-label={isAuthenticated ? t('header.ai') : t('header.ai.needLogin')}
-                    className="p-2 sm:p-2.5 text-gray-700 dark:text-gray-300 rounded-full transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="inline-flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 text-gray-700 dark:text-gray-300 rounded-full hover:bg-[var(--row-selected)] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                     <Sparkles className="w-5 h-5 text-[var(--hue-purple)]" />
                 </button>
@@ -599,7 +604,7 @@ function HeaderBar({ toggleRightSidebar }) {
                 <button
                     onClick={() => setIsSettingsOpen(true)}
                     title={t('header.settings')}
-                    className="hidden sm:inline-flex p-2.5 text-gray-700 dark:text-gray-300 rounded-full transition-colors cursor-pointer"
+                    className="hidden sm:inline-flex items-center justify-center w-10 h-10 text-gray-700 dark:text-gray-300 rounded-full hover:bg-[var(--row-selected)] transition-colors cursor-pointer"
                 >
                     <Settings className="w-5 h-5" />
                 </button>
@@ -611,7 +616,7 @@ function HeaderBar({ toggleRightSidebar }) {
                         title={t('header.more')}
                         aria-label={t('header.more')}
                         aria-expanded={isMoreOpen}
-                        className="p-2 text-gray-700 dark:text-gray-300 rounded-full transition-colors cursor-pointer"
+                        className="inline-flex items-center justify-center w-9 h-9 text-gray-700 dark:text-gray-300 rounded-full hover:bg-[var(--row-selected)] transition-colors cursor-pointer"
                     >
                         <MoreVertical className="w-5 h-5" />
                     </button>

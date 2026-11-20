@@ -147,7 +147,8 @@ export default function NewButton({ isCollapsed }) {
       {/* Nút + Mới */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`glass-soft flex items-center justify-center gap-3 text-[var(--ink)] rounded-2xl hover:shadow-md active:scale-[0.98] font-medium text-sm transition-all duration-200 cursor-pointer ${
+        // Nút trắng nổi trên nền trang như nút "Mới" của Google Drive (`shell-raised`, index.css).
+        className={`shell-raised flex items-center justify-center gap-3 text-[var(--ink)] rounded-2xl active:scale-[0.98] font-medium text-sm transition-[box-shadow,transform] duration-200 cursor-pointer ${
           // Mở rộng: lề trái 15px + viền 1px = lề trái 16px của mục thanh bên → dấu + thẳng cột với icon bên dưới.
           isCollapsed ? 'w-12 h-12 p-0 rounded-full' : 'pl-[15px] pr-6 py-3'
         }`}

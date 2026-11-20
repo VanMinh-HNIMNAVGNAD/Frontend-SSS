@@ -5,6 +5,7 @@ import { useAiPanel } from '../../context/AiPanelContext';
 import { sharingApi } from '../../services/api';
 import toast from 'react-hot-toast';
 import FileSkeleton from '../common/FileSkeleton';
+import useListMotion from '../../hooks/useListMotion';
 import FolderCard from './FolderCard';
 import FileCard from './FileCard';
 import ContextMenu from './ContextMenu';
@@ -233,6 +234,13 @@ export default function FileGridView() {
         selectRange(id, folders, files);
     }, [selectRange, folders, files]);
 
+    // Hoạt ảnh lưới (hooks/useListMotion.js): mở thư mục thì thẻ hiện dần, xoá / tạo / sắp xếp thì
+    // thẻ còn lại lướt về chỗ mới. Gọi TRƯỚC các nhánh `return` sớm (skeleton, rỗng).
+    const folderGridRef = useRef(null);
+    const fileGridRef = useRef(null);
+    useListMotion(folderGridRef, (folders || []).map((f) => f.id));
+    useListMotion(fileGridRef, (files || []).map((f) => f.id));
+
     if (isLoading) {
         return <FileSkeleton type="grid" count={10} />;
     }
@@ -298,7 +306,7 @@ export default function FileGridView() {
                             <Folder weight="bold" className="w-3.5 h-3.5" />
                             <span>{t('list.group.folders', { count: folders.length })}</span>
                         </div>
-                        <div className={FOLDER_GRID_CLASS}>
+                        <div ref={folderGridRef} className={FOLDER_GRID_CLASS}>
                             {folders.map((folder) => (
                                 <FolderCard
                                     key={folder.id}
@@ -324,7 +332,7 @@ export default function FileGridView() {
                             <FileText weight="bold" className="w-3.5 h-3.5" />
                             <span>{t('list.group.files', { count: files.length })}</span>
                         </div>
-                        <div className={FILE_GRID_CLASS}>
+                        <div ref={fileGridRef} className={FILE_GRID_CLASS}>
                             {files.map((file) => (
                                 <FileCard
                                     key={file.id}

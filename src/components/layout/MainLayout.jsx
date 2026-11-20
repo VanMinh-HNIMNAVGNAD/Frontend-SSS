@@ -7,7 +7,6 @@ import useGlobalShortcuts from '../../hooks/useGlobalShortcuts';
 import Sidebar from './SideBar';
 import RightSidebar from './RightSideBar';
 import Header from './Header';
-import GlassEdge from '../ui/GlassEdge';
 import { confirmDialog, promptDialog } from '../../utils/dialog';
 import { pageIn } from '../../utils/motion';
 import FileInfoDrawer from '../file-manager/FileInfoDrawer';
@@ -284,20 +283,18 @@ export default function MainLayout() {
             {/* Sidebar bên trái */}
             <Sidebar />
 
-            {/* Khu vực nội dung chính: header và vùng nội dung là hai tấm kính NỔI, cách mép và
-                cách nhau một khe để nền ambient lộ ra — đó là thứ làm chúng đọc ra là kính. */}
-            <div className="flex-1 flex flex-col overflow-hidden min-w-0 p-2 sm:p-2.5 lg:p-3 lg:pl-3 gap-2 sm:gap-2.5 lg:gap-3">
+            {/* Khu vực nội dung chính kiểu Google Drive (20/11/2026): header nằm thẳng trên nền trang,
+                bên dưới là tấm nội dung đặc cách mép phải / dưới một khe để nền trang lộ ra. */}
+            <div className="flex-1 flex flex-col overflow-hidden min-w-0 px-2 pb-2 sm:pl-2.5 sm:pr-3 sm:pb-3 lg:pl-1 lg:pr-4 lg:pb-4 gap-1">
                 {/* Header Navbar */}
                 <Header 
                     toggleRightSidebar={() => setIsRightSidebarOpen(!isRightSidebarOpen)} 
                 />
 
-                {/* Body Content — `glass` KHÔNG blur: trang con render menu/modal `fixed` ngay
-                    trong <main>, mà backdrop-filter sẽ nhốt chúng vào khung này (index.css). */}
-                <main className="glass flex-1 overflow-hidden rounded-[22px] sm:rounded-[26px] px-3 sm:px-4 lg:px-5 py-3 relative z-0">
-                    {/* Viền sáng của kính (`z-0` ở trên là stacking context → viền nằm dưới
-                        danh sách tệp). */}
-                    <GlassEdge />
+                {/* Body Content — tấm đặc kiểu Google Drive (`shell-main`, index.css; 20/11/2026): không
+                    kính, không viền sáng, tách khỏi nền trang chỉ nhờ khác màu. KHÔNG thêm
+                    backdrop-filter/transform: trang con render menu/modal `fixed` ngay trong <main>. */}
+                <main className="shell-main flex-1 overflow-hidden rounded-[18px] sm:rounded-[20px] px-3 sm:px-4 lg:px-5 py-3 relative z-0">
                     {/* Lỗi trong một trang chỉ thay phần nội dung — Sidebar/Header vẫn còn để
                         người dùng bấm sang trang khác. */}
                     {/* Lớp chuyển cảnh: đổi trang là nội dung trồi lên (anime.js, pageIn). Không dùng

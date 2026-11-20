@@ -6,7 +6,6 @@ import { useTags } from '../../context/TagsContext';
 import { DEFAULT_TAG_COLOR } from '../../constants/tags';
 import NewButton from './NewButton';
 import QuickCleanupModal from '../modals/QuickCleanupModal';
-import GlassEdge from '../ui/GlassEdge';
 import LiquidGroup from '../ui/LiquidGroup';
 import { formatBytes } from '../../utils/formatFileSize';
 import { getStorageStatus } from '../../utils/storageStatus';
@@ -160,18 +159,16 @@ export default function Sidebar() {
           onClick={() => toggleSidebar()} 
         />
       )}
-      {/* Kính NỔI: điện thoại là ngăn kéo đè lên nội dung nên có blur (`glass-strong`); máy tính
-          là tấm kính đứng cạnh vùng nội dung, chỉ có nền ambient phía sau (`lg:glass`). */}
+      {/* Kiểu Google Drive (20/11/2026): máy tính thì thanh bên KHÔNG có khung — đứng thẳng trên nền
+          trang như header; điện thoại là ngăn kéo đè lên nội dung nên là tấm đặc màu nền trang có
+          bóng đổ. */}
       <aside
         ref={asideRef}
-        className={`glass-strong lg:glass rounded-[26px] flex flex-col pt-3 short:pt-2 select-none transition-all duration-300 ease-in-out shrink-0
-          fixed lg:relative z-50 lg:z-0 top-2 bottom-2 left-2 lg:top-auto lg:bottom-auto lg:left-auto lg:my-3 lg:ml-3
+        className={`bg-[var(--shell-drawer)] shadow-[var(--glass-shadow-pop)] lg:bg-transparent lg:shadow-none rounded-[26px] lg:rounded-none flex flex-col pt-3 short:pt-2 select-none transition-all duration-300 ease-in-out shrink-0
+          fixed lg:relative z-50 lg:z-0 top-2 bottom-2 left-2 lg:top-auto lg:bottom-auto lg:left-auto lg:my-1 lg:ml-1
           ${isSidebarCollapsed ? '-translate-x-[110%] lg:translate-x-0 lg:w-20 px-2' : 'translate-x-0 w-76 max-w-[calc(100vw-1rem)] px-3'}
         `}
       >
-        {/* Viền sáng của kính — `z-50`/`lg:z-0` ở trên đã cho thanh bên stacking context riêng
-            nên viền nằm được dưới chữ. */}
-        <GlassEdge />
 
         {/* Rộng 304px cả điện thoại lẫn desktop: nhãn dài nhất ("cloudSSS được chia sẻ với
             tôi") in đậm lúc đang chọn cần ~198px, bản 256px cũ chỉ cho 159px nên bị cắt

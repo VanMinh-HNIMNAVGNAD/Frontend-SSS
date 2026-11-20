@@ -4,7 +4,6 @@ import { useFiles } from '../../context/FileContext';
 import { useLanguage } from '../../context/LanguageContext';
 import {
     CloudArrowUp as UploadCloud,
-    CheckCircle as CheckCircle2,
     XCircle,
     X,
     Prohibit as Ban,
@@ -16,6 +15,7 @@ import {
     Clock,
     ArrowsClockwise as RefreshCw,
 } from '@phosphor-icons/react';
+import DrawnCheck from '../ui/DrawnCheck';
 import Modal from '../common/Modal';
 import Button from '../common/Button';
 import { formatBytes } from '../../utils/formatFileSize';
@@ -488,7 +488,8 @@ const FileJobRow = memo(function FileJobRow({ job, jobId, etaSeconds, onDismissE
     const statusIcon = () => {
         switch (status) {
             case 'done':
-                return <CheckCircle2 className="w-4 h-4 text-[var(--ink-muted)] shrink-0" />;
+                // Vừa tải xong: vòng + dấu ✓ tự vẽ nét (một lần, lúc icon này xuất hiện).
+                return <DrawnCheck circle className="w-4 h-4 text-[var(--ink-muted)] shrink-0" />;
             case 'error':
                 return <XCircle className="w-4 h-4 text-[var(--tone-danger)] shrink-0" />;
             case 'canceled':

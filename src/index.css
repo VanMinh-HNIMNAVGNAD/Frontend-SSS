@@ -2,6 +2,8 @@
 @import "tailwindcss";
 /* Viền sáng của kính + giọt kính đang chọn (Liquid Glass) — xem đầu file đó. */
 @import "./styles/liquid-glass.css";
+/* Viền ảnh đại diện (FramedAvatar). */
+@import "./styles/avatar-frames.css";
 
 @theme {
   --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;

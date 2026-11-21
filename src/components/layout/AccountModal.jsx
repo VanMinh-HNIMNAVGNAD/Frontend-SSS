@@ -8,6 +8,7 @@ import UserProfileModal from '../modals/UserProfileModal';
 import Modal from '../common/Modal';
 import Button from '../common/Button';
 import AccountSwitcher from './AccountSwitcher';
+import FramedAvatar from '../ui/FramedAvatar';
 import useMySubscription from '../../hooks/useMySubscription';
 import { PLAN_TERM_KEY, formatPlanDate } from '../../constants/billing';
 import { displayPlanName } from '../../utils/planName';
@@ -122,13 +123,13 @@ export default function AccountModal({ isOpen, onClose }) {
             <div className="max-h-[calc(100dvh-5rem)] overflow-y-auto overscroll-contain p-5">
             {/* User Details */}
             <div className="flex items-center gap-3 pb-4 border-b border-glass-divider">
-                {user?.avatarUrl ? (
-                    <img src={user.avatarUrl} alt="Avatar" className="w-12 h-12 rounded-full object-cover shadow-sm border border-gray-200 dark:border-gray-700" />
-                ) : (
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-zinc-400 to-zinc-600 dark:from-zinc-500 dark:to-zinc-700 text-white flex items-center justify-center font-semibold text-lg shadow-sm">
-                        {initialLetter}
-                    </div>
-                )}
+                <FramedAvatar
+                    src={user?.avatarUrl}
+                    name={initialLetter}
+                    frame={user?.avatarFrame}
+                    size={48}
+                    className="shadow-sm"
+                />
                 <div className="flex-1 min-w-0">
                     <h4 className="font-semibold text-gray-900 dark:text-gray-100 truncate">{user?.fullName || t('profile.defaultName')}</h4>
                     <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.email || 'user@cloudsss.com'}</p>

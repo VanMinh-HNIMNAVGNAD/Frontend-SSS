@@ -823,6 +823,8 @@ export const userApi = {
   // Phải nằm ở userApi (không phải authApi): endpoint thuộc /users/me và
   // UserProfileModal chỉ import userApi.
   updatePassword: (data) => api.patch('/users/me/password', data),
+  /** Viền ảnh đại diện — id trong `constants/avatarFrames.js`, `null` = gỡ viền. */
+  updateAvatarFrame: (frame) => api.patch('/users/me/avatar-frame', { frame }),
   updateAvatar: (formData) => api.post('/users/me/avatar', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',

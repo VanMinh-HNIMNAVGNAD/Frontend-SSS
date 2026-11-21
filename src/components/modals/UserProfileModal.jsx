@@ -32,9 +32,21 @@ import {
     ShieldWarning as ShieldAlert,
     CreditCard,
     CaretRight as ChevronRight,
+    LockSimple,
+    Prohibit,
+    Crown,
+    Check,
 } from '@phosphor-icons/react';
 import { userApi } from '../../services/api';
 import LiquidGroup from '../ui/LiquidGroup';
+import FramedAvatar from '../ui/FramedAvatar';
+import AvatarCropModal from './AvatarCropModal';
+import {
+  FREE_AVATAR_FRAMES,
+  PAID_AVATAR_FRAMES,
+  isPaidAvatarFrame,
+  isPaidSubscription,
+} from '../../constants/avatarFrames';
 
 /**
  * Helper phân tích User-Agent để hiển thị icon và tên thiết bị thân thiện
@@ -130,6 +142,10 @@ export default function UserProfileModal({ isOpen, onClose }) {
   const [isDiscoverable, setIsDiscoverable] = useState(true);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  // Ảnh vừa chọn, chờ người dùng cắt trong AvatarCropModal (null = hộp cắt đóng).
+  const [cropFile, setCropFile] = useState(null);
+  // Viền đang lưu (id, hoặc 'none') — để ô đó hiện vòng quay và khoá cả lưới.
+  const [savingFrame, setSavingFrame] = useState(null);
 
   // Gói cước đang chạy + hạn mức AI, cho thẻ "Gói đang dùng" (##87). BA trạng thái của
   // `subscription` ('loading' | 'error' | null | {…}) — xem `useMySubscription`. Trước đây hồ sơ
@@ -257,9 +273,12 @@ export default function UserProfileModal({ isOpen, onClose }) {
   const needsPassword =
     serverHasPassword ?? (typeof user.hasPassword === 'boolean' ? user.hasPassword : user.provider === 'local');
 
-  // 1. Xử lý Upload Avatar
-  const handleAvatarChange = async (e) => {
+  // 1. Xử lý Upload Avatar — chọn ảnh → hộp cắt (AvatarCropModal) → tải ảnh vuông đã cắt lên.
+  // Ảnh gốc được tới 20 MB vì thứ tải lên là bản 512×512 đã cắt; giới hạn 5 MB của backend chỉ
+  // còn áp cho đường dự phòng (trình duyệt không đọc được ảnh, ví dụ HEIC → tải ảnh gốc như cũ).
+  const handleAvatarChange = (e) => {
     const file = e.target.files?.[0];
+    if (fileInputRef.current) fileInputRef.current.value = '';
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
@@ -267,8 +286,18 @@ export default function UserProfileModal({ isOpen, onClose }) {
       return;
     }
 
+    if (file.size > 20 * 1024 * 1024) {
+      toast.error(t('profile.avatar.tooBigSource'));
+      return;
+    }
+
+    setCropFile(file);
+  };
+
+  const uploadAvatarFile = async (file) => {
     if (file.size > 5 * 1024 * 1024) {
       toast.error(t('profile.avatar.tooBig'));
+      setCropFile(null);
       return;
     }
 
@@ -280,13 +309,31 @@ export default function UserProfileModal({ isOpen, onClose }) {
       await userApi.updateAvatar(formData);
       await refreshUser();
       toast.success(t('profile.avatar.updated'));
+      setCropFile(null);
     } catch (err) {
       toast.error(err.message || t('profile.avatar.failed'));
     } finally {
       setIsUploadingAvatar(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
+    }
+  };
+
+  // Viền ảnh đại diện. Viền trả phí khi chưa có gói: không gọi API, mời sang trang Gói dịch vụ.
+  const handlePickFrame = async (frameId) => {
+    if (savingFrame) return;
+    const next = frameId ?? null;
+    if ((user.avatarFrame ?? null) === next) return;
+    if (isPaidAvatarFrame(next) && !isPaid) {
+      toast(t('profile.frame.paidOnly'), { icon: '👑' });
+      return;
+    }
+    setSavingFrame(next ?? 'none');
+    try {
+      await userApi.updateAvatarFrame(next);
+      await refreshUser();
+    } catch (err) {
+      toast.error(err.message || t('profile.frame.failed'));
+    } finally {
+      setSavingFrame(null);
     }
   };
 
@@ -457,6 +504,7 @@ export default function UserProfileModal({ isOpen, onClose }) {
   const storageStatus = getStorageStatus(storageUsedBytes, storageLimitBytes);
 
   const hasPlan = Boolean(subscription && typeof subscription === 'object' && subscription.planName);
+  const isPaid = isPaidSubscription(subscription);
   const planDisplayName = hasPlan ? displayPlanName(subscription.planName, language) : null;
   const planTermKey = hasPlan ? PLAN_TERM_KEY[subscription.billingCycle] : null;
 
@@ -598,18 +646,19 @@ export default function UserProfileModal({ isOpen, onClose }) {
                   onClick={() => !isUploadingAvatar && fileInputRef.current?.click()}
                   title={t('profile.avatar.clickToChange')}
                 >
-                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-zinc-400 to-zinc-600 dark:from-zinc-500 dark:to-zinc-700 text-white font-semibold flex items-center justify-center text-3xl shadow-md border-2 border-white dark:border-white/20 overflow-hidden relative">
-                    {user.avatarUrl ? (
-                      <img src={user.avatarUrl} alt="Avatar" className="w-full h-full rounded-full object-cover" />
-                    ) : (
-                      initialLetter
-                    )}
+                  <FramedAvatar
+                    src={user.avatarUrl}
+                    name={initialLetter}
+                    frame={user.avatarFrame}
+                    size={84}
+                    className="shadow-md rounded-full"
+                  >
                     {isUploadingAvatar && (
-                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-full">
+                      <span className="absolute inset-0 bg-black/50 flex items-center justify-center">
                         <Loader2 className="w-6 h-6 text-white animate-spin" />
-                      </div>
+                      </span>
                     )}
-                  </div>
+                  </FramedAvatar>
                   <button
                     type="button"
                     disabled={isUploadingAvatar}
@@ -647,6 +696,95 @@ export default function UserProfileModal({ isOpen, onClose }) {
                   
                 </div>
               </div>
+
+              {/* Viền ảnh đại diện (21/11/2026): hàng miễn phí + hàng trả phí. Mỗi ô là chính ảnh của
+                  người dùng đội viền đó; ô trả phí khi chưa có gói mang ổ khoá và mời mua gói. */}
+              <section className="glass-soft p-4 rounded-2xl space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                      {t('profile.frame.title')}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{t('profile.frame.subtitle')}</p>
+                  </div>
+                </div>
+
+                {[
+                  { key: 'free', ids: [null, ...FREE_AVATAR_FRAMES] },
+                  { key: 'paid', ids: PAID_AVATAR_FRAMES },
+                ].map(({ key, ids }) => (
+                  <div key={key} className="space-y-2">
+                    <p className="flex items-center gap-1.5 text-xs font-semibold text-[var(--ink-muted)]">
+                      {key === 'paid' && <Crown weight="fill" className="w-3.5 h-3.5 text-amber-500" />}
+                      {t(key === 'paid' ? 'profile.frame.groupPaid' : 'profile.frame.groupFree')}
+                      {key === 'paid' && !isPaid && (
+                        <button
+                          type="button"
+                          onClick={openBilling}
+                          className="ml-auto text-[11px] font-semibold text-[var(--accent)] hover:underline"
+                        >
+                          {t('profile.frame.upgrade')}
+                        </button>
+                      )}
+                    </p>
+                    <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                      {ids.map((id) => {
+                        const selected = (user.avatarFrame ?? null) === id;
+                        const locked = key === 'paid' && !isPaid;
+                        const saving = savingFrame === (id ?? 'none');
+                        const label = t(`profile.frame.name.${id ?? 'none'}`);
+                        return (
+                          <button
+                            key={id ?? 'none'}
+                            type="button"
+                            onClick={() => handlePickFrame(id)}
+                            disabled={Boolean(savingFrame)}
+                            title={locked ? `${label} · ${t('profile.frame.paidOnly')}` : label}
+                            aria-pressed={selected}
+                            className={`group/frame relative flex flex-col items-center gap-1 rounded-xl px-1 pt-2.5 pb-1.5 transition ${
+                              selected ? 'glass-active' : 'hover:bg-[var(--row-hover)]'
+                            } disabled:cursor-wait`}
+                          >
+                            <span className={`relative ${locked ? 'opacity-60' : ''}`}>
+                              <FramedAvatar
+                                src={user.avatarUrl}
+                                name={initialLetter}
+                                frame={id}
+                                size={44}
+                                still={!selected}
+                              />
+                              {id === null && (
+                                <Prohibit
+                                  weight="bold"
+                                  className="absolute -bottom-0.5 -right-0.5 w-4 h-4 p-0.5 rounded-full bg-[var(--chip-fill)] text-[var(--ink-muted)]"
+                                />
+                              )}
+                            </span>
+                            {locked && !selected && (
+                              <LockSimple
+                                weight="fill"
+                                className="absolute top-1 right-1 w-3.5 h-3.5 text-[var(--ink-muted)]"
+                              />
+                            )}
+                            {selected && !saving && (
+                              <Check
+                                weight="bold"
+                                className="absolute top-1 right-1 w-3.5 h-3.5 text-[var(--ink)]"
+                              />
+                            )}
+                            {saving && (
+                              <Loader2 className="absolute top-1 right-1 w-3.5 h-3.5 animate-spin text-[var(--ink-muted)]" />
+                            )}
+                            <span className="text-[10.5px] leading-tight font-medium text-[var(--ink-muted)] truncate max-w-full">
+                              {label}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </section>
 
               {/* Gói đang dùng + dung lượng + hạn mức AI (##87). Trước đây hồ sơ chỉ có một dòng
                   chữ 11px dưới thanh dung lượng nói tên gói — người dùng báo "chưa có hiển thị gói
@@ -1107,6 +1245,17 @@ export default function UserProfileModal({ isOpen, onClose }) {
           )}
         </div>
       </div>
+
+      {cropFile && (
+        <AvatarCropModal
+          file={cropFile}
+          busy={isUploadingAvatar}
+          onCancel={() => !isUploadingAvatar && setCropFile(null)}
+          onConfirm={uploadAvatarFile}
+          // Trình duyệt không đọc được ảnh (HEIC trên Chrome…): tải ảnh gốc lên, backend cắt giữa.
+          onLoadError={() => uploadAvatarFile(cropFile)}
+        />
+      )}
 
       {/* CONFIRMATION MODAL: XOÁ TÀI KHOẢN AN TOÀN */}
       {showDeleteModal && (

@@ -36,6 +36,7 @@ import {
     DotsThreeVertical as MoreVertical,
 } from '@phosphor-icons/react';
 import { bounceIcon, hoverIcon, tickNumber } from '../../utils/motion';
+import FramedAvatar from '../ui/FramedAvatar';
 import cloudLogo from '../../assets/icon/cloud-acceleration-svgrepo-com.svg';
 
 function HeaderBar({ toggleRightSidebar }) {
@@ -670,13 +671,17 @@ function HeaderBar({ toggleRightSidebar }) {
                             <button
                                 onClick={() => setIsAccountOpen(!isAccountOpen)}
                                 title={t('header.account')}
-                                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-zinc-400 to-zinc-600 dark:from-zinc-500 dark:to-zinc-700 text-white font-semibold flex items-center justify-center hover:brightness-105 shadow-sm ring-2 ring-white/80 dark:ring-white/15 transition ml-1 mr-0.5 cursor-pointer overflow-hidden"
+                                className="relative inline-flex w-9 h-9 sm:w-10 sm:h-10 items-center justify-center rounded-full hover:brightness-105 transition ml-1 mr-0.5 cursor-pointer"
                             >
-                                {user?.avatarUrl ? (
-                                    <img src={user.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
-                                ) : (
-                                    (user?.fullName || user?.email || 'U').charAt(0).toUpperCase()
-                                )}
+                                {/* Viền (21/11/2026) nằm TRONG cỡ nút: không viền thì giữ vòng trắng mảnh như cũ. */}
+                                <FramedAvatar
+                                    src={user?.avatarUrl}
+                                    name={user?.fullName || user?.email}
+                                    frame={user?.avatarFrame}
+                                    size={36}
+                                    sizeClass="text-[36px] sm:text-[40px]"
+                                    className={user?.avatarFrame ? '' : 'shadow-sm ring-2 ring-white/80 dark:ring-white/15'}
+                                />
                             </button>
 
                             {/* Popover Thông Tin Tài Khoản */}

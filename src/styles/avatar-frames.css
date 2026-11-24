@@ -98,6 +98,22 @@
   );
 }
 
+/* Thêm 24/11/2026 — miễn phí cũng có viền động (Chấm bi, Nhịp đập, Vòng xoay). */
+.af[data-frame='forest'] { --af-ring: linear-gradient(135deg, #bbf7d0, #22c55e 50%, #166534); }
+.af[data-frame='candy'] { --af-ring: repeating-conic-gradient(#f472b6 0 12deg, #fdf2f8 12deg 24deg); }
+.dark .af[data-frame='candy'] { --af-ring: repeating-conic-gradient(#f472b6 0 12deg, #fce7f3 12deg 24deg); }
+.af[data-frame='dots'] {
+  --af-w: max(2.5px, 0.09em);
+  --af-ring: repeating-conic-gradient(#6366f1 0 5deg, transparent 5deg 15deg);
+}
+.dark .af[data-frame='dots'] { --af-ring: repeating-conic-gradient(#a5b4fc 0 5deg, transparent 5deg 15deg); }
+.af[data-frame='pulse'] {
+  --af-ring: linear-gradient(135deg, #5eead4, #14b8a6);
+  --af-glow: rgba(20, 184, 166, 0.8);
+}
+.af[data-frame='spinner'] { --af-ring: conic-gradient(#e4e4e7 0 30%, #93c5fd 55%, #2563eb); }
+.dark .af[data-frame='spinner'] { --af-ring: conic-gradient(#3f3f46 0 30%, #60a5fa 55%, #bfdbfe); }
+
 /* ── Trả phí ──────────────────────────────────────────────────────────── */
 .af[data-frame='aurora'] {
   --af-w: max(2.5px, 0.085em);
@@ -137,6 +153,84 @@
   --af-ring: conic-gradient(#ef4444, #f97316, #facc15, #22c55e, #06b6d4, #3b82f6, #a855f7, #ef4444);
 }
 
+/* Thêm 24/11/2026. Sao chổi có thêm "đầu sao" (`::before` xoay cùng nhịp với vòng); Cyber có vòng
+   trong quay ngược (`::after`, vòng ngoài khi đó chỉ chiếm nửa ngoài của bề dày viền). */
+.af[data-frame='comet'] {
+  --af-w: max(3px, 0.09em);
+  --af-ring: conic-gradient(transparent 0 50%, rgba(251, 191, 36, 0.15) 65%, #fbbf24 92%, #fffbeb);
+  --af-glow: rgba(251, 191, 36, 0.4);
+}
+.af[data-frame='comet']::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    circle at 50% calc(var(--af-w) / 2),
+    #fff 0 calc(var(--af-w) * 0.62),
+    rgba(253, 230, 138, 0.7) calc(var(--af-w) * 0.7),
+    transparent calc(var(--af-w) * 1.3)
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+.af[data-frame='frost'] {
+  --af-w: max(2.5px, 0.085em);
+  --af-ring: conic-gradient(#f0f9ff, #7dd3fc, #0ea5e9, #e0f2fe, #bae6fd, #38bdf8, #f0f9ff);
+  --af-glow: rgba(125, 211, 252, 0.6);
+}
+.af[data-frame='thunder'] {
+  --af-w: max(2.5px, 0.085em);
+  --af-ring: conic-gradient(#facc15, #a855f7, #fde047, #6366f1, #facc15, #c084fc, #facc15);
+  --af-glow: rgba(168, 85, 247, 0.85);
+}
+.af[data-frame='heart'] {
+  --af-ring: linear-gradient(135deg, #fecdd3, #f43f5e 55%, #be123c);
+  --af-glow: rgba(244, 63, 94, 0.7);
+}
+.af[data-frame='cyber'] {
+  --af-w: max(4px, 0.12em);
+  --af-ring: repeating-conic-gradient(#22d3ee 0 22deg, transparent 22deg 30deg, #f0abfc 30deg 40deg, transparent 40deg 60deg);
+  --af-glow: rgba(34, 211, 238, 0.45);
+}
+.af[data-frame='cyber'] .af__ring {
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - var(--af-w) * 0.45), #000 calc(100% - var(--af-w) * 0.45 + 0.6px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - var(--af-w) * 0.45), #000 calc(100% - var(--af-w) * 0.45 + 0.6px));
+}
+.af[data-frame='cyber']::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: repeating-conic-gradient(#a3e635 0 8deg, transparent 8deg 20deg);
+  -webkit-mask: radial-gradient(
+    farthest-side,
+    transparent calc(100% - var(--af-w)),
+    #000 calc(100% - var(--af-w) + 0.6px) calc(100% - var(--af-w) * 0.62),
+    transparent calc(100% - var(--af-w) * 0.62 + 0.6px)
+  );
+  mask: radial-gradient(
+    farthest-side,
+    transparent calc(100% - var(--af-w)),
+    #000 calc(100% - var(--af-w) + 0.6px) calc(100% - var(--af-w) * 0.62),
+    transparent calc(100% - var(--af-w) * 0.62 + 0.6px)
+  );
+  pointer-events: none;
+}
+.af[data-frame='sun'] {
+  --af-w: max(3px, 0.09em);
+  --af-ring: repeating-conic-gradient(#fbbf24 0 10deg, #f97316 10deg 20deg);
+  --af-glow: rgba(251, 146, 60, 0.5);
+}
+.af[data-frame='moon'] {
+  --af-ring: conic-gradient(#1e1b4b, #4338ca, #a5b4fc, #e0e7ff, #6366f1, #1e1b4b);
+  --af-glow: rgba(99, 102, 241, 0.45);
+}
+.af[data-frame='butterfly'] {
+  --af-ring: conic-gradient(#a78bfa, #f472b6, #38bdf8, #34d399, #a78bfa);
+  --af-glow: rgba(244, 114, 182, 0.35);
+}
+
 /* Chuyển động — chậm, chỉ transform/opacity. */
 .af[data-frame='aurora'] .af__ring { animation: af-spin 9s linear infinite; }
 .af[data-frame='gold'] .af__ring { animation: af-spin 14s linear infinite; }
@@ -149,6 +243,25 @@
 .af__decor.is-twinkle { animation: af-twinkle 2.4s ease-in-out infinite; }
 .af__decor.is-twinkle.is-late { animation-delay: 1.2s; }
 .af__decor.is-sway { animation: af-sway 3.2s ease-in-out infinite; }
+.af[data-frame='dots'] .af__ring { animation: af-spin 20s linear infinite; }
+.af[data-frame='pulse'] .af__glow { animation: af-breathe 2s ease-in-out infinite; }
+.af[data-frame='spinner'] .af__ring { animation: af-spin 2.4s linear infinite; }
+.af[data-frame='comet'] .af__ring,
+.af[data-frame='comet']::before { animation: af-spin 2.2s linear infinite; }
+.af[data-frame='frost'] .af__ring { animation: af-spin 16s linear infinite; }
+.af[data-frame='thunder'] .af__ring { animation: af-spin 5s linear infinite; }
+.af[data-frame='thunder'] .af__glow { animation: af-flicker 3.4s linear infinite; }
+.af[data-frame='heart'] .af__glow { animation: af-beat-glow 1.3s ease-in-out infinite; }
+.af[data-frame='cyber'] .af__ring { animation: af-spin 6s linear infinite; }
+.af[data-frame='cyber']::after { animation: af-spin 4s linear infinite reverse; }
+.af[data-frame='sun'] .af__ring { animation: af-spin 20s linear infinite; }
+.af[data-frame='moon'] .af__ring { animation: af-spin 24s linear infinite; }
+.af[data-frame='butterfly'] .af__ring { animation: af-spin 10s linear infinite; }
+.af__decor.is-beat { animation: af-beat 1.3s ease-in-out infinite; }
+.af__decor.is-flicker { animation: af-flicker 3.4s linear infinite; }
+.af__decor.is-flutter { animation: af-flutter 0.9s ease-in-out infinite; }
+.af__decor.is-turn { animation: af-spin 12s linear infinite; }
+.af__decor.is-float { animation: af-float 3s ease-in-out infinite; }
 
 @keyframes af-spin {
   to { transform: rotate(1turn); }
@@ -165,20 +278,52 @@
   0%, 100% { transform: rotate(-8deg); }
   50% { transform: rotate(10deg); }
 }
+/* Tim đập hai nhịp rồi nghỉ. */
+@keyframes af-beat {
+  0%, 40%, 100% { transform: scale(1); }
+  12% { transform: scale(1.22); }
+  26% { transform: scale(1.1); }
+}
+@keyframes af-beat-glow {
+  0%, 40%, 100% { opacity: 0.45; }
+  12% { opacity: 1; }
+  26% { opacity: 0.8; }
+}
+/* Chớp kiểu tia sét: lặng phần lớn thời gian, chớp hai cái thật nhanh. */
+@keyframes af-flicker {
+  0%, 60%, 68%, 100% { opacity: 0.5; }
+  62%, 66% { opacity: 1; }
+  64% { opacity: 0.2; }
+}
+/* Cánh bướm vỗ: bóp ngang + nhấp nhô. */
+@keyframes af-flutter {
+  0%, 100% { transform: scaleX(1) translateY(0); }
+  50% { transform: scaleX(0.55) translateY(-0.03em); }
+}
+@keyframes af-float {
+  0%, 100% { transform: translateY(0) rotate(-6deg); }
+  50% { transform: translateY(-0.05em) rotate(6deg); }
+}
 
 .af.is-static .af__ring,
 .af.is-static .af__glow,
 .af.is-static .af__decor,
+.af.is-static::before,
+.af.is-static::after,
 .glass-lite .af .af__ring,
 .glass-lite .af .af__glow,
-.glass-lite .af .af__decor {
+.glass-lite .af .af__decor,
+.glass-lite .af::before,
+.glass-lite .af::after {
   animation: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .af .af__ring,
   .af .af__glow,
-  .af .af__decor {
+  .af .af__decor,
+  .af::before,
+  .af::after {
     animation: none;
   }
 }

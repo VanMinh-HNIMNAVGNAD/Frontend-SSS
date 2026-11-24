@@ -1,4 +1,4 @@
-import { Crown, Sparkle, Star, Flower, Fire } from '@phosphor-icons/react';
+import { Crown, Sparkle, Star, Flower, Fire, Snowflake, Lightning, Heart, Sun, Moon, Butterfly } from '@phosphor-icons/react';
 import { isAvatarFrameId } from '../../constants/avatarFrames';
 
 /**
@@ -28,6 +28,29 @@ const DECOR = {
   ],
   aurora: [
     { Icon: Sparkle, size: 0.2, color: '#a5f3fc', style: { top: '-0.02em', right: '0.02em' }, cls: 'is-twinkle' },
+  ],
+  frost: [
+    { Icon: Snowflake, size: 0.26, color: '#38bdf8', style: { top: '-0.06em', right: '-0.04em' }, cls: 'is-turn' },
+    { Icon: Snowflake, size: 0.16, color: '#7dd3fc', style: { bottom: '0.02em', left: '-0.04em' }, cls: 'is-twinkle is-late' },
+  ],
+  thunder: [
+    { Icon: Lightning, size: 0.3, color: '#facc15', style: { top: '-0.08em', right: '-0.06em' }, cls: 'is-flicker' },
+  ],
+  heart: [
+    { Icon: Heart, size: 0.28, color: '#f43f5e', style: { bottom: '-0.04em', right: '-0.04em' }, cls: 'is-beat' },
+    { Icon: Heart, size: 0.15, color: '#fda4af', style: { top: '0em', left: '-0.02em' }, cls: 'is-float' },
+  ],
+  sun: [
+    { Icon: Sun, size: 0.32, color: '#f59e0b', style: { top: '-0.1em', right: '-0.08em' }, cls: 'is-turn' },
+  ],
+  moon: [
+    { Icon: Moon, size: 0.28, color: '#fde68a', style: { top: '-0.06em', right: '-0.04em' }, cls: 'is-float' },
+    { Icon: Star, size: 0.13, color: '#fef9c3', style: { bottom: '0.06em', left: '-0.04em' }, cls: 'is-twinkle' },
+    { Icon: Star, size: 0.1, color: '#e0e7ff', style: { top: '0.04em', left: '0.06em' }, cls: 'is-twinkle is-late' },
+  ],
+  butterfly: [
+    { Icon: Butterfly, size: 0.3, color: '#c084fc', style: { top: '-0.1em', left: '-0.06em' }, cls: 'is-flutter' },
+    { Icon: Sparkle, size: 0.15, color: '#f9a8d4', style: { bottom: '0.02em', right: '-0.03em' }, cls: 'is-twinkle is-late' },
   ],
 };
 

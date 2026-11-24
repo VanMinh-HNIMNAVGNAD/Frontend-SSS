@@ -37,6 +37,7 @@ import {
 } from '@phosphor-icons/react';
 import { bounceIcon, hoverIcon, tickNumber } from '../../utils/motion';
 import FramedAvatar from '../ui/FramedAvatar';
+import AnimatedBrand from './AnimatedBrand';
 import cloudLogo from '../../assets/icon/cloud-acceleration-svgrepo-com.svg';
 
 function HeaderBar({ toggleRightSidebar }) {
@@ -465,19 +466,7 @@ function HeaderBar({ toggleRightSidebar }) {
                 {/* Tên web "cloudSSS" (Clicking resets to My Drive).
                     Ẩn trên điện thoại: chỗ đó dành cho ô tìm kiếm. Nút ☰ bên cạnh vẫn mở
                     được sidebar, và breadcrumb ngay dưới đã nói người dùng đang ở đâu. */}
-                <div 
-                    onClick={handleLogoClick}
-                    className="hidden sm:flex items-center cursor-pointer select-none pr-2 group"
-                    title={t('header.logo.title')}
-                >
-                    <img src={cloudLogo} alt="" className="w-8 h-8 mr-1" />
-                    {/* Chữ chỉ hiện từ `md`: ở dải 640–767px (tablet dọc nhỏ, điện thoại
-                        xoay ngang) cả bốn nút tròn đã quay lại thanh, thêm chữ nữa là ô
-                        tìm kiếm lại bị ép còn vài chục pixel. */}
-                    <span className="hidden md:inline text-xl font-extrabold tracking-tight text-gray-900 dark:text-gray-100 font-sans">
-                        cloud<span className="text-blue-600 dark:text-blue-400 font-black text-2xl">SSS</span>
-                    </span>
-                </div>
+                <AnimatedBrand logoSrc={cloudLogo} onClick={handleLogoClick} title={t('header.logo.title')} />
             </div>
 
             {/* VÙNG TÌM KIẾM TO + BỘ LỌC TÌM KIẾM */}

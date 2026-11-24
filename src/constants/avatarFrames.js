@@ -15,6 +15,11 @@ export const FREE_AVATAR_FRAMES = [
   'mono',
   'dashed',
   'twin',
+  'forest',
+  'candy',
+  'dots',
+  'pulse',
+  'spinner',
 ];
 
 export const PAID_AVATAR_FRAMES = [
@@ -26,6 +31,14 @@ export const PAID_AVATAR_FRAMES = [
   'flame',
   'diamond',
   'rainbow',
+  'comet',
+  'frost',
+  'thunder',
+  'heart',
+  'cyber',
+  'sun',
+  'moon',
+  'butterfly',
 ];
 
 const PAID = new Set(PAID_AVATAR_FRAMES);
